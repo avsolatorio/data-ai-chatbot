@@ -9,16 +9,16 @@ import asyncio
 import json
 import logging
 import re
-from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
-
 import traceback
 import uuid
 from typing import Any, AsyncGenerator, Callable, Dict, Mapping, Optional, Sequence
 
 from fastapi.responses import StreamingResponse
+from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 
 from app.ai.client import AsyncOpenAIChatClientProtocol
 from app.ai.mcp_tools.data360_mcp import call_mcp_tool
+from app.ai.observability.token_usage import build_data_usage_event
 from app.utils.helpers import format_sse
 
 logger = logging.getLogger(__name__)
@@ -527,21 +527,13 @@ async def stream_text(
                         # Accumulate usage across turns
                         if total_usage_data is None:
                             # Initialize with first usage data
-                            total_usage_data = {
-                                "prompt_tokens": getattr(usage_data, "prompt_tokens", 0),
-                                "completion_tokens": getattr(usage_data, "completion_tokens", 0),
-                                "total_tokens": getattr(usage_data, "total_tokens", 0),
-                            }
+                            total_usage_data = build_data_usage_event(
+                                model=model, completion_response=chunk
+                            )
+
                         else:
-                            # Accumulate tokens
-                            total_usage_data["prompt_tokens"] += getattr(
-                                usage_data, "prompt_tokens", 0
-                            )
-                            total_usage_data["completion_tokens"] += getattr(
-                                usage_data, "completion_tokens", 0
-                            )
-                            total_usage_data["total_tokens"] += getattr(
-                                usage_data, "total_tokens", 0
+                            total_usage_data += build_data_usage_event(
+                                model=model, completion_response=chunk
                             )
 
             except Exception as stream_error:
@@ -763,23 +755,11 @@ async def stream_text(
 
         # Use accumulated usage data
         if total_usage_data is not None:
-            usage_payload = {
-                "promptTokens": total_usage_data.get("prompt_tokens", 0),
-                "completionTokens": total_usage_data.get("completion_tokens", 0),
-            }
-            total_tokens = total_usage_data.get("total_tokens")
-            if total_tokens is not None:
-                usage_payload["totalTokens"] = total_tokens
-            finish_metadata["usage"] = usage_payload
+            finish_metadata["usage"] = total_usage_data.model_dump()
         elif usage_data is not None:
-            usage_payload = {
-                "promptTokens": getattr(usage_data, "prompt_tokens", 0),
-                "completionTokens": getattr(usage_data, "completion_tokens", 0),
-            }
-            total_tokens = getattr(usage_data, "total_tokens", None)
-            if total_tokens is not None:
-                usage_payload["totalTokens"] = total_tokens
-            finish_metadata["usage"] = usage_payload
+            finish_metadata["usage"] = usage_data.model_dump()
+
+        yield format_sse(finish_metadata["usage"])
 
         if finish_metadata:
             yield format_sse({"type": "finish", "messageMetadata": finish_metadata})
