@@ -6,9 +6,11 @@ import { useCopyToClipboard } from "usehooks-ts";
 import { apiFetch } from "@/lib/api-client";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
+import type { AppUsage } from "@/lib/usage";
 import { Action, Actions } from "./elements/actions";
 import { CopyIcon, FeedbackIcon, PencilEditIcon, ThumbDownIcon, ThumbUpIcon } from "./icons";
 import { MessageFeedback } from "./message-feedback";
+import { MessageTokenUsage } from "./message-token-usage";
 
 export function PureMessageActions({
   chatId,
@@ -36,6 +38,15 @@ export function PureMessageActions({
     .map((part) => part.text)
     .join("\n")
     .trim();
+
+  // Extract usage data from message parts
+  // The data-usage event is stored in parts with structure: { type: "data-usage", data: {...} }
+  const usagePart = message.parts?.find(
+    (part) => part.type === "data-usage"
+  );
+  const usageData: AppUsage | undefined = usagePart
+    ? (usagePart as { type: string; data?: AppUsage }).data
+    : undefined;
 
   const handleCopy = async () => {
     if (!textFromParts) {
@@ -197,6 +208,10 @@ export function PureMessageActions({
             )}
           </div>
         </Action>
+
+        {usageData && (
+          <MessageTokenUsage usage={usageData} />
+        )}
       </Actions>
       <MessageFeedback
         chatId={chatId}

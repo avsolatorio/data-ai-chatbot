@@ -271,7 +271,7 @@ def get_model_name(model_id: str) -> str:
         },
         "openai/": {
             "chat-model": "gpt-4.1-mini",
-            "chat-model-reasoning": "o1-mini",
+            "chat-model-reasoning": "gpt-5-mini",
             "title-model": "gpt-4.1-mini",
             "artifact-model": "gpt-4.1-mini",
         },
