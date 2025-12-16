@@ -105,6 +105,10 @@ class StreamEventProcessor:
         self.message_parts_buffer.append(self.current_part)
         self.current_part = {}
 
+    def _handle_data_usage_event(self, data: Dict[str, Any]) -> None:
+        """Handle 'data-usage' event."""
+        self.message_parts_buffer.append(data)
+
     def _handle_finish_event(self, data: Dict[str, Any]) -> None:
         """Handle 'finish' event - finalize message and track usage."""
         # Finalize any pending text part before saving the message
@@ -127,7 +131,7 @@ class StreamEventProcessor:
         metadata = data.get("messageMetadata", {})
         usage = metadata.get("usage")
         if usage:
-            self.final_usage = usage
+            self.final_usage = usage["data"]
 
     def _process_event_data(self, data: Dict[str, Any]) -> None:
         """Process a parsed event data dictionary."""
@@ -144,6 +148,7 @@ class StreamEventProcessor:
             "tool-input-available": self._handle_tool_input_available_event,
             "tool-output-error": self._handle_tool_output_error_event,
             "tool-output-available": self._handle_tool_output_available_event,
+            "data-usage": self._handle_data_usage_event,
             "finish": self._handle_finish_event,
         }
 
