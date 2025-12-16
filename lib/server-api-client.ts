@@ -7,6 +7,13 @@
 import { cookies } from "next/headers";
 import { getApiUrl } from "./api-client";
 
+// For server-side, prefer SERVER_API_URL (for Docker internal networking)
+// Falls back to NEXT_PUBLIC_API_URL (browser-accessible URL)
+const SERVER_API_URL =
+  process.env.SERVER_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8001";
+
 /**
  * Server-side fetch function for API requests.
  * Handles authentication automatically.
@@ -21,9 +28,8 @@ export async function serverApiFetch(
   // Ensure we have an absolute URL for server-side fetch
   // If getApiUrl returns a relative URL, construct absolute URL
   if (!url.startsWith("http://") && !url.startsWith("https://")) {
-    // For server-side, we need to determine the base URL
-    // Check if endpoint should go to FastAPI
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+    // For server-side, use SERVER_API_URL for internal Docker networking
+    const API_URL = SERVER_API_URL;
 
     // Auth endpoints always go to FastAPI
     if (endpoint.startsWith("/api/auth/")) {

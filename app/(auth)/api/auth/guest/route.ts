@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -18,7 +18,11 @@ export async function GET(request: Request) {
 
   // Create guest user by calling FastAPI directly
   try {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+    // Use SERVER_API_URL for Docker internal networking, fallback to NEXT_PUBLIC_API_URL
+    const API_URL =
+      process.env.SERVER_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:8001";
     const fastApiUrl = `${API_URL}/api/auth/guest`;
 
     // Call FastAPI to create guest user
@@ -30,7 +34,11 @@ export async function GET(request: Request) {
     });
 
     if (!response.ok) {
-      console.error("Failed to create guest user:", response.status, response.statusText);
+      console.error(
+        "Failed to create guest user:",
+        response.status,
+        response.statusText
+      );
       return NextResponse.redirect(new URL("/", request.url));
     }
 
@@ -38,7 +46,9 @@ export async function GET(request: Request) {
     const data = await response.json();
 
     // Create redirect response
-    const redirectResponse = NextResponse.redirect(new URL(redirectUrl, request.url));
+    const redirectResponse = NextResponse.redirect(
+      new URL(redirectUrl, request.url)
+    );
 
     // Forward Set-Cookie headers from FastAPI to client
     // FastAPI sets cookies via Set-Cookie headers in the response

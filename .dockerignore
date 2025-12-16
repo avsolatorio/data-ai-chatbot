@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+
+# Build outputs
+dist/
+build/
+
+# Environment files (passed via docker-compose)
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.cursor/
+
+# Testing
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Backend (has its own Dockerfile)
+backend/
+
+# Database data
+db_data/
+
+# Documentation (optional, can be included if needed)
+docs/
+*.md
+!README.md
+
+# Artifacts
+artifacts/
+
+# Misc
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*

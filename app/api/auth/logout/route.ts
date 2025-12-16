@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
 
 /**
  * Server-side logout route handler.
@@ -9,7 +9,11 @@ import { cookies } from "next/headers";
 export async function POST(request: NextRequest) {
   try {
     // Call FastAPI logout endpoint
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+    // Use SERVER_API_URL for Docker internal networking, fallback to NEXT_PUBLIC_API_URL
+    const API_URL =
+      process.env.SERVER_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:8001";
     const fastApiUrl = `${API_URL}/api/auth/logout`;
 
     const response = await fetch(fastApiUrl, {

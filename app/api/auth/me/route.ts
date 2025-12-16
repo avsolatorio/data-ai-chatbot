@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
 
 /**
  * Proxy endpoint for /api/auth/me
@@ -24,11 +24,18 @@ export async function GET(request: NextRequest) {
 
     // If no cookies at all, return 401
     if (!cookieHeader) {
-      return NextResponse.json({ detail: "Not authenticated" }, { status: 401 });
+      return NextResponse.json(
+        { detail: "Not authenticated" },
+        { status: 401 }
+      );
     }
 
     // Call FastAPI backend
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+    // Use SERVER_API_URL for Docker internal networking, fallback to NEXT_PUBLIC_API_URL
+    const API_URL =
+      process.env.SERVER_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:8001";
     const fastApiUrl = `${API_URL}/api/auth/me`;
 
     // Build headers
@@ -40,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     // Add timeout to prevent hanging requests (5 seconds)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5_000);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     let response: Response;
     try {

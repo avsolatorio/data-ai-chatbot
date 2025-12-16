@@ -1,13 +1,120 @@
+# Docker Compose configuration for local development
+# NOT intended for production orchestration
+#
+# IMPORTANT: Create a root .env file with POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
+# for variable substitution. These values should match backend/.env.
+# See docs/docker-setup.md for details.
+#
+# Usage:
+#   docker compose up        - Start all services
+#   docker compose up -d     - Start in detached mode
+#   docker compose down      - Stop all services
+#   docker compose logs -f   - Follow logs
+#
+# Optional Redis:
+#   docker compose --profile redis up  - Start with Redis enabled
+#
+# See docs/docker-setup.md for detailed documentation
+
 services:
+  # =============================================================================
+  # Database Service
+  # =============================================================================
   db:
-    image: postgres:17.6
+    image: postgres:17.2
+    container_name: chatbot-db
     ports:
-      - 5432:5432
-    # environment:
-    #   POSTGRES_USER: [defined in .env]
-    #   POSTGRES_PASSWORD: [defined in .env]
-    #   POSTGRES_DB: [defined in .env]
+      - "5432:5432"
     volumes:
-      - ./db_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     env_file:
-      - ./api/.env
+      - ./backend/.env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # =============================================================================
+  # Backend Service (FastAPI)
+  # =============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chatbot-backend
+    ports:
+      - "8001:8001"
+    volumes:
+      # Mount source code for hot reloading
+      - ./backend:/app
+      # Prevent overwriting installed packages
+      - /app/.venv
+    env_file:
+      - ./backend/.env
+    environment:
+      # Override database host to use Docker service name
+      - POSTGRES_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - POSTGRES_URL_SYNC=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =============================================================================
+  # Frontend Service (Next.js)
+  # =============================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: chatbot-frontend
+    ports:
+      - "3001:3001"
+    volumes:
+      # Mount source code for hot reloading
+      - .:/app
+      # Prevent overwriting installed packages and build cache
+      - /app/node_modules
+      - /app/.next
+    env_file:
+      - ./.env.local
+    environment:
+      # Browser-accessible URL (client-side JavaScript)
+      - NEXT_PUBLIC_API_URL=http://localhost:8001
+      # Server-side URL for internal Docker networking (server components, API routes)
+      - SERVER_API_URL=http://backend:8001
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # =============================================================================
+  # Redis Service (Optional)
+  # Enable with: docker compose --profile redis up
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: chatbot-redis
+    profiles:
+      - redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  # PostgreSQL data persistence
+  postgres_data:
+  # Redis data persistence (only used when redis profile is enabled)
+  redis_data:
