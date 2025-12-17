@@ -443,15 +443,17 @@ async def create_guest(http_request: Request, db: AsyncSession = Depends(get_db)
                 user_id = UUID(validated_user_id)
                 user = await get_user_by_id(db, user_id)
                 # Verify it's actually a guest user (check both type field and email pattern for safety)
-                is_guest = (hasattr(user, "type") and user.type == "guest") or (
-                    user
-                    and user.email
-                    and user.email.startswith("guest-")
-                    and user.email.endswith("@anonymous.local")
+                is_guest = user is not None and (
+                    (hasattr(user, "type") and user.type == "guest")
+                    or (
+                        user.email
+                        and user.email.startswith("guest-")
+                        and user.email.endswith("@anonymous.local")
+                    )
                 )
 
                 if not is_guest:
-                    # Not a guest user or invalid - create new one
+                    # User doesn't exist or is not a guest user - create new one
                     user = None
             except (ValueError, TypeError):
                 # Invalid UUID format - create new guest user

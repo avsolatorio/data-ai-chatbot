@@ -130,10 +130,13 @@ async def get_current_user(
                     user.email if user else None,
                 )
                 # Verify it's actually a guest user (check both type field and email pattern for safety)
-                is_guest = (hasattr(user, "type") and user.type == "guest") or (
-                    user.email
-                    and user.email.startswith("guest-")
-                    and user.email.endswith("@anonymous.local")
+                is_guest = user is not None and (
+                    (hasattr(user, "type") and user.type == "guest")
+                    or (
+                        user.email
+                        and user.email.startswith("guest-")
+                        and user.email.endswith("@anonymous.local")
+                    )
                 )
 
                 if is_guest:
@@ -147,11 +150,18 @@ async def get_current_user(
                     )
                     return {"id": str(user.id), "type": user_type, "_restore_guest": True}
                 else:
-                    logger.warning(
-                        "guest_session_id points to non-guest user: user_id=%s, email=%s",
-                        user_id,
-                        user.email if user else None,
-                    )
+                    # User doesn't exist or is not a guest user
+                    if user is None:
+                        logger.warning(
+                            "guest_session_id points to user that doesn't exist: user_id=%s (user may have been deleted or database was reset)",
+                            user_id,
+                        )
+                    else:
+                        logger.warning(
+                            "guest_session_id points to non-guest user: user_id=%s, email=%s",
+                            user_id,
+                            user.email if user else None,
+                        )
             except (ValueError, TypeError) as e:
                 # Invalid UUID format - ignore
                 logger.warning("Invalid UUID format from guest_session_id: %s", e)

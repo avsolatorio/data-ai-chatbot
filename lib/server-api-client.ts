@@ -5,7 +5,6 @@
  */
 
 import { cookies } from "next/headers";
-import { getApiUrl } from "./api-client";
 
 // For server-side, prefer SERVER_API_URL (for Docker internal networking)
 // Falls back to NEXT_PUBLIC_API_URL (browser-accessible URL)
@@ -23,23 +22,26 @@ export async function serverApiFetch(
   endpoint: string,
   init?: RequestInit
 ): Promise<Response> {
-  let url = getApiUrl(endpoint);
+  // For server-side, always use SERVER_API_URL for FastAPI endpoints
+  // This ensures Docker internal networking works correctly
+  // Next.js proxy endpoints should remain relative
+  let url: string;
 
-  // Ensure we have an absolute URL for server-side fetch
-  // If getApiUrl returns a relative URL, construct absolute URL
-  if (!url.startsWith("http://") && !url.startsWith("https://")) {
-    // For server-side, use SERVER_API_URL for internal Docker networking
-    const API_URL = SERVER_API_URL;
+  // Check if this is a Next.js proxy endpoint (should remain relative)
+  const isNextJSProxy =
+    endpoint.startsWith("/api/auth/me") ||
+    endpoint.startsWith("/api/auth/guest") ||
+    endpoint.startsWith("/api/tokenlens");
 
-    // Auth endpoints always go to FastAPI
-    if (endpoint.startsWith("/api/auth/")) {
-      url = `${API_URL}${endpoint}`;
-    } else {
-      // For other endpoints, try to construct absolute URL
-      // In server-side, relative URLs don't work with fetch()
-      // Default to FastAPI if we can't determine
-      url = `${API_URL}${endpoint}`;
-    }
+  if (isNextJSProxy) {
+    // Next.js proxy endpoints: use relative URL
+    url = endpoint;
+  } else {
+    // FastAPI endpoints: use SERVER_API_URL for Docker internal networking
+    const normalizedEndpoint = endpoint.startsWith("/")
+      ? endpoint
+      : `/${endpoint}`;
+    url = `${SERVER_API_URL}${normalizedEndpoint}`;
   }
 
   const headers = new Headers(init?.headers);

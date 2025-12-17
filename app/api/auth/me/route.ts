@@ -72,7 +72,23 @@ export async function GET(request: NextRequest) {
     }
 
     // Get response data
-    const data = await response.json();
+    // Check if response is JSON before parsing
+    const contentType = response.headers.get("content-type");
+    let data;
+    if (contentType?.includes("application/json")) {
+      data = await response.json();
+    } else {
+      // If not JSON (e.g., HTML error page), create error response
+      const text = await response.text();
+      console.error(
+        "Non-JSON response from /api/auth/me:",
+        text.substring(0, 200)
+      );
+      return NextResponse.json(
+        { detail: `Backend error: ${response.status} ${response.statusText}` },
+        { status: response.status }
+      );
+    }
 
     // Create Next.js response
     const nextResponse = NextResponse.json(data, {
