@@ -80,31 +80,58 @@ export function MessageFeedback({
       mutate<Vote[]>(
         `/api/vote?chatId=${chatId}`,
         (currentVotes) => {
+          const now = new Date();
+
           if (!currentVotes) {
             // If no votes exist and we're submitting feedback-only, create a new entry
-            return [
-              {
-                chatId,
-                messageId,
-                isUpvoted: null,
-                feedback: trimmedFeedback || null,
-              },
-            ];
+            const newVote: Vote = {
+              chatId,
+              messageId,
+              isUpvoted: vote?.isUpvoted ?? null,
+              feedback: trimmedFeedback || null,
+              createdAt: now,
+              updatedAt: now,
+              voteCreatedAt: vote?.voteCreatedAt ?? null,
+              voteUpdatedAt: vote?.voteUpdatedAt ?? null,
+              feedbackCreatedAt: now,
+              feedbackUpdatedAt: now,
+            };
+
+            return [newVote];
           }
 
           const votesWithoutCurrent = currentVotes.filter(
             (currentVote) => currentVote.messageId !== messageId
           );
 
-          return [
-            ...votesWithoutCurrent,
-            {
-              chatId,
-              messageId,
-              isUpvoted: vote?.isUpvoted ?? null,
-              feedback: trimmedFeedback || null,
-            },
-          ];
+          const existingVote = currentVotes.find(
+            (currentVote) => currentVote.messageId === messageId
+          );
+
+          const updatedVote: Vote = existingVote
+            ? {
+                ...existingVote,
+                isUpvoted: vote?.isUpvoted ?? existingVote.isUpvoted ?? null,
+                feedback: trimmedFeedback || null,
+                updatedAt: now,
+                feedbackCreatedAt:
+                  existingVote.feedbackCreatedAt ?? existingVote.createdAt,
+                feedbackUpdatedAt: now,
+              }
+            : {
+                chatId,
+                messageId,
+                isUpvoted: vote?.isUpvoted ?? null,
+                feedback: trimmedFeedback || null,
+                createdAt: now,
+                updatedAt: now,
+                voteCreatedAt: vote?.voteCreatedAt ?? null,
+                voteUpdatedAt: vote?.voteUpdatedAt ?? null,
+                feedbackCreatedAt: now,
+                feedbackUpdatedAt: now,
+              };
+
+          return [...votesWithoutCurrent, updatedVote];
         },
         { revalidate: false }
       );

@@ -8,7 +8,17 @@ import { type NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   try {
     // Get cookies from the request
-    const cookieStore = await cookies();
+    // During prerendering, `cookies()` can reject once prerender is complete,
+    // so we handle that explicitly and treat it as "not authenticated".
+    let cookieStore: Awaited<ReturnType<typeof cookies>>;
+    try {
+      cookieStore = await cookies();
+    } catch {
+      return NextResponse.json(
+        { detail: "Not authenticated" },
+        { status: 401 }
+      );
+    }
     const token = cookieStore.get("auth_token")?.value;
     const guestSessionId = cookieStore.get("guest_session_id")?.value;
     const userSessionId = cookieStore.get("user_session_id")?.value;

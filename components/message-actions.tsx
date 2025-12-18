@@ -111,21 +111,57 @@ export function PureMessageActions({
                   `/api/vote?chatId=${chatId}`,
                   (currentVotes) => {
                     if (!currentVotes) {
-                      return [];
+                      const now = new Date();
+
+                      const newVote: Vote = {
+                        chatId,
+                        messageId: message.id,
+                        isUpvoted: true,
+                        feedback: null,
+                        createdAt: now,
+                        updatedAt: now,
+                        voteCreatedAt: now,
+                        voteUpdatedAt: now,
+                        feedbackCreatedAt: null,
+                        feedbackUpdatedAt: null,
+                      };
+
+                      return [newVote];
                     }
 
                     const votesWithoutCurrent = currentVotes.filter(
                       (currentVote) => currentVote.messageId !== message.id
                     );
 
-                    return [
-                      ...votesWithoutCurrent,
-                      {
-                        chatId,
-                        messageId: message.id,
-                        isUpvoted: true,
-                      },
-                    ];
+                    const existingVote = currentVotes.find(
+                      (currentVote) => currentVote.messageId === message.id
+                    );
+
+                    const now = new Date();
+
+                    const updatedVote: Vote = existingVote
+                      ? {
+                          ...existingVote,
+                          isUpvoted: true,
+                          updatedAt: now,
+                          voteUpdatedAt: now,
+                          voteCreatedAt:
+                            existingVote.voteCreatedAt ?? existingVote.createdAt,
+                        }
+                      : {
+                          chatId,
+                          messageId: message.id,
+                          isUpvoted: true,
+                          feedback: null,
+                          createdAt: now,
+                          updatedAt: now,
+                          voteCreatedAt: now,
+                          voteUpdatedAt: now,
+                          feedbackCreatedAt: null,
+                          feedbackUpdatedAt: null,
+                        };
+
+                    return [...votesWithoutCurrent, updatedVote];
                   },
                   { revalidate: false }
                 );
@@ -163,21 +199,57 @@ export function PureMessageActions({
                   `/api/vote?chatId=${chatId}`,
                   (currentVotes) => {
                     if (!currentVotes) {
-                      return [];
+                      const now = new Date();
+
+                      const newVote: Vote = {
+                        chatId,
+                        messageId: message.id,
+                        isUpvoted: false,
+                        feedback: null,
+                        createdAt: now,
+                        updatedAt: now,
+                        voteCreatedAt: now,
+                        voteUpdatedAt: now,
+                        feedbackCreatedAt: null,
+                        feedbackUpdatedAt: null,
+                      };
+
+                      return [newVote];
                     }
 
                     const votesWithoutCurrent = currentVotes.filter(
                       (currentVote) => currentVote.messageId !== message.id
                     );
 
-                    return [
-                      ...votesWithoutCurrent,
-                      {
-                        chatId,
-                        messageId: message.id,
-                        isUpvoted: false,
-                      },
-                    ];
+                    const existingVote = currentVotes.find(
+                      (currentVote) => currentVote.messageId === message.id
+                    );
+
+                    const now = new Date();
+
+                    const updatedVote: Vote = existingVote
+                      ? {
+                          ...existingVote,
+                          isUpvoted: false,
+                          updatedAt: now,
+                          voteUpdatedAt: now,
+                          voteCreatedAt:
+                            existingVote.voteCreatedAt ?? existingVote.createdAt,
+                        }
+                      : {
+                          chatId,
+                          messageId: message.id,
+                          isUpvoted: false,
+                          feedback: null,
+                          createdAt: now,
+                          updatedAt: now,
+                          voteCreatedAt: now,
+                          voteUpdatedAt: now,
+                          feedbackCreatedAt: null,
+                          feedbackUpdatedAt: null,
+                        };
+
+                    return [...votesWithoutCurrent, updatedVote];
                   },
                   { revalidate: false }
                 );

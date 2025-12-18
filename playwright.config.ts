@@ -69,8 +69,6 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
       },
-      // Explicitly inherit maxFailures from global config (undefined = no limit)
-      maxFailures: undefined,
     },
     {
       name: "routes",
@@ -78,8 +76,6 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
       },
-      // Explicitly inherit maxFailures from global config (undefined = no limit)
-      maxFailures: undefined,
     },
 
     // {

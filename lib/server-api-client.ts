@@ -47,11 +47,18 @@ export async function serverApiFetch(
   const headers = new Headers(init?.headers);
 
   // Get cookies to forward to FastAPI
-  // FastAPI needs these cookies to restore users if JWT expired
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
-  const guestSessionId = cookieStore.get("guest_session_id")?.value;
-  const userSessionId = cookieStore.get("user_session_id")?.value;
+  // FastAPI needs these cookies to restore users if JWT expired.
+  // During prerendering, `cookies()` can reject once prerender is complete,
+  // so we handle that explicitly and gracefully fall back to no auth cookies.
+  let cookieStore: Awaited<ReturnType<typeof cookies>> | null = null;
+  try {
+    cookieStore = await cookies();
+  } catch {
+    cookieStore = null;
+  }
+  const token = cookieStore?.get("auth_token")?.value;
+  const guestSessionId = cookieStore?.get("guest_session_id")?.value;
+  const userSessionId = cookieStore?.get("user_session_id")?.value;
 
   // Build cookie header with all session cookies
   // Backend will use session IDs to restore users if JWT expired or key is lost
