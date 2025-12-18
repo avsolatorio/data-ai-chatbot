@@ -24,6 +24,7 @@ import {
 import { apiFetch } from "@/lib/api-client";
 import type { User } from "@/lib/auth-service-client";
 import { appConfig } from "@/lib/config";
+import { useAutoRefreshToken } from "@/hooks/use-auto-refresh-token";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +38,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export function AppSidebar({ user }: { user: User | undefined }) {
+  // Automatically refresh tokens before they expire
+  useAutoRefreshToken();
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
   const { mutate } = useSWRConfig();

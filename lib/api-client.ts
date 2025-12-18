@@ -35,6 +35,7 @@ export function shouldUseNextJSProxy(endpoint: string): boolean {
   // Special cases that stay in Next.js
   const nextjsProxies = [
     "/api/auth/me", // Cookie forwarding proxy
+    "/api/auth/refresh", // Token refresh with cookie forwarding
     "/api/auth/guest", // Cookie setting + redirect
     "/api/tokenlens", // Third-party service (TokenLens)
     // Add streaming endpoints here if keeping them in Next.js
