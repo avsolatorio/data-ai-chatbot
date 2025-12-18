@@ -1,8 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { guestRegex } from "./lib/constants";
-import { getCurrentUser } from "./lib/auth-service";
 
-export async function proxy(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   /*
@@ -34,18 +32,22 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get current user from FastAPI auth cookie
-  const user = await getCurrentUser();
+  // Check for auth cookies to determine if user is authenticated
+  // This avoids calling getCurrentUser() which would duplicate the layout's call
+  // We only need to check if cookies exist, not validate them (layout will do that)
+  const authToken = request.cookies.get("auth_token")?.value;
+  const guestSessionId = request.cookies.get("guest_session_id")?.value;
+  const userSessionId = request.cookies.get("user_session_id")?.value;
 
-  if (!user) {
+  // If no auth cookies at all, redirect to guest creation
+  // The layout will handle the actual user validation
+  if (!authToken && !guestSessionId && !userSessionId) {
     const redirectUrl = encodeURIComponent(request.url);
 
     return NextResponse.redirect(
       new URL(`/api/auth/guest?redirectUrl=${redirectUrl}`, request.url)
     );
   }
-
-  const isGuest = guestRegex.test(user.email ?? "");
 
   return NextResponse.next();
 }

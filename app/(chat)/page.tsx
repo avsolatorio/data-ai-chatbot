@@ -1,10 +1,8 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Chat } from "@/components/chat";
 import { DataStreamHandler } from "@/components/data-stream-handler";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
-import { getCurrentUser } from "@/lib/auth-service";
 import { generateUUID } from "@/lib/utils";
 
 export default function Page() {
@@ -16,17 +14,15 @@ export default function Page() {
 }
 
 async function NewChatPage() {
-  const user = await getCurrentUser();
+  // Auth is handled by proxy middleware and layout
+  // If no user exists, middleware redirects to /api/auth/guest
 
-  // If no user exists, redirect to guest creation
-  if (!user) {
-    redirect("/api/auth/guest");
-  }
-
-  const id = generateUUID();
-
+  // Read cookies first to mark this as a dynamic component
+  // This allows us to use Math.random() in generateUUID() below
   const cookieStore = await cookies();
   const modelIdFromCookie = cookieStore.get("chat-model");
+
+  const id = generateUUID();
 
   if (!modelIdFromCookie) {
     return (

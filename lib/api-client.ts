@@ -20,9 +20,17 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
  * - Redirects after cookie setting
  * - Third-party integrations (tokenlens)
  */
-function shouldUseNextJSProxy(endpoint: string): boolean {
-  // Extract path (ignore query params)
-  const path = endpoint.split("?")[0].split("#")[0];
+export function shouldUseNextJSProxy(endpoint: string): boolean {
+  // Extract pathname from endpoint (handles both absolute and relative URLs)
+  let path: string;
+  try {
+    // Use dummy base URL for relative paths; works for absolute URLs too
+    const url = new URL(endpoint, "http://dummy");
+    path = url.pathname;
+  } catch {
+    // Fallback: if URL parsing fails, use endpoint as-is (shouldn't happen)
+    path = endpoint;
+  }
 
   // Special cases that stay in Next.js
   const nextjsProxies = [
@@ -108,25 +116,4 @@ export function apiFetch(
   };
 
   return fetch(fullUrl, newInit);
-}
-
-/**
- * Get the API base URL (for constructing URLs manually if needed)
- */
-export function getApiBaseUrl(): string {
-  return API_URL;
-}
-
-/**
- * Check if an endpoint uses Next.js proxy
- */
-export function isNextJSProxy(endpoint: string): boolean {
-  return shouldUseNextJSProxy(endpoint);
-}
-
-/**
- * @deprecated Use isNextJSProxy() instead. This function is kept for backward compatibility.
- */
-export function isFastAPIEndpoint(endpoint: string): boolean {
-  return !shouldUseNextJSProxy(endpoint);
 }

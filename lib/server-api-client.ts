@@ -6,6 +6,8 @@
 
 import { cookies } from "next/headers";
 
+import { shouldUseNextJSProxy } from "./api-client";
+
 // For server-side, prefer SERVER_API_URL (for Docker internal networking)
 // Falls back to NEXT_PUBLIC_API_URL (browser-accessible URL)
 const SERVER_API_URL =
@@ -28,10 +30,7 @@ export async function serverApiFetch(
   let url: string;
 
   // Check if this is a Next.js proxy endpoint (should remain relative)
-  const isNextJSProxy =
-    endpoint.startsWith("/api/auth/me") ||
-    endpoint.startsWith("/api/auth/guest") ||
-    endpoint.startsWith("/api/tokenlens");
+  const isNextJSProxy = shouldUseNextJSProxy(endpoint);
 
   if (isNextJSProxy) {
     // Next.js proxy endpoints: use relative URL

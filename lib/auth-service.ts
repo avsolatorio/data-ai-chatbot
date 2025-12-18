@@ -7,14 +7,14 @@
  */
 
 import { cookies } from "next/headers";
-import { getApiUrl } from "./api-client";
+import { cache } from "react";
 import { serverApiFetch } from "./server-api-client";
 
 // Re-export types for convenience (these are safe to use in client components)
-export type { UserType, User } from "./auth-service-client";
+export type { User, UserType } from "./auth-service-client";
 
 // Import types for internal use
-import type { User, UserType } from "./auth-service-client";
+import type { User } from "./auth-service-client";
 
 export type AuthResponse = {
   access_token: string;
@@ -25,13 +25,16 @@ export type AuthResponse = {
 /**
  * Get the current authenticated user.
  * Reads JWT token from httpOnly cookie and decodes it, or calls FastAPI /api/auth/me
+ *
+ * Uses React.cache() to deduplicate requests within the same render pass.
+ * This prevents duplicate API calls when both layout and page call getCurrentUser().
  */
-export async function getCurrentUser(): Promise<User | null> {
+export const getCurrentUser = cache(async (): Promise<User | null> => {
   try {
     // For server-side: Read cookies and call FastAPI to get user info
     // Note: cookies() cannot be called during static generation/prerendering
     // If it fails, we return null (user will be handled client-side)
-    let cookieStore;
+    let cookieStore: Awaited<ReturnType<typeof cookies>> | null = null;
     try {
       cookieStore = await cookies();
     } catch (error) {
@@ -48,9 +51,9 @@ export async function getCurrentUser(): Promise<User | null> {
       throw error;
     }
 
-    const token = cookieStore.get("auth_token")?.value;
-    const guestSessionId = cookieStore.get("guest_session_id")?.value;
-    const userSessionId = cookieStore.get("user_session_id")?.value;
+    const token = cookieStore?.get("auth_token")?.value;
+    const guestSessionId = cookieStore?.get("guest_session_id")?.value;
+    const userSessionId = cookieStore?.get("user_session_id")?.value;
 
     // If no cookies at all, return null
     if (!token && !guestSessionId && !userSessionId) {
@@ -103,7 +106,7 @@ export async function getCurrentUser(): Promise<User | null> {
     console.error("Error getting current user:", error);
     return null;
   }
-}
+});
 
 /**
  * Login with email and password (server-side).
