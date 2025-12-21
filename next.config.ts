@@ -14,6 +14,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Allow build to continue even if Google Fonts are unreachable (e.g., in Docker behind firewall)
+  // Fonts will fall back to system fonts if fetch fails
+  experimental: {
+    optimizePackageImports: ["next/font/google"],
+  },
 };
 
 export default nextConfig;

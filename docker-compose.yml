@@ -24,7 +24,8 @@ services:
     image: postgres:17.2
     container_name: chatbot-db
     ports:
-      - "5432:5432"
+      # TODO: change to 5432 when production is ready
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     env_file:
@@ -43,7 +44,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      # Certificate secret is optional - only include if backend/certs/corp-root-ca.crt exists
+      secrets:
+        - corp_cert
     container_name: chatbot-backend
+    # Ensure host.docker.internal resolves to host machine
+    # This allows the backend to connect to services running on the host (e.g., MCP server on port 8022)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8001:8001"
     volumes:
@@ -57,6 +65,8 @@ services:
       # Override database host to use Docker service name
       - POSTGRES_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - POSTGRES_URL_SYNC=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+      - REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
     depends_on:
       db:
         condition: service_healthy
@@ -69,6 +79,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      secrets:
+        - npmrc
     container_name: chatbot-frontend
     ports:
       - "3001:3001"
@@ -85,6 +97,13 @@ services:
       - NEXT_PUBLIC_API_URL=http://localhost:8001
       # Server-side URL for internal Docker networking (server components, API routes)
       - SERVER_API_URL=http://backend:8001
+      # Configure npm/pnpm to use .npmrc from volume mount at runtime
+      # The volume mount ./:/app provides .npmrc at /app/.npmrc
+      - NPM_CONFIG_USERCONFIG=/app/.npmrc
+      # NODE_ENV controls which command runs (dev or start)
+      # Set to "production" for production mode, "development" for dev mode
+      # Defaults to "development" in Dockerfile if not set here
+      # - NODE_ENV=production  # Uncomment for production mode
     depends_on:
       - backend
     restart: unless-stopped
@@ -118,3 +137,12 @@ volumes:
   postgres_data:
   # Redis data persistence (only used when redis profile is enabled)
   redis_data:
+
+secrets:
+  npmrc:
+    file: ./.npmrc
+  # Corporate root CA certificate (optional - only needed if behind corporate proxy)
+  # If you don't have this certificate, comment out the 'corp_cert' secret above and below
+  # Create backend/certs/corp-root-ca.crt with your corporate certificate if needed
+  corp_cert:
+    file: ./backend/certs/corp-root-ca.crt

@@ -17,22 +17,26 @@ export const viewport = {
   maximumScale: 1, // Disable auto-zoom on mobile Safari
 };
 
+// Configure fonts with fallback for Docker builds where Google Fonts may be unreachable
 const geist = Geist({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-geist",
+  fallback: ["system-ui", "arial"],
 });
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-geist-mono",
+  fallback: ["monospace"],
 });
 
 const figtree = Figtree({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-figtree",
+  fallback: ["system-ui", "arial"],
 });
 
 const LIGHT_THEME_COLOR = "hsl(0 0% 100%)";

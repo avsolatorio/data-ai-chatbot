@@ -356,4 +356,12 @@ uv run pytest tests/
 - Check migration files are in correct directories
 - Verify database schema matches models
 
+### Docker Issues
+
+- If you encounter DNS resolution issues, you may try troubleshooting by adding the corporate DNS servers to the Docker Desktop settings.
+- Docker Desktop → Settings → Docker Engine → add DNS
+- Then run, `scutil --dns | grep 'nameserver\[[0-9]*\]'` to see the DNS servers.
+- In the Docker Engine, add this entry:
+- `"dns": ["<corp_dns_1>", "<corp_dns_2>", "1.1.1.1", "8.8.8.8"]`
+
 ---

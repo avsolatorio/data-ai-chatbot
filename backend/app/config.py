@@ -74,6 +74,7 @@ class MCPSettings(BaseSettings):
     """Settings for MCP (Model Context Protocol) server connections."""
 
     server_url: str = "https://ai4data-ai4data-mcp.hf.space/gradio_api/mcp/sse"
+    # server_url: str = "http://host.docker.internal:8022/mcp"
     ssl_verify: bool = True  # Set to False for dev environments with proxy/self-signed certs
     timeout: float = 30.0  # HTTP timeout in seconds
 
@@ -98,3 +99,8 @@ def get_mcp_settings() -> MCPSettings:
 # Initialize settings after loading dotenv
 dotenv.load_dotenv()
 settings = Settings()
+
+
+# ENV PATH="/root/.local/bin:$PATH"
+# # Suppress hardlink warning in Docker (cache and target are on different filesystems)
+# ENV UV_LINK_MODE=copy

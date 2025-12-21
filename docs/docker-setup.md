@@ -12,22 +12,25 @@ This document describes how to use Docker Compose to run the AI Chatbot applicat
 ## Quick Start
 
 1. **Clone the repository and navigate to the project root:**
+
    ```bash
    cd data-ai-chatbot
    ```
 
 2. **Set up environment files:**
+
    ```bash
    # Backend environment
    cp backend/.env.example backend/.env
    # Edit backend/.env with your API keys and database credentials
-   
+
    # Frontend environment
    cp .env.example .env.local
    # Edit .env.local with your frontend configuration
    ```
 
 3. **Ensure PostgreSQL variables are set in `backend/.env`:**
+
    ```env
    POSTGRES_USER=user
    POSTGRES_PASSWORD=your_password
@@ -35,6 +38,7 @@ This document describes how to use Docker Compose to run the AI Chatbot applicat
    ```
 
 4. **Create a root `.env` file for Docker Compose:**
+
    ```env
    # Docker Compose variables (for variable substitution)
    POSTGRES_USER=user
@@ -43,6 +47,7 @@ This document describes how to use Docker Compose to run the AI Chatbot applicat
    ```
 
 5. **Start all services:**
+
    ```bash
    docker compose up -d --build
    ```
@@ -54,12 +59,12 @@ This document describes how to use Docker Compose to run the AI Chatbot applicat
 
 ## Services Overview
 
-| Service   | Port | Description                          |
-|-----------|------|--------------------------------------|
-| frontend  | 3001 | Next.js development server           |
-| backend   | 8001 | FastAPI backend with hot reload      |
-| db        | 5432 | PostgreSQL 17.2 database             |
-| redis     | 6379 | Redis cache (optional, see below)    |
+| Service  | Port | Description                       |
+| -------- | ---- | --------------------------------- |
+| frontend | 3001 | Next.js development server        |
+| backend  | 8001 | FastAPI backend with hot reload   |
+| db       | 5432 | PostgreSQL 17.2 database          |
+| redis    | 6379 | Redis cache (optional, see below) |
 
 ## Common Commands
 
@@ -89,25 +94,25 @@ The following files were created or modified to enable full Docker support:
 
 ### New Files
 
-| File | Purpose |
-|------|---------|
-| `backend/Dockerfile` | FastAPI container with uv package manager |
+| File                           | Purpose                                            |
+| ------------------------------ | -------------------------------------------------- |
+| `backend/Dockerfile`           | FastAPI container with uv package manager          |
 | `backend/docker-entrypoint.sh` | Entrypoint script for automatic Alembic migrations |
-| `backend/.dockerignore` | Excludes dev artifacts from backend build |
-| `Dockerfile.frontend` | Next.js container with pnpm |
-| `.dockerignore` | Excludes dev artifacts from frontend build |
-| `docs/docker-setup.md` | This documentation |
+| `backend/.dockerignore`        | Excludes dev artifacts from backend build          |
+| `Dockerfile.frontend`          | Next.js container with pnpm                        |
+| `.dockerignore`                | Excludes dev artifacts from frontend build         |
+| `docs/docker-setup.md`         | This documentation                                 |
 
 ### Modified Files
 
-| File | Changes |
-|------|---------|
-| `docker-compose.yml` | Added backend, frontend services; switched to named volume |
-| `lib/server-api-client.ts` | Added `SERVER_API_URL` for Docker internal networking |
-| `app/(auth)/api/auth/guest/route.ts` | Use `SERVER_API_URL` for internal requests |
-| `app/api/auth/me/route.ts` | Use `SERVER_API_URL` for internal requests |
-| `app/api/auth/logout/route.ts` | Use `SERVER_API_URL` for internal requests |
-| `.env` (root) | Added for Docker Compose variable substitution |
+| File                                 | Changes                                                    |
+| ------------------------------------ | ---------------------------------------------------------- |
+| `docker-compose.yml`                 | Added backend, frontend services; switched to named volume |
+| `lib/server-api-client.ts`           | Added `SERVER_API_URL` for Docker internal networking      |
+| `app/(auth)/api/auth/guest/route.ts` | Use `SERVER_API_URL` for internal requests                 |
+| `app/api/auth/me/route.ts`           | Use `SERVER_API_URL` for internal requests                 |
+| `app/api/auth/logout/route.ts`       | Use `SERVER_API_URL` for internal requests                 |
+| `.env` (root)                        | Added for Docker Compose variable substitution             |
 
 ## Key Implementation Details
 
@@ -122,6 +127,7 @@ volumes:
 ```
 
 Benefits:
+
 - ✅ Data survives container restarts and rebuilds
 - ✅ Managed by Docker for better isolation
 - ✅ No risk of accidentally committing data to git
@@ -150,6 +156,7 @@ environment:
 ```
 
 This is necessary because:
+
 - **Browser** (on host machine) can't resolve Docker service names
 - **Server-side Next.js** (inside container) needs Docker networking
 
@@ -171,22 +178,25 @@ healthcheck:
 > NOTE:
 > Redis integration is available in the Docker Compose configuration but not yet integrated with the application.
 
-
 ## Troubleshooting
 
 ### "404 Not Found" on first access
+
 - **Cause**: Stale browser cookies from a previous session
 - **Fix**: Open in incognito window or clear cookies for localhost:3001
 
 ### Database errors after volume deletion
+
 - **Cause**: Database needs to reinitialize
 - **Fix**: Run `docker compose down -v` then `docker compose up -d --build`
 
 ### Environment variable warnings
+
 - **Cause**: Missing root `.env` file
 - **Fix**: Create `.env` in project root with `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
 
 ### Chat not working / hanging
+
 - **Cause**: Missing API keys or incorrect `MODEL_PREFIX`
 - **Fix**: Ensure `backend/.env` has `OPENAI_API_KEY` and `MODEL_PREFIX=openai/`
 
@@ -220,24 +230,24 @@ healthcheck:
 
 ### Root `.env` (for Docker Compose)
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `POSTGRES_USER` | Database username | Yes |
-| `POSTGRES_PASSWORD` | Database password | Yes |
-| `POSTGRES_DB` | Database name | Yes |
+| Variable            | Description       | Required |
+| ------------------- | ----------------- | -------- |
+| `POSTGRES_USER`     | Database username | Yes      |
+| `POSTGRES_PASSWORD` | Database password | Yes      |
+| `POSTGRES_DB`       | Database name     | Yes      |
 
 ### Backend (`backend/.env`)
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `POSTGRES_USER` | Database username | Yes |
-| `POSTGRES_PASSWORD` | Database password | Yes |
-| `POSTGRES_DB` | Database name | Yes |
-| `OPENAI_API_KEY` | OpenAI API key | Yes (for chat) |
-| `MODEL_PREFIX` | LLM provider prefix | Yes (e.g., `openai/`) |
+| Variable            | Description         | Required              |
+| ------------------- | ------------------- | --------------------- |
+| `POSTGRES_USER`     | Database username   | Yes                   |
+| `POSTGRES_PASSWORD` | Database password   | Yes                   |
+| `POSTGRES_DB`       | Database name       | Yes                   |
+| `OPENAI_API_KEY`    | OpenAI API key      | Yes (for chat)        |
+| `MODEL_PREFIX`      | LLM provider prefix | Yes (e.g., `openai/`) |
 
 ### Frontend (`.env.local`)
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `POSTGRES_URL` | Database connection string | Yes |
+| Variable       | Description                | Required |
+| -------------- | -------------------------- | -------- |
+| `POSTGRES_URL` | Database connection string | Yes      |

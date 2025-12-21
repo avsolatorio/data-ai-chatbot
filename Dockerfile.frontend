@@ -3,28 +3,46 @@
 
 FROM node:20-alpine
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@9.12.3 --activate
+# Use the existing non-root 'node' user (UID 1000) from node:20-alpine base image
+# This improves security by running with least privilege
+# Note: We use 'su' for user switching in entrypoint (available in Alpine)
 
 # Set working directory
 WORKDIR /app
 
 # Copy package files first for better caching
-COPY package.json pnpm-lock.yaml ./
+COPY --chown=node:node package.json pnpm-lock.yaml ./
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies as root (needed for global pnpm install)
+# Then change ownership to node user
+RUN --mount=type=secret,id=npmrc,target=/tmp/.npmrc,readonly \
+    export NPM_CONFIG_USERCONFIG=/tmp/.npmrc && \
+    npm install -g pnpm@10.26.0 && \
+    pnpm install --frozen-lockfile && \
+    chown -R node:node /app
 
-# Copy application code
-COPY . .
+# Copy application code with proper ownership
+COPY --chown=node:node . .
+
+# Copy and set up entrypoint script
+# Entrypoint runs as root to fix .next ownership, then switches to node user
+COPY docker-entrypoint-frontend.sh /docker-entrypoint-frontend.sh
+RUN chmod +x /docker-entrypoint-frontend.sh
 
 # Expose the frontend port
 EXPOSE 3001
 
-# Set environment variables for development
-ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Run the Next.js development server
-# Using --turbo for faster development builds
-CMD ["pnpm", "dev", "--port", "3001"]
+# NODE_ENV can be set via docker-compose.yml environment or .env file
+# Entrypoint will automatically choose dev or start based on NODE_ENV
+# Default to development for local development
+ENV NODE_ENV=development
+
+# Don't set USER here - entrypoint will handle user switching
+# This allows entrypoint to run as root for ownership fixes, then switch to node user
+ENTRYPOINT ["/docker-entrypoint-frontend.sh"]
+
+# CMD is ignored - entrypoint chooses command based on NODE_ENV
+# But we need a CMD for Docker, so use a placeholder
+CMD ["sh", "-c", "echo 'Command will be determined by entrypoint based on NODE_ENV'"]
