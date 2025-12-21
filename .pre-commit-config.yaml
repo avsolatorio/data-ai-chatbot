@@ -67,3 +67,10 @@ repos:
         types: [file]
         files: .*Dockerfile$
         pass_filenames: true
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        exclude: (?:.*[-\.]lock\.(json|toml|yaml|yml)|.npmrc)
+        args: ["--exclude-lines", "\\s*\"image/png\": \".+\""]
