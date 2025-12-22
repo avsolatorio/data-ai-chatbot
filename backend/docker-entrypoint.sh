@@ -17,11 +17,8 @@ if [ "$(id -u)" = "0" ]; then
   # Also ensure any other files in /app that might be root-owned are fixed
   # But be careful not to chown the bind mount itself (./backend:/app)
   # The anonymous volume for .venv is safe to chown
-fi
 
-# Switch to non-root user if running as root
-# This improves security by running with least privilege
-if [ "$(id -u)" = "0" ]; then
+  # Switch to non-root user if running as root
   echo "Switching to non-root user (appuser) for application execution..."
   # Re-execute this script as appuser using gosu
   # The script will skip this block and proceed to migrations/startup
