@@ -1,5 +1,6 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
+import type { ToolUIPart } from "ai";
 import equal from "fast-deep-equal";
 import { memo, useState } from "react";
 import type { Vote } from "@/lib/db/schema";
@@ -10,6 +11,7 @@ import { GetWdiData } from "./data360/get-wdi-data";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
+import { CodeBlock } from "./elements/code-block";
 import { MessageContent } from "./elements/message";
 import { Response } from "./elements/response";
 import {
@@ -342,6 +344,61 @@ const PurePreviewMessage = ({
                         output={
                           <SearchRelevantIndicators output={toolPart.output} />
                         }
+                      />
+                    )}
+                  </ToolContent>
+                </Tool>
+              );
+            }
+
+            // Generic fallback handler for any tool type starting with "tool-"
+            // This handles tools that don't have specific UI components (e.g., "tool-generate")
+            if (typeof type === "string" && type.startsWith("tool-")) {
+              const toolPart = part as {
+                toolCallId: string;
+                state:
+                  | "input-available"
+                  | "output-available"
+                  | "input-streaming"
+                  | "output-error";
+                input?: unknown;
+                output?: unknown;
+                errorText?: string;
+              };
+
+              // Render output as ReactNode
+              let outputNode: React.ReactNode = null;
+              if (toolPart.output !== null && toolPart.output !== undefined) {
+                const output: unknown = toolPart.output;
+                if (typeof output === "string") {
+                  outputNode = (
+                    <div className="whitespace-pre-wrap">{output}</div>
+                  );
+                } else {
+                  const jsonOutput = JSON.stringify(output, null, 2);
+                  outputNode = <CodeBlock code={jsonOutput} language="json" />;
+                }
+              }
+
+              return (
+                <Tool defaultOpen={false} key={toolPart.toolCallId}>
+                  <ToolHeader
+                    state={toolPart.state}
+                    type={type as `tool-${string}`}
+                  />
+                  <ToolContent>
+                    {(toolPart.state === "input-available" ||
+                      toolPart.state === "input-streaming") &&
+                      toolPart.input !== undefined && (
+                        <ToolInput
+                          input={toolPart.input as ToolUIPart["input"]}
+                        />
+                      )}
+                    {(toolPart.state === "output-available" ||
+                      toolPart.state === "output-error") && (
+                      <ToolOutput
+                        errorText={toolPart.errorText}
+                        output={outputNode}
                       />
                     )}
                   </ToolContent>

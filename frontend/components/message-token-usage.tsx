@@ -47,10 +47,17 @@ function formatTokenCount(tokens: number): string {
   if (tokens >= 1_000_000) {
     return `${(tokens / 1_000_000).toFixed(1)}M`;
   }
-  if (tokens >= 1_000) {
-    return `${(tokens / 1_000).toFixed(1)}k`;
+  if (tokens >= 1000) {
+    return `${(tokens / 1000).toFixed(1)}k`;
   }
   return tokens.toString();
+}
+
+function formatCost(cost: number | undefined | null): string | undefined {
+  if (cost === undefined || cost === null || cost === 0) {
+    return "";
+  }
+  return cost.toString();
 }
 
 export function MessageTokenUsage({
@@ -87,30 +94,32 @@ export function MessageTokenUsage({
         <div className="min-w-[240px] space-y-2">
           <div className="flex items-start justify-between text-sm">
             <span className="font-medium">Token Usage</span>
-            <span className="text-muted-foreground font-mono">
+            <span className="font-mono text-muted-foreground">
               {totalTokens.toLocaleString()}
             </span>
           </div>
           <div className="mt-1 space-y-1">
-            {usage?.cachedInputTokens && usage.cachedInputTokens > 0 && (
-              <InfoRow
-                costText={usage?.costUSD?.cacheReadUSD?.toString()}
-                label="Cache Hits"
-                tokens={usage?.cachedInputTokens}
-              />
-            )}
             <InfoRow
-              costText={usage?.costUSD?.inputUSD?.toString()}
+              costText={formatCost(usage?.costUSD?.cacheReadUSD)}
+              label="Cache Hits"
+              tokens={
+                usage?.cachedInputTokens && usage.cachedInputTokens > 0
+                  ? usage.cachedInputTokens
+                  : undefined
+              }
+            />
+            <InfoRow
+              costText={formatCost(usage?.costUSD?.inputUSD)}
               label="Input"
               tokens={usage?.inputTokens}
             />
             <InfoRow
-              costText={usage?.costUSD?.outputUSD?.toString()}
+              costText={formatCost(usage?.costUSD?.outputUSD)}
               label="Output"
               tokens={usage?.outputTokens}
             />
             <InfoRow
-              costText={usage?.costUSD?.reasoningUSD?.toString()}
+              costText={formatCost(usage?.costUSD?.reasoningUSD)}
               label="Reasoning"
               tokens={
                 usage?.reasoningTokens && usage.reasoningTokens > 0
