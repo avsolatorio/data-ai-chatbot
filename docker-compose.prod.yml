@@ -1,0 +1,6 @@
+services:
+  frontend:
+    environment:
+      - NODE_ENV=production
+    command: ["pnpm", "start", "--port", "3001"]
+    volumes: [] # explicitly no bind mount

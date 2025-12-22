@@ -1,0 +1,17 @@
+services:
+  frontend:
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - frontend_node_modules:/app/node_modules
+      # - frontend_next:/app/.next
+    command: ["pnpm", "dev", "--port", "3001"]
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  frontend_node_modules:
+  # frontend_next:

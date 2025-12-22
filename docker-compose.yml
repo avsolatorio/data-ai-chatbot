@@ -84,12 +84,6 @@ services:
     container_name: chatbot-frontend
     ports:
       - "3001:3001"
-    volumes:
-      # Mount source code for hot reloading
-      - .:/app
-      # Prevent overwriting installed packages and build cache
-      - /app/node_modules
-      - /app/.next
     env_file:
       - ./.env.local
     environment:
@@ -100,10 +94,6 @@ services:
       # Configure npm/pnpm to use .npmrc from volume mount at runtime
       # The volume mount ./:/app provides .npmrc at /app/.npmrc
       - NPM_CONFIG_USERCONFIG=/app/.npmrc
-      # NODE_ENV controls which command runs (dev or start)
-      # Set to "production" for production mode, "development" for dev mode
-      # Defaults to "development" in Dockerfile if not set here
-      # - NODE_ENV=production  # Uncomment for production mode
     depends_on:
       - backend
     restart: unless-stopped
