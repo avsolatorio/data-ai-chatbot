@@ -81,6 +81,7 @@ export function MessageTokenUsage({
             "cursor-pointer bg-background text-muted-foreground",
             "outline-none ring-offset-background transition-colors",
             "hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            "shrink-0",
             className
           )}
           type="button"

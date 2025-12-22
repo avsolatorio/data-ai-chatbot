@@ -61,7 +61,7 @@ export function PureMessageActions({
   // User messages get edit (on hover) and copy actions
   if (message.role === "user") {
     return (
-      <Actions className="-mr-0.5 justify-end">
+      <Actions className="-mr-0.5 shrink-0 justify-end">
         <div className="relative">
           {setMode && (
             <Action
@@ -83,7 +83,7 @@ export function PureMessageActions({
 
   return (
     <>
-      <Actions className="-ml-0.5">
+      <Actions className="-ml-0.5 shrink-0">
         <Action onClick={handleCopy} tooltip="Copy">
           <CopyIcon />
         </Action>
