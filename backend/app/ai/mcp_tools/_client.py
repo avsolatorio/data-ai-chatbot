@@ -1,22 +1,33 @@
 from functools import cache
+from typing import Literal
 
 import httpx
 from fastmcp import Client
-from fastmcp.client.transports import SSETransport
+from fastmcp.client.transports import SSETransport, StreamableHttpTransport
 
 from app.config import get_mcp_settings
 
 
 @cache
-def get_mcp_client() -> Client[SSETransport]:
-    """Get a cached MCP client instance."""
+def get_mcp_client(
+    transport: Literal["sse", "http"] = "http",
+) -> Client[SSETransport | StreamableHttpTransport]:
+    """Get a cached MCP client instance.
+    TODO: Deprecate SSE transport.
+    """
 
-    transport = SSETransport(
-        url=get_mcp_settings().server_url,
-        httpx_client_factory=create_httpx_client,
-    )
+    if transport == "sse":
+        transport = SSETransport(
+            url=get_mcp_settings().server_url,
+            httpx_client_factory=create_httpx_client,
+        )
+    elif transport == "http":
+        transport = StreamableHttpTransport(
+            url=get_mcp_settings().server_url,
+            httpx_client_factory=create_httpx_client,
+        )
+
     return Client(transport)
-
 
 
 def create_httpx_client(
@@ -32,4 +43,3 @@ def create_httpx_client(
         auth=auth,
         verify=settings.ssl_verify,
     )
-
