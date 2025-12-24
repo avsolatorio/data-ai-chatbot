@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Literal, Optional
 from uuid import UUID, uuid4
 
 from app.utils.stream import stream_text
@@ -15,8 +15,9 @@ logger = logging.getLogger(__name__)
 class StreamEventProcessor:
     """Processes stream events and builds assistant messages."""
 
-    def __init__(self, chat_id: UUID):
+    def __init__(self, chat_id: UUID, mode: Literal["thinking", "chat"]):
         self.chat_id = chat_id
+        self.mode = mode
         self.current_message_id: Optional[str] = None
         self.current_part: Dict[str, Any] = {}
         self.message_parts_buffer: List[Dict[str, Any]] = []
@@ -137,6 +138,10 @@ class StreamEventProcessor:
         """Process a parsed event data dictionary."""
         event_type = data.get("type")
 
+        if self.mode == "thinking":
+            # Remove "thinking-" prefix from event type
+            event_type = event_type.replace("thinking-", "")
+
         event_handlers = {
             "start": self._handle_start_event,
             "start-step": self._handle_start_step_event,
@@ -178,6 +183,7 @@ class StreamEventProcessor:
                 model=model,
                 messages=messages,
                 system=system,
+                mode=self.mode,
                 tools=tools,
                 tool_definitions=tool_definitions,
                 temperature=0.7,

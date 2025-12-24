@@ -54,6 +54,17 @@ async def save_chat(
     return new_chat
 
 
+def convert_message_data_to_message_model(msg_data: dict) -> Message:
+    return Message(
+        id=msg_data["id"],
+        chatId=msg_data["chatId"],
+        role=msg_data["role"],
+        parts=msg_data["parts"],
+        attachments=msg_data["attachments"],
+        createdAt=msg_data["createdAt"],
+    )
+
+
 async def save_messages(
     session: AsyncSession,
     messages: List[dict],
@@ -67,16 +78,16 @@ async def save_messages(
     logger.info("Saving %d message(s)", len(messages))
     message_objects = []
     for msg_data in messages:
-        message_obj = Message(
-            id=UUID(msg_data["id"]) if isinstance(msg_data["id"], str) else msg_data["id"],
-            chatId=UUID(msg_data["chatId"])
-            if isinstance(msg_data["chatId"], str)
-            else msg_data["chatId"],
-            role=msg_data["role"],
-            parts=msg_data["parts"],
-            attachments=msg_data.get("attachments", []),
-            createdAt=msg_data.get("createdAt", datetime.utcnow()),
+        # Convert id and chatId to UUIDs if they are strings
+        msg_data["id"] = UUID(msg_data["id"]) if isinstance(msg_data["id"], str) else msg_data["id"]
+        msg_data["chatId"] = (
+            UUID(msg_data["chatId"]) if isinstance(msg_data["chatId"], str) else msg_data["chatId"]
         )
+
+        # Add default values if they are not present
+        msg_data["createdAt"] = msg_data.get("createdAt", datetime.utcnow())
+        msg_data["attachments"] = msg_data.get("attachments", [])
+        message_obj = convert_message_data_to_message_model(msg_data)
         message_objects.append(message_obj)
         session.add(message_obj)
 

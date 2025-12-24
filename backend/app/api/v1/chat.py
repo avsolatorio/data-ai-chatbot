@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.client import get_ai_client, get_async_ai_client, get_model_name
+from app.ai.observability.token_usage import DataUsageData
 from app.ai.prompts import get_system_prompt
 from app.api.deps import get_current_user, get_optional_user
 from app.api.v1.utils.background_tasks import (
@@ -23,6 +24,7 @@ from app.config import ModelType
 from app.core.database import get_db
 from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import (
+    convert_message_data_to_message_model,
     create_stream_id,
     delete_chat_by_id,
     get_chat_by_id,
@@ -230,7 +232,7 @@ async def create_chat(
                 "id": str(request.message.id),
                 "chatId": str(request.id),
                 "role": "user",
-                "parts": [part.dict() for part in request.message.parts],
+                "parts": [part.model_dump() for part in request.message.parts],
                 "attachments": [],
                 "createdAt": datetime.utcnow(),
             }
@@ -260,7 +262,7 @@ async def create_chat(
         {
             "id": str(request.message.id),
             "role": request.message.role,
-            "parts": [part.dict() for part in request.message.parts],
+            "parts": [part.model_dump() for part in request.message.parts],
             "attachments": [],
             "createdAt": datetime.utcnow().isoformat(),
         }
@@ -282,7 +284,8 @@ async def create_chat(
     logger.info("tool_definitions: %s", tool_definitions)
 
     # Create stream processor
-    processor = StreamEventProcessor(request.id)
+    thinking_processor = StreamEventProcessor(request.id, mode="thinking")
+    chat_processor = StreamEventProcessor(request.id, mode="chat")
 
     # Track if stream was interrupted (client disconnect) vs completed normally
     stream_interrupted = False
@@ -291,10 +294,33 @@ async def create_chat(
         nonlocal stream_interrupted
         sequence = 0  # Sequence counter for ordering chunks
         try:
-            async for event_bytes in processor.process_stream(
+            async for event_bytes in thinking_processor.process_stream(
                 client=client,
                 model=model,
                 messages=openai_messages,
+                system=system,
+                tools=tools,
+                tool_definitions=tool_definitions,
+            ):
+                # Store chunk in Redis asynchronously with sequence number
+                current_sequence = sequence
+                sequence += 1
+                asyncio.create_task(store_stream_chunk(stream_id, event_bytes, current_sequence))
+                yield event_bytes
+
+            # TODO: If thinking stage is completed, store the thinking messages in the database and support resuming the stream from the thinking stage.
+            thinking_messages = [
+                convert_message_data_to_message_model(msg).to_dict()
+                for msg in thinking_processor.assistant_messages
+            ]
+
+            if not thinking_messages:
+                thinking_messages = openai_messages
+
+            async for event_bytes in chat_processor.process_stream(
+                client=client,
+                model=model,
+                messages=thinking_messages,
                 system=system,
                 tools=tools,
                 tool_definitions=tool_definitions,
@@ -324,7 +350,7 @@ async def create_chat(
                     tools=tools,
                     tool_definitions=tool_definitions,
                     background_tasks=background_tasks,
-                    processor=processor,
+                    processor=thinking_processor,
                     current_sequence=sequence,
                 )
             )
@@ -337,10 +363,29 @@ async def create_chat(
 
                 # Schedule background tasks after stream completes
                 create_save_messages_task(
-                    background_tasks, request.id, processor.assistant_messages
+                    background_tasks,
+                    request.id,
+                    thinking_processor.assistant_messages + chat_processor.assistant_messages,
                 )
-                if processor.final_usage:
-                    create_update_context_task(background_tasks, request.id, processor.final_usage)
+                if thinking_processor.final_usage and chat_processor.final_usage:
+                    create_update_context_task(
+                        background_tasks,
+                        request.id,
+                        DataUsageData.model_validate(thinking_processor.final_usage)
+                        + DataUsageData.model_validate(chat_processor.final_usage),
+                    )
+                elif thinking_processor.final_usage:
+                    create_update_context_task(
+                        background_tasks,
+                        request.id,
+                        DataUsageData.model_validate(thinking_processor.final_usage),
+                    )
+                elif chat_processor.final_usage:
+                    create_update_context_task(
+                        background_tasks,
+                        request.id,
+                        DataUsageData.model_validate(chat_processor.final_usage),
+                    )
 
     response = StreamingResponse(
         stream_generator(),
