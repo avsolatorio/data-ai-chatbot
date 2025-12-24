@@ -1,13 +1,24 @@
 import ast
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 
 import json5
 
 
-def format_sse(payload: dict) -> str:
-    """Format a payload as Server-Sent Event."""
+def format_sse(payload: dict, mode: Literal["thinking", "chat"] = "chat") -> str:
+    """Format a payload as Server-Sent Event.
+    If mode is "thinking", the payload will be prefixed with "thinking-" in the "type" field.
+
+    Args:
+        payload: The payload to format as a dictionary
+        mode: The mode of the stream
+    """
+
+    if mode == "thinking":
+        if "type" in payload:
+            payload["type"] = f"thinking-{payload['type']}"
+
     return f"data: {json.dumps(payload, separators=(',', ':'))}\n\n"
 
 

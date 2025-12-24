@@ -11,7 +11,7 @@ import logging
 import re
 import traceback
 import uuid
-from typing import Any, AsyncGenerator, Callable, Dict, Mapping, Optional, Sequence
+from typing import Any, AsyncGenerator, Callable, Dict, Literal, Mapping, Optional, Sequence
 
 from fastapi.responses import StreamingResponse
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
@@ -193,6 +193,7 @@ def _process_chunk(
     chunk: Any,
     text_stream_id: str,
     tool_calls_state: Dict[int, Dict[str, Any]],
+    mode: Literal["thinking", "chat"] = "chat",
 ):
     """
     Process a single chunk from the stream and yield SSE events as they're created.
@@ -225,10 +226,12 @@ def _process_chunk(
                 text_stream_id = getattr(delta, "item_id", text_stream_id)
                 if not text_started:
                     # Yield text-start event immediately
-                    yield format_sse({"type": "text-start", "id": text_stream_id})
+                    yield format_sse({"type": "text-start", "id": text_stream_id}, mode=mode)
                     text_started = True
                 # Yield text-delta event immediately
-                yield format_sse({"type": "text-delta", "id": text_stream_id, "delta": content})
+                yield format_sse(
+                    {"type": "text-delta", "id": text_stream_id, "delta": content}, mode=mode
+                )
 
             # Handle tool calls
             tool_calls = getattr(delta, "tool_calls", None)
@@ -259,7 +262,8 @@ def _process_chunk(
                                     "type": "tool-input-start",
                                     "toolCallId": state["id"],
                                     "toolName": state["name"],
-                                }
+                                },
+                                mode=mode,
                             )
                             state["started"] = True
 
@@ -279,7 +283,8 @@ def _process_chunk(
                                         "type": "tool-input-start",
                                         "toolCallId": state["id"],
                                         "toolName": state["name"],
-                                    }
+                                    },
+                                    mode=mode,
                                 )
                                 state["started"] = True
 
@@ -296,7 +301,8 @@ def _process_chunk(
                                         "type": "tool-input-start",
                                         "toolCallId": state["id"],
                                         "toolName": state["name"],
-                                    }
+                                    },
+                                    mode=mode,
                                 )
                                 state["started"] = True
 
@@ -308,7 +314,8 @@ def _process_chunk(
                                         "type": "tool-input-delta",
                                         "toolCallId": state["id"],
                                         "inputTextDelta": function_arguments,
-                                    }
+                                    },
+                                    mode=mode,
                                 )
 
     # Return state via generator return value (Python 3.3+)
@@ -320,6 +327,7 @@ async def stream_text(
     model: str,
     messages: Sequence[ChatCompletionMessageParam],
     system: Optional[str] = None,
+    mode: Literal["thinking", "chat"] = "chat",
     tools: Optional[Mapping[str, Callable[..., Any]]] = None,
     tool_definitions: Optional[Sequence[Dict[str, Any]]] = None,
     temperature: float = 0.7,
@@ -374,7 +382,7 @@ async def stream_text(
             # Yield start event only on first turn
             if turn == 0:
                 logger.info("Yielding start event with messageId: %s", message_id)
-                yield format_sse({"type": "start", "messageId": message_id})
+                yield format_sse({"type": "start", "messageId": message_id}, mode=mode)
                 await asyncio.sleep(0)  # Flush immediately
 
             # Call LiteLLM with async streaming
@@ -387,7 +395,7 @@ async def stream_text(
                 tools=tool_definitions if tool_definitions else None,
             )
 
-            yield format_sse({"type": "start-step"})
+            yield format_sse({"type": "start-step"}, mode=mode)
 
             # Process stream chunks
             logger.info("Starting to iterate over stream chunks...")
@@ -421,7 +429,9 @@ async def stream_text(
                             if content is not None:
                                 if not text_started:
                                     # Yield text-start event immediately (only once)
-                                    yield format_sse({"type": "text-start", "id": text_stream_id})
+                                    yield format_sse(
+                                        {"type": "text-start", "id": text_stream_id}, mode=mode
+                                    )
                                     text_started = True
                                 # Chunk content word-by-word for smoother streaming
                                 # This mimics Vercel AI SDK's smoothStream({ chunking: "word" })
@@ -433,7 +443,8 @@ async def stream_text(
                                             "type": "text-delta",
                                             "id": text_stream_id,
                                             "delta": word_chunk,
-                                        }
+                                        },
+                                        mode=mode,
                                     )
                                     # Give event loop a chance to flush immediately
                                     await asyncio.sleep(stream_yield_delay)
@@ -467,7 +478,8 @@ async def stream_text(
                                                     "type": "tool-input-start",
                                                     "toolCallId": state["id"],
                                                     "toolName": state["name"],
-                                                }
+                                                },
+                                                mode=mode,
                                             )
                                             state["started"] = True
 
@@ -487,7 +499,8 @@ async def stream_text(
                                                         "type": "tool-input-start",
                                                         "toolCallId": state["id"],
                                                         "toolName": state["name"],
-                                                    }
+                                                    },
+                                                    mode=mode,
                                                 )
                                                 state["started"] = True
 
@@ -506,7 +519,8 @@ async def stream_text(
                                                         "type": "tool-input-start",
                                                         "toolCallId": state["id"],
                                                         "toolName": state["name"],
-                                                    }
+                                                    },
+                                                    mode=mode,
                                                 )
                                                 state["started"] = True
 
@@ -518,7 +532,8 @@ async def stream_text(
                                                         "type": "tool-input-delta",
                                                         "toolCallId": state["id"],
                                                         "inputTextDelta": function_arguments,
-                                                    }
+                                                    },
+                                                    mode=mode,
                                                 )
 
                     # Check for usage data
@@ -543,7 +558,7 @@ async def stream_text(
 
             # Handle text end - emit if text was started and stream finished
             if finish_reason == "stop" and text_started and not text_finished:
-                yield format_sse({"type": "text-end", "id": text_stream_id})
+                yield format_sse({"type": "text-end", "id": text_stream_id}, mode=mode)
                 text_finished = True
 
             # Handle tool calls completion
@@ -592,7 +607,8 @@ async def stream_text(
                                 "type": "tool-input-start",
                                 "toolCallId": tool_call_id,
                                 "toolName": tool_name,
-                            }
+                            },
+                            mode=mode,
                         )
                         state["started"] = True
 
@@ -607,7 +623,8 @@ async def stream_text(
                                 "toolName": tool_name,
                                 "input": raw_arguments,
                                 "errorText": str(error),
-                            }
+                            },
+                            mode=mode,
                         )
                         # Add error as tool message
                         tool_messages.append(
@@ -615,7 +632,8 @@ async def stream_text(
                                 "role": "tool",
                                 "tool_call_id": tool_call_id,
                                 "content": json.dumps({"error": str(error)}),
-                            }
+                            },
+                            mode=mode,
                         )
                         continue
 
@@ -625,7 +643,8 @@ async def stream_text(
                             "toolCallId": tool_call_id,
                             "toolName": tool_name,
                             "input": parsed_arguments,
-                        }
+                        },
+                        mode=mode,
                     )
 
                     # Execute tool
@@ -637,14 +656,16 @@ async def stream_text(
                                 "type": "tool-output-error",
                                 "toolCallId": tool_call_id,
                                 "errorText": error_msg,
-                            }
+                            },
+                            mode=mode,
                         )
                         tool_messages.append(
                             {
                                 "role": "tool",
                                 "tool_call_id": tool_call_id,
                                 "content": json.dumps({"error": error_msg}),
-                            }
+                            },
+                            mode=mode,
                         )
                         continue
 
@@ -673,7 +694,8 @@ async def stream_text(
                                         "toolCallId": error_info.get("toolCallId", tool_call_id),
                                         "toolName": error_info.get("toolName", tool_name),
                                         "errorText": error_info.get("errorText", "Unknown error"),
-                                    }
+                                    },
+                                    mode=mode,
                                 )
                                 tool_messages.append(
                                     {
@@ -682,7 +704,8 @@ async def stream_text(
                                         "content": json.dumps(
                                             {"error": error_info.get("errorText", "Unknown error")}
                                         ),
-                                    }
+                                    },
+                                    mode=mode,
                                 )
                                 # Continue to next tool call
                                 tool_result = None
@@ -696,7 +719,8 @@ async def stream_text(
                                     "type": "tool-output-available",
                                     "toolCallId": tool_call_id,
                                     "output": tool_result,
-                                }
+                                },
+                                mode=mode,
                             )
 
                             # Add tool result to conversation messages
@@ -711,7 +735,8 @@ async def stream_text(
                                     "role": "tool",
                                     "tool_call_id": tool_call_id,
                                     "content": tool_result_str,
-                                }
+                                },
+                                mode=mode,
                             )
                     except Exception as error:
                         # Handle any unexpected errors
@@ -722,14 +747,16 @@ async def stream_text(
                                 "toolCallId": tool_call_id,
                                 "toolName": tool_name,
                                 "errorText": error_msg,
-                            }
+                            },
+                            mode=mode,
                         )
                         tool_messages.append(
                             {
                                 "role": "tool",
                                 "tool_call_id": tool_call_id,
                                 "content": json.dumps({"error": error_msg}),
-                            }
+                            },
+                            mode=mode,
                         )
                         continue
 
@@ -744,7 +771,7 @@ async def stream_text(
             else:
                 # No tool calls or no tools provided - we're done
                 if text_started and not text_finished:
-                    yield format_sse({"type": "text-end", "id": text_stream_id})
+                    yield format_sse({"type": "text-end", "id": text_stream_id}, mode=mode)
                     text_finished = True
                 break
 
@@ -759,18 +786,20 @@ async def stream_text(
         elif usage_data is not None:
             finish_metadata["usage"] = usage_data.model_dump()
 
-        yield format_sse(finish_metadata["usage"])
+        yield format_sse(finish_metadata["usage"], mode=mode)
 
         if finish_metadata:
-            yield format_sse({"type": "finish", "messageMetadata": finish_metadata})
+            yield format_sse({"type": "finish", "messageMetadata": finish_metadata}, mode=mode)
         else:
-            yield format_sse({"type": "finish"})
+            yield format_sse({"type": "finish"}, mode=mode)
 
         yield "data: [DONE]\n\n"
     except Exception:
         logger.error("Error in stream_text", exc_info=True)
         stack_trace = traceback.format_exc()
-        yield format_sse({"type": "error", "error": f"Error in stream_text: {stack_trace}"})
+        yield format_sse(
+            {"type": "error", "error": f"Error in stream_text: {stack_trace}"}, mode=mode
+        )
         yield "data: [DONE]\n\n"
 
 
