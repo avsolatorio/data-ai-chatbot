@@ -18,11 +18,12 @@ class StreamEventProcessor:
     def __init__(self, chat_id: UUID, mode: Literal["thinking", "chat"]):
         self.chat_id = chat_id
         self.mode = mode
-        self.current_message_id: Optional[str] = None
+        # self.current_message_id: Optional[str] = None
         self.current_part: Dict[str, Any] = {}
         self.message_parts_buffer: List[Dict[str, Any]] = []
         self.assistant_messages: List[Dict[str, Any]] = []
         self.final_usage: Optional[Dict[str, Any]] = None
+        self.current_message_id = str(uuid4())
 
     def _handle_start_event(self, data: Dict[str, Any]) -> None:
         """Handle 'start' event - initialize new message."""
@@ -140,7 +141,8 @@ class StreamEventProcessor:
 
         if self.mode == "thinking":
             # Remove "thinking-" prefix from event type
-            event_type = event_type.replace("thinking-", "")
+            event_type = data.get("data", {}).get("type", "")
+            data = data.get("data", {})
 
         event_handlers = {
             "start": self._handle_start_event,

@@ -635,8 +635,7 @@ async def stream_text(
                                 "role": "tool",
                                 "tool_call_id": tool_call_id,
                                 "content": json.dumps({"error": str(error)}),
-                            },
-                            mode=mode,
+                            }
                         )
                         continue
 
@@ -667,8 +666,7 @@ async def stream_text(
                                 "role": "tool",
                                 "tool_call_id": tool_call_id,
                                 "content": json.dumps({"error": error_msg}),
-                            },
-                            mode=mode,
+                            }
                         )
                         continue
 
@@ -707,8 +705,7 @@ async def stream_text(
                                         "content": json.dumps(
                                             {"error": error_info.get("errorText", "Unknown error")}
                                         ),
-                                    },
-                                    mode=mode,
+                                    }
                                 )
                                 # Continue to next tool call
                                 tool_result = None
@@ -738,8 +735,7 @@ async def stream_text(
                                     "role": "tool",
                                     "tool_call_id": tool_call_id,
                                     "content": tool_result_str,
-                                },
-                                mode=mode,
+                                }
                             )
                     except Exception as error:
                         # Handle any unexpected errors
@@ -758,8 +754,7 @@ async def stream_text(
                                 "role": "tool",
                                 "tool_call_id": tool_call_id,
                                 "content": json.dumps({"error": error_msg}),
-                            },
-                            mode=mode,
+                            }
                         )
                         continue
 
@@ -796,14 +791,16 @@ async def stream_text(
         else:
             yield format_sse({"type": "finish"}, mode=mode)
 
-        yield "data: [DONE]\n\n"
+        if mode == "chat":
+            yield "data: [DONE]\n\n"
     except Exception:
         logger.error("Error in stream_text", exc_info=True)
         stack_trace = traceback.format_exc()
         yield format_sse(
             {"type": "error", "error": f"Error in stream_text: {stack_trace}"}, mode=mode
         )
-        yield "data: [DONE]\n\n"
+        if mode == "chat":
+            yield "data: [DONE]\n\n"
 
 
 def patch_response_with_headers(

@@ -309,7 +309,9 @@ async def create_chat(
                 logger.info("No thinking messages, using chat messages")
                 thinking_messages = openai_messages
 
-            thinking_messages = await convert_messages_to_openai_format(thinking_messages, db)
+            # logger.info(
+            #     "Thinking messages before conversion: %s", json.dumps(thinking_messages, indent=4)
+            # )
 
             async for event_bytes in thinking_processor.process_stream(
                 client=client,
@@ -326,17 +328,24 @@ async def create_chat(
                 yield event_bytes
 
             # TODO: If thinking stage is completed, store the thinking messages in the database and support resuming the stream from the thinking stage.
+            logger.info(
+                "Thinking processor assistant messages count: %d",
+                len(thinking_processor.assistant_messages),
+            )
             thinking_messages = [
                 convert_message_data_to_message_model(msg).model_dump()
                 for msg in thinking_processor.assistant_messages
             ]
 
-            if not thinking_messages:
-                logger.info("No thinking messages, using chat messages")
-                thinking_messages = openai_messages
-
+            logger.info(
+                "Thinking messages chat messages before conversion: %d", len(thinking_messages)
+            )
             thinking_messages = await convert_messages_to_openai_format(thinking_messages, db)
 
+            logger.info(
+                "Thinking messages chat messages after conversion: %d",
+                len(thinking_messages),
+            )
             async for event_bytes in chat_processor.process_stream(
                 client=client,
                 model=model,
