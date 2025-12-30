@@ -10,7 +10,6 @@ import json
 import logging
 import re
 import traceback
-import uuid
 from typing import Any, AsyncGenerator, Callable, Dict, Literal, Mapping, Optional, Sequence
 
 from fastapi.responses import StreamingResponse
@@ -357,7 +356,6 @@ async def stream_text(
     try:
         logger.info("=== stream_text called ===")
         logger.info("Model: %s", model)
-        message_id = f"msg-{uuid.uuid4().hex}"
 
         # Prepare initial messages with system prompt if provided
         conversation_messages = list(messages)
@@ -378,12 +376,6 @@ async def stream_text(
             finish_reason = None
             usage_data = None
             tool_calls_state: Dict[int, Dict[str, Any]] = {}
-
-            # Yield start event only on first turn
-            if turn == 0:
-                logger.info("Yielding start event with messageId: %s", message_id)
-                yield format_sse({"type": "start", "messageId": message_id}, mode=mode)
-                await asyncio.sleep(0)  # Flush immediately
 
             # Call LiteLLM with async streaming
 

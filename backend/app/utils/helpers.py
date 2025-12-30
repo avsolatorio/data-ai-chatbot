@@ -5,8 +5,11 @@ from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 
 import json5
 
+thinking_id_counter = 0
+
 
 def format_sse(payload: dict, mode: Literal["thinking", "chat"] = "chat") -> str:
+    global thinking_id_counter
     """Format a payload as Server-Sent Event.
     If mode is "thinking", the payload will be prefixed with "thinking-" in the "type" field.
 
@@ -16,8 +19,29 @@ def format_sse(payload: dict, mode: Literal["thinking", "chat"] = "chat") -> str
     """
 
     if mode == "thinking":
+        thinking_id = f"msg-{thinking_id_counter}"
         if "type" in payload:
-            payload["type"] = f"thinking-{payload['type']}"
+            payload_type = payload["type"]
+
+            if payload_type == "text-end":
+                thinking_id_counter += 1
+
+            payload = {"type": "data-thinking", "id": thinking_id, "data": payload}
+
+            # # TODO: Clean this up later
+            # if payload_type == "start-step":
+            #     payload_type = "start"
+            # elif payload_type == "text-delta":
+            #     payload_type = "delta"
+            # elif payload_type == "text-start":
+            #     payload_type = "delta"
+            #     payload["delta"] = "Thinking..."
+            #     # payload["meta"] = "thinking"
+            # elif payload_type == "text-end":
+            #     payload_type = "end"
+            #     reasoning_id_counter += 1
+            # payload["type"] = f"data-reasoning-{payload_type}"
+            # payload["id"] = thinking_id
 
     return f"data: {json.dumps(payload, separators=(',', ':'))}\n\n"
 

@@ -33,6 +33,7 @@ from app.db.queries.chat_queries import (
     save_chat,
     save_messages,
 )
+from app.utils.helpers import format_sse
 from app.utils.message_converter import convert_messages_to_openai_format
 from app.utils.resumable_stream import mark_stream_complete, store_stream_chunk
 from app.utils.stream import patch_response_with_headers
@@ -284,7 +285,7 @@ async def create_chat(
     logger.info("tool_definitions: %s", tool_definitions)
 
     # Create stream processor
-    thinking_processor = StreamEventProcessor(request.id, mode="chat")
+    thinking_processor = StreamEventProcessor(request.id, mode="thinking")
     chat_processor = StreamEventProcessor(request.id, mode="chat")
 
     # Track if stream was interrupted (client disconnect) vs completed normally
@@ -294,6 +295,10 @@ async def create_chat(
         nonlocal stream_interrupted
         sequence = 0  # Sequence counter for ordering chunks
         try:
+            message_id = f"msg-{uuid4().hex}"
+            yield format_sse({"type": "start", "messageId": message_id})
+            await asyncio.sleep(0)  # Flush immediately
+
             # TODO: If thinking stage is completed, store the thinking messages in the database and support resuming the stream from the thinking stage.
             thinking_messages = [
                 convert_message_data_to_message_model(msg).model_dump()
