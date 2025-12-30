@@ -5,11 +5,11 @@ from sqlalchemy import JSON, Column, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.core.database import Base
+from app.core.database import BaseModel
 
 
 # ruff: noqa: N815
-class Message(Base):
+class Message(BaseModel):
     __tablename__ = "Message_v2"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

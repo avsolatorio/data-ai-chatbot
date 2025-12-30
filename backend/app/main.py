@@ -88,3 +88,9 @@ async def test_log():
     logger.warning("This is a WARNING log")
     logger.error("This is an ERROR log")
     return {"status": "ok", "message": "Check terminal for logs"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8001, reload=True)

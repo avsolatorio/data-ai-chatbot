@@ -6,6 +6,7 @@ from uuid import UUID
 
 from fastapi import BackgroundTasks
 
+from app.ai.observability.token_usage import DataUsageData
 from app.core.database import AsyncSessionLocal
 from app.db.queries.chat_queries import (
     save_messages,
@@ -44,11 +45,14 @@ def create_save_messages_task(
 def create_update_context_task(
     background_tasks: BackgroundTasks,
     chat_id: UUID,
-    usage: Dict[str, Any],
+    usage: Dict[str, Any] | DataUsageData,
 ) -> None:
     """Schedule a background task to update chat context with usage."""
     if not usage:
         return
+
+    if isinstance(usage, DataUsageData):
+        usage = usage.model_dump()
 
     async def update_context_task():
         async with AsyncSessionLocal() as session:

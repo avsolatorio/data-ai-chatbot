@@ -284,7 +284,7 @@ async def create_chat(
     logger.info("tool_definitions: %s", tool_definitions)
 
     # Create stream processor
-    thinking_processor = StreamEventProcessor(request.id, mode="thinking")
+    thinking_processor = StreamEventProcessor(request.id, mode="chat")
     chat_processor = StreamEventProcessor(request.id, mode="chat")
 
     # Track if stream was interrupted (client disconnect) vs completed normally
@@ -294,10 +294,22 @@ async def create_chat(
         nonlocal stream_interrupted
         sequence = 0  # Sequence counter for ordering chunks
         try:
+            # TODO: If thinking stage is completed, store the thinking messages in the database and support resuming the stream from the thinking stage.
+            thinking_messages = [
+                convert_message_data_to_message_model(msg).model_dump()
+                for msg in thinking_processor.assistant_messages
+            ]
+
+            if not thinking_messages:
+                logger.info("No thinking messages, using chat messages")
+                thinking_messages = openai_messages
+
+            thinking_messages = await convert_messages_to_openai_format(thinking_messages, db)
+
             async for event_bytes in thinking_processor.process_stream(
                 client=client,
                 model=model,
-                messages=openai_messages,
+                messages=thinking_messages,
                 system=system,
                 tools=tools,
                 tool_definitions=tool_definitions,
@@ -310,12 +322,15 @@ async def create_chat(
 
             # TODO: If thinking stage is completed, store the thinking messages in the database and support resuming the stream from the thinking stage.
             thinking_messages = [
-                convert_message_data_to_message_model(msg).to_dict()
+                convert_message_data_to_message_model(msg).model_dump()
                 for msg in thinking_processor.assistant_messages
             ]
 
             if not thinking_messages:
+                logger.info("No thinking messages, using chat messages")
                 thinking_messages = openai_messages
+
+            thinking_messages = await convert_messages_to_openai_format(thinking_messages, db)
 
             async for event_bytes in chat_processor.process_stream(
                 client=client,

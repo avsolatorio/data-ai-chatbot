@@ -386,7 +386,8 @@ async def stream_text(
                 await asyncio.sleep(0)  # Flush immediately
 
             # Call LiteLLM with async streaming
-            stream = await client.chat.completions.create(
+
+            chat_input = dict(
                 model=model,
                 messages=conversation_messages,  # Updated with tool results from previous turns
                 stream=True,
@@ -394,6 +395,16 @@ async def stream_text(
                 max_completion_tokens=max_completion_tokens,
                 tools=tool_definitions if tool_definitions else None,
             )
+
+            # TODO: Clean up this logging and exception handling for debugging purposes
+            logger.info("About to call client.chat.completions.create with mode=%s", mode)
+            try:
+                stream = await client.chat.completions.create(**chat_input)
+                logger.info("Successfully created stream, type: %s", type(stream))
+            except Exception as e:
+                logger.error("Exception during stream creation: %s", e, exc_info=True)
+                raise
+            logger.info("Successfully created stream, type: %s", type(stream))
 
             yield format_sse({"type": "start-step"}, mode=mode)
 
