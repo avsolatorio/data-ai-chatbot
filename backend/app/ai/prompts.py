@@ -5,17 +5,28 @@ from typing import Any, Dict, Optional
 from app.config import ModelType
 
 
+def get_thinking_system_prompt() -> str:
+    return """You are a friendly assistant that explains each step necessary to complete the user's request in a reflective manner.
+
+    You don't ask questions to the user, instead you plan the steps necessary to complete the user's request.
+
+    You will identify the relevant tools to use but you will not use them yourself. The tools will be used by the chat agent.
+
+    You are not responsible for the final output of the user's request, so do not try to answer the user's request yourself. The chat agent is responsible for the final output of the user's request.
+
+    You also are responsible for deciding if the user's prompt is not relevant and needs to be rejected. If you reject the user's prompt, you will explain why and suggest alternative ways to achieve the user's goal."""
+
+
 def get_system_prompt(
     selected_chat_model: ModelType,
     request_hints: Optional[Dict[str, Any]] = None,
 ) -> str:
+    # **IMPORTANT**: ALWAYS explain what you are planning to do before you do it. Do not use tools without explaining what you are planning to do.
     """
     Generate system prompt based on model and request hints.
     Ported from lib/ai/prompts.ts
     """
     regular_prompt = """You are a friendly assistant! Keep your responses concise and helpful.
-
-    **IMPORTANT**: ALWAYS explain what you are planning to do before you do it. Do not use tools without explaining what you are planning to do.
 
     **PRESENTATION**: If there are numeric values in the response, always try your best to present them in a table format if possible and if it makes sense.
 

@@ -25,13 +25,22 @@ class StreamEventProcessor:
         self.final_usage: Optional[Dict[str, Any]] = None
         self.current_message_id = str(uuid4())
 
+    def _append_to_message_parts_buffer(self, part: Dict[str, Any]) -> None:
+        """Append a part to the message parts buffer.
+
+        If mode is "thinking", the part is converted to a "data-thinking" part, which reverses the conversion made in the `_process_event_data` method for the "data-thinking" event.
+        """
+        if self.mode == "thinking":
+            part = {"type": "data-thinking", "id": self.current_message_id, "data": part}
+        self.message_parts_buffer.append(part)
+
     def _handle_start_event(self, data: Dict[str, Any]) -> None:
         """Handle 'start' event - initialize new message."""
         self.current_message_id = str(uuid4())
 
     def _handle_start_step_event(self, data: Dict[str, Any]) -> None:
         """Handle 'start-step' event."""
-        self.message_parts_buffer.append({"type": "step-start"})
+        self._append_to_message_parts_buffer({"type": "step-start"})
 
     def _handle_text_start_event(self, data: Dict[str, Any]) -> None:
         """Handle 'text-start' event - initialize text part."""
@@ -50,7 +59,7 @@ class StreamEventProcessor:
         """Handle 'text-end' event - finalize text part."""
         if self.current_part and self.current_message_id:
             self.current_part["state"] = "done"
-            self.message_parts_buffer.append(self.current_part)
+            self._append_to_message_parts_buffer(self.current_part)
             self.current_part = {}
 
     def _finalize_pending_text_part(self) -> None:
@@ -63,7 +72,7 @@ class StreamEventProcessor:
         ):
             # Text part exists but hasn't been finalized - finalize it now
             self.current_part["state"] = "done"
-            self.message_parts_buffer.append(self.current_part)
+            self._append_to_message_parts_buffer(self.current_part)
             self.current_part = {}
 
     def _handle_tool_input_start_event(self, data: Dict[str, Any]) -> None:
@@ -84,7 +93,7 @@ class StreamEventProcessor:
         """Handle 'tool-input-error' event."""
         self.current_part["state"] = "input-available"
         self.current_part["input"]["error"] = data["errorText"]
-        self.message_parts_buffer.append(self.current_part)
+        self._append_to_message_parts_buffer(self.current_part)
         self.current_part = {}
 
     def _handle_tool_input_available_event(self, data: Dict[str, Any]) -> None:
@@ -97,19 +106,19 @@ class StreamEventProcessor:
         """Handle 'tool-output-error' event."""
         self.current_part["state"] = "output-available"
         self.current_part["output"]["error"] = data["errorText"]
-        self.message_parts_buffer.append(self.current_part)
+        self._append_to_message_parts_buffer(self.current_part)
         self.current_part = {}
 
     def _handle_tool_output_available_event(self, data: Dict[str, Any]) -> None:
         """Handle 'tool-output-available' event."""
         self.current_part["output"] = data["output"]
         self.current_part["state"] = "output-available"
-        self.message_parts_buffer.append(self.current_part)
+        self._append_to_message_parts_buffer(self.current_part)
         self.current_part = {}
 
     def _handle_data_usage_event(self, data: Dict[str, Any]) -> None:
         """Handle 'data-usage' event."""
-        self.message_parts_buffer.append(data)
+        self._append_to_message_parts_buffer(data)
 
     def _handle_finish_event(self, data: Dict[str, Any]) -> None:
         """Handle 'finish' event - finalize message and track usage."""

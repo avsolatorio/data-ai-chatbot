@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.client import get_ai_client, get_async_ai_client, get_model_name
 from app.ai.observability.token_usage import DataUsageData
-from app.ai.prompts import get_system_prompt
+from app.ai.prompts import get_system_prompt, get_thinking_system_prompt
 from app.api.deps import get_current_user, get_optional_user
 from app.api.v1.utils.background_tasks import (
     create_save_messages_task,
@@ -275,6 +275,7 @@ async def create_chat(
     # Get system prompt
     request_hints = None  # Will be implemented later
     system = get_system_prompt(request.selectedChatModel, request_hints)
+    thinking_system = get_thinking_system_prompt()
 
     # Get async AI client for streaming and model name
     client = get_async_ai_client()
@@ -317,7 +318,7 @@ async def create_chat(
                 client=client,
                 model=model,
                 messages=thinking_messages,
-                system=system,
+                system=thinking_system,
                 tools=tools,
                 tool_definitions=tool_definitions,
             ):
@@ -335,6 +336,12 @@ async def create_chat(
             thinking_messages = [
                 convert_message_data_to_message_model(msg).model_dump()
                 for msg in thinking_processor.assistant_messages
+            ]
+
+            # Unpack the data from the thinking parts so we can convert them to OpenAI format
+            thinking_messages = [
+                {**msg, "parts": [part["data"] for part in msg["parts"]]}
+                for msg in thinking_messages
             ]
 
             logger.info(
@@ -391,10 +398,16 @@ async def create_chat(
                 asyncio.create_task(mark_stream_complete(stream_id))
 
                 # Schedule background tasks after stream completes
+                assert len(thinking_processor.assistant_messages) == 1
+                assert len(chat_processor.assistant_messages) == 1
+
+                assistant_message = thinking_processor.assistant_messages[0].copy()
+                assistant_message["parts"].extend(chat_processor.assistant_messages[0]["parts"])
+
                 create_save_messages_task(
                     background_tasks,
                     request.id,
-                    thinking_processor.assistant_messages + chat_processor.assistant_messages,
+                    [assistant_message],
                 )
                 if thinking_processor.final_usage and chat_processor.final_usage:
                     create_update_context_task(

@@ -363,6 +363,8 @@ async def stream_text(
             # Insert system message at the beginning
             conversation_messages.insert(0, {"role": "system", "content": system})
 
+        logger.info("Conversation messages: %s", conversation_messages)
+
         # Track cumulative usage across all turns
         total_usage_data = None
 

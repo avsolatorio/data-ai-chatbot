@@ -2,7 +2,7 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { ToolUIPart } from "ai";
 import equal from "fast-deep-equal";
-import { memo, useState } from "react";
+import { type Dispatch, memo, type SetStateAction, useState } from "react";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
@@ -25,8 +25,300 @@ import { SparklesIcon } from "./icons";
 import { MessageActions } from "./message-actions";
 import { MessageEditor } from "./message-editor";
 import { MessageReasoning } from "./message-reasoning";
+import { MessageThinking } from "./message-thinking";
 import { PreviewAttachment } from "./preview-attachment";
 import { Weather } from "./weather";
+
+// Helper function to render a single message part
+// This is extracted to be reusable for nested parts in data-thinking
+function renderMessagePart(
+  part: ChatMessage["parts"][number],
+  key: string,
+  options: {
+    mode: "view" | "edit";
+    setMode: Dispatch<SetStateAction<"view" | "edit">>;
+    message: ChatMessage;
+    regenerate: UseChatHelpers<ChatMessage>["regenerate"];
+    setMessages: UseChatHelpers<ChatMessage>["setMessages"];
+    isReadonly: boolean;
+    isLoading: boolean;
+  }
+): React.ReactNode {
+  const { type } = part;
+  const {
+    mode,
+    setMode,
+    message,
+    regenerate,
+    setMessages,
+    isReadonly,
+    isLoading,
+  } = options;
+
+  if (type === "reasoning" && part.text?.trim().length > 0) {
+    return (
+      <MessageReasoning isLoading={isLoading} key={key} reasoning={part.text} />
+    );
+  }
+
+  if (type === "text") {
+    if (mode === "view") {
+      return (
+        <div key={key}>
+          <MessageContent
+            className={cn({
+              "w-fit break-words rounded-2xl px-3 py-2 text-right text-white":
+                message.role === "user",
+              "bg-transparent px-0 py-0 text-left":
+                message.role === "assistant",
+            })}
+            data-testid="message-content"
+            style={
+              message.role === "user"
+                ? { backgroundColor: "#006cff" }
+                : undefined
+            }
+          >
+            <Response>{sanitizeText(part.text)}</Response>
+          </MessageContent>
+        </div>
+      );
+    }
+
+    if (mode === "edit") {
+      return (
+        <div className="flex w-full flex-row items-start gap-3" key={key}>
+          <div className="size-8" />
+          <div className="min-w-0 flex-1">
+            <MessageEditor
+              key={message.id}
+              message={message}
+              regenerate={regenerate}
+              setMessages={setMessages}
+              setMode={setMode}
+            />
+          </div>
+        </div>
+      );
+    }
+  }
+
+  if (type === "tool-getWeather") {
+    const { toolCallId, state } = part;
+
+    return (
+      <Tool defaultOpen={true} key={toolCallId}>
+        <ToolHeader state={state} type="tool-getWeather" />
+        <ToolContent>
+          {state === "input-available" && <ToolInput input={part.input} />}
+          {state === "output-available" && (
+            <ToolOutput
+              errorText={undefined}
+              output={<Weather weatherAtLocation={part.output} />}
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  if (type === "tool-createDocument") {
+    const { toolCallId } = part;
+
+    if (part.output && "error" in part.output) {
+      return (
+        <div
+          className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-500 dark:bg-red-950/50"
+          key={toolCallId}
+        >
+          Error creating document: {String(part.output.error)}
+        </div>
+      );
+    }
+
+    return (
+      <DocumentPreview
+        isReadonly={isReadonly}
+        key={toolCallId}
+        result={part.output}
+      />
+    );
+  }
+
+  if (type === "tool-updateDocument") {
+    const { toolCallId } = part;
+
+    if (part.output && "error" in part.output) {
+      return (
+        <div
+          className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-500 dark:bg-red-950/50"
+          key={toolCallId}
+        >
+          Error updating document: {String(part.output.error)}
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative" key={toolCallId}>
+        <DocumentPreview
+          args={{ ...part.output, isUpdate: true }}
+          isReadonly={isReadonly}
+          result={part.output}
+        />
+      </div>
+    );
+  }
+
+  if (type === "tool-requestSuggestions") {
+    const { toolCallId, state } = part;
+
+    return (
+      <Tool defaultOpen={true} key={toolCallId}>
+        <ToolHeader state={state} type="tool-requestSuggestions" />
+        <ToolContent>
+          {state === "input-available" && <ToolInput input={part.input} />}
+          {state === "output-available" && (
+            <ToolOutput
+              errorText={undefined}
+              output={
+                "error" in part.output ? (
+                  <div className="rounded border p-2 text-red-500">
+                    Error: {String(part.output.error)}
+                  </div>
+                ) : (
+                  <DocumentToolResult
+                    isReadonly={isReadonly}
+                    result={part.output}
+                    type="request-suggestions"
+                  />
+                )
+              }
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  // Handle Data360 MCP tool outputs
+  if ((type as string) === "tool-ai4data_ai4data_mcpget_wdi_data") {
+    const toolPart = part as {
+      toolCallId: string;
+      state: "input-available" | "output-available";
+      input: unknown;
+      output: {
+        data: Array<{
+          indicator_id: string;
+          indicator_name: string;
+          data: Array<{
+            country: string;
+            date: string;
+            value: number | null;
+            claim_id: string;
+          }>;
+        }>;
+        note?: Record<string, string>;
+      };
+    };
+    return (
+      <Tool defaultOpen={true} key={toolPart.toolCallId}>
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        <ToolContent>
+          {toolPart.state === "input-available" && (
+            <ToolInput input={toolPart.input} />
+          )}
+          {toolPart.state === "output-available" && (
+            <ToolOutput
+              errorText={undefined}
+              output={<GetWdiData output={toolPart.output} />}
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  // search_relevant_indicators tool
+  if (
+    (type as string) === "tool-ai4data_ai4data_mcpsearch_relevant_indicators"
+  ) {
+    const toolPart = part as {
+      toolCallId: string;
+      state: "input-available" | "output-available";
+      input: unknown;
+      output: {
+        indicators: Array<{
+          idno: string;
+          name: string;
+        }>;
+        note?: string;
+      };
+    };
+    return (
+      <Tool defaultOpen={true} key={toolPart.toolCallId}>
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        <ToolContent>
+          {toolPart.state === "input-available" && (
+            <ToolInput input={toolPart.input} />
+          )}
+          {toolPart.state === "output-available" && (
+            <ToolOutput
+              errorText={undefined}
+              output={<SearchRelevantIndicators output={toolPart.output} />}
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  // Generic fallback handler for any tool type starting with "tool-"
+  if (typeof type === "string" && type.startsWith("tool-")) {
+    const toolPart = part as {
+      toolCallId: string;
+      state:
+        | "input-available"
+        | "output-available"
+        | "input-streaming"
+        | "output-error";
+      input?: unknown;
+      output?: unknown;
+      errorText?: string;
+    };
+
+    // Render output as ReactNode
+    let outputNode: React.ReactNode = null;
+    if (toolPart.output !== null && toolPart.output !== undefined) {
+      const output: unknown = toolPart.output;
+      if (typeof output === "string") {
+        outputNode = <div className="whitespace-pre-wrap">{output}</div>;
+      } else {
+        const jsonOutput = JSON.stringify(output, null, 2);
+        outputNode = <CodeBlock code={jsonOutput} language="json" />;
+      }
+    }
+
+    return (
+      <Tool defaultOpen={false} key={toolPart.toolCallId}>
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        <ToolContent>
+          {(toolPart.state === "input-available" ||
+            toolPart.state === "input-streaming") &&
+            toolPart.input !== undefined && (
+              <ToolInput input={toolPart.input as ToolUIPart["input"]} />
+            )}
+          {(toolPart.state === "output-available" ||
+            toolPart.state === "output-error") && (
+            <ToolOutput errorText={toolPart.errorText} output={outputNode} />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  return null;
+}
 
 const PurePreviewMessage = ({
   chatId,
@@ -106,308 +398,76 @@ const PurePreviewMessage = ({
             </div>
           )}
 
-          {message.parts?.map((part, index) => {
-            const { type } = part;
-            const key = `message-${message.id}-part-${index}`;
+          {(() => {
+            // Separate data-thinking parts from regular parts
+            const thinkingParts: Array<{
+              type: string;
+              id: string;
+              data: ChatMessage["parts"][number];
+            }> = [];
+            const regularParts: Array<{
+              part: ChatMessage["parts"][number];
+              index: number;
+            }> = [];
 
-            if (type === "reasoning" && part.text?.trim().length > 0) {
-              return (
-                <MessageReasoning
-                  isLoading={isLoading}
-                  key={key}
-                  reasoning={part.text}
-                />
-              );
-            }
-
-            if (type === "text") {
-              if (mode === "view") {
-                return (
-                  <div key={key}>
-                    <MessageContent
-                      className={cn({
-                        "w-fit break-words rounded-2xl px-3 py-2 text-right text-white":
-                          message.role === "user",
-                        "bg-transparent px-0 py-0 text-left":
-                          message.role === "assistant",
-                      })}
-                      data-testid="message-content"
-                      style={
-                        message.role === "user"
-                          ? { backgroundColor: "#006cff" }
-                          : undefined
-                      }
-                    >
-                      <Response>{sanitizeText(part.text)}</Response>
-                    </MessageContent>
-                  </div>
+            message.parts?.forEach((part, index) => {
+              const { type } = part;
+              if (
+                typeof type === "string" &&
+                type.startsWith("data-thinking")
+              ) {
+                thinkingParts.push(
+                  part as {
+                    type: string;
+                    id: string;
+                    data: ChatMessage["parts"][number];
+                  }
                 );
+              } else {
+                regularParts.push({ part, index });
               }
+            });
 
-              if (mode === "edit") {
-                return (
-                  <div
-                    className="flex w-full flex-row items-start gap-3"
-                    key={key}
-                  >
-                    <div className="size-8" />
-                    <div className="min-w-0 flex-1">
-                      <MessageEditor
-                        key={message.id}
-                        message={message}
-                        regenerate={regenerate}
-                        setMessages={setMessages}
-                        setMode={setMode}
-                      />
-                    </div>
-                  </div>
-                );
-              }
-            }
-
-            if (type === "tool-getWeather") {
-              const { toolCallId, state } = part;
-
-              return (
-                <Tool defaultOpen={true} key={toolCallId}>
-                  <ToolHeader state={state} type="tool-getWeather" />
-                  <ToolContent>
-                    {state === "input-available" && (
-                      <ToolInput input={part.input} />
-                    )}
-                    {state === "output-available" && (
-                      <ToolOutput
-                        errorText={undefined}
-                        output={<Weather weatherAtLocation={part.output} />}
-                      />
-                    )}
-                  </ToolContent>
-                </Tool>
-              );
-            }
-
-            if (type === "tool-createDocument") {
-              const { toolCallId } = part;
-
-              if (part.output && "error" in part.output) {
-                return (
-                  <div
-                    className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-500 dark:bg-red-950/50"
-                    key={toolCallId}
-                  >
-                    Error creating document: {String(part.output.error)}
-                  </div>
-                );
-              }
-
-              return (
-                <DocumentPreview
-                  isReadonly={isReadonly}
-                  key={toolCallId}
-                  result={part.output}
-                />
-              );
-            }
-
-            if (type === "tool-updateDocument") {
-              const { toolCallId } = part;
-
-              if (part.output && "error" in part.output) {
-                return (
-                  <div
-                    className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-500 dark:bg-red-950/50"
-                    key={toolCallId}
-                  >
-                    Error updating document: {String(part.output.error)}
-                  </div>
-                );
-              }
-
-              return (
-                <div className="relative" key={toolCallId}>
-                  <DocumentPreview
-                    args={{ ...part.output, isUpdate: true }}
-                    isReadonly={isReadonly}
-                    result={part.output}
+            return (
+              <>
+                {/* Render all nested parts from data-thinking in a single Reasoning component */}
+                {thinkingParts.length > 0 && (
+                  <MessageThinking
+                    isLoading={isLoading}
+                    renderPart={(
+                      nestedPart: ChatMessage["parts"][number],
+                      nestedKey: string
+                    ) =>
+                      renderMessagePart(nestedPart, nestedKey, {
+                        mode,
+                        setMode,
+                        message,
+                        regenerate,
+                        setMessages,
+                        isReadonly,
+                        isLoading,
+                      })
+                    }
+                    thinkingParts={thinkingParts}
                   />
-                </div>
-              );
-            }
+                )}
 
-            if (type === "tool-requestSuggestions") {
-              const { toolCallId, state } = part;
-
-              return (
-                <Tool defaultOpen={true} key={toolCallId}>
-                  <ToolHeader state={state} type="tool-requestSuggestions" />
-                  <ToolContent>
-                    {state === "input-available" && (
-                      <ToolInput input={part.input} />
-                    )}
-                    {state === "output-available" && (
-                      <ToolOutput
-                        errorText={undefined}
-                        output={
-                          "error" in part.output ? (
-                            <div className="rounded border p-2 text-red-500">
-                              Error: {String(part.output.error)}
-                            </div>
-                          ) : (
-                            <DocumentToolResult
-                              isReadonly={isReadonly}
-                              result={part.output}
-                              type="request-suggestions"
-                            />
-                          )
-                        }
-                      />
-                    )}
-                  </ToolContent>
-                </Tool>
-              );
-            }
-
-            // Handle Data360 MCP tool outputs
-            // Use type assertion for dynamic MCP tool types not in the type system
-
-            // get_wdi_data tool
-            if ((type as string) === "tool-ai4data_ai4data_mcpget_wdi_data") {
-              const toolPart = part as {
-                toolCallId: string;
-                state: "input-available" | "output-available";
-                input: unknown;
-                output: {
-                  data: Array<{
-                    indicator_id: string;
-                    indicator_name: string;
-                    data: Array<{
-                      country: string;
-                      date: string;
-                      value: number | null;
-                      claim_id: string;
-                    }>;
-                  }>;
-                  note?: Record<string, string>;
-                };
-              };
-              return (
-                <Tool defaultOpen={true} key={toolPart.toolCallId}>
-                  <ToolHeader
-                    state={toolPart.state}
-                    type={type as `tool-${string}`}
-                  />
-                  <ToolContent>
-                    {toolPart.state === "input-available" && (
-                      <ToolInput input={toolPart.input} />
-                    )}
-                    {toolPart.state === "output-available" && (
-                      <ToolOutput
-                        errorText={undefined}
-                        output={<GetWdiData output={toolPart.output} />}
-                      />
-                    )}
-                  </ToolContent>
-                </Tool>
-              );
-            }
-
-            // search_relevant_indicators tool
-            if (
-              (type as string) ===
-              "tool-ai4data_ai4data_mcpsearch_relevant_indicators"
-            ) {
-              const toolPart = part as {
-                toolCallId: string;
-                state: "input-available" | "output-available";
-                input: unknown;
-                output: {
-                  indicators: Array<{
-                    idno: string;
-                    name: string;
-                  }>;
-                  note?: string;
-                };
-              };
-              return (
-                <Tool defaultOpen={true} key={toolPart.toolCallId}>
-                  <ToolHeader
-                    state={toolPart.state}
-                    type={type as `tool-${string}`}
-                  />
-                  <ToolContent>
-                    {toolPart.state === "input-available" && (
-                      <ToolInput input={toolPart.input} />
-                    )}
-                    {toolPart.state === "output-available" && (
-                      <ToolOutput
-                        errorText={undefined}
-                        output={
-                          <SearchRelevantIndicators output={toolPart.output} />
-                        }
-                      />
-                    )}
-                  </ToolContent>
-                </Tool>
-              );
-            }
-
-            // Generic fallback handler for any tool type starting with "tool-"
-            // This handles tools that don't have specific UI components (e.g., "tool-generate")
-            if (typeof type === "string" && type.startsWith("tool-")) {
-              const toolPart = part as {
-                toolCallId: string;
-                state:
-                  | "input-available"
-                  | "output-available"
-                  | "input-streaming"
-                  | "output-error";
-                input?: unknown;
-                output?: unknown;
-                errorText?: string;
-              };
-
-              // Render output as ReactNode
-              let outputNode: React.ReactNode = null;
-              if (toolPart.output !== null && toolPart.output !== undefined) {
-                const output: unknown = toolPart.output;
-                if (typeof output === "string") {
-                  outputNode = (
-                    <div className="whitespace-pre-wrap">{output}</div>
-                  );
-                } else {
-                  const jsonOutput = JSON.stringify(output, null, 2);
-                  outputNode = <CodeBlock code={jsonOutput} language="json" />;
-                }
-              }
-
-              return (
-                <Tool defaultOpen={false} key={toolPart.toolCallId}>
-                  <ToolHeader
-                    state={toolPart.state}
-                    type={type as `tool-${string}`}
-                  />
-                  <ToolContent>
-                    {(toolPart.state === "input-available" ||
-                      toolPart.state === "input-streaming") &&
-                      toolPart.input !== undefined && (
-                        <ToolInput
-                          input={toolPart.input as ToolUIPart["input"]}
-                        />
-                      )}
-                    {(toolPart.state === "output-available" ||
-                      toolPart.state === "output-error") && (
-                      <ToolOutput
-                        errorText={toolPart.errorText}
-                        output={outputNode}
-                      />
-                    )}
-                  </ToolContent>
-                </Tool>
-              );
-            }
-
-            return null;
-          })}
+                {/* Render regular parts normally */}
+                {regularParts.map(({ part, index }) => {
+                  const key = `message-${message.id}-part-${index}`;
+                  return renderMessagePart(part, key, {
+                    mode,
+                    setMode,
+                    message,
+                    regenerate,
+                    setMessages,
+                    isReadonly,
+                    isLoading,
+                  });
+                })}
+              </>
+            );
+          })()}
 
           {!isReadonly && (
             <MessageActions
