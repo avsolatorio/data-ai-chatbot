@@ -4,7 +4,8 @@ import type { ToolUIPart } from "ai";
 import equal from "fast-deep-equal";
 import { type Dispatch, memo, type SetStateAction, useState } from "react";
 import type { Vote } from "@/lib/db/schema";
-import type { ChatMessage } from "@/lib/types";
+import type { ChatMessage, StreamingThinkingPart } from "@/lib/types";
+import { isNonRenderableStreamEvent } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
 import { useDataStream } from "./data-stream-provider";
 import { GetWdiData } from "./data360/get-wdi-data";
@@ -416,6 +417,7 @@ const PurePreviewMessage = ({
               index: number;
             }> = [];
 
+            // Process saved parts from message
             message.parts?.forEach((part, index) => {
               const { type } = part;
               if (
@@ -427,19 +429,8 @@ const PurePreviewMessage = ({
                   id: string;
                   data: unknown;
                 };
-                // Filter out stream events that aren't renderable (text-end, finish, etc.)
-                const data = thinkingPart.data;
-                if (
-                  data &&
-                  typeof data === "object" &&
-                  "type" in data &&
-                  typeof data.type === "string" &&
-                  (data.type === "text-end" ||
-                    data.type === "finish" ||
-                    data.type === "text-start" ||
-                    data.type === "text-delta" ||
-                    data.type === "step-start")
-                ) {
+                // Filter out non-renderable stream events
+                if (isNonRenderableStreamEvent(thinkingPart.data)) {
                   return; // Skip this part
                 }
                 thinkingParts.push({
@@ -452,21 +443,29 @@ const PurePreviewMessage = ({
               }
             });
 
-            // Use streaming parts if available and we're loading or don't have saved parts yet
+            // Decide whether to use streaming parts or saved parts
+            // Use streaming parts if available and (we're loading OR don't have saved parts yet)
             const hasSavedThinkingParts = thinkingParts.length > 0;
             const shouldUseStreamingParts =
               streamingThinkingParts.length > 0 &&
               (!hasSavedThinkingParts || isLoading);
 
-            // Replace thinking parts with streaming parts if we should use them
+            // Process and normalize thinking parts (from either streaming or saved)
+            const finalThinkingParts: Array<{
+              type: string;
+              id: string;
+              data: ChatMessage["parts"][number];
+            }> = [];
+
             if (shouldUseStreamingParts) {
-              // Use streaming parts directly
-              thinkingParts.length = 0;
+              // Process streaming parts: filter and strip state property
               for (const part of streamingThinkingParts) {
-                // Extract the data, which might be a StreamingThinkingPart with state property
-                // We need to convert it to a proper message part for rendering
                 const partData = part.data;
-                // If it's a StreamingThinkingPart (has state property), extract just the text part
+                // Filter out non-renderable stream events
+                if (isNonRenderableStreamEvent(partData)) {
+                  continue;
+                }
+                // Strip state property from StreamingThinkingPart
                 if (
                   typeof partData === "object" &&
                   partData !== null &&
@@ -474,33 +473,31 @@ const PurePreviewMessage = ({
                   partData.type === "text" &&
                   "state" in partData
                 ) {
-                  // It's a StreamingThinkingPart - convert to regular text part
-                  const { state: _state, ...textPart } = partData as {
-                    type: "text";
-                    text: string;
-                    state: "streaming" | "done";
-                    providerMetadata?: Record<string, unknown>;
-                  };
-                  thinkingParts.push({
+                  const { state: _state, ...textPart } =
+                    partData as StreamingThinkingPart;
+                  finalThinkingParts.push({
                     type: part.type,
                     id: part.id,
                     data: textPart as ChatMessage["parts"][number],
                   });
                 } else {
-                  // It's already a proper message part or stream event
-                  thinkingParts.push({
+                  // Already a proper message part
+                  finalThinkingParts.push({
                     type: part.type,
                     id: part.id,
                     data: partData as ChatMessage["parts"][number],
                   });
                 }
               }
+            } else {
+              // Use saved parts as-is (already filtered above)
+              finalThinkingParts.push(...thinkingParts);
             }
 
             return (
               <>
                 {/* Render all nested parts from data-thinking in a single Reasoning component */}
-                {thinkingParts.length > 0 && (
+                {finalThinkingParts.length > 0 && (
                   <MessageThinking
                     isLoading={isLoading}
                     renderPart={(
@@ -517,7 +514,7 @@ const PurePreviewMessage = ({
                         isLoading,
                       })
                     }
-                    thinkingParts={thinkingParts}
+                    thinkingParts={finalThinkingParts}
                   />
                 )}
 

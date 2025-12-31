@@ -76,16 +76,6 @@ function PureMessages({
               streamingThinkingParts.length > 0 &&
               (isLoading || !hasSavedThinkingParts);
 
-            console.log("[Messages] Message render:", {
-              messageId: message.id,
-              isLastMessage,
-              isLoading,
-              hasSavedThinkingParts,
-              streamingThinkingPartsCount: streamingThinkingParts.length,
-              shouldUseStreamingParts,
-              streamingParts: streamingThinkingParts,
-            });
-
             return (
               <PreviewMessage
                 chatId={chatId}

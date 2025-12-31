@@ -1,32 +1,11 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { ChatMessage } from "@/lib/types";
-
-// Stream event types that are not part of the final message parts
-type StreamEventPart =
-  | { type: "text-start"; id?: string }
-  | { type: "text-delta"; delta: string; id?: string }
-  | { type: "text-end"; id?: string }
-  | { type: "step-start" }
-  | { type: "start" }
-  | { type: "finish" };
-
-// Union type that includes both message parts and stream events
-type MessagePartOrStreamEvent = ChatMessage["parts"][number] | StreamEventPart;
-
-type DataThinkingPart = {
-  type: string;
-  id: string;
-  data: MessagePartOrStreamEvent;
-};
-
-type StreamingThinkingPart = {
-  type: "text";
-  text: string;
-  state: "streaming" | "done";
-  providerMetadata?: Record<string, unknown>;
-};
+import type {
+  DataThinkingPart,
+  MessagePartOrStreamEvent,
+  StreamingThinkingPart,
+} from "@/lib/types";
 
 /**
  * Hook to accumulate and manage streaming data-thinking events.
@@ -55,18 +34,6 @@ export function useDataThinkingStream() {
         const newMap = new Map(prev);
         const existing = newMap.get(thinkingId);
 
-        console.log("[useDataThinkingStream] Processing:", {
-          thinkingId,
-          innerDataType:
-            typeof innerData === "object" &&
-            innerData !== null &&
-            "type" in innerData
-              ? (innerData as { type: unknown }).type
-              : "unknown",
-          hasExisting: existing !== undefined,
-          prevMapSize: prev.size,
-        });
-
         // Handle text-delta events - accumulate text
         if (innerData.type === "text-delta" && "delta" in innerData) {
           const delta = (innerData as { delta: string }).delta || "";
@@ -88,10 +55,6 @@ export function useDataThinkingStream() {
                 state: "streaming" as const,
               } as StreamingThinkingPart as MessagePartOrStreamEvent,
             });
-            console.log(
-              "[useDataThinkingStream] Accumulated, new text length:",
-              existingText.length + delta.length
-            );
           } else {
             // Initialize new text part if we don't have one yet
             // This handles the case where text-delta arrives before text-start
@@ -104,10 +67,6 @@ export function useDataThinkingStream() {
                 state: "streaming" as const,
               } as StreamingThinkingPart as MessagePartOrStreamEvent,
             });
-            console.log(
-              "[useDataThinkingStream] Initialized new part, delta length:",
-              delta.length
-            );
           }
         }
         // Handle text-start event - initialize text part
@@ -153,50 +112,22 @@ export function useDataThinkingStream() {
   );
 
   /**
-   * Get all accumulated streaming parts as an array.
-   * Useful for merging with saved message parts.
-   */
-  const getStreamingParts = useCallback((): DataThinkingPart[] => {
-    return Array.from(streamingParts.values());
-  }, [streamingParts]);
-
-  /**
    * Clear all streaming parts.
-   * Call this when a message finishes streaming.
+   * Call this when a message finishes streaming and saved parts are available.
    */
   const clear = useCallback(() => {
     setStreamingParts(new Map());
   }, []);
 
-  /**
-   * Clear a specific thinking part by ID.
-   */
-  const clearPart = useCallback((id: string) => {
-    setStreamingParts((prev) => {
-      const newMap = new Map(prev);
-      newMap.delete(id);
-      return newMap;
-    });
-  }, []);
-
   // Memoize the array to ensure reactivity while avoiding unnecessary re-renders
   const streamingPartsArray = useMemo(() => {
-    const parts = Array.from(streamingParts.values());
-    console.log(
-      "[useDataThinkingStream] Memoized array, map size:",
-      streamingParts.size,
-      "array length:",
-      parts.length
-    );
-    return parts;
+    return Array.from(streamingParts.values());
   }, [streamingParts]);
 
   return {
     handleDataThinkingEvent,
-    getStreamingParts,
-    streamingParts: streamingPartsArray, // Expose parts directly for reactive updates
+    streamingParts: streamingPartsArray,
     clear,
-    clearPart,
     streamingPartsCount: streamingParts.size,
   };
 }

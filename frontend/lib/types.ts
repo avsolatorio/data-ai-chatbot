@@ -91,3 +91,50 @@ export type Attachment = {
   url: string;
   contentType: string;
 };
+
+// Stream event types that are not part of the final message parts
+export type StreamEventPart =
+  | { type: "text-start"; id?: string }
+  | { type: "text-delta"; delta: string; id?: string }
+  | { type: "text-end"; id?: string }
+  | { type: "step-start" }
+  | { type: "start" }
+  | { type: "finish" };
+
+// Union type that includes both message parts and stream events
+export type MessagePartOrStreamEvent =
+  | ChatMessage["parts"][number]
+  | StreamEventPart;
+
+// Data-thinking part structure
+export type DataThinkingPart = {
+  type: string;
+  id: string;
+  data: MessagePartOrStreamEvent;
+};
+
+// Streaming thinking part with state tracking
+export type StreamingThinkingPart = {
+  type: "text";
+  text: string;
+  state: "streaming" | "done";
+  providerMetadata?: Record<string, unknown>;
+};
+
+// Helper to check if a part is a non-renderable stream event
+export function isNonRenderableStreamEvent(
+  data: unknown
+): data is StreamEventPart {
+  if (!data || typeof data !== "object" || !("type" in data)) {
+    return false;
+  }
+  const type = (data as { type: unknown }).type;
+  return (
+    typeof type === "string" &&
+    (type === "text-start" ||
+      type === "text-delta" ||
+      type === "text-end" ||
+      type === "step-start" ||
+      type === "finish")
+  );
+}

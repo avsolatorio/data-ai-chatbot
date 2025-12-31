@@ -119,25 +119,11 @@ export function Chat({
       // Type assertion needed because useChat's onData type doesn't include data-thinking
       const part = dataPart as { type?: string; id?: string; data?: unknown };
       if (part.type === "data-thinking" && part.id && part.data !== undefined) {
-        console.log("[Chat] Received data-thinking event:", {
-          type: part.type,
-          id: part.id,
-          innerDataType:
-            typeof part.data === "object" &&
-            part.data !== null &&
-            "type" in part.data
-              ? (part.data as { type: unknown }).type
-              : "unknown",
-        });
         dataThinkingStream.handleDataThinkingEvent({
           type: part.type,
           id: part.id,
           data: part.data,
         });
-        console.log(
-          "[Chat] Streaming parts count after handling:",
-          dataThinkingStream.streamingPartsCount
-        );
         // Don't add data-thinking events to dataStream - they're handled separately
         return;
       }
