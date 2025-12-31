@@ -19,6 +19,11 @@ type MessagesProps = {
   isReadonly: boolean;
   isArtifactVisible: boolean;
   selectedModelId: string;
+  streamingThinkingParts?: Array<{
+    type: string;
+    id: string;
+    data: ChatMessage["parts"][number];
+  }>;
 };
 
 function PureMessages({
@@ -30,6 +35,7 @@ function PureMessages({
   regenerate,
   isReadonly,
   selectedModelId: _selectedModelId,
+  streamingThinkingParts = [],
 }: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -52,27 +58,55 @@ function PureMessages({
         <div className="mx-auto flex min-w-0 max-w-4xl flex-col gap-4 px-2 py-4 md:gap-6 md:px-4">
           {messages.length === 0 && <Greeting />}
 
-          {messages.map((message, index) => (
-            <PreviewMessage
-              chatId={chatId}
-              isLoading={
-                status === "streaming" && messages.length - 1 === index
-              }
-              isReadonly={isReadonly}
-              key={message.id}
-              message={message}
-              regenerate={regenerate}
-              requiresScrollPadding={
-                hasSentMessage && index === messages.length - 1
-              }
-              setMessages={setMessages}
-              vote={
-                votes
-                  ? votes.find((vote) => vote.messageId === message.id)
-                  : undefined
-              }
-            />
-          ))}
+          {messages.map((message, index) => {
+            const isLoading = status === "streaming" && messages.length - 1 === index;
+            // Pass streaming parts to the last message (the one that was just streamed)
+            // This keeps streaming parts visible until saved parts are available
+            const isLastMessage = index === messages.length - 1;
+            // Check if message has saved thinking parts
+            const hasSavedThinkingParts = message.parts?.some(
+              (part) => typeof part.type === "string" && part.type.startsWith("data-thinking")
+            ) ?? false;
+            // Use streaming parts if:
+            // 1. It's the last message AND
+            // 2. We have streaming parts AND
+            // 3. Either we're still loading OR we don't have saved parts yet
+            const shouldUseStreamingParts =
+              isLastMessage &&
+              streamingThinkingParts.length > 0 &&
+              (isLoading || !hasSavedThinkingParts);
+
+            console.log("[Messages] Message render:", {
+              messageId: message.id,
+              isLastMessage,
+              isLoading,
+              hasSavedThinkingParts,
+              streamingThinkingPartsCount: streamingThinkingParts.length,
+              shouldUseStreamingParts,
+              streamingParts: streamingThinkingParts,
+            });
+
+            return (
+              <PreviewMessage
+                chatId={chatId}
+                isLoading={isLoading}
+                isReadonly={isReadonly}
+                key={message.id}
+                message={message}
+                regenerate={regenerate}
+                requiresScrollPadding={
+                  hasSentMessage && index === messages.length - 1
+                }
+                setMessages={setMessages}
+                streamingThinkingParts={shouldUseStreamingParts ? streamingThinkingParts : []}
+                vote={
+                  votes
+                    ? votes.find((vote) => vote.messageId === message.id)
+                    : undefined
+                }
+              />
+            );
+          })}
 
           {status === "submitted" && <ThinkingMessage />}
 

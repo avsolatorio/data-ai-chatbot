@@ -20,6 +20,7 @@ import {
 import { useArtifactSelector } from "@/hooks/use-artifact";
 import { useAutoResume } from "@/hooks/use-auto-resume";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
+import { useDataThinkingStream } from "@/hooks/use-data-thinking-stream";
 import { getApiUrl } from "@/lib/api-client";
 import type { Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
@@ -82,6 +83,9 @@ export function Chat({
     currentModelIdRef.current = currentModelId;
   }, [currentModelId]);
 
+  // Hook to handle streaming data-thinking events
+  const dataThinkingStream = useDataThinkingStream();
+
   const {
     messages,
     setMessages,
@@ -111,12 +115,44 @@ export function Chat({
       },
     }),
     onData: (dataPart) => {
+      // Handle data-thinking events separately - don't add them to dataStream
+      // Type assertion needed because useChat's onData type doesn't include data-thinking
+      const part = dataPart as { type?: string; id?: string; data?: unknown };
+      if (part.type === "data-thinking" && part.id && part.data !== undefined) {
+        console.log("[Chat] Received data-thinking event:", {
+          type: part.type,
+          id: part.id,
+          innerDataType:
+            typeof part.data === "object" &&
+            part.data !== null &&
+            "type" in part.data
+              ? (part.data as { type: unknown }).type
+              : "unknown",
+        });
+        dataThinkingStream.handleDataThinkingEvent({
+          type: part.type,
+          id: part.id,
+          data: part.data,
+        });
+        console.log(
+          "[Chat] Streaming parts count after handling:",
+          dataThinkingStream.streamingPartsCount
+        );
+        // Don't add data-thinking events to dataStream - they're handled separately
+        return;
+      }
+
+      // Add non-data-thinking events to dataStream for artifact handling
       setDataStream((ds) => (ds ? [...ds, dataPart] : []));
+
       if (dataPart.type === "data-usage") {
         setUsage(dataPart.data);
       }
     },
     onFinish: () => {
+      // Don't clear streaming parts immediately - keep them until saved parts are in message.parts
+      // The saved parts will take precedence when they're available
+      // Streaming parts will be cleared when the component unmounts or when a new message starts
       mutate(unstable_serialize(getChatHistoryPaginationKey));
     },
     onError: (error) => {
@@ -135,6 +171,40 @@ export function Chat({
       }
     },
   });
+
+  // Clear streaming parts only when saved parts are confirmed in the last message
+  // AND we're not currently streaming
+  useEffect(() => {
+    if (messages.length === 0) {
+      return;
+    }
+
+    // Don't clear while actively streaming
+    if (status === "streaming") {
+      return;
+    }
+
+    const lastMessage = messages.at(-1);
+    if (!lastMessage) {
+      return;
+    }
+
+    const hasSavedThinkingParts =
+      lastMessage.parts?.some(
+        (part) =>
+          typeof part.type === "string" && part.type.startsWith("data-thinking")
+      ) ?? false;
+
+    // If we have saved parts and streaming parts, clear streaming parts
+    // (saved parts will take over)
+    // Only clear when NOT streaming to avoid clearing during active streaming
+    if (hasSavedThinkingParts && dataThinkingStream.streamingPartsCount > 0) {
+      console.log(
+        "[Chat] Saved thinking parts detected, clearing streaming parts"
+      );
+      dataThinkingStream.clear();
+    }
+  }, [messages, dataThinkingStream, status]);
 
   const searchParams = useSearchParams();
   const query = searchParams.get("query");
@@ -193,6 +263,13 @@ export function Chat({
           selectedModelId={initialChatModel}
           setMessages={setMessages}
           status={status}
+          streamingThinkingParts={dataThinkingStream.streamingParts.map(
+            (part) => ({
+              type: part.type,
+              id: part.id,
+              data: part.data as ChatMessage["parts"][number],
+            })
+          )}
           votes={votes}
         />
 

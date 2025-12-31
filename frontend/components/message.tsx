@@ -329,6 +329,7 @@ const PurePreviewMessage = ({
   regenerate,
   isReadonly,
   requiresScrollPadding: _requiresScrollPadding,
+  streamingThinkingParts = [],
 }: {
   chatId: string;
   message: ChatMessage;
@@ -338,6 +339,11 @@ const PurePreviewMessage = ({
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
   isReadonly: boolean;
   requiresScrollPadding: boolean;
+  streamingThinkingParts?: Array<{
+    type: string;
+    id: string;
+    data: ChatMessage["parts"][number];
+  }>;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
 
@@ -416,17 +422,80 @@ const PurePreviewMessage = ({
                 typeof type === "string" &&
                 type.startsWith("data-thinking")
               ) {
-                thinkingParts.push(
-                  part as {
-                    type: string;
-                    id: string;
-                    data: ChatMessage["parts"][number];
-                  }
-                );
+                const thinkingPart = part as {
+                  type: string;
+                  id: string;
+                  data: unknown;
+                };
+                // Filter out stream events that aren't renderable (text-end, finish, etc.)
+                const data = thinkingPart.data;
+                if (
+                  data &&
+                  typeof data === "object" &&
+                  "type" in data &&
+                  typeof data.type === "string" &&
+                  (data.type === "text-end" ||
+                    data.type === "finish" ||
+                    data.type === "text-start" ||
+                    data.type === "text-delta" ||
+                    data.type === "step-start")
+                ) {
+                  return; // Skip this part
+                }
+                thinkingParts.push({
+                  type: thinkingPart.type,
+                  id: thinkingPart.id,
+                  data: thinkingPart.data as ChatMessage["parts"][number],
+                });
               } else {
                 regularParts.push({ part, index });
               }
             });
+
+            // Use streaming parts if available and we're loading or don't have saved parts yet
+            const hasSavedThinkingParts = thinkingParts.length > 0;
+            const shouldUseStreamingParts =
+              streamingThinkingParts.length > 0 &&
+              (!hasSavedThinkingParts || isLoading);
+
+            // Replace thinking parts with streaming parts if we should use them
+            if (shouldUseStreamingParts) {
+              // Use streaming parts directly
+              thinkingParts.length = 0;
+              for (const part of streamingThinkingParts) {
+                // Extract the data, which might be a StreamingThinkingPart with state property
+                // We need to convert it to a proper message part for rendering
+                const partData = part.data;
+                // If it's a StreamingThinkingPart (has state property), extract just the text part
+                if (
+                  typeof partData === "object" &&
+                  partData !== null &&
+                  "type" in partData &&
+                  partData.type === "text" &&
+                  "state" in partData
+                ) {
+                  // It's a StreamingThinkingPart - convert to regular text part
+                  const { state: _state, ...textPart } = partData as {
+                    type: "text";
+                    text: string;
+                    state: "streaming" | "done";
+                    providerMetadata?: Record<string, unknown>;
+                  };
+                  thinkingParts.push({
+                    type: part.type,
+                    id: part.id,
+                    data: textPart as ChatMessage["parts"][number],
+                  });
+                } else {
+                  // It's already a proper message part or stream event
+                  thinkingParts.push({
+                    type: part.type,
+                    id: part.id,
+                    data: partData as ChatMessage["parts"][number],
+                  });
+                }
+              }
+            }
 
             return (
               <>
