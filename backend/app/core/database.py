@@ -4,9 +4,10 @@ from sqlalchemy.orm import declarative_base
 
 from app.config import settings
 
-engine = create_async_engine(
-    settings.POSTGRES_URL, echo=settings.ENVIRONMENT == "development", future=True
-)
+# Note: SQLAlchemy logging is configured in app/main.py before this module is imported
+# Setting echo=False to prevent SQLAlchemy from logging SQL statements directly
+# Use logger configuration instead for more control
+engine = create_async_engine(settings.POSTGRES_URL, echo=False, future=True)
 
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 

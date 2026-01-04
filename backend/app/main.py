@@ -22,6 +22,12 @@ logging.basicConfig(
 root_logger = logging.getLogger()
 root_logger.setLevel(logging.INFO)
 
+# Configure SQLAlchemy logging BEFORE database imports
+# Set to WARNING to suppress INFO level SQL query logs
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.dialects").setLevel(logging.WARNING)
+
 # Ensure uvicorn loggers also use INFO level
 logging.getLogger("uvicorn").setLevel(logging.INFO)
 logging.getLogger("uvicorn.access").setLevel(logging.INFO)
