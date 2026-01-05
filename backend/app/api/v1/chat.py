@@ -47,7 +47,7 @@ router = APIRouter()
 
 # Rate limiting configuration
 ENTITLEMENTS = {
-    "guest": {"maxMessagesPerDay": 50},
+    "guest": {"maxMessagesPerDay": 55},
     "regular": {"maxMessagesPerDay": 100},
 }
 
@@ -156,7 +156,22 @@ async def create_chat(
     message_count = await get_message_count_by_user_id(db, user_id, hours=24)
     max_messages = ENTITLEMENTS.get(user_type, ENTITLEMENTS["regular"])["maxMessagesPerDay"]
 
+    logger.info(
+        "Rate limit check: user_id=%s, user_type=%s, message_count=%d, max_messages=%d",
+        user_id,
+        user_type,
+        message_count,
+        max_messages,
+    )
+
     if message_count >= max_messages:
+        logger.warning(
+            "Rate limit exceeded: user_id=%s, user_type=%s, message_count=%d >= max_messages=%d",
+            user_id,
+            user_type,
+            message_count,
+            max_messages,
+        )
         raise ChatSDKError(
             "rate_limit:chat",
             f"Rate limit exceeded. Maximum {max_messages} messages per day.",
@@ -269,6 +284,8 @@ async def create_chat(
         }
     )
 
+    logger.info("All messages: %s", json.dumps(all_messages, indent=4))
+
     # Convert messages to OpenAI format (fetches file data from database)
     openai_messages = await convert_messages_to_openai_format(all_messages, db)
 
@@ -285,6 +302,7 @@ async def create_chat(
     tools, tool_definitions = await prepare_tools(user_id, db)
     logger.info("tool_definitions: %s", tool_definitions)
 
+    use_thinking = False
     # Create stream processor
     thinking_processor = StreamEventProcessor(request.id, mode="thinking")
     chat_processor = StreamEventProcessor(request.id, mode="chat")
@@ -314,40 +332,43 @@ async def create_chat(
             #     "Thinking messages before conversion: %s", json.dumps(thinking_messages, indent=4)
             # )
 
-            async for event_bytes in thinking_processor.process_stream(
-                client=client,
-                model=model,
-                messages=thinking_messages,
-                system=thinking_system,
-                tools=tools,
-                tool_definitions=tool_definitions,
-            ):
-                # Store chunk in Redis asynchronously with sequence number
-                current_sequence = sequence
-                sequence += 1
-                asyncio.create_task(store_stream_chunk(stream_id, event_bytes, current_sequence))
-                yield event_bytes
+            if use_thinking:
+                async for event_bytes in thinking_processor.process_stream(
+                    client=client,
+                    model=model,
+                    messages=thinking_messages,
+                    system=thinking_system,
+                    tools=tools,
+                    tool_definitions=tool_definitions,
+                ):
+                    # Store chunk in Redis asynchronously with sequence number
+                    current_sequence = sequence
+                    sequence += 1
+                    asyncio.create_task(
+                        store_stream_chunk(stream_id, event_bytes, current_sequence)
+                    )
+                    yield event_bytes
 
-            # TODO: If thinking stage is completed, store the thinking messages in the database and support resuming the stream from the thinking stage.
-            logger.info(
-                "Thinking processor assistant messages count: %d",
-                len(thinking_processor.assistant_messages),
-            )
-            thinking_messages = [
-                convert_message_data_to_message_model(msg).model_dump()
-                for msg in thinking_processor.assistant_messages
-            ]
+                # TODO: If thinking stage is completed, store the thinking messages in the database and support resuming the stream from the thinking stage.
+                logger.info(
+                    "Thinking processor assistant messages count: %d",
+                    len(thinking_processor.assistant_messages),
+                )
+                thinking_messages = [
+                    convert_message_data_to_message_model(msg).model_dump()
+                    for msg in thinking_processor.assistant_messages
+                ]
 
-            # Unpack the data from the thinking parts so we can convert them to OpenAI format
-            thinking_messages = [
-                {**msg, "parts": [part["data"] for part in msg["parts"]]}
-                for msg in thinking_messages
-            ]
+                # Unpack the data from the thinking parts so we can convert them to OpenAI format
+                thinking_messages = [
+                    {**msg, "parts": [part["data"] for part in msg["parts"]]}
+                    for msg in thinking_messages
+                ]
 
-            logger.info(
-                "Thinking messages chat messages before conversion: %d", len(thinking_messages)
-            )
-            thinking_messages = await convert_messages_to_openai_format(thinking_messages, db)
+                logger.info(
+                    "Thinking messages chat messages before conversion: %d", len(thinking_messages)
+                )
+                thinking_messages = await convert_messages_to_openai_format(thinking_messages, db)
 
             logger.info(
                 "Thinking messages chat messages after conversion: %d",
@@ -398,11 +419,17 @@ async def create_chat(
                 asyncio.create_task(mark_stream_complete(stream_id))
 
                 # Schedule background tasks after stream completes
-                assert len(thinking_processor.assistant_messages) == 1
+                if use_thinking:
+                    assert len(thinking_processor.assistant_messages) == 1
                 assert len(chat_processor.assistant_messages) == 1
 
-                assistant_message = thinking_processor.assistant_messages[0].copy()
-                assistant_message["parts"].extend(chat_processor.assistant_messages[0]["parts"])
+                if use_thinking:
+                    assistant_message = thinking_processor.assistant_messages[0].copy()
+                    assistant_message["parts"].extend(chat_processor.assistant_messages[0]["parts"])
+                else:
+                    assistant_message = chat_processor.assistant_messages[0].copy()
+
+                logger.info("Assistant message: %s", assistant_message)
 
                 create_save_messages_task(
                     background_tasks,
