@@ -1,8 +1,26 @@
+from enum import Enum
 from typing import List, Union
 
 import dotenv
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
+
+
+class ModelType(str, Enum):
+    """Enum for AI model types used in the application."""
+
+    CHAT_MODEL = "chat-model"
+    CHAT_MODEL_REASONING = "chat-model-reasoning"
+    TITLE_MODEL = "title-model"
+    ARTIFACT_MODEL = "artifact-model"
+
+
+class ModelSettings(BaseSettings):
+    MODEL_PROVIDER: str = "azure/"
+    CHAT_MODEL: str = "gpt-4o-mini"
+    CHAT_MODEL_REASONING: str = "o1-mini"
+    TITLE_MODEL: str = "gpt-4o-mini"
+    ARTIFACT_MODEL: str = "gpt-4o-mini"
 
 
 class Settings(BaseSettings):
@@ -30,6 +48,9 @@ class Settings(BaseSettings):
     XAI_API_KEY: str = ""  # Deprecated: kept for backward compatibility
     AI_GATEWAY_URL: str = ""  # Deprecated: using aisuite instead
     MODEL_PREFIX: str = "azure/"
+
+    # AI Model Configuration - can be overridden via environment variables
+    models: ModelSettings = ModelSettings()
 
     # App
     ENVIRONMENT: str = "development"

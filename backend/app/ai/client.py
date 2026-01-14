@@ -8,11 +8,12 @@ from typing import Any, Protocol, runtime_checkable
 import litellm
 from dotenv import load_dotenv
 
-from app.config import settings
+from app.config import ModelType, settings
 
 # Configure LiteLLM
 litellm.drop_params = True  # Drop unsupported params for each provider
 litellm.set_verbose = False  # Disable verbose logging by default
+litellm.enable_azure_ad_token_refresh = True  # add support for azure client credentials auth
 
 load_dotenv(
     ".env",
@@ -108,7 +109,7 @@ class AsyncOpenACompletionsProtocol(Protocol):
 # ============================================================================
 
 # Default model prefix for LiteLLM (e.g., "azure/", "openai/", "anthropic/")
-_model_prefix = settings.MODEL_PREFIX
+_model_prefix = settings.models.MODEL_PROVIDER
 
 
 class LiteLLMChatCompletions:
@@ -249,32 +250,23 @@ def get_async_ai_client(model_prefix: str = _model_prefix) -> AsyncOpenAIChatCli
     return LiteLLMAsyncClient(model_prefix=model_prefix)
 
 
-def get_model_name(model_id: str) -> str:
+def get_model_name(model_type: ModelType) -> str:
     """
-    Map internal model IDs to standard model names.
+    Get the configured model name for a given model type.
 
     Returns the standard model name without provider prefix.
     The provider prefix (e.g., "azure/", "openai/") is handled by the client.
 
-    Model mapping:
-    - chat-model -> gpt-4o-mini
-    - chat-model-reasoning -> o1-mini
-    - title-model -> gpt-4o-mini
-    - artifact-model -> gpt-4o-mini
+    Args:
+        model_type: ModelType enum value indicating which model to retrieve
+
+    Returns:
+        The configured model name from settings
     """
-    provider_model_mapping = {
-        "azure/": {
-            "chat-model": "gpt-4o-mini",
-            "chat-model-reasoning": "o1-mini",
-            "title-model": "gpt-4o-mini",
-            "artifact-model": "gpt-4o-mini",
-        },
-        "openai/": {
-            "chat-model": "gpt-4.1-mini",
-            "chat-model-reasoning": "gpt-5-mini",
-            "title-model": "gpt-4.1-mini",
-            "artifact-model": "gpt-4.1-mini",
-        },
+    model_mapping = {
+        ModelType.CHAT_MODEL: settings.models.CHAT_MODEL,
+        ModelType.CHAT_MODEL_REASONING: settings.models.CHAT_MODEL_REASONING,
+        ModelType.TITLE_MODEL: settings.models.TITLE_MODEL,
+        ModelType.ARTIFACT_MODEL: settings.models.ARTIFACT_MODEL,
     }
-    model_prefix = _model_prefix
-    return provider_model_mapping.get(model_prefix, {}).get(model_id, "gpt-4.1-mini")
+    return model_mapping.get(model_type, settings.models.CHAT_MODEL)

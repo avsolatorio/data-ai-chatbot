@@ -2,9 +2,11 @@
 
 from typing import Any, Dict, Optional
 
+from app.config import ModelType
+
 
 def get_system_prompt(
-    selected_chat_model: str,
+    selected_chat_model: ModelType,
     request_hints: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
@@ -66,7 +68,7 @@ About the origin of user's request:
 - country: {country}
 """
 
-    if selected_chat_model == "chat-model-reasoning":
+    if selected_chat_model == ModelType.CHAT_MODEL_REASONING:
         return f"{regular_prompt}\n\n{request_prompt}".strip()
 
     return f"{regular_prompt}\n\n{request_prompt}\n\n{artifacts_prompt}".strip()

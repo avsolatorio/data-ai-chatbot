@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from app.ai.client import get_async_ai_client, get_model_name
+from app.config import ModelType
 from app.db.queries.document_queries import get_documents_by_id
 from app.db.queries.suggestion_queries import save_suggestions
 from app.utils.stream import format_sse
@@ -82,7 +83,7 @@ async def _generate_suggestions(
     Uses structured output to get suggestions.
     """
     client = get_async_ai_client()
-    model = get_model_name("artifact-model")
+    model = get_model_name(ModelType.ARTIFACT_MODEL)
 
     system_message = "You are a help writing assistant. Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change. It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions."
 
@@ -97,7 +98,7 @@ async def _generate_suggestions(
         {
             "role": "user",
             "content": f"Please provide suggestions for the following text in JSON format as an array of objects with 'originalSentence', 'suggestedSentence', and 'description' fields:\n\n{content}",
-        }
+        },
     ]
 
     suggestions = []

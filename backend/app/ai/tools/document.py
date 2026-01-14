@@ -7,6 +7,7 @@ import uuid
 from typing import Any, Dict, Optional
 
 from app.ai.client import get_async_ai_client, get_model_name
+from app.config import ModelType
 from app.db.queries.document_queries import get_documents_by_id, save_document
 from app.utils.helpers import format_sse
 
@@ -131,7 +132,7 @@ async def _generate_document_content(
 ) -> str:
     """Generate document content based on title and kind."""
     client = get_async_ai_client()
-    model = get_model_name("artifact-model")
+    model = get_model_name(ModelType.ARTIFACT_MODEL)
 
     # System prompts based on kind
     system_prompts = {
@@ -177,7 +178,7 @@ async def _generate_updated_content(
 ) -> str:
     """Generate updated document content."""
     client = get_async_ai_client()
-    model = get_model_name("artifact-model")
+    model = get_model_name(ModelType.ARTIFACT_MODEL)
 
     # Update prompt
     media_type = "document"

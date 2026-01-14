@@ -19,6 +19,7 @@ from app.api.v1.utils.background_tasks import (
 )
 from app.api.v1.utils.continue_stream import _continue_stream_in_background
 from app.api.v1.utils.tool_setup import prepare_tools
+from app.config import ModelType
 from app.core.database import get_db
 from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import (
@@ -74,7 +75,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     id: UUID
     message: ChatMessage
-    selectedChatModel: str  # "chat-model" or "chat-model-reasoning"
+    selectedChatModel: ModelType  # ModelType enum: CHAT_MODEL or CHAT_MODEL_REASONING
     selectedVisibilityType: str  # "public" or "private"
 
 
@@ -92,7 +93,7 @@ async def generate_title_from_user_message(message: ChatMessage) -> str:
     Ported from app/(chat)/actions.ts generateTitleFromUserMessage.
     """
     client = get_ai_client()
-    model = get_model_name("title-model")
+    model = get_model_name(ModelType.TITLE_MODEL)
     text = get_text_from_message(message)
 
     # Generate title using OpenAI (non-streaming)

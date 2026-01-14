@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from app.config import ModelType
+
 
 class MessagePart(BaseModel):
     """A part of a chat message (text or file)."""
@@ -30,7 +32,7 @@ class StreamRequest(BaseModel):
 
     id: UUID
     message: ChatMessage
-    selectedChatModel: str  # "chat-model" or "chat-model-reasoning"
+    selectedChatModel: ModelType  # ModelType enum: CHAT_MODEL or CHAT_MODEL_REASONING
     selectedVisibilityType: str  # "public" or "private"
     existingMessages: List[Dict[str, Any]] = []
     streamId: Optional[UUID] = None  # Optional stream ID for resumable streams
