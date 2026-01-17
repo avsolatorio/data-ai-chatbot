@@ -1,16 +1,16 @@
 import uuid
 
 from sqlalchemy import Column, DateTime, String
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
+from app.core.db.types import UUID
 
 
 class User(Base):
     __tablename__ = "User"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
     email = Column(String(64), nullable=False, unique=True)
     password = Column(String(64), nullable=True)
     type = Column(String(10), nullable=False, default="regular")  # "guest" or "regular"

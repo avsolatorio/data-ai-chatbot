@@ -1,11 +1,11 @@
 from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import PrimaryKeyConstraint
 
 from app.core.database import Base
+from app.core.db.types import UUID
 
 
 # ruff: noqa: N815
@@ -13,10 +13,8 @@ class Vote(Base):
     __tablename__ = "Vote_v2"
     __table_args__ = (PrimaryKeyConstraint("chatId", "messageId"),)
 
-    chatId = Column(UUID(as_uuid=True), ForeignKey("Chat.id"), nullable=False, primary_key=True)
-    messageId = Column(
-        UUID(as_uuid=True), ForeignKey("Message_v2.id"), nullable=False, primary_key=True
-    )
+    chatId = Column(UUID(), ForeignKey("Chat.id"), nullable=False, primary_key=True)
+    messageId = Column(UUID(), ForeignKey("Message_v2.id"), nullable=False, primary_key=True)
     isUpvoted = Column(Boolean, nullable=True)
     feedback = Column(String, nullable=True)
     # General timestamps (for backward compatibility)

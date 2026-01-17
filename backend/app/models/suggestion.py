@@ -7,19 +7,19 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import ForeignKeyConstraint
 
 from app.core.database import Base
+from app.core.db.types import UUID
 
 
 class Suggestion(Base):
     __tablename__ = "Suggestion"
 
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID(), primary_key=True, default=uuid4)
     document_id = Column(
-        PG_UUID(as_uuid=True),
+        UUID(),
         name="documentId",
         nullable=False,
     )
@@ -33,7 +33,7 @@ class Suggestion(Base):
     description = Column(Text, nullable=True)
     is_resolved = Column(Boolean, name="isResolved", nullable=False, default=False)
     user_id = Column(
-        PG_UUID(as_uuid=True),
+        UUID(),
         ForeignKey("User.id"),
         name="userId",
         nullable=False,

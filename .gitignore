@@ -1,3 +1,4 @@
+local-scripts
 .npmrc
 
 backend/certs
