@@ -2,21 +2,21 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Column, DateTime, ForeignKey, String
-from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
+from app.core.db.types import JSONB, UUID
 
 
 class Chat(Base):
     __tablename__ = "Chat"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
     createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)  # noqa: N815
     title = Column(String, nullable=False)
-    userId = Column(UUID(as_uuid=True), ForeignKey("User.id"), nullable=False)  # noqa: N815
+    userId = Column(UUID(), ForeignKey("User.id"), nullable=False)  # noqa: N815
     visibility = Column(String, nullable=False, default="private")
-    lastContext = Column(JSONB, nullable=True)  # noqa: N815
+    lastContext = Column(JSONB(), nullable=True)  # noqa: N815
 
     # Relationships
     user = relationship("User", back_populates="chats")

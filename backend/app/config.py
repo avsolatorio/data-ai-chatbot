@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List, Union
 
 import dotenv
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -15,6 +15,13 @@ class ModelType(str, Enum):
     ARTIFACT_MODEL = "artifact-model"
 
 
+class DatabaseType(str, Enum):
+    """Enum for supported database types."""
+
+    POSTGRESQL = "postgresql"
+    MSSQL = "mssql"
+
+
 class ModelSettings(BaseSettings):
     MODEL_PROVIDER: str = "azure/"
     CHAT_MODEL: str = "gpt-4o-mini"
@@ -23,11 +30,50 @@ class ModelSettings(BaseSettings):
     ARTIFACT_MODEL: str = "gpt-4o-mini"
 
 
+class AzureSQLSettings(BaseSettings):
+    SERVER: str | None = None
+    DATABASE: str | None = None
+    USERNAME: str | None = None
+    PASSWORD: str | None = None
+    PORT: int = 1433  # Default MSSQL port
+    USE_ENTRA_ID: bool = False  # Use Entra ID (Azure AD) authentication (default: false)
+    ODBC_DRIVER: str = "ODBC Driver 18 for SQL Server"  # Default ODBC driver
+
+
 class Settings(BaseSettings):
-    # Database - REQUIRED: Must be set in .env file
-    # Format: postgresql+asyncpg://user:password@host:port/database
-    POSTGRES_URL: str
+    # Database Configuration
+    DATABASE_TYPE: DatabaseType = DatabaseType.POSTGRESQL  # "postgresql" or "mssql"
+
+    # PostgreSQL - Required when DATABASE_TYPE=postgresql
+    # Format: postgresql+asyncpg://user:password@host:port/database  # pragma: allowlist secret
+    POSTGRES_URL: str = ""  # pragma: allowlist secret
     POSTGRES_URL_SYNC: str = ""
+
+    # Azure SQL (MSSQL) - Required when DATABASE_TYPE=mssql
+    AZURE_SQL: AzureSQLSettings = AzureSQLSettings()
+
+    @model_validator(mode="after")
+    def validate_database_config(self) -> "Settings":
+        """Validate database configuration based on DATABASE_TYPE."""
+        if self.DATABASE_TYPE == DatabaseType.POSTGRESQL and not self.POSTGRES_URL:
+            raise ValueError(
+                "POSTGRES_URL is required when DATABASE_TYPE=postgresql. "
+                "Please set POSTGRES_URL in your environment variables."
+            )
+        if self.DATABASE_TYPE == DatabaseType.MSSQL:
+            azure_sql = self.AZURE_SQL
+            if not azure_sql.SERVER or not azure_sql.DATABASE:
+                raise ValueError(
+                    "AZURE_SQL_SERVER and AZURE_SQL_DATABASE are required when DATABASE_TYPE=mssql. "
+                    "Please set these in your environment variables."
+                )
+            if not azure_sql.USE_ENTRA_ID and (not azure_sql.USERNAME or not azure_sql.PASSWORD):
+                raise ValueError(
+                    "AZURE_SQL_USERNAME and AZURE_SQL_PASSWORD are required when "
+                    "DATABASE_TYPE=mssql and AZURE_SQL_USE_ENTRA_ID=false. "
+                    "Please set these in your environment variables."
+                )
+        return self
 
     # JWT - Optional: Only needed when using FastAPI auth endpoints
     # For development/testing, you can use any random string
