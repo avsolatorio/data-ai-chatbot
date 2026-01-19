@@ -85,6 +85,9 @@ export function Chat({
 
   // Hook to handle streaming data-thinking events
   const dataThinkingStream = useDataThinkingStream();
+  // Extract stable functions/values to avoid infinite loops in useEffect dependencies
+  const { clear: clearThinkingStream, streamingPartsCount } =
+    dataThinkingStream;
 
   const {
     messages,
@@ -116,9 +119,14 @@ export function Chat({
     }),
     onData: (dataPart) => {
       // Handle data-thinking events separately - don't add them to dataStream
-      // Type assertion needed because useChat's onData type doesn't include data-thinking
+      // Note: useChat's onData type doesn't include data-thinking, so we use a type assertion
+      // with runtime validation for safety
       const part = dataPart as { type?: string; id?: string; data?: unknown };
-      if (part.type === "data-thinking" && part.id && part.data !== undefined) {
+      if (
+        part.type === "data-thinking" &&
+        typeof part.id === "string" &&
+        part.data !== undefined
+      ) {
         dataThinkingStream.handleDataThinkingEvent({
           type: part.type,
           id: part.id,
@@ -142,6 +150,9 @@ export function Chat({
       mutate(unstable_serialize(getChatHistoryPaginationKey));
     },
     onError: (error) => {
+      // Clear streaming parts on error to prevent stale state
+      clearThinkingStream();
+
       if (error instanceof ChatSDKError) {
         // Check if it's a credit card error
         if (
@@ -178,19 +189,28 @@ export function Chat({
     const hasSavedThinkingParts =
       lastMessage.parts?.some(
         (part) =>
-          typeof part.type === "string" && part.type.startsWith("data-thinking")
+          typeof part.type === "string" &&
+          part.type.startsWith("data-thinking"),
       ) ?? false;
 
     // If we have saved parts and streaming parts, clear streaming parts
     // (saved parts will take over)
     // Only clear when NOT streaming to avoid clearing during active streaming
-    if (hasSavedThinkingParts && dataThinkingStream.streamingPartsCount > 0) {
+    if (hasSavedThinkingParts && streamingPartsCount > 0) {
       console.log(
-        "[Chat] Saved thinking parts detected, clearing streaming parts"
+        "[Chat] Saved thinking parts detected, clearing streaming parts",
       );
-      dataThinkingStream.clear();
+      clearThinkingStream();
     }
-  }, [messages, dataThinkingStream, status]);
+  }, [messages, streamingPartsCount, clearThinkingStream, status]);
+
+  // Cleanup streaming parts on unmount to prevent memory leaks
+  // Use the stable clear function directly to avoid infinite loops
+  useEffect(() => {
+    return () => {
+      clearThinkingStream();
+    };
+  }, [clearThinkingStream]);
 
   const searchParams = useSearchParams();
   const query = searchParams.get("query");
@@ -211,7 +231,7 @@ export function Chat({
 
   const { data: votes } = useSWR<Vote[]>(
     messages.length >= 2 ? `/api/vote?chatId=${id}` : null,
-    fetcher
+    fetcher,
   );
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -231,7 +251,7 @@ export function Chat({
           "overscroll-behavior-contain flex h-dvh min-w-0 touch-pan-y flex-col bg-background",
           {
             hidden: isArtifactVisible,
-          }
+          },
         )}
       >
         <ChatHeader
@@ -254,7 +274,7 @@ export function Chat({
               type: part.type,
               id: part.id,
               data: part.data as ChatMessage["parts"][number],
-            })
+            }),
           )}
           votes={votes}
         />
@@ -318,7 +338,7 @@ export function Chat({
               onClick={() => {
                 window.open(
                   "https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card",
-                  "_blank"
+                  "_blank",
                 );
                 window.location.href = "/";
               }}

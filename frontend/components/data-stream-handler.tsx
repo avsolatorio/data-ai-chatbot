@@ -33,7 +33,7 @@ export function DataStreamHandler() {
       // Find artifact definition using the current kind (updated if data-kind was processed)
       const artifactDefinition = artifactDefinitions.find(
         (currentArtifactDefinition) =>
-          currentArtifactDefinition.kind === currentKind
+          currentArtifactDefinition.kind === currentKind,
       );
 
       // Call onStreamPart BEFORE updating artifact state

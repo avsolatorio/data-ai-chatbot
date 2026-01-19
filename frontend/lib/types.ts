@@ -138,3 +138,18 @@ export function isNonRenderableStreamEvent(
       type === "finish")
   );
 }
+
+// Type guard for data-thinking events from the stream
+export function isDataThinkingEvent(
+  part: unknown
+): part is { type: "data-thinking"; id: string; data: MessagePartOrStreamEvent } {
+  if (!part || typeof part !== "object") {
+    return false;
+  }
+  const p = part as { type?: unknown; id?: unknown; data?: unknown };
+  return (
+    p.type === "data-thinking" &&
+    typeof p.id === "string" &&
+    p.data !== undefined
+  );
+}
