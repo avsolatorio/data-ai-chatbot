@@ -9,6 +9,7 @@ import { isNonRenderableStreamEvent } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
 import { useDataStream } from "./data-stream-provider";
 import { GetWdiData } from "./data360/get-wdi-data";
+import { SearchIndicators } from "./data360/search-indicators";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
@@ -267,6 +268,45 @@ function renderMessagePart(
             <ToolOutput
               errorText={undefined}
               output={<SearchRelevantIndicators output={toolPart.output} />}
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  // data360_search_indicators tool
+  if ((type as string) === "tool-data360_search_indicators") {
+    const toolPart = part as {
+      toolCallId: string;
+      state: "input-available" | "output-available";
+      input: unknown;
+      output: {
+        count: number;
+        total_count: number;
+        offset: number;
+        has_more: boolean;
+        next_offset: number;
+        items: Array<{
+          idno: string;
+          name: string;
+          database_id: string;
+          definition_long: string;
+        }>;
+        error: string | null;
+      };
+    };
+    return (
+      <Tool defaultOpen={true} key={toolPart.toolCallId}>
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        <ToolContent>
+          {toolPart.state === "input-available" && (
+            <ToolInput input={toolPart.input} />
+          )}
+          {toolPart.state === "output-available" && (
+            <ToolOutput
+              errorText={undefined}
+              output={<SearchIndicators output={toolPart.output} />}
             />
           )}
         </ToolContent>
