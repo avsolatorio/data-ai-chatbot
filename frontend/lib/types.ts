@@ -123,7 +123,7 @@ export type StreamingThinkingPart = {
 
 // Helper to check if a part is a non-renderable stream event
 export function isNonRenderableStreamEvent(
-  data: unknown
+  data: unknown,
 ): data is StreamEventPart {
   if (!data || typeof data !== "object" || !("type" in data)) {
     return false;
@@ -135,14 +135,18 @@ export function isNonRenderableStreamEvent(
       type === "text-delta" ||
       type === "text-end" ||
       type === "step-start" ||
+      // TODO: Check if we need to render data-usage events
+      type === "data-usage" ||
       type === "finish")
   );
 }
 
 // Type guard for data-thinking events from the stream
-export function isDataThinkingEvent(
-  part: unknown
-): part is { type: "data-thinking"; id: string; data: MessagePartOrStreamEvent } {
+export function isDataThinkingEvent(part: unknown): part is {
+  type: "data-thinking";
+  id: string;
+  data: MessagePartOrStreamEvent;
+} {
   if (!part || typeof part !== "object") {
     return false;
   }

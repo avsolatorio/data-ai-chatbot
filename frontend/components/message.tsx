@@ -43,7 +43,7 @@ function renderMessagePart(
     setMessages: UseChatHelpers<ChatMessage>["setMessages"];
     isReadonly: boolean;
     isLoading: boolean;
-  }
+  },
 ): React.ReactNode {
   const { type } = part;
   const {
@@ -349,7 +349,7 @@ const PurePreviewMessage = ({
   const [mode, setMode] = useState<"view" | "edit">("view");
 
   const attachmentsFromMessage = message.parts.filter(
-    (part) => part.type === "file"
+    (part) => part.type === "file",
   );
 
   useDataStream();
@@ -375,12 +375,12 @@ const PurePreviewMessage = ({
         <div
           className={cn("flex min-w-0 flex-col", {
             "gap-2 md:gap-4": message.parts?.some(
-              (p) => p.type === "text" && p.text?.trim()
+              (p) => p.type === "text" && p.text?.trim(),
             ),
             "w-full":
               (message.role === "assistant" &&
                 message.parts?.some(
-                  (p) => p.type === "text" && p.text?.trim()
+                  (p) => p.type === "text" && p.text?.trim(),
                 )) ||
               mode === "edit",
             "max-w-[calc(100%-2.5rem)] sm:max-w-[min(fit-content,80%)]":
@@ -406,46 +406,54 @@ const PurePreviewMessage = ({
           )}
 
           {(() => {
-            // Separate data-thinking parts from regular parts
-            const thinkingParts: Array<{
-              type: string;
-              id: string;
-              data: ChatMessage["parts"][number];
-            }> = [];
-            const regularParts: Array<{
-              part: ChatMessage["parts"][number];
-              index: number;
-            }> = [];
+            // Find the split point: first non-data-thinking part
+            // Assumption: data-thinking parts always come first
+            const parts = message.parts ?? [];
+            const firstRegularPartIndex = parts.findIndex(
+              (part) =>
+                typeof part.type !== "string" ||
+                !part.type.startsWith("data-thinking"),
+            );
 
-            // Process saved parts from message
-            message.parts?.forEach((part, index) => {
-              const { type } = part;
-              if (
-                typeof type === "string" &&
-                type.startsWith("data-thinking")
-              ) {
+            // Split parts: thinking parts come first, then regular parts
+            const savedThinkingParts =
+              firstRegularPartIndex === -1
+                ? parts
+                : parts.slice(0, firstRegularPartIndex);
+            const regularParts =
+              firstRegularPartIndex === -1
+                ? []
+                : parts.slice(firstRegularPartIndex);
+
+            // Filter out non-renderable stream events from saved thinking parts
+            const filteredSavedThinkingParts = savedThinkingParts
+              .map((part) => {
                 const thinkingPart = part as {
                   type: string;
                   id: string;
                   data: unknown;
                 };
-                // Filter out non-renderable stream events
-                if (isNonRenderableStreamEvent(thinkingPart.data)) {
-                  return; // Skip this part
-                }
-                thinkingParts.push({
-                  type: thinkingPart.type,
-                  id: thinkingPart.id,
-                  data: thinkingPart.data as ChatMessage["parts"][number],
-                });
-              } else {
-                regularParts.push({ part, index });
-              }
-            });
+                return isNonRenderableStreamEvent(thinkingPart.data)
+                  ? null
+                  : {
+                      type: thinkingPart.type,
+                      id: thinkingPart.id,
+                      data: thinkingPart.data as ChatMessage["parts"][number],
+                    };
+              })
+              .filter(
+                (
+                  part,
+                ): part is {
+                  type: string;
+                  id: string;
+                  data: ChatMessage["parts"][number];
+                } => part !== null,
+              );
 
             // Decide whether to use streaming parts or saved parts
             // Use streaming parts if available and (we're loading OR don't have saved parts yet)
-            const hasSavedThinkingParts = thinkingParts.length > 0;
+            const hasSavedThinkingParts = filteredSavedThinkingParts.length > 0;
             const shouldUseStreamingParts =
               streamingThinkingParts.length > 0 &&
               (!hasSavedThinkingParts || isLoading);
@@ -491,7 +499,7 @@ const PurePreviewMessage = ({
               }
             } else {
               // Use saved parts as-is (already filtered above)
-              finalThinkingParts.push(...thinkingParts);
+              finalThinkingParts.push(...filteredSavedThinkingParts);
             }
 
             return (
@@ -502,7 +510,7 @@ const PurePreviewMessage = ({
                     isLoading={isLoading}
                     renderPart={(
                       nestedPart: ChatMessage["parts"][number],
-                      nestedKey: string
+                      nestedKey: string,
                     ) =>
                       renderMessagePart(nestedPart, nestedKey, {
                         mode,
@@ -519,8 +527,10 @@ const PurePreviewMessage = ({
                 )}
 
                 {/* Render regular parts normally */}
-                {regularParts.map(({ part, index }) => {
-                  const key = `message-${message.id}-part-${index}`;
+                {regularParts.map((part, index) => {
+                  const key = `message-${message.id}-part-${
+                    firstRegularPartIndex + index
+                  }`;
                   return renderMessagePart(part, key, {
                     mode,
                     setMode,
@@ -571,7 +581,7 @@ export const PreviewMessage = memo(
     }
 
     return false;
-  }
+  },
 );
 
 export const ThinkingMessage = () => {

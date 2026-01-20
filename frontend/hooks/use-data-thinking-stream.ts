@@ -95,6 +95,8 @@ export function useDataThinkingStream() {
               } as StreamingThinkingPart as MessagePartOrStreamEvent,
             });
           }
+        } else if (innerData.type === "data-usage") {
+          // TODO: Handle data-usage events. We don't need to store this in the streaming parts.
         }
         // Handle other event types (tools, etc.) - update directly
         else {
@@ -108,7 +110,7 @@ export function useDataThinkingStream() {
         return newMap;
       });
     },
-    []
+    [],
   );
 
   /**
