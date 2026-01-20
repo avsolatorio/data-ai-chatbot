@@ -45,14 +45,14 @@ export function MessageThinking({
             "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-hidden data-[state=closed]:animate-out data-[state=open]:animate-in",
           )}
         >
-          <div className="relative">
-            {/* Vertical line connecting all steps */}
-            <div
-              className="absolute left-2 top-2 bottom-0 w-[2px] bg-border"
-              aria-hidden
-            />
+          <div className="relative max-h-[480px] overflow-y-auto pr-4">
             {/* Steps container */}
-            <div className="relative space-y-4 pl-8">
+            <div className="relative space-y-4 pl-8 pb-2">
+              {/* Vertical line connecting all steps - positioned relative to steps container */}
+              <div
+                className="absolute left-2 top-2 bottom-0 w-[2px] bg-border"
+                aria-hidden
+              />
               {thinkingParts.map((thinkingPart, index) => {
                 const key = `thinking-${thinkingPart.id}-${index}`;
                 const isLast = index === thinkingParts.length - 1;
