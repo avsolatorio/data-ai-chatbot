@@ -48,7 +48,7 @@ export function MessageThinking({
           <div className="relative">
             {/* Vertical line connecting all steps */}
             <div
-              className="absolute left-2 top-0 bottom-0 w-[2px] bg-border"
+              className="absolute left-2 top-2 bottom-0 w-[2px] bg-border"
               aria-hidden
             />
             {/* Steps container */}
@@ -63,7 +63,8 @@ export function MessageThinking({
                     {/* Step indicator circle */}
                     <div
                       className={cn(
-                        "relative z-10 mt-2 flex size-2 shrink-0 items-center justify-center rounded-full border-1 bg-background",
+                        "absolute z-10 mt-2 flex size-2 shrink-0 items-center justify-center rounded-full border-1 bg-background",
+                        "left-[calc(0.5rem+1px-2rem-4px)]", // Center 8px circle on 2px line: line at left-2 (8px) + 1px (half line width) - 2rem (pl-8 padding) - 4px (half circle width)
                         isLoading && !isLast
                           ? "border-primary"
                           : "border-muted-foreground",
@@ -78,6 +79,26 @@ export function MessageThinking({
                   </div>
                 );
               })}
+
+              {/* Finished step - shown when thinking is complete */}
+              {!isLoading && (
+                <div className="relative flex items-start gap-3">
+                  {/* Finished step indicator circle */}
+                  <div
+                    className={cn(
+                      "absolute z-10 mt-2 flex size-2 shrink-0 items-center justify-center rounded-full border-1 bg-background",
+                      "left-[calc(0.5rem+1px-2rem-4px)]",
+                      "border-primary bg-primary",
+                    )}
+                  >
+                    <div className="size-1.5 rounded-full bg-background" />
+                  </div>
+                  {/* Finished step content */}
+                  <div className="min-w-0 flex-1 pt-0 text-muted-foreground text-xs">
+                    Finished
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </CollapsibleContent>
