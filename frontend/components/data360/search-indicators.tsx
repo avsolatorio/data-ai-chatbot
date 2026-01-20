@@ -53,11 +53,11 @@ export function SearchIndicators({
               Showing {output.count} of {output.total_count.toLocaleString()}{" "}
               indicator{output.total_count !== 1 ? "s" : ""}
             </div>
-            {output.has_more && (
+            {/* {output.has_more && (
               <div className="text-muted-foreground text-[10px]">
                 More results available
               </div>
-            )}
+            )} */}
           </div>
         </div>
 
@@ -87,7 +87,7 @@ export function SearchIndicators({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="rounded border border-border bg-muted/30 p-2.5 ">
-                            <div className="line-clamp-3 text-muted-foreground text-[11px] leading-relaxed">
+                            <div className="line-clamp-3 text-muted-foreground text-xs leading-relaxed">
                               {indicator.definition_long}
                             </div>
                           </div>

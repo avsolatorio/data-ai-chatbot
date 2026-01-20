@@ -47,7 +47,7 @@ export function MessageThinking({
         >
           <div className="relative max-h-[480px] overflow-y-auto pr-4">
             {/* Steps container */}
-            <div className="relative space-y-4 pl-8 pb-2">
+            <div className="relative space-y-4 pl-8 pb-2 text-sm [&_*]:!text-muted-foreground [&_*]:!text-sm [&_.text-xs]:!text-xs [&_button]:!text-foreground [&_button]:!text-sm [&_a]:!text-foreground [&_a]:!text-sm [&_[role='button']]:!text-foreground [&_[role='button']]:!text-sm [&_[data-radix-tooltip-content]]:!text-popover-foreground [&_[data-radix-tooltip-content]_*]:!text-popover-foreground">
               {/* Vertical line connecting all steps - positioned relative to steps container */}
               <div
                 className="absolute left-2 top-2 bottom-0 w-[2px] bg-border"
