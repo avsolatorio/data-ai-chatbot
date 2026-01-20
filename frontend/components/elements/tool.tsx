@@ -69,7 +69,7 @@ export const ToolHeader = ({
   <CollapsibleTrigger
     className={cn(
       "flex w-full min-w-0 items-center justify-between gap-2 p-3",
-      className
+      className,
     )}
     {...props}
   >
@@ -90,7 +90,7 @@ export const ToolContent = ({ className, ...props }: ToolContentProps) => (
   <CollapsibleContent
     className={cn(
       "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-popover-foreground outline-hidden data-[state=closed]:animate-out data-[state=open]:animate-in",
-      className
+      className,
     )}
     {...props}
   />
@@ -101,7 +101,10 @@ export type ToolInputProps = ComponentProps<"div"> & {
 };
 
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
-  <div className={cn("space-y-2 min-w-0 overflow-hidden p-4", className)} {...props}>
+  <div
+    className={cn("space-y-2 min-w-0 overflow-hidden p-4", className)}
+    {...props}
+  >
     <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
       Parameters
     </h4>
@@ -114,34 +117,44 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
 export type ToolOutputProps = ComponentProps<"div"> & {
   output: ReactNode;
   errorText: ToolUIPart["errorText"];
+  useDefaultFormat: boolean;
 };
 
 export const ToolOutput = ({
   className,
   output,
   errorText,
+  useDefaultFormat = true,
   ...props
 }: ToolOutputProps) => {
   if (!(output || errorText)) {
     return null;
   }
 
-  return (
-    <div className={cn("space-y-2 min-w-0 p-4", className)} {...props}>
-      <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-        {errorText ? "Error" : "Result"}
-      </h4>
-      <div
-        className={cn(
-          "min-w-0 overflow-x-auto rounded-md text-xs [&_table]:w-full",
-          errorText
-            ? "bg-destructive/10 text-destructive"
-            : "bg-muted/50 text-foreground"
-        )}
-      >
-        {errorText && <div>{errorText}</div>}
+  if (useDefaultFormat || errorText !== undefined) {
+    return (
+      <div className={cn("space-y-2 min-w-0 p-4", className)} {...props}>
+        <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+          {errorText ? "Error" : "Result"}
+        </h4>
+        <div
+          className={cn(
+            "min-w-0 overflow-x-auto rounded-md text-xs [&_table]:w-full",
+            errorText
+              ? "bg-destructive/10 text-destructive"
+              : "bg-muted/50 text-foreground",
+          )}
+        >
+          {errorText && <div>{errorText}</div>}
+          {output && <div className="min-w-0">{output}</div>}
+        </div>
+      </div>
+    );
+  } else {
+    return (
+      <div className={cn("space-y-2 min-w-0 p-0", className)} {...props}>
         {output && <div className="min-w-0">{output}</div>}
       </div>
-    </div>
-  );
+    );
+  }
 };

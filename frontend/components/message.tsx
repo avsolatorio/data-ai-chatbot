@@ -116,6 +116,7 @@ function renderMessagePart(
           {state === "output-available" && (
             <ToolOutput
               errorText={undefined}
+              useDefaultFormat={true}
               output={<Weather weatherAtLocation={part.output} />}
             />
           )}
@@ -233,6 +234,7 @@ function renderMessagePart(
           {toolPart.state === "output-available" && (
             <ToolOutput
               errorText={undefined}
+              useDefaultFormat={true}
               output={<GetWdiData output={toolPart.output} />}
             />
           )}
@@ -267,6 +269,7 @@ function renderMessagePart(
           {toolPart.state === "output-available" && (
             <ToolOutput
               errorText={undefined}
+              useDefaultFormat={true}
               output={<SearchRelevantIndicators output={toolPart.output} />}
             />
           )}
@@ -306,6 +309,7 @@ function renderMessagePart(
           {toolPart.state === "output-available" && (
             <ToolOutput
               errorText={undefined}
+              useDefaultFormat={false}
               output={<SearchIndicators output={toolPart.output} />}
             />
           )}
@@ -351,7 +355,11 @@ function renderMessagePart(
             )}
           {(toolPart.state === "output-available" ||
             toolPart.state === "output-error") && (
-            <ToolOutput errorText={toolPart.errorText} output={outputNode} />
+            <ToolOutput
+              errorText={toolPart.errorText}
+              output={outputNode}
+              useDefaultFormat={true}
+            />
           )}
         </ToolContent>
       </Tool>

@@ -41,7 +41,7 @@ export function SearchIndicators({
 
   return (
     <TooltipProvider>
-      <div className="flex w-full flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-background p-4 shadow-sm">
+      <div className="flex w-full flex-col gap-4 overflow-hidden rounded-sm bg-background px-4 pb-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -107,7 +107,7 @@ export function SearchIndicators({
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
 
-        {/* Pagination Info */}
+        {/* Pagination Info
         {output.has_more && (
           <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3 dark:border-blue-800 dark:bg-blue-950/20">
             <div className="flex items-start gap-2">
@@ -137,7 +137,7 @@ export function SearchIndicators({
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </TooltipProvider>
   );
