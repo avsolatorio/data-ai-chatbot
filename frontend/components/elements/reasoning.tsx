@@ -3,7 +3,14 @@
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import { BrainIcon, ChevronDownIcon } from "lucide-react";
 import type { ComponentProps } from "react";
-import { createContext, memo, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  memo,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -62,19 +69,22 @@ export const Reasoning = memo(
     });
 
     const [hasAutoClosedRef, setHasAutoClosedRef] = useState(false);
-    const [startTime, setStartTime] = useState<number | null>(null);
+    const startTimeRef = useRef<number | null>(null);
 
     // Track duration when streaming starts and ends
     useEffect(() => {
       if (isStreaming) {
-        if (startTime === null) {
-          setStartTime(Date.now());
+        if (startTimeRef.current === null) {
+          startTimeRef.current = Date.now();
         }
-      } else if (startTime !== null) {
-        setDuration(Math.round((Date.now() - startTime) / MS_IN_S));
-        setStartTime(null);
+      } else if (startTimeRef.current !== null) {
+        const calculatedDuration = Math.round(
+          (Date.now() - startTimeRef.current) / MS_IN_S,
+        );
+        setDuration(calculatedDuration);
+        startTimeRef.current = null;
       }
-    }, [isStreaming, startTime, setDuration]);
+    }, [isStreaming, setDuration]);
 
     // Auto-open when streaming starts, auto-close when streaming ends (once only)
     useEffect(() => {
@@ -107,7 +117,7 @@ export const Reasoning = memo(
         </Collapsible>
       </ReasoningContext.Provider>
     );
-  }
+  },
 );
 
 export type ReasoningTriggerProps = ComponentProps<typeof CollapsibleTrigger>;
@@ -120,29 +130,31 @@ export const ReasoningTrigger = memo(
       <CollapsibleTrigger
         className={cn(
           "flex items-center gap-1.5 text-muted-foreground text-xs transition-colors hover:text-foreground",
-          className
+          className,
         )}
         {...props}
       >
         {children ?? (
           <>
-            <BrainIcon className="size-4" />
-            {isStreaming || duration === 0 ? (
+            {/* <BrainIcon className="size-4" /> */}
+            {isStreaming ? (
               <p>Thinking...</p>
-            ) : (
+            ) : duration > 0 ? (
               <p>Thought for {duration}s</p>
+            ) : (
+              <p>Show agents steps</p>
             )}
             <ChevronDownIcon
               className={cn(
                 "size-3 text-muted-foreground transition-transform",
-                isOpen ? "rotate-180" : "rotate-0"
+                isOpen ? "rotate-180" : "rotate-0",
               )}
             />
           </>
         )}
       </CollapsibleTrigger>
     );
-  }
+  },
 );
 
 export type ReasoningContentProps = ComponentProps<
@@ -157,13 +169,13 @@ export const ReasoningContent = memo(
       className={cn(
         "mt-2 text-muted-foreground text-xs",
         "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-hidden data-[state=closed]:animate-out data-[state=open]:animate-in",
-        className
+        className,
       )}
       {...props}
     >
       <Response className="grid gap-2">{children}</Response>
     </CollapsibleContent>
-  )
+  ),
 );
 
 Reasoning.displayName = "Reasoning";
