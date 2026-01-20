@@ -10,12 +10,41 @@ import type {
 /**
  * Hook to accumulate and manage streaming data-thinking events.
  * Similar to how useChat handles text-delta events, but for data-thinking parts.
+ *
+ * The outer thinking_id groups all events in the same thinking response.
+ * Individual parts within the data field have distinct IDs (id or toolCallId).
  */
 export function useDataThinkingStream() {
-  // Map of thinking part ID to accumulated part data
+  // Map of part ID (inner ID from data field) to accumulated part data
   const [streamingParts, setStreamingParts] = useState<
     Map<string, DataThinkingPart>
   >(new Map());
+
+  /**
+   * Extract the unique identifier for a part from the inner data.
+   * For text parts, uses the 'id' field. For tool parts, uses 'toolCallId'.
+   */
+  const getPartId = useCallback(
+    (innerData: MessagePartOrStreamEvent, thinkingId: string): string => {
+      if (typeof innerData === "object" && innerData !== null) {
+        // For text events, use the 'id' field if available
+        if ("id" in innerData && typeof innerData.id === "string") {
+          return innerData.id;
+        }
+        // For tool events, use 'toolCallId' if available
+        if (
+          "toolCallId" in innerData &&
+          typeof innerData.toolCallId === "string"
+        ) {
+          return innerData.toolCallId;
+        }
+      }
+      // Fallback: use thinkingId if no inner ID is available
+      // This shouldn't happen in normal flow, but provides a safety net
+      return thinkingId;
+    },
+    [],
+  );
 
   /**
    * Handle a data-thinking event from the stream.
@@ -27,12 +56,13 @@ export function useDataThinkingStream() {
         return;
       }
 
-      const thinkingId = event.id;
+      const thinkingId = event.id; // Outer ID, same for all parts in this thinking response
       const innerData = event.data as MessagePartOrStreamEvent;
+      const partId = getPartId(innerData, thinkingId); // Inner ID, unique per part
 
       setStreamingParts((prev) => {
         const newMap = new Map(prev);
-        const existing = newMap.get(thinkingId);
+        const existing = newMap.get(partId);
 
         // Handle text-delta events - accumulate text
         if (innerData.type === "text-delta" && "delta" in innerData) {
@@ -47,7 +77,7 @@ export function useDataThinkingStream() {
             // Accumulate text into existing part
             const existingText =
               (existing.data as StreamingThinkingPart).text || "";
-            newMap.set(thinkingId, {
+            newMap.set(partId, {
               ...existing,
               data: {
                 ...existing.data,
@@ -58,7 +88,7 @@ export function useDataThinkingStream() {
           } else {
             // Initialize new text part if we don't have one yet
             // This handles the case where text-delta arrives before text-start
-            newMap.set(thinkingId, {
+            newMap.set(partId, {
               type: "data-thinking",
               id: thinkingId,
               data: {
@@ -71,7 +101,9 @@ export function useDataThinkingStream() {
         }
         // Handle text-start event - initialize text part
         else if (innerData.type === "text-start") {
-          newMap.set(thinkingId, {
+          // Always create/update the part for this inner ID
+          // This allows multiple parts with different inner IDs to coexist
+          newMap.set(partId, {
             type: "data-thinking",
             id: thinkingId,
             data: {
@@ -79,7 +111,7 @@ export function useDataThinkingStream() {
               text: "",
               state: "streaming" as const,
               providerMetadata: (innerData as { id?: string }).id
-                ? { openai: { itemId: (innerData as { id: string }).id } }
+                ? { openai: { itemId: (innerData as { id?: string }).id } }
                 : undefined,
             } as StreamingThinkingPart as MessagePartOrStreamEvent,
           });
@@ -87,7 +119,7 @@ export function useDataThinkingStream() {
         // Handle text-end event - finalize text part
         else if (innerData.type === "text-end") {
           if (existing?.data?.type === "text") {
-            newMap.set(thinkingId, {
+            newMap.set(partId, {
               ...existing,
               data: {
                 ...existing.data,
@@ -100,7 +132,7 @@ export function useDataThinkingStream() {
         }
         // Handle other event types (tools, etc.) - update directly
         else {
-          newMap.set(thinkingId, {
+          newMap.set(partId, {
             type: "data-thinking",
             id: thinkingId,
             data: innerData,
@@ -110,7 +142,7 @@ export function useDataThinkingStream() {
         return newMap;
       });
     },
-    [],
+    [getPartId],
   );
 
   /**
