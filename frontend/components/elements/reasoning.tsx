@@ -16,6 +16,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Response } from "./response";
 
@@ -129,7 +135,7 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         className={cn(
-          "flex items-center gap-1.5 text-muted-foreground text-xs transition-colors hover:text-foreground",
+          "flex items-center gap-1.5 text-muted-foreground text-sm transition-colors hover:text-foreground",
           className,
         )}
         {...props}
@@ -142,7 +148,19 @@ export const ReasoningTrigger = memo(
             ) : duration > 0 ? (
               <p>Thought for {duration}s</p>
             ) : (
-              <p>Show agents steps</p>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <p>Show agent actions</p>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Show the key actions taken to produce this answer (data
+                      retrievals, tool calls, and checks).
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
             <ChevronDownIcon
               className={cn(
