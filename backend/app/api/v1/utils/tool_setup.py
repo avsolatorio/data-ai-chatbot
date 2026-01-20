@@ -1,5 +1,6 @@
 """Tool setup utilities for chat streaming."""
 
+import logging
 from typing import Any, Dict
 from uuid import UUID
 
@@ -14,6 +15,8 @@ from app.ai.tools import (
     get_weather,
     update_document_tool,
 )
+
+logger = logging.getLogger(__name__)
 
 
 async def create_tool_wrappers(user_id: UUID, db: AsyncSession) -> Dict[str, Dict[str, Any]]:
@@ -80,13 +83,21 @@ async def prepare_tools(
     # Create tool wrappers
     tools = await create_tool_wrappers(user_id, db)
 
-    # Add MCP tools
-    mcp_tools = await get_mcp_tools()
-    for tool in mcp_tools:
-        tools[tool["function"]["name"]] = {
-            "function": None,
-            "type": "mcp",
-        }
-        tool_definitions.append(tool)
+    # Add MCP tools (gracefully handle connection failures)
+    try:
+        mcp_tools = await get_mcp_tools()
+        for tool in mcp_tools:
+            tools[tool["function"]["name"]] = {
+                "function": None,
+                "type": "mcp",
+            }
+            tool_definitions.append(tool)
+        logger.info("Successfully loaded %d MCP tools", len(mcp_tools))
+    except Exception as e:
+        logger.warning(
+            "Failed to load MCP tools (continuing without them): %s",
+            str(e),
+            exc_info=True,
+        )
 
     return tools, tool_definitions
