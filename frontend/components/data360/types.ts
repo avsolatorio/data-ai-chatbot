@@ -32,7 +32,12 @@ export type SearchIndicatorItem = {
   idno: string;
   name: string;
   database_id: string;
-  definition_long: string;
+  truncated_definition: string;
+  periodicity: string;
+  latest_data: string;
+  time_period_range: string;
+  covers_country: string | null;
+  dimensions: string[] | null;
 };
 
 export type SearchIndicatorsOutput = {
@@ -41,6 +46,7 @@ export type SearchIndicatorsOutput = {
   offset: number;
   has_more: boolean;
   next_offset: number;
-  items: SearchIndicatorItem[];
+  indicators: SearchIndicatorItem[];
+  required_country: string | null;
   error: string | null;
 };

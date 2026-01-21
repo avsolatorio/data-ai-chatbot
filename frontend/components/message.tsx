@@ -290,12 +290,18 @@ function renderMessagePart(
         offset: number;
         has_more: boolean;
         next_offset: number;
-        items: Array<{
+        indicators: Array<{
           idno: string;
           name: string;
           database_id: string;
-          definition_long: string;
+          truncated_definition: string;
+          periodicity: string;
+          latest_data: string;
+          time_period_range: string;
+          covers_country: string | null;
+          dimensions: string[] | null;
         }>;
+        required_country: string | null;
         error: string | null;
       };
     };

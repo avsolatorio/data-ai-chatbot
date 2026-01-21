@@ -31,7 +31,7 @@ export function SearchIndicators({
   }
 
   // Handle empty results
-  if (!output.items || output.items.length === 0) {
+  if (!output.indicators || output.indicators.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-background p-4 text-muted-foreground text-sm">
         No indicators found
@@ -64,9 +64,9 @@ export function SearchIndicators({
         {/* Horizontal Scrollable Cards */}
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex w-max gap-3 pb-4">
-            {output.items.map((indicator, index) => (
+            {output.indicators.map((indicator, index) => (
               <Card
-                className="min-w-[320px] max-w-[380px] shrink-0 border-border transition-colors hover:border-primary/50"
+                className="min-w-[360px] max-w-[420px] shrink-0 border-border transition-colors hover:border-primary/50"
                 key={`${indicator.idno}-${index}`}
               >
                 <CardHeader className="pb-3">
@@ -75,30 +75,72 @@ export function SearchIndicators({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="flex flex-col gap-2.5">
-                    <div className="text-muted-foreground text-xs">
-                      <span className="font-medium">ID:</span> {indicator.idno}
+                  <div className="flex flex-col gap-3">
+                    {/* ID and Database */}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground text-xs">
+                      <div>
+                        <span className="font-medium">ID:</span> {indicator.idno}
+                      </div>
+                      <div>
+                        <span className="font-medium">Database:</span>{" "}
+                        {indicator.database_id}
+                      </div>
                     </div>
-                    <div className="text-muted-foreground text-xs">
-                      <span className="font-medium">Database:</span>{" "}
-                      {indicator.database_id}
-                    </div>
-                    {indicator.definition_long && (
+
+                    {/* Definition */}
+                    {indicator.truncated_definition && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="rounded border border-border bg-muted/30 p-2.5 ">
+                          <div className="rounded border border-border bg-muted/30 p-2.5">
                             <div className="line-clamp-3 text-muted-foreground text-xs leading-relaxed">
-                              {indicator.definition_long}
+                              {indicator.truncated_definition}
                             </div>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-md" side="top">
                           <p className="whitespace-normal text-xs">
-                            {indicator.definition_long}
+                            {indicator.truncated_definition}
                           </p>
                         </TooltipContent>
                       </Tooltip>
                     )}
+
+                    {/* Metadata Grid */}
+                    <div className="grid grid-cols-2 gap-2 rounded border border-border bg-muted/20 p-2">
+                      {indicator.periodicity && (
+                        <div className="text-muted-foreground text-xs">
+                          <span className="font-medium">Periodicity:</span>{" "}
+                          <span className="text-foreground">
+                            {indicator.periodicity}
+                          </span>
+                        </div>
+                      )}
+                      {indicator.latest_data && (
+                        <div className="text-muted-foreground text-xs">
+                          <span className="font-medium">Latest:</span>{" "}
+                          <span className="text-foreground">
+                            {indicator.latest_data}
+                          </span>
+                        </div>
+                      )}
+                      {indicator.time_period_range && (
+                        <div className="col-span-2 text-muted-foreground text-xs">
+                          <span className="font-medium">Range:</span>{" "}
+                          <span className="text-foreground">
+                            {indicator.time_period_range}
+                          </span>
+                        </div>
+                      )}
+                      {indicator.dimensions &&
+                        indicator.dimensions.length > 0 && (
+                          <div className="col-span-2 text-muted-foreground text-xs">
+                            <span className="font-medium">Dimensions:</span>{" "}
+                            <span className="text-foreground">
+                              {indicator.dimensions.join(", ")}
+                            </span>
+                          </div>
+                        )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
