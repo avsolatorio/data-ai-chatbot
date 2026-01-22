@@ -8,6 +8,7 @@ import type { ChatMessage, StreamingThinkingPart } from "@/lib/types";
 import { isNonRenderableStreamEvent } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
 import { useDataStream } from "./data-stream-provider";
+import { GetData } from "./data360/get-data";
 import { GetWdiData } from "./data360/get-wdi-data";
 import { SearchIndicators } from "./data360/search-indicators";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
@@ -272,6 +273,68 @@ function renderMessagePart(
               errorText={undefined}
               useDefaultFormat={true}
               output={<SearchRelevantIndicators output={toolPart.output} />}
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  // data360_get_data tool
+  if ((type as string) === "tool-data360_get_data") {
+    const toolPart = part as {
+      toolCallId: string;
+      state: "input-available" | "output-available";
+      input: unknown;
+      output: {
+        count: number;
+        total_count: number | null;
+        offset: number;
+        has_more: boolean;
+        next_offset: number | null;
+        data: Array<{
+          OBS_VALUE: string;
+          TIME_FORMAT: string;
+          UNIT_MULT: number;
+          COMMENT_OBS: string | null;
+          OBS_STATUS: string;
+          OBS_CONF: string;
+          AGG_METHOD: string;
+          DECIMALS: number | null;
+          COMMENT_TS: string | null;
+          DATA_SOURCE: string | null;
+          LATEST_DATA: boolean;
+          DATABASE_ID: string;
+          INDICATOR: string;
+          INDICATOR_NAME?: string;
+          REF_AREA: string;
+          SEX: string;
+          AGE: string;
+          URBANISATION: string;
+          COMP_BREAKDOWN_1: string;
+          COMP_BREAKDOWN_2: string;
+          COMP_BREAKDOWN_3: string;
+          TIME_PERIOD: string;
+          FREQ: string;
+          UNIT_MEASURE: string;
+          UNIT_TYPE: string | null;
+          claim_id: string;
+        }>;
+        error: string | null;
+      };
+    };
+    return (
+      <Tool defaultOpen={true} key={toolPart.toolCallId}>
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        <ToolContent>
+          {toolPart.state === "input-available" && (
+            <ToolInput input={toolPart.input} />
+          )}
+          {toolPart.state === "output-available" && (
+            <ToolOutput
+              errorText={undefined}
+              useDefaultFormat={false}
+              output={<GetData output={toolPart.output} />}
             />
           )}
         </ToolContent>
