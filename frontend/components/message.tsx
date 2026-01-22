@@ -197,6 +197,7 @@ function renderMessagePart(
                   />
                 )
               }
+              useDefaultFormat={true}
             />
           )}
         </ToolContent>
