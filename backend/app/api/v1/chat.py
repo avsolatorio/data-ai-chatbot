@@ -302,7 +302,8 @@ async def create_chat(
     tools, tool_definitions = await prepare_tools(user_id, db)
     logger.info("tool_definitions: %s", tool_definitions)
 
-    use_thinking = False
+    # use_thinking = False
+    use_thinking = True
     # Create stream processor
     thinking_processor = StreamEventProcessor(request.id, mode="thinking")
     chat_processor = StreamEventProcessor(request.id, mode="chat")
@@ -420,8 +421,14 @@ async def create_chat(
 
                 # Schedule background tasks after stream completes
                 if use_thinking:
-                    assert len(thinking_processor.assistant_messages) == 1
-                assert len(chat_processor.assistant_messages) == 1
+                    assert len(thinking_processor.assistant_messages) == 1, (
+                        "Thinking processor assistant messages count should be 1, but got %d"
+                        % len(thinking_processor.assistant_messages)
+                    )
+                assert len(chat_processor.assistant_messages) == 1, (
+                    "Chat processor assistant messages count should be 1, but got %d"
+                    % len(chat_processor.assistant_messages)
+                )
 
                 if use_thinking:
                     assistant_message = thinking_processor.assistant_messages[0].copy()
