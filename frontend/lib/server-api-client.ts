@@ -6,8 +6,6 @@
 
 import { cookies } from "next/headers";
 
-import { shouldUseNextJSProxy } from "./api-client";
-
 // For server-side, prefer SERVER_API_URL (for Docker internal networking)
 // Falls back to NEXT_PUBLIC_API_URL (browser-accessible URL)
 const SERVER_API_URL =
@@ -19,29 +17,20 @@ const SERVER_API_URL =
  * Server-side fetch function for API requests.
  * Handles authentication automatically.
  * Forwards all auth cookies to FastAPI backend so it can restore users if JWT expires.
+ *
+ * Note: Server-side requests go directly to the backend API (not through Next.js proxy).
+ * The proxy is only for client-side requests to avoid CORS issues.
  */
 export async function serverApiFetch(
   endpoint: string,
   init?: RequestInit
 ): Promise<Response> {
-  // For server-side, always use SERVER_API_URL for FastAPI endpoints
-  // This ensures Docker internal networking works correctly
-  // Next.js proxy endpoints should remain relative
-  let url: string;
-
-  // Check if this is a Next.js proxy endpoint (should remain relative)
-  const isNextJSProxy = shouldUseNextJSProxy(endpoint);
-
-  if (isNextJSProxy) {
-    // Next.js proxy endpoints: use relative URL
-    url = endpoint;
-  } else {
-    // FastAPI endpoints: use SERVER_API_URL for Docker internal networking
-    const normalizedEndpoint = endpoint.startsWith("/")
-      ? endpoint
-      : `/${endpoint}`;
-    url = `${SERVER_API_URL}${normalizedEndpoint}`;
-  }
+  // For server-side, always use SERVER_API_URL directly (bypass Next.js proxy)
+  // Server-side fetch requires absolute URLs, and we don't need the proxy for CORS
+  const normalizedEndpoint = endpoint.startsWith("/")
+    ? endpoint
+    : `/${endpoint}`;
+  const url = `${SERVER_API_URL}${normalizedEndpoint}`;
 
   const headers = new Headers(init?.headers);
 

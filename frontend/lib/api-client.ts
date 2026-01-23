@@ -1,73 +1,49 @@
 /**
- * Simplified API Client - Direct FastAPI calls
+ * API Client - Uses Next.js proxy for all requests
  *
- * This simplified version removes complex routing logic.
- * Most endpoints go directly to FastAPI, with only special cases using Next.js proxies.
+ * All API requests go through the Next.js proxy at /api/[...path]
+ * which forwards them to the backend (NEXT_PUBLIC_API_URL).
+ * This avoids CORS issues and centralizes API configuration.
  *
- * Special cases that use Next.js proxies:
- * - /api/auth/me - Cookie forwarding proxy
- * - /api/auth/guest - Cookie setting + redirect
- * - /api/tokenlens - Third-party service integration
+ * Special routes that have custom handlers (like /api/auth/*) will
+ * still use their specific Next.js routes, as they take precedence
+ * over the catch-all proxy.
  */
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
 /**
- * Check if endpoint should use Next.js proxy (special cases only)
+ * Check if endpoint should use Next.js proxy (all endpoints now use proxy)
  *
- * These endpoints need Next.js because:
- * - Cookie handling (can't be done in Server Components)
- * - Redirects after cookie setting
- * - Third-party integrations (tokenlens)
+ * This function is kept for backward compatibility and always returns true
+ * since we now proxy all requests through Next.js.
  */
 export function shouldUseNextJSProxy(endpoint: string): boolean {
-  // Extract pathname from endpoint (handles both absolute and relative URLs)
-  let path: string;
-  try {
-    // Use dummy base URL for relative paths; works for absolute URLs too
-    const url = new URL(endpoint, "http://dummy");
-    path = url.pathname;
-  } catch {
-    // Fallback: if URL parsing fails, use endpoint as-is (shouldn't happen)
-    path = endpoint;
-  }
-
-  // Special cases that stay in Next.js
-  const nextjsProxies = [
-    "/api/auth/me", // Cookie forwarding proxy
-    "/api/auth/refresh", // Token refresh with cookie forwarding
-    "/api/auth/guest", // Cookie setting + redirect
-    "/api/tokenlens", // Third-party service (TokenLens)
-    // Add streaming endpoints here if keeping them in Next.js
-    // "/api/chat/stream",     // If keeping Next.js streaming
-  ];
-
-  return nextjsProxies.some((proxy) => path.startsWith(proxy));
+  // All endpoints now go through Next.js proxy
+  return true;
 }
 
 /**
  * Get the full URL for an API request
  *
- * - Next.js proxies: return as-is (relative URL)
- * - FastAPI endpoints: construct absolute URL
+ * All requests now use relative URLs to go through Next.js proxy
  */
 export function getApiUrl(endpoint: string): string {
-  // If already absolute URL, return as-is
+  // If already absolute URL, extract the path and use relative
   if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
-    return endpoint;
+    try {
+      const url = new URL(endpoint);
+      return url.pathname + url.search;
+    } catch {
+      // If URL parsing fails, fall through to relative handling
+    }
   }
 
-  // Next.js proxies: return relative URL
-  if (shouldUseNextJSProxy(endpoint)) {
-    return endpoint;
-  }
-
-  // FastAPI: construct absolute URL
+  // All requests use relative URLs to go through Next.js proxy
+  // The proxy at /api/[...path] will forward to the backend
   const normalizedEndpoint = endpoint.startsWith("/")
     ? endpoint
     : `/${endpoint}`;
 
-  return `${API_URL}${normalizedEndpoint}`;
+  return normalizedEndpoint;
 }
 
 /**
