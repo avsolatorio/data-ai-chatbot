@@ -18,6 +18,7 @@ type MessagesProps = {
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
   isReadonly: boolean;
   isArtifactVisible: boolean;
+  isWaitingForSavedParts?: boolean;
   selectedModelId: string;
   streamingThinkingParts?: Array<{
     type: string;
@@ -34,6 +35,7 @@ function PureMessages({
   setMessages,
   regenerate,
   isReadonly,
+  isWaitingForSavedParts = false,
   selectedModelId: _selectedModelId,
   streamingThinkingParts = [],
 }: MessagesProps) {
@@ -59,22 +61,27 @@ function PureMessages({
           {messages.length === 0 && <Greeting />}
 
           {messages.map((message, index) => {
-            const isLoading = status === "streaming" && messages.length - 1 === index;
+            const isLoading =
+              status === "streaming" && messages.length - 1 === index;
             // Pass streaming parts to the last message (the one that was just streamed)
             // This keeps streaming parts visible until saved parts are available
             const isLastMessage = index === messages.length - 1;
             // Check if message has saved thinking parts
-            const hasSavedThinkingParts = message.parts?.some(
-              (part) => typeof part.type === "string" && part.type.startsWith("data-thinking")
-            ) ?? false;
+            const hasSavedThinkingParts =
+              message.parts?.some(
+                (part) =>
+                  typeof part.type === "string" &&
+                  part.type.startsWith("data-thinking"),
+              ) ?? false;
             // Use streaming parts if:
             // 1. It's the last message AND
             // 2. We have streaming parts AND
-            // 3. Either we're still loading OR we don't have saved parts yet
+            // 3. Either we're waiting for saved parts OR we're still loading OR we don't have saved parts yet
+            // Priority: isWaitingForSavedParts first to prevent flicker
             const shouldUseStreamingParts =
               isLastMessage &&
               streamingThinkingParts.length > 0 &&
-              (isLoading || !hasSavedThinkingParts);
+              (isWaitingForSavedParts || isLoading || !hasSavedThinkingParts);
 
             return (
               <PreviewMessage
@@ -88,7 +95,10 @@ function PureMessages({
                   hasSentMessage && index === messages.length - 1
                 }
                 setMessages={setMessages}
-                streamingThinkingParts={shouldUseStreamingParts ? streamingThinkingParts : []}
+                isWaitingForSavedParts={isWaitingForSavedParts}
+                streamingThinkingParts={
+                  shouldUseStreamingParts ? streamingThinkingParts : []
+                }
                 vote={
                   votes
                     ? votes.find((vote) => vote.messageId === message.id)
@@ -141,6 +151,11 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
     return false;
   }
   if (!equal(prevProps.votes, nextProps.votes)) {
+    return false;
+  }
+  if (
+    !equal(prevProps.streamingThinkingParts, nextProps.streamingThinkingParts)
+  ) {
     return false;
   }
 

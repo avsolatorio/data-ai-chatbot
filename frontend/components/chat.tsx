@@ -22,11 +22,17 @@ import { useAutoResume } from "@/hooks/use-auto-resume";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
 import { useDataThinkingStream } from "@/hooks/use-data-thinking-stream";
 import { getApiUrl } from "@/lib/api-client";
-import type { Vote } from "@/lib/db/schema";
+import type { DBMessage, Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
-import { cn, fetcher, fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
+import {
+  cn,
+  convertToUIMessages,
+  fetcher,
+  fetchWithErrorHandlers,
+  generateUUID,
+} from "@/lib/utils";
 import { Artifact } from "./artifact";
 import { useDataStream } from "./data-stream-provider";
 import { Messages } from "./messages";
@@ -78,6 +84,11 @@ export function Chat({
   const [showCreditCardAlert, setShowCreditCardAlert] = useState(false);
   const [currentModelId, setCurrentModelId] = useState(initialChatModel);
   const currentModelIdRef = useRef(currentModelId);
+  // Track if we're waiting for saved parts to arrive after streaming finishes
+  // Use ref for synchronous access, state for reactivity
+  // Note: We keep streaming parts visible indefinitely - they're saved by backend for page refresh
+  const isWaitingForSavedPartsRef = useRef(false);
+  const [isWaitingForSavedParts, setIsWaitingForSavedParts] = useState(false);
 
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
@@ -86,8 +97,31 @@ export function Chat({
   // Hook to handle streaming data-thinking events
   const dataThinkingStream = useDataThinkingStream();
   // Extract stable functions/values to avoid infinite loops in useEffect dependencies
-  const { clear: clearThinkingStream, streamingPartsCount } =
-    dataThinkingStream;
+  const {
+    clear: clearThinkingStream,
+    streamingParts,
+    streamingPartsCount,
+  } = dataThinkingStream;
+
+  // Preserve streaming parts in a ref to prevent loss during re-renders
+  const preservedStreamingPartsRef = useRef<
+    Array<{
+      type: string;
+      id: string;
+      data: ChatMessage["parts"][number];
+    }>
+  >([]);
+
+  // Update preserved parts whenever streaming parts change
+  useEffect(() => {
+    if (streamingParts.length > 0) {
+      preservedStreamingPartsRef.current = streamingParts.map((part) => ({
+        type: part.type,
+        id: part.id,
+        data: part.data as ChatMessage["parts"][number],
+      }));
+    }
+  }, [streamingParts]);
 
   const {
     messages,
@@ -118,7 +152,7 @@ export function Chat({
       },
     }),
     onData: (dataPart) => {
-      // Handle data-thinking events separately - don't add them to dataStream
+      // Handle data-thinking events - accumulate them and add to message parts
       // Note: useChat's onData type doesn't include data-thinking, so we use a type assertion
       // with runtime validation for safety
       const part = dataPart as { type?: string; id?: string; data?: unknown };
@@ -127,27 +161,38 @@ export function Chat({
         typeof part.id === "string" &&
         part.data !== undefined
       ) {
+        // Accumulate the thinking part
         dataThinkingStream.handleDataThinkingEvent({
           type: part.type,
           id: part.id,
           data: part.data,
         });
+
         // Don't add data-thinking events to dataStream - they're handled separately
+        // Streaming parts will be displayed via streamingThinkingParts prop
         return;
       }
 
       // Add non-data-thinking events to dataStream for artifact handling
-      setDataStream((ds) => (ds ? [...ds, dataPart] : []));
+      setDataStream((ds) => (ds ? [...ds, dataPart] : [dataPart]));
 
       if (dataPart.type === "data-usage") {
         setUsage(dataPart.data);
       }
     },
     onFinish: () => {
-      // Don't clear streaming parts immediately - keep them until saved parts are in message.parts
-      // The saved parts will take precedence when they're available
-      // Streaming parts will be cleared when the component unmounts or when a new message starts
+      // Backend saves thinking parts automatically in the background
+      // We keep streaming parts visible - they'll be available on page refresh from DB
+      // No need to refetch immediately since we already have the parts in memory
+      // Mark as waiting to keep streaming parts visible (prevents flicker when isLoading becomes false)
+      isWaitingForSavedPartsRef.current = true;
+      setIsWaitingForSavedParts(true);
+
       mutate(unstable_serialize(getChatHistoryPaginationKey));
+
+      // Keep streaming parts visible indefinitely for this session
+      // On page refresh, thinking parts will load from the database via initialMessages
+      // This avoids unnecessary refetch and potential flicker
     },
     onError: (error) => {
       // Clear streaming parts on error to prevent stale state
@@ -170,14 +215,10 @@ export function Chat({
   });
 
   // Clear streaming parts only when saved parts are confirmed in the last message
-  // AND we're not currently streaming
+  // This happens naturally when the page is refreshed and initialMessages includes saved parts
+  // For the current session, we keep streaming parts visible since they're already in memory
   useEffect(() => {
-    if (messages.length === 0) {
-      return;
-    }
-
-    // Don't clear while actively streaming
-    if (status === "streaming") {
+    if (messages.length === 0 || status === "streaming") {
       return;
     }
 
@@ -193,16 +234,27 @@ export function Chat({
           part.type.startsWith("data-thinking"),
       ) ?? false;
 
-    // If we have saved parts and streaming parts, clear streaming parts
-    // (saved parts will take over)
-    // Only clear when NOT streaming to avoid clearing during active streaming
-    if (hasSavedThinkingParts && streamingPartsCount > 0) {
+    // Only clear if we have saved parts AND we're not waiting for them
+    // This handles the case where user refreshes and initialMessages has saved parts
+    if (
+      hasSavedThinkingParts &&
+      streamingPartsCount > 0 &&
+      !isWaitingForSavedParts &&
+      !isWaitingForSavedPartsRef.current
+    ) {
       console.log(
-        "[Chat] Saved thinking parts detected, clearing streaming parts",
+        "[Chat] Saved thinking parts detected (likely from page refresh), clearing streaming parts",
       );
+      preservedStreamingPartsRef.current = [];
       clearThinkingStream();
     }
-  }, [messages, streamingPartsCount, clearThinkingStream, status]);
+  }, [
+    messages,
+    streamingPartsCount,
+    clearThinkingStream,
+    status,
+    isWaitingForSavedParts,
+  ]);
 
   // Cleanup streaming parts on unmount to prevent memory leaks
   // Use the stable clear function directly to avoid infinite loops
@@ -264,18 +316,26 @@ export function Chat({
           chatId={id}
           isArtifactVisible={isArtifactVisible}
           isReadonly={isReadonly}
+          isWaitingForSavedParts={
+            isWaitingForSavedParts || isWaitingForSavedPartsRef.current
+          }
           messages={messages}
           regenerate={regenerate}
           selectedModelId={initialChatModel}
           setMessages={setMessages}
           status={status}
-          streamingThinkingParts={dataThinkingStream.streamingParts.map(
-            (part) => ({
-              type: part.type,
-              id: part.id,
-              data: part.data as ChatMessage["parts"][number],
-            }),
-          )}
+          streamingThinkingParts={
+            // Use preserved parts if we're waiting and current parts are empty (prevents flicker)
+            isWaitingForSavedParts &&
+            dataThinkingStream.streamingParts.length === 0 &&
+            preservedStreamingPartsRef.current.length > 0
+              ? preservedStreamingPartsRef.current
+              : dataThinkingStream.streamingParts.map((part) => ({
+                  type: part.type,
+                  id: part.id,
+                  data: part.data as ChatMessage["parts"][number],
+                }))
+          }
           votes={votes}
         />
 

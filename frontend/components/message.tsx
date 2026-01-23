@@ -448,6 +448,7 @@ const PurePreviewMessage = ({
   regenerate,
   isReadonly,
   requiresScrollPadding: _requiresScrollPadding,
+  isWaitingForSavedParts = false,
   streamingThinkingParts = [],
 }: {
   chatId: string;
@@ -458,6 +459,7 @@ const PurePreviewMessage = ({
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
   isReadonly: boolean;
   requiresScrollPadding: boolean;
+  isWaitingForSavedParts?: boolean;
   streamingThinkingParts?: Array<{
     type: string;
     id: string;
@@ -570,11 +572,15 @@ const PurePreviewMessage = ({
               );
 
             // Decide whether to use streaming parts or saved parts
-            // Use streaming parts if available and (we're loading OR don't have saved parts yet)
+            // Use streaming parts if available and (we're loading OR don't have saved parts yet OR we're waiting for saved parts)
             const hasSavedThinkingParts = filteredSavedThinkingParts.length > 0;
+            // If we're waiting for saved parts, ALWAYS prefer streaming parts if available
+            // This prevents flicker when onFinish fires and isLoading becomes false
             const shouldUseStreamingParts =
               streamingThinkingParts.length > 0 &&
-              (!hasSavedThinkingParts || isLoading);
+              (isWaitingForSavedParts ||
+                !hasSavedThinkingParts ||
+                isLoading);
 
             // Process and normalize thinking parts (from either streaming or saved)
             const finalThinkingParts: Array<{
@@ -695,6 +701,11 @@ export const PreviewMessage = memo(
       return false;
     }
     if (!equal(prevProps.vote, nextProps.vote)) {
+      return false;
+    }
+    if (
+      !equal(prevProps.streamingThinkingParts, nextProps.streamingThinkingParts)
+    ) {
       return false;
     }
 
