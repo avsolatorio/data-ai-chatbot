@@ -9,7 +9,7 @@ from logging.config import fileConfig
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
 
@@ -32,7 +32,7 @@ if config.config_file_name is not None:
 # Set the SQLAlchemy URL from settings
 # We use async engine with run_sync, so we can use the async URL directly
 # Just remove the +asyncpg driver for Alembic's connection string
-postgres_url = settings.POSTGRES_URL
+postgres_url = settings.ALEMBIC_POSTGRES_URL
 
 # Use sync URL if provided, otherwise convert async URL to standard postgresql://
 if settings.POSTGRES_URL_SYNC:
@@ -101,25 +101,29 @@ async def run_async_migrations() -> None:
     """
     # Create async engine using the original async URL from settings
     # We need to use asyncpg for the actual connection
-    async_url = settings.POSTGRES_URL
+    async_url = settings.ALEMBIC_POSTGRES_URL
     if not async_url.startswith("postgresql+asyncpg://"):
         # If it's already a standard postgresql:// URL, add asyncpg driver
         async_url = async_url.replace("postgresql://", "postgresql+asyncpg://")
 
-    # Create async engine configuration
-    configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = async_url
-
-    connectable = async_engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
+    # Create async engine with explicit timeout settings
+    # Using create_async_engine directly gives us better control over connection args
+    connectable = create_async_engine(
+        async_url,
         poolclass=pool.NullPool,
+        connect_args={
+            "timeout": 30,  # 30 second connection timeout
+            "server_settings": {
+                "application_name": "alembic",
+            },
+        },
     )
 
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
-
-    await connectable.dispose()
+    try:
+        async with connectable.connect() as connection:
+            await connection.run_sync(do_run_migrations)
+    finally:
+        await connectable.dispose()
 
 
 def run_migrations_online() -> None:

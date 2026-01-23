@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List, Union
 
 import dotenv
-from pydantic import field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -25,9 +25,38 @@ class ModelSettings(BaseSettings):
 
 class Settings(BaseSettings):
     # Database - REQUIRED: Must be set in .env file
-    # Format: postgresql+asyncpg://user:password@host:port/database
-    POSTGRES_URL: str
-    POSTGRES_URL_SYNC: str = ""
+    # Format: postgresql+asyncpg://user:password@host:port/database  # pragma: allowlist secret
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_DB: str = "chatbot_db"
+    POSTGRES_ALEMBIC_USER: str = "postgres"
+    POSTGRES_ALEMBIC_PASSWORD: str = "postgres"
+
+    # Computed fields - cannot be set in .env, always derived from above
+    # Using Field(exclude=True) prevents these from being read from environment variables
+    POSTGRES_URL: str = Field(default="", exclude=True)
+    ALEMBIC_POSTGRES_URL: str = Field(default="", exclude=True)
+
+    @model_validator(mode="after")
+    def compute_postgres_urls(self) -> "Settings":
+        """Compute POSTGRES_URL and ALEMBIC_POSTGRES_URL from component fields."""
+        # URL-encode password in case it contains special characters
+        from urllib.parse import quote_plus
+
+        encoded_password = quote_plus(self.POSTGRES_PASSWORD)
+        encoded_alembic_password = quote_plus(self.POSTGRES_ALEMBIC_PASSWORD)
+
+        self.POSTGRES_URL = (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{encoded_password}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
+        self.ALEMBIC_POSTGRES_URL = (
+            f"postgresql+asyncpg://{self.POSTGRES_ALEMBIC_USER}:{encoded_alembic_password}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
+        return self
 
     # JWT - Optional: Only needed when using FastAPI auth endpoints
     # For development/testing, you can use any random string
