@@ -181,18 +181,77 @@ export function Chat({
       }
     },
     onFinish: () => {
-      // Backend saves thinking parts automatically in the background
-      // We keep streaming parts visible - they'll be available on page refresh from DB
-      // No need to refetch immediately since we already have the parts in memory
       // Mark as waiting to keep streaming parts visible (prevents flicker when isLoading becomes false)
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage) {
+        streamingPartsMessageIdRef.current = lastMessage.id;
+      }
       isWaitingForSavedPartsRef.current = true;
       setIsWaitingForSavedParts(true);
 
       mutate(unstable_serialize(getChatHistoryPaginationKey));
 
-      // Keep streaming parts visible indefinitely for this session
-      // On page refresh, thinking parts will load from the database via initialMessages
-      // This avoids unnecessary refetch and potential flicker
+      // Refetch after a delay to get saved thinking parts from backend
+      // This ensures previous messages have saved parts when a new message starts
+      setTimeout(async () => {
+        try {
+          const response = await fetchWithErrorHandlers(
+            getApiUrl(`/api/chat/${id}`),
+          );
+          if (!response.ok) {
+            console.warn(
+              "[Chat] Failed to refetch messages after stream finish:",
+              response.status,
+            );
+            isWaitingForSavedPartsRef.current = false;
+            setIsWaitingForSavedParts(false);
+            return;
+          }
+
+          const chatData = await response.json();
+          const { messages: messagesFromApi } = chatData as {
+            messages: Array<{
+              id: string;
+              role: string;
+              parts: unknown[];
+              attachments: unknown[];
+              createdAt: string | Date;
+            }>;
+          };
+
+          const messagesFromDb: DBMessage[] = messagesFromApi.map((msg) => ({
+            id: msg.id,
+            chatId: id,
+            role: msg.role as "user" | "assistant" | "system",
+            parts: msg.parts ?? [],
+            attachments: msg.attachments ?? [],
+            createdAt:
+              typeof msg.createdAt === "string"
+                ? new Date(msg.createdAt)
+                : msg.createdAt,
+          })) as DBMessage[];
+
+          const uiMessages = convertToUIMessages(messagesFromDb);
+
+          // Clear waiting flag and streaming parts synchronously before updating
+          // This ensures saved parts are used immediately when messages update
+          isWaitingForSavedPartsRef.current = false;
+          setIsWaitingForSavedParts(false);
+          preservedStreamingPartsRef.current = [];
+          clearThinkingStream();
+
+          // Update useChat's messages with saved thinking parts
+          // The waiting flag is already cleared, so saved parts will be used
+          setMessages(uiMessages);
+        } catch (error) {
+          console.warn(
+            "[Chat] Error refetching messages after stream finish:",
+            error,
+          );
+          isWaitingForSavedPartsRef.current = false;
+          setIsWaitingForSavedParts(false);
+        }
+      }, 1500); // Wait 1.5 seconds for backend to save
     },
     onError: (error) => {
       // Clear streaming parts on error to prevent stale state
@@ -214,11 +273,39 @@ export function Chat({
     },
   });
 
-  // Clear streaming parts only when saved parts are confirmed in the last message
-  // This happens naturally when the page is refreshed and initialMessages includes saved parts
-  // For the current session, we keep streaming parts visible since they're already in memory
+  // Track the message ID that the current streaming parts belong to
+  // This prevents clearing parts that belong to previous messages
+  const streamingPartsMessageIdRef = useRef<string | null>(null);
+
+  // Clear streaming parts when a new message starts, but only if they belong to a message with saved parts
+  // This prevents accumulation while preserving thinking parts for messages that don't have saved parts yet
+  const prevStatusRef = useRef(status);
   useEffect(() => {
-    if (messages.length === 0 || status === "streaming") {
+    // Detect when a new message starts: status changes from non-submitted to "submitted"
+    if (
+      prevStatusRef.current !== "submitted" &&
+      status === "submitted" &&
+      streamingPartsCount > 0
+    ) {
+      // Clear streaming parts when a new message starts
+      // By this time, the previous message should have saved parts (from the refetch in onFinish)
+      // If it doesn't, we still clear to prevent showing parts on the wrong message
+      console.log(
+        "[Chat] New message starting, clearing previous streaming thinking parts",
+      );
+      preservedStreamingPartsRef.current = [];
+      isWaitingForSavedPartsRef.current = false;
+      setIsWaitingForSavedParts(false);
+      streamingPartsMessageIdRef.current = null;
+      clearThinkingStream();
+    }
+    prevStatusRef.current = status;
+  }, [status, streamingPartsCount, clearThinkingStream]);
+
+  // Clear streaming parts when saved parts are confirmed in the last message
+  // This happens naturally when the page is refreshed and initialMessages includes saved parts
+  useEffect(() => {
+    if (messages.length === 0 || status === "streaming" || status === "submitted") {
       return;
     }
 

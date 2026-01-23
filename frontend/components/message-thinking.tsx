@@ -7,6 +7,7 @@ import { Reasoning, ReasoningTrigger } from "./elements/reasoning";
 
 type MessageThinkingProps = {
   isLoading: boolean;
+  isFromSavedParts?: boolean;
   thinkingParts: Array<{
     type: string;
     id: string;
@@ -20,6 +21,7 @@ type MessageThinkingProps = {
 
 export function MessageThinking({
   isLoading,
+  isFromSavedParts = false,
   thinkingParts,
   renderPart,
 }: MessageThinkingProps) {
@@ -27,9 +29,9 @@ export function MessageThinking({
     return null;
   }
 
-  // Always open by default if we have content to show
-  // The Reasoning component will auto-close after streaming ends, but we want to show the content
-  const shouldDefaultOpen = true;
+  // Open by default when streaming (to show live updates)
+  // Close by default when loaded from DB (to avoid expand/collapse animation)
+  const shouldDefaultOpen = !isFromSavedParts;
 
   return (
     <div className="ml-0 md:ml-0 mb-5" data-testid="message-thinking-wrapper">

@@ -572,15 +572,11 @@ const PurePreviewMessage = ({
               );
 
             // Decide whether to use streaming parts or saved parts
-            // Use streaming parts if available and (we're loading OR don't have saved parts yet OR we're waiting for saved parts)
+            // Use streaming parts if: we have them AND (we're loading OR no saved parts OR waiting for saved parts)
             const hasSavedThinkingParts = filteredSavedThinkingParts.length > 0;
-            // If we're waiting for saved parts, ALWAYS prefer streaming parts if available
-            // This prevents flicker when onFinish fires and isLoading becomes false
             const shouldUseStreamingParts =
               streamingThinkingParts.length > 0 &&
-              (isWaitingForSavedParts ||
-                !hasSavedThinkingParts ||
-                isLoading);
+              (isLoading || !hasSavedThinkingParts || isWaitingForSavedParts);
 
             // Process and normalize thinking parts (from either streaming or saved)
             const finalThinkingParts: Array<{
@@ -632,6 +628,7 @@ const PurePreviewMessage = ({
                 {finalThinkingParts.length > 0 && (
                   <MessageThinking
                     isLoading={isLoading}
+                    isFromSavedParts={!shouldUseStreamingParts}
                     renderPart={(
                       nestedPart: ChatMessage["parts"][number],
                       nestedKey: string,

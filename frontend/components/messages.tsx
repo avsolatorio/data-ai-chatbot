@@ -63,8 +63,9 @@ function PureMessages({
           {messages.map((message, index) => {
             const isLoading =
               status === "streaming" && messages.length - 1 === index;
-            // Pass streaming parts to the last message (the one that was just streamed)
-            // This keeps streaming parts visible until saved parts are available
+            // Pass streaming parts to messages that need them:
+            // 1. The last message (currently streaming or just finished)
+            // 2. Previous messages that don't have saved parts yet
             const isLastMessage = index === messages.length - 1;
             // Check if message has saved thinking parts
             const hasSavedThinkingParts =
@@ -73,15 +74,12 @@ function PureMessages({
                   typeof part.type === "string" &&
                   part.type.startsWith("data-thinking"),
               ) ?? false;
-            // Use streaming parts if:
-            // 1. It's the last message AND
-            // 2. We have streaming parts AND
-            // 3. Either we're waiting for saved parts OR we're still loading OR we don't have saved parts yet
-            // Priority: isWaitingForSavedParts first to prevent flicker
+            // Use streaming parts only for the last message
+            // Use streaming parts if: we have them AND (we're loading OR no saved parts OR waiting for saved parts)
             const shouldUseStreamingParts =
               isLastMessage &&
               streamingThinkingParts.length > 0 &&
-              (isWaitingForSavedParts || isLoading || !hasSavedThinkingParts);
+              (isLoading || !hasSavedThinkingParts || isWaitingForSavedParts);
 
             return (
               <PreviewMessage
