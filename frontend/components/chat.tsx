@@ -305,7 +305,11 @@ export function Chat({
   // Clear streaming parts when saved parts are confirmed in the last message
   // This happens naturally when the page is refreshed and initialMessages includes saved parts
   useEffect(() => {
-    if (messages.length === 0 || status === "streaming" || status === "submitted") {
+    if (
+      messages.length === 0 ||
+      status === "streaming" ||
+      status === "submitted"
+    ) {
       return;
     }
 

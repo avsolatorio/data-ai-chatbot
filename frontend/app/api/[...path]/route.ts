@@ -74,14 +74,64 @@ async function proxyRequest(
   }
 
   try {
-    // Make the request to the backend
-    const response = await fetch(backendUrl, {
-      method: request.method,
-      headers,
-      body,
-      // Don't follow redirects automatically - let the client handle them
-      redirect: "manual",
-    });
+    // Validate backend URL
+    if (!API_URL || API_URL.trim() === "") {
+      return NextResponseValue.json(
+        {
+          error: "Backend API URL not configured",
+          message: "NEXT_PUBLIC_API_URL or SERVER_API_URL must be set",
+        },
+        { status: 500 },
+      );
+    }
+
+    // Make the request to the backend with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
+
+    let response: Response;
+    try {
+      response = await fetch(backendUrl, {
+        method: request.method,
+        headers,
+        body,
+        signal: controller.signal,
+        // Don't follow redirects automatically - let the client handle them
+        redirect: "manual",
+      });
+      clearTimeout(timeoutId);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError instanceof Error && fetchError.name === "AbortError") {
+        return NextResponseValue.json(
+          {
+            error: "Request timeout",
+            message: "The backend request took too long to respond",
+          },
+          { status: 504 },
+        );
+      }
+      // Network errors (connection refused, DNS failure, etc.)
+      if (fetchError instanceof TypeError) {
+        return NextResponseValue.json(
+          {
+            error: "Backend connection failed",
+            message:
+              "Unable to connect to the backend server. Please check if the backend is running.",
+          },
+          { status: 503 },
+        );
+      }
+      throw fetchError;
+    }
+
+    // Handle redirects (3xx status codes)
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (location) {
+        return NextResponseValue.redirect(location, response.status);
+      }
+    }
 
     // Check if this is a streaming response (Server-Sent Events or other streaming content)
     const contentType = response.headers.get("content-type") || "";
@@ -121,16 +171,29 @@ async function proxyRequest(
         },
       });
 
+      // Next.js doesn't accept 204 for streaming responses, convert to 200
+      // Also ensure status code is valid (200-599)
+      let statusCode = response.status;
+      if (statusCode === 204) {
+        statusCode = 200; // Convert 204 to 200 for streaming
+      } else if (statusCode < 200 || statusCode >= 600) {
+        statusCode = 200; // Fallback to 200 for invalid status codes
+      }
       proxiedResponse = new NextResponseValue(stream, {
-        status: response.status,
-        statusText: response.statusText,
+        status: statusCode,
+        statusText: response.statusText || "OK",
       });
     } else {
       // For non-streaming responses, buffer the entire body
+      // Ensure status code is valid
+      let statusCode = response.status;
+      if (statusCode < 100 || statusCode >= 600) {
+        statusCode = 500; // Fallback for invalid status codes
+      }
       const responseBody = await response.arrayBuffer();
       proxiedResponse = new NextResponseValue(responseBody, {
-        status: response.status,
-        statusText: response.statusText,
+        status: statusCode,
+        statusText: response.statusText || "OK",
       });
     }
 
@@ -145,6 +208,10 @@ async function proxyRequest(
       "last-modified",
       "connection", // Important for streaming
       "x-accel-buffering", // Disable buffering for streaming
+      "retry-after", // For rate limiting
+      "x-ratelimit-limit", // Rate limit headers
+      "x-ratelimit-remaining",
+      "x-ratelimit-reset",
     ];
 
     // Only forward content-length for non-streaming responses
@@ -189,12 +256,35 @@ async function proxyRequest(
     return proxiedResponse;
   } catch (error) {
     console.error("Proxy error:", error);
+
+    // Provide more specific error messages
+    let statusCode = 502;
+    let errorMessage = "Failed to proxy request to backend";
+
+    if (error instanceof Error) {
+      if (
+        error.message.includes("ECONNREFUSED") ||
+        error.message.includes("ENOTFOUND")
+      ) {
+        statusCode = 503;
+        errorMessage = "Backend server is not available";
+      } else if (
+        error.message.includes("timeout") ||
+        error.message.includes("aborted")
+      ) {
+        statusCode = 504;
+        errorMessage = "Backend request timed out";
+      } else {
+        errorMessage = error.message;
+      }
+    }
+
     return NextResponseValue.json(
       {
-        error: "Failed to proxy request to backend",
+        error: errorMessage,
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 502 },
+      { status: statusCode },
     );
   }
 }
