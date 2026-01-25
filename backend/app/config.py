@@ -22,6 +22,12 @@ class ModelSettings(BaseSettings):
     TITLE_MODEL: str = "gpt-4o-mini"
     ARTIFACT_MODEL: str = "gpt-4o-mini"
 
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
+        env_file_encoding = "utf-8"
+        extra = "ignore"
+
 
 class Settings(BaseSettings):
     # Database - REQUIRED: Must be set in .env file
@@ -33,6 +39,10 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "chatbot_db"
     POSTGRES_ALEMBIC_USER: str = "postgres"
     POSTGRES_ALEMBIC_PASSWORD: str = "postgres"
+
+    # Optional: Explicit sync URL for Alembic (if different from async URL)
+    # If not set, ALEMBIC_POSTGRES_URL will be converted from async to sync format
+    POSTGRES_URL_SYNC: str = ""
 
     # Computed fields - cannot be set in .env, always derived from above
     # Using Field(exclude=True) prevents these from being read from environment variables
@@ -72,12 +82,6 @@ class Settings(BaseSettings):
     # For production, use: openssl rand -hex 32
     SESSION_SECRET_KEY: str = ""
 
-    # AI
-    OPENAI_API_KEY: str = ""  # OpenAI API key for aisuite
-    XAI_API_KEY: str = ""  # Deprecated: kept for backward compatibility
-    AI_GATEWAY_URL: str = ""  # Deprecated: using aisuite instead
-    MODEL_PREFIX: str = "azure/"
-
     # AI Model Configuration - can be overridden via environment variables
     models: ModelSettings = ModelSettings()
 
@@ -85,9 +89,6 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3001"
     NEXTJS_URL: str = "http://localhost:3001"  # Next.js server URL for proxy requests
-    INTERNAL_API_SECRET: str = (
-        "dev-internal-secret-change-in-production"  # Secret for FastAPI → Next.js internal requests
-    )
     # Cookie Domain - Optional: Set explicit domain for cookies (e.g., ".example.com" for subdomain sharing)
     # If not set, cookies will use the default domain (current domain only)
     # For production with subdomains, set to ".yourdomain.com" to share cookies across subdomains
@@ -95,9 +96,6 @@ class Settings(BaseSettings):
 
     # Authentication
     # Note: Authentication is always enabled. Guest users provide anonymous access.
-
-    # Blob
-    BLOB_READ_WRITE_TOKEN: str = ""
 
     # Redis - Optional: Only needed for resumable streams
     REDIS_URL: str = ""
