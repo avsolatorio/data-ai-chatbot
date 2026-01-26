@@ -31,6 +31,24 @@ async def get_messages_by_chat_id(session: AsyncSession, chat_id: UUID) -> List[
     return list(result.scalars().all())
 
 
+async def get_latest_messages_by_chat_id(
+    session: AsyncSession, chat_id: UUID, limit: int = 1
+) -> List[Message]:
+    """
+    Get the latest N messages for a chat, ordered by createdAt ascending.
+    Returns: List of Message objects (chronologically ordered)
+    """
+    result = await session.execute(
+        select(Message)
+        .where(Message.chatId == chat_id)
+        .order_by(desc(Message.createdAt))
+        .limit(limit)
+    )
+    messages = list(result.scalars().all())
+    # Reverse to get chronological order (oldest first)
+    return list(reversed(messages))
+
+
 async def save_chat(
     session: AsyncSession,
     chat_id: UUID,

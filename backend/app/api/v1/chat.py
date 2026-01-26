@@ -28,6 +28,7 @@ from app.db.queries.chat_queries import (
     create_stream_id,
     delete_chat_by_id,
     get_chat_by_id,
+    get_latest_messages_by_chat_id,
     get_message_count_by_user_id,
     get_messages_by_chat_id,
     save_chat,
@@ -474,6 +475,63 @@ async def create_chat(
     )
 
     return patch_response_with_headers(response)
+
+
+@router.get("/{chat_id}/messages/latest")
+async def get_latest_messages(
+    chat_id: UUID,
+    limit: int = Query(1, ge=1, le=10),
+    current_user: dict | None = Depends(get_optional_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get the latest N messages for a chat.
+    Returns only the messages, not the full chat data.
+    Useful for efficiently fetching recently saved messages after streaming.
+
+    Note: Uses get_optional_user to allow unauthenticated access to public chats.
+    """
+    logger.info("=== GET /api/chat/%s/messages/latest called (limit=%d) ===", chat_id, limit)
+
+    # Get chat
+    chat = await get_chat_by_id(db, chat_id)
+    if not chat:
+        raise ChatSDKError("not_found:chat", status_code=status.HTTP_404_NOT_FOUND)
+
+    # Check access permissions (same logic as get_chat)
+    if chat.visibility == "private":
+        # Private chats require authentication
+        if not current_user:
+            logger.warning("Access denied: private chat requires authentication")
+            raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
+
+        # Convert current user ID to UUID for comparison
+        current_user_id_uuid = get_user_id_uuid(current_user["id"])
+
+        if chat.userId != current_user_id_uuid:
+            logger.warning(
+                "Access denied: chat.userId=%s != current_user_id_uuid=%s",
+                chat.userId,
+                current_user_id_uuid,
+            )
+            raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
+
+    # Get latest messages
+    messages = await get_latest_messages_by_chat_id(db, chat_id, limit=limit)
+
+    # Convert to response format
+    return {
+        "messages": [
+            {
+                "id": str(msg.id),
+                "role": msg.role,
+                "parts": msg.parts,
+                "attachments": msg.attachments,
+                "createdAt": msg.createdAt.isoformat(),
+            }
+            for msg in messages
+        ]
+    }
 
 
 @router.get("/{chat_id}")
