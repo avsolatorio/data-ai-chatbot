@@ -300,8 +300,8 @@ async def create_chat(
     model = get_model_name(request.selectedChatModel)
 
     # Prepare tools
-    tools, tool_definitions = await prepare_tools(user_id, db)
-    logger.info("tool_definitions: %s", tool_definitions)
+    tool_set = await prepare_tools(user_id, db)
+    # logger.info("tool_set: %s", json.dumps(tool_set, indent=4))
 
     # use_thinking = False
     use_thinking = True
@@ -340,8 +340,8 @@ async def create_chat(
                     model=model,
                     messages=thinking_messages,
                     system=thinking_system,
-                    tools=tools,
-                    tool_definitions=tool_definitions,
+                    tools=tool_set["mcp"]["tools"],
+                    tool_definitions=tool_set["mcp"]["tool_definitions"],
                 ):
                     # Store chunk in Redis asynchronously with sequence number
                     current_sequence = sequence
@@ -381,8 +381,8 @@ async def create_chat(
                 model=model,
                 messages=thinking_messages,
                 system=system,
-                tools=tools,
-                tool_definitions=tool_definitions,
+                tools=tool_set["local"]["tools"],
+                tool_definitions=tool_set["local"]["tool_definitions"],
             ):
                 # Store chunk in Redis asynchronously with sequence number
                 current_sequence = sequence
@@ -406,8 +406,8 @@ async def create_chat(
                     model=model,
                     messages=openai_messages,
                     system=system,
-                    tools=tools,
-                    tool_definitions=tool_definitions,
+                    tools=tool_set["local"]["tools"],
+                    tool_definitions=tool_set["local"]["tool_definitions"],
                     background_tasks=background_tasks,
                     processor=thinking_processor,
                     current_sequence=sequence,

@@ -73,25 +73,30 @@ async def prepare_tools(
     Prepare tools and tool definitions for OpenAI streaming.
     Returns (tools_dict, tool_definitions_list).
     """
-    # Base tool definitions
-    tool_definitions = [
-        GET_WEATHER_TOOL_DEFINITION,
-        CREATE_DOCUMENT_TOOL_DEFINITION,
-        UPDATE_DOCUMENT_TOOL_DEFINITION,
-    ]
-
-    # Create tool wrappers
-    tools = await create_tool_wrappers(user_id, db)
+    tool_set = {
+        "local": {
+            "tool_definitions": [
+                GET_WEATHER_TOOL_DEFINITION,
+                CREATE_DOCUMENT_TOOL_DEFINITION,
+                UPDATE_DOCUMENT_TOOL_DEFINITION,
+            ],
+            "tools": await create_tool_wrappers(user_id, db),
+        },
+        "mcp": {
+            "tool_definitions": [],
+            "tools": {},
+        },
+    }
 
     # Add MCP tools (gracefully handle connection failures)
     try:
         mcp_tools = await get_mcp_tools()
         for tool in mcp_tools:
-            tools[tool["function"]["name"]] = {
+            tool_set["mcp"]["tools"][tool["function"]["name"]] = {
                 "function": None,
                 "type": "mcp",
             }
-            tool_definitions.append(tool)
+            tool_set["mcp"]["tool_definitions"].append(tool)
         logger.info("Successfully loaded %d MCP tools", len(mcp_tools))
     except Exception as e:
         logger.warning(
@@ -100,4 +105,4 @@ async def prepare_tools(
             exc_info=True,
         )
 
-    return tools, tool_definitions
+    return tool_set

@@ -238,7 +238,11 @@ class StreamEventProcessor:
             raise
         except Exception as stream_error:
             # Log the error and send error event, then ensure stream closes properly
-            error_msg = f"Error in stream: {str(stream_error)}"
+            import traceback
+
+            stack_trace = traceback.format_exc()
+
+            error_msg = f"Error in stream: {str(stream_error)}\n{stack_trace}"
             logger.error("Error in stream: %s", error_msg, exc_info=True)
             try:
                 yield f"data: {json.dumps({'type': 'error', 'error': error_msg})}\n\n".encode(
