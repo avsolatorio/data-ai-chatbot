@@ -86,7 +86,7 @@ export function DocumentPreview({
 
   const document: Document | null = previewDocument
     ? previewDocument
-    : artifact.status === "streaming"
+    : artifact.status === "streaming" && artifact.kind !== "chart"
       ? {
           title: artifact.title,
           kind: artifact.kind,

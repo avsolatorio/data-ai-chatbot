@@ -6,6 +6,9 @@ import type { ArtifactActionContext } from "./create-artifact";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
+/** Context passed to actions; metadata is typed as any so all artifact kinds are accepted. */
+type SafeActionContext = ArtifactActionContext<unknown>;
+
 type ArtifactActionsProps = {
   artifact: UIArtifact;
   handleVersionChange: (type: "next" | "prev" | "toggle" | "latest") => void;
@@ -35,7 +38,7 @@ function PureArtifactActions({
     throw new Error("Artifact definition not found!");
   }
 
-  const actionContext: ArtifactActionContext = {
+  const actionContext: SafeActionContext = {
     content: artifact.content,
     handleVersionChange,
     currentVersionIndex,
@@ -59,14 +62,20 @@ function PureArtifactActions({
                 isLoading || artifact.status === "streaming"
                   ? true
                   : action.isDisabled
-                    ? action.isDisabled(actionContext)
+                    ? (action.isDisabled as (ctx: SafeActionContext) => boolean)(
+                        actionContext
+                      )
                     : false
               }
               onClick={async () => {
                 setIsLoading(true);
 
                 try {
-                  await Promise.resolve(action.onClick(actionContext));
+                  await Promise.resolve(
+                    (action.onClick as (ctx: SafeActionContext) => void)(
+                      actionContext
+                    )
+                  );
                 } catch (_error) {
                   toast.error("Failed to execute action");
                 } finally {

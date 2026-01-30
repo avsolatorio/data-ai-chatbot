@@ -2,6 +2,7 @@ import type { UseChatHelpers } from "@ai-sdk/react";
 import { formatDistance } from "date-fns";
 import equal from "fast-deep-equal";
 import { AnimatePresence, motion } from "framer-motion";
+import type { ComponentType } from "react";
 import {
   type Dispatch,
   memo,
@@ -22,6 +23,7 @@ import { apiFetch } from "@/lib/api-client";
 import type { Document, Vote } from "@/lib/db/schema";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { fetcher } from "@/lib/utils";
+import type { ArtifactContent } from "./create-artifact";
 import { ArtifactActions } from "./artifact-actions";
 import { ArtifactCloseButton } from "./artifact-close-button";
 import { ArtifactMessages } from "./artifact-messages";
@@ -467,27 +469,33 @@ function PureArtifact({
             </div>
 
             <div className="h-full max-w-full! items-center overflow-y-scroll bg-background dark:bg-muted">
-              <artifactDefinition.content
-                content={
-                  artifact.kind === "chart"
-                    ? artifact.content
-                    : isCurrentVersion
+              {(() => {
+                const ContentComponent =
+                  artifactDefinition.content as ComponentType<
+                    ArtifactContent<unknown>
+                  >;
+                const contentProps: ArtifactContent<unknown> = {
+                  content:
+                    artifact.kind === "chart"
                       ? artifact.content
-                      : getDocumentContentById(currentVersionIndex)
-                }
-                currentVersionIndex={currentVersionIndex}
-                getDocumentContentById={getDocumentContentById}
-                isCurrentVersion={isCurrentVersion}
-                isInline={false}
-                isLoading={isDocumentsFetching && !artifact.content}
-                metadata={metadata}
-                mode={mode}
-                onSaveContent={saveContent}
-                setMetadata={setMetadata}
-                status={artifact.status}
-                suggestions={[]}
-                title={artifact.title}
-              />
+                      : isCurrentVersion
+                        ? artifact.content
+                        : getDocumentContentById(currentVersionIndex),
+                  currentVersionIndex,
+                  getDocumentContentById,
+                  isCurrentVersion,
+                  isInline: false,
+                  isLoading: isDocumentsFetching && !artifact.content,
+                  metadata,
+                  mode,
+                  onSaveContent: saveContent,
+                  setMetadata,
+                  status: artifact.status,
+                  suggestions: [],
+                  title: artifact.title,
+                };
+                return <ContentComponent {...contentProps} />;
+              })()}
 
               <AnimatePresence>
                 {isCurrentVersion && (

@@ -95,7 +95,13 @@ export function getTrailingMessageId({
 }
 
 export function sanitizeText(text: string) {
-  return text.replace('<has_function_call>', '');
+  return text
+    .replace('<has_function_call>', '')
+    // Escape invalid HTML-like tags that React might interpret as components
+    // This prevents tags like <blank> from causing React errors
+    // Common invalid tags that might appear in AI responses
+    .replace(/<blank\b[^>]*>/gi, '&lt;blank&gt;')
+    .replace(/<\/blank>/gi, '&lt;/blank&gt;');
 }
 
 export function convertToUIMessages(messages: DBMessage[]): ChatMessage[] {
