@@ -34,6 +34,7 @@ def create_httpx_client(
     headers: dict[str, str] | None = None,
     timeout: httpx.Timeout | None = None,
     auth: httpx.Auth | None = None,
+    **kwargs,
 ) -> httpx.AsyncClient:
     """Create an httpx client with configurable SSL verification."""
     settings = get_mcp_settings()
@@ -42,4 +43,5 @@ def create_httpx_client(
         timeout=timeout or httpx.Timeout(settings.timeout),
         auth=auth,
         verify=settings.ssl_verify,
+        **kwargs,
     )
