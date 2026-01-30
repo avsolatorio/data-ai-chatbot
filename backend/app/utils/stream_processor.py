@@ -7,7 +7,14 @@ from datetime import datetime
 from typing import Any, AsyncIterator, Dict, List, Literal, Optional
 from uuid import UUID, uuid4
 
-from app.ai.protocols.stream import DoneMarker, ErrorPart, FinishMessagePart
+from app.ai.protocols.stream import (
+    TEXT_STATE_DONE,
+    TOOL_STATE_INPUT_AVAILABLE,
+    TOOL_STATE_OUTPUT_AVAILABLE,
+    DoneMarker,
+    ErrorPart,
+    FinishMessagePart,
+)
 from app.utils.stream import stream_text
 
 logger = logging.getLogger(__name__)
@@ -19,8 +26,10 @@ class StreamEventProcessor:
     def __init__(self, chat_id: UUID, mode: Literal["thinking", "chat"]):
         self.chat_id = chat_id
         self.mode = mode
-        # self.current_message_id: Optional[str] = None
-        self.current_part: Dict[str, Any] = {}
+        self.current_part: Dict[str, Any] = {}  # current text part only
+        self.current_tool_parts: Dict[
+            str, Dict[str, Any]
+        ] = {}  # toolCallId -> part (multiple interleaved tools)
         self.message_parts_buffer: List[Dict[str, Any]] = []
         self.assistant_messages: List[Dict[str, Any]] = []
         self.final_usage: Optional[Dict[str, Any]] = None
@@ -38,6 +47,7 @@ class StreamEventProcessor:
     def _handle_start_event(self, data: Dict[str, Any]) -> None:
         """Handle 'start' event - initialize new message."""
         self.current_message_id = str(uuid4())
+        self.current_tool_parts.clear()
 
     def _handle_start_step_event(self, data: Dict[str, Any]) -> None:
         """Handle 'start-step' event."""
@@ -59,7 +69,7 @@ class StreamEventProcessor:
     def _handle_text_end_event(self, data: Dict[str, Any]) -> None:
         """Handle 'text-end' event - finalize text part."""
         if self.current_part and self.current_message_id:
-            self.current_part["state"] = "done"
+            self.current_part["state"] = TEXT_STATE_DONE
             self._append_to_message_parts_buffer(self.current_part)
             self.current_part = {}
 
@@ -72,50 +82,80 @@ class StreamEventProcessor:
             and self.current_part.get("text", "")
         ):
             # Text part exists but hasn't been finalized - finalize it now
-            self.current_part["state"] = "done"
+            self.current_part["state"] = TEXT_STATE_DONE
             self._append_to_message_parts_buffer(self.current_part)
             self.current_part = {}
 
     def _handle_tool_input_start_event(self, data: Dict[str, Any]) -> None:
-        """Handle 'tool-input-start' event - initialize tool part."""
-        # Finalize any pending text part before starting tool part
+        """Handle 'tool-input-start' event - initialize tool part (by toolCallId for interleaved calls)."""
         self._finalize_pending_text_part()
 
-        self.current_part = {
+        tool_call_id = data.get("toolCallId")
+        if not tool_call_id:
+            return
+        self.current_tool_parts[tool_call_id] = {
             "type": "tool-" + data.get("toolName", ""),
-            "toolCallId": data.get("toolCallId"),
+            "toolCallId": tool_call_id,
             "state": "",
             "input": {},
             "output": {},
-            "callProviderMetadata": {"openai": {"itemId": data.get("toolCallId")}},
+            "callProviderMetadata": {"openai": {"itemId": tool_call_id}},
         }
 
     def _handle_tool_input_error_event(self, data: Dict[str, Any]) -> None:
         """Handle 'tool-input-error' event."""
-        self.current_part["state"] = "input-available"
-        self.current_part["input"]["error"] = data["errorText"]
-        self._append_to_message_parts_buffer(self.current_part)
-        self.current_part = {}
+        tool_call_id = data.get("toolCallId")
+        if not tool_call_id:
+            return
+        part = self.current_tool_parts.get(tool_call_id)
+        if not part:
+            part = {
+                "type": "tool-" + data.get("toolName", "unknown"),
+                "toolCallId": tool_call_id,
+                "state": TOOL_STATE_INPUT_AVAILABLE,
+                "input": {"error": data.get("errorText", "Unknown error")},
+                "output": {},
+                "callProviderMetadata": {"openai": {"itemId": tool_call_id}},
+            }
+        else:
+            part["state"] = TOOL_STATE_INPUT_AVAILABLE
+            part["input"]["error"] = data.get("errorText", "Unknown error")
+        self._append_to_message_parts_buffer(part)
+        self.current_tool_parts.pop(tool_call_id, None)
 
     def _handle_tool_input_available_event(self, data: Dict[str, Any]) -> None:
         """Handle 'tool-input-available' event."""
-        self.current_part["input"] = data["input"]
-        self.current_part["state"] = "input-available"
-        # Don't save yet - will be saved in tool-output-* events
+        tool_call_id = data.get("toolCallId")
+        if not tool_call_id:
+            return
+        part = self.current_tool_parts.get(tool_call_id)
+        if part:
+            part["input"] = data.get("input", {})
+            part["state"] = TOOL_STATE_INPUT_AVAILABLE
 
     def _handle_tool_output_error_event(self, data: Dict[str, Any]) -> None:
         """Handle 'tool-output-error' event."""
-        self.current_part["state"] = "output-available"
-        self.current_part["output"]["error"] = data["errorText"]
-        self._append_to_message_parts_buffer(self.current_part)
-        self.current_part = {}
+        tool_call_id = data.get("toolCallId")
+        if not tool_call_id:
+            return
+        part = self.current_tool_parts.get(tool_call_id)
+        if part:
+            part["state"] = TOOL_STATE_OUTPUT_AVAILABLE
+            part["output"]["error"] = data.get("errorText", "Unknown error")
+            self._append_to_message_parts_buffer(part)
+            self.current_tool_parts.pop(tool_call_id, None)
 
     def _handle_tool_output_available_event(self, data: Dict[str, Any]) -> None:
         """Handle 'tool-output-available' event."""
-        self.current_part["output"] = data["output"]
-        self.current_part["state"] = "output-available"
-        self._append_to_message_parts_buffer(self.current_part)
-        self.current_part = {}
+        tool_call_id = data.get("toolCallId")
+        if not tool_call_id:
+            return
+        part = self.current_tool_parts.get(tool_call_id)
+        if part:
+            part["output"] = data.get("output", {})
+            part["state"] = TOOL_STATE_OUTPUT_AVAILABLE
+            self._append_to_message_parts_buffer(part)
+            self.current_tool_parts.pop(tool_call_id, None)
 
     def _handle_data_usage_event(self, data: Dict[str, Any]) -> None:
         """Handle 'data-usage' event."""

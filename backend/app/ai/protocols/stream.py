@@ -124,6 +124,23 @@ class FilePart(StreamPart):
 # Tools
 # =========================
 
+# Accumulated tool part state (used by processor and frontend for tool parts with state/input/output)
+ToolPartState = Literal[
+    "",  # initial/pending
+    "input-streaming",
+    "input-available",
+    "output-available",
+    "output-error",
+]
+TOOL_STATE_INPUT_AVAILABLE: ToolPartState = "input-available"
+TOOL_STATE_OUTPUT_AVAILABLE: ToolPartState = "output-available"
+TOOL_STATE_OUTPUT_ERROR: ToolPartState = "output-error"
+
+# Text part state (used for accumulated text parts)
+TextPartState = Literal["", "streaming", "done"]
+TEXT_STATE_STREAMING: TextPartState = "streaming"
+TEXT_STATE_DONE: TextPartState = "done"
+
 
 class ToolInputStartPart(StreamPart):
     type: Literal["tool-input-start"] = "tool-input-start"
