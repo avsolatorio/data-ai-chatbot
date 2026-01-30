@@ -55,7 +55,7 @@ export function getApiUrl(endpoint: string): string {
  */
 export function apiFetch(
   input: RequestInfo | URL,
-  init?: RequestInit
+  init?: RequestInit,
 ): Promise<Response> {
   let requestUrl: string;
   if (typeof input === "string") {
@@ -83,6 +83,19 @@ export function apiFetch(
     !(init.body instanceof FormData)
   ) {
     requestHeaders.set("Content-Type", "application/json");
+  }
+
+  // Get auth_token from cookie (client-side only) and send as Bearer for FastAPI
+  let cookieToken: string | null = null;
+  if (typeof document !== "undefined") {
+    const cookies = document.cookie.split(";");
+    const authCookie = cookies.find((c) => c.trim().startsWith("auth_token="));
+    if (authCookie) {
+      cookieToken = authCookie.split("=")[1] ?? null;
+    }
+  }
+  if (cookieToken) {
+    requestHeaders.set("Authorization", `Bearer ${cookieToken}`);
   }
 
   // Create request with updated headers

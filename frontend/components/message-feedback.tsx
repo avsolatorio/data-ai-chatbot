@@ -57,11 +57,12 @@ export function MessageFeedback({
     try {
       // Submit feedback only (no vote type) - preserves existing vote if it exists
       // Only send vote type if there's an actual vote (true or false), not if it's null
-      const voteType = vote?.isUpvoted === true
-        ? "up"
-        : vote?.isUpvoted === false
-          ? "down"
-          : null;
+      const voteType =
+        vote?.isUpvoted === true
+          ? "up"
+          : vote?.isUpvoted === false
+            ? "down"
+            : null;
 
       await apiFetch("/api/vote", {
         method: "PATCH",
@@ -101,11 +102,11 @@ export function MessageFeedback({
           }
 
           const votesWithoutCurrent = currentVotes.filter(
-            (currentVote) => currentVote.messageId !== messageId
+            (currentVote) => currentVote.messageId !== messageId,
           );
 
           const existingVote = currentVotes.find(
-            (currentVote) => currentVote.messageId === messageId
+            (currentVote) => currentVote.messageId === messageId,
           );
 
           const updatedVote: Vote = existingVote
@@ -133,7 +134,7 @@ export function MessageFeedback({
 
           return [...votesWithoutCurrent, updatedVote];
         },
-        { revalidate: false }
+        { revalidate: false },
       );
 
       toast.success("Thank you! Your feedback has been submitted.");
@@ -166,9 +167,9 @@ export function MessageFeedback({
           <SheetHeader className="pb-4 text-left">
             <SheetTitle className="text-xl">Feedback on AI Response</SheetTitle>
             <SheetDescription className="text-base">
-              Help us improve by sharing your thoughts about this AI response. What
-              did you find helpful? What could be better? Your feedback helps us
-              enhance future responses.
+              Help us improve by sharing your thoughts about this AI response.
+              What did you find helpful? What could be better? Your feedback
+              helps us enhance future responses.
             </SheetDescription>
           </SheetHeader>
 
@@ -191,9 +192,7 @@ export function MessageFeedback({
                 />
                 <div
                   className={`mt-2 flex items-center justify-end text-xs ${
-                    isNearLimit
-                      ? "text-destructive"
-                      : "text-muted-foreground"
+                    isNearLimit ? "text-destructive" : "text-muted-foreground"
                   }`}
                 >
                   <span>
