@@ -13,6 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import type { ChatMessage } from "@/lib/types";
+import { isNonRenderableStreamEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Reasoning, ReasoningTrigger } from "./elements/reasoning";
 
@@ -57,6 +58,16 @@ function ThinkingStepsBody({
         const key = `thinking-${thinkingPart.id}-${index}`;
         const isLast = index === thinkingParts.length - 1;
         const renderedPart = renderPart(thinkingPart.data, key);
+        const data = thinkingPart.data;
+        const partType =
+          typeof data === "object" &&
+          data !== null &&
+          "type" in data &&
+          (data as { type: unknown }).type != null
+            ? String((data as { type: unknown }).type)
+            : data == null
+              ? String(data)
+              : typeof data;
         return (
           <div key={key} className="relative flex items-start gap-3">
             <div
@@ -72,7 +83,15 @@ function ThinkingStepsBody({
                 <div className="size-2 animate-pulse rounded-full bg-primary" />
               )}
             </div>
-            <div className="min-w-0 flex-1 pt-0">{renderedPart}</div>
+            <div className="min-w-0 flex-1 pt-0">
+              <div
+                className="mb-0.5 font-mono text-[10px] text-muted-foreground"
+                title={`part: ${partType}`}
+              >
+                <span aria-hidden>{partType}</span>
+              </div>
+              {renderedPart}
+            </div>
           </div>
         );
       })}
@@ -168,6 +187,11 @@ export function MessageThinking({
   // Close by default when loaded from DB (to avoid expand/collapse animation)
   const shouldDefaultOpen = !isFromSavedParts;
 
+  // Only show step dots for parts that actually render (exclude step-start, text-start, etc.)
+  const renderableParts = thinkingParts.filter(
+    (p) => !isNonRenderableStreamEvent(p.data),
+  );
+
   return (
     <div className="ml-0 md:ml-0 mb-5" data-testid="message-thinking-wrapper">
       <Reasoning
@@ -206,7 +230,7 @@ export function MessageThinking({
                 <ThinkingStepsBody
                   isLoading={isLoading}
                   muted={false}
-                  thinkingParts={thinkingParts}
+                  thinkingParts={renderableParts}
                   renderPart={renderPart}
                 />
               </section>
@@ -228,7 +252,7 @@ export function MessageThinking({
             <div ref={contentContainerRef}>
               <ThinkingStepsBody
                 isLoading={isLoading}
-                thinkingParts={thinkingParts}
+                thinkingParts={renderableParts}
                 renderPart={renderPart}
               />
             </div>

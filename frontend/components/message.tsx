@@ -7,12 +7,12 @@ import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage, StreamingThinkingPart } from "@/lib/types";
 import { isNonRenderableStreamEvent } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
+import { ChartPreview } from "./chart-preview";
 import { useDataStream } from "./data-stream-provider";
 import { GetData } from "./data360/get-data";
 import { GetWdiData } from "./data360/get-wdi-data";
 import { SearchIndicators } from "./data360/search-indicators";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
-import { ChartPreview } from "./chart-preview";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
 import { CodeBlock } from "./elements/code-block";
@@ -210,7 +210,11 @@ function renderMessagePart(
   if ((type as string) === "tool-data360_get_viz_spec") {
     const toolPart = part as {
       toolCallId: string;
-      state: "input-available" | "output-available" | "input-streaming" | "output-error";
+      state:
+        | "input-available"
+        | "output-available"
+        | "input-streaming"
+        | "output-error";
       input?: unknown;
       output?: { url: string | null; error: string | null };
     };
@@ -244,7 +248,9 @@ function renderMessagePart(
           {state === "output-available" && output?.url && (
             <ToolOutput
               errorText={undefined}
-              output={<ChartPreview chartUrl={output.url} isReadonly={isReadonly} />}
+              output={
+                <ChartPreview chartUrl={output.url} isReadonly={isReadonly} />
+              }
               useDefaultFormat={false}
             />
           )}

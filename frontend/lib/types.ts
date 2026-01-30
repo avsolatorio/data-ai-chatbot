@@ -113,11 +113,22 @@ export type DataThinkingPart = {
   data: MessagePartOrStreamEvent;
 };
 
+// Accumulated tool part state (mirrors backend app/ai/protocols/stream.py)
+export type ToolPartState =
+  | ""
+  | "input-streaming"
+  | "input-available"
+  | "output-available"
+  | "output-error";
+
+// Text part state (mirrors backend app/ai/protocols/stream.py)
+export type TextPartState = "" | "streaming" | "done";
+
 // Streaming thinking part with state tracking
 export type StreamingThinkingPart = {
   type: "text";
   text: string;
-  state: "streaming" | "done";
+  state: TextPartState;
   providerMetadata?: Record<string, unknown>;
 };
 

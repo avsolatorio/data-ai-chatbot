@@ -260,7 +260,7 @@ export function useDataThinkingStream() {
             } as MessagePartOrStreamEvent,
           });
         }
-        // Other event types (e.g. step-start) - store as-is; renderer may return null
+        // Other event types (e.g. step-start) - store as-is
         else {
           newMap.set(partId, {
             type: "data-thinking",
