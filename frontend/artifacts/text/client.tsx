@@ -22,11 +22,17 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
   kind: "text",
   description: "Useful for text content, like drafting essays and emails.",
   initialize: async ({ documentId, setMetadata }) => {
-    const suggestions = await getSuggestions({ documentId });
-
-    setMetadata({
-      suggestions,
-    });
+    try {
+      const suggestions = await getSuggestions({ documentId });
+      setMetadata({
+        suggestions,
+      });
+    } catch {
+      // Suggestions are optional; avoid 500 when table is missing or DB fails
+      setMetadata({
+        suggestions: [],
+      });
+    }
   },
   onStreamPart: ({ streamPart, setMetadata, setArtifact }) => {
     if (streamPart.type === "data-suggestion") {

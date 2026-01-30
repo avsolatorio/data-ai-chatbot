@@ -9,6 +9,7 @@ import {
   type SetStateAction,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import useSWR, { useSWRConfig } from "swr";
@@ -23,10 +24,10 @@ import { apiFetch } from "@/lib/api-client";
 import type { Document, Vote } from "@/lib/db/schema";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { fetcher } from "@/lib/utils";
-import type { ArtifactContent } from "./create-artifact";
 import { ArtifactActions } from "./artifact-actions";
 import { ArtifactCloseButton } from "./artifact-close-button";
 import { ArtifactMessages } from "./artifact-messages";
+import type { ArtifactContent } from "./create-artifact";
 import { MultimodalInput } from "./multimodal-input";
 import { Toolbar } from "./toolbar";
 import { useSidebar } from "./ui/sidebar";
@@ -41,6 +42,14 @@ export const artifactDefinitions = [
   chartArtifact,
 ];
 export type ArtifactKind = (typeof artifactDefinitions)[number]["kind"];
+
+const DEFAULT_CHAT_PANEL_WIDTH = 400;
+const MIN_CHAT_PANEL_WIDTH = 400;
+const MIN_ARTIFACT_PANEL_WIDTH = 320;
+const RESIZE_HANDLE_WIDTH = 8;
+/** Hit area width for easier grabbing; visual indicator stays 8px */
+const RESIZE_HANDLE_HIT_WIDTH = 16;
+const ARTIFACT_PANEL_WIDTH_KEY = "artifact-chat-panel-width";
 
 export type UIArtifact = {
   title: string;
@@ -100,12 +109,82 @@ function PureArtifact({
     artifact.documentId !== "init" && artifact.status !== "streaming"
       ? `/api/document?id=${artifact.documentId}`
       : null,
-    fetcher
+    fetcher,
   );
 
   const [mode, setMode] = useState<"edit" | "diff">("edit");
   const [document, setDocument] = useState<Document | null>(null);
   const [currentVersionIndex, setCurrentVersionIndex] = useState(-1);
+
+  const [chatPanelWidth, setChatPanelWidth] = useState(
+    DEFAULT_CHAT_PANEL_WIDTH,
+  );
+  const [isResizing, setIsResizing] = useState(false);
+  const lastWidthRef = useRef(chatPanelWidth);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(ARTIFACT_PANEL_WIDTH_KEY);
+    if (stored !== null) {
+      const parsed = Number.parseInt(stored, 10);
+      if (Number.isFinite(parsed) && parsed >= MIN_CHAT_PANEL_WIDTH) {
+        setChatPanelWidth(parsed);
+        lastWidthRef.current = parsed;
+      }
+    }
+  }, []);
+
+  const maxChatPanelWidth =
+    typeof window !== "undefined"
+      ? window.innerWidth - MIN_ARTIFACT_PANEL_WIDTH - RESIZE_HANDLE_WIDTH
+      : 800;
+  const clampedChatPanelWidth = Math.min(
+    Math.max(chatPanelWidth, MIN_CHAT_PANEL_WIDTH),
+    Math.max(maxChatPanelWidth, MIN_CHAT_PANEL_WIDTH),
+  );
+  lastWidthRef.current = clampedChatPanelWidth;
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: document is global; attach listeners synchronously on mousedown
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const body =
+      typeof document !== "undefined" && document != null
+        ? document.body
+        : null;
+    if (body) {
+      body.style.userSelect = "none";
+    }
+    setIsResizing(true);
+    const onMove = (moveEvent: MouseEvent) => {
+      const maxW =
+        typeof window !== "undefined"
+          ? window.innerWidth - MIN_ARTIFACT_PANEL_WIDTH - RESIZE_HANDLE_WIDTH
+          : 800;
+      const next = Math.min(
+        Math.max(moveEvent.clientX, MIN_CHAT_PANEL_WIDTH),
+        Math.max(maxW, MIN_CHAT_PANEL_WIDTH),
+      );
+      setChatPanelWidth(next);
+      lastWidthRef.current = next;
+    };
+    const onUp = () => {
+      setIsResizing(false);
+      if (body) {
+        body.style.userSelect = "";
+      }
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          ARTIFACT_PANEL_WIDTH_KEY,
+          String(lastWidthRef.current),
+        );
+      }
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, []);
 
   const { open: isSidebarOpen } = useSidebar();
 
@@ -176,15 +255,15 @@ function PureArtifact({
           }
           return currentDocuments;
         },
-        { revalidate: false }
+        { revalidate: false },
       );
     },
-    [artifact, mutate]
+    [artifact, mutate],
   );
 
   const debouncedHandleContentChange = useDebounceCallback(
     handleContentChange,
-    2000
+    2000,
   );
 
   const saveContent = useCallback(
@@ -199,7 +278,7 @@ function PureArtifact({
         }
       }
     },
-    [document, debouncedHandleContentChange, handleContentChange]
+    [document, debouncedHandleContentChange, handleContentChange],
   );
 
   function getDocumentContentById(index: number) {
@@ -252,13 +331,14 @@ function PureArtifact({
   const isMobile = windowWidth ? windowWidth < 768 : false;
 
   const artifactDefinition = artifactDefinitions.find(
-    (definition) => definition.kind === artifact.kind
+    (definition) => definition.kind === artifact.kind,
   );
 
   if (!artifactDefinition) {
     throw new Error("Artifact definition not found!");
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only init when documentId changes; full deps re-trigger getSuggestions on drag
   useEffect(() => {
     if (artifact.documentId !== "init" && artifactDefinition.initialize) {
       artifactDefinition.initialize({
@@ -266,7 +346,7 @@ function PureArtifact({
         setMetadata,
       });
     }
-  }, [artifact.documentId, artifactDefinition, setMetadata]);
+  }, [artifact.documentId]);
 
   return (
     <AnimatePresence>
@@ -299,14 +379,17 @@ function PureArtifact({
                 opacity: 1,
                 x: 0,
                 scale: 1,
-                transition: {
-                  delay: 0.1,
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30,
-                },
+                width: clampedChatPanelWidth,
+                transition: isResizing
+                  ? { duration: 0 }
+                  : {
+                      delay: 0.1,
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 30,
+                    },
               }}
-              className="relative h-dvh w-[400px] shrink-0 bg-muted dark:bg-background"
+              className="relative h-dvh shrink-0 bg-muted dark:bg-background"
               exit={{
                 opacity: 0,
                 x: 0,
@@ -314,14 +397,16 @@ function PureArtifact({
                 transition: { duration: 0 },
               }}
               initial={{ opacity: 0, x: 10, scale: 1 }}
+              style={{ width: clampedChatPanelWidth }}
             >
               <AnimatePresence>
                 {!isCurrentVersion && (
                   <motion.div
                     animate={{ opacity: 1 }}
-                    className="absolute top-0 left-0 z-50 h-dvh w-[400px] bg-zinc-900/50"
+                    className="absolute top-0 left-0 z-50 h-dvh bg-zinc-900/50"
                     exit={{ opacity: 0 }}
                     initial={{ opacity: 0 }}
+                    style={{ width: clampedChatPanelWidth }}
                   />
                 )}
               </AnimatePresence>
@@ -359,6 +444,27 @@ function PureArtifact({
             </motion.div>
           )}
 
+          {!isMobile && (
+            <button
+              aria-label="Resize artifact panel"
+              className="fixed z-[70] flex h-dvh shrink-0 cursor-col-resize items-center justify-center border-0 bg-transparent hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50"
+              data-testid="artifact-resize-handle"
+              onMouseDown={handleResizeStart}
+              style={{
+                left:
+                  clampedChatPanelWidth -
+                  (RESIZE_HANDLE_HIT_WIDTH - RESIZE_HANDLE_WIDTH) / 2,
+                width: RESIZE_HANDLE_HIT_WIDTH,
+              }}
+              type="button"
+            >
+              <span
+                aria-hidden
+                className="h-12 w-1 rounded-full bg-zinc-300 dark:bg-zinc-600"
+              />
+            </button>
+          )}
+
           <motion.div
             animate={
               isMobile
@@ -379,23 +485,27 @@ function PureArtifact({
                   }
                 : {
                     opacity: 1,
-                    x: 400,
+                    x: clampedChatPanelWidth + RESIZE_HANDLE_WIDTH,
                     y: 0,
                     height: windowHeight,
                     width: windowWidth
-                      ? windowWidth - 400
-                      : "calc(100dvw-400px)",
+                      ? windowWidth -
+                        clampedChatPanelWidth -
+                        RESIZE_HANDLE_WIDTH
+                      : `calc(100dvw - ${clampedChatPanelWidth + RESIZE_HANDLE_WIDTH}px)`,
                     borderRadius: 0,
-                    transition: {
-                      delay: 0,
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 30,
-                      duration: 0.8,
-                    },
+                    transition: isResizing
+                      ? { duration: 0 }
+                      : {
+                          delay: 0,
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 30,
+                          duration: 0.8,
+                        },
                   }
             }
-            className="fixed flex h-dvh flex-col overflow-y-scroll border-zinc-200 bg-background md:border-l dark:border-zinc-700 dark:bg-muted"
+            className="fixed z-40 flex h-dvh flex-col overflow-y-scroll border-zinc-200 bg-background md:border-l dark:border-zinc-700 dark:bg-muted"
             exit={{
               opacity: 0,
               scale: 0.5,
@@ -444,7 +554,7 @@ function PureArtifact({
                         new Date(),
                         {
                           addSuffix: true,
-                        }
+                        },
                       )}`}
                     </div>
                   ) : artifact.kind === "chart" ? (
