@@ -20,6 +20,7 @@ class User(Base):
 
     # Relationships
     chats = relationship("Chat", back_populates="user")
+    charts = relationship("Chart", back_populates="user")
     documents = relationship("Document", back_populates="user")
     suggestions = relationship("Suggestion", back_populates="user")
     files = relationship("File", back_populates="user")

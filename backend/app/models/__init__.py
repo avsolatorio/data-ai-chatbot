@@ -1,4 +1,5 @@
 # Database models
+from app.models.chart import Chart
 from app.models.chat import Chat
 from app.models.document import Document
 from app.models.file import File
@@ -15,6 +16,7 @@ from app.models.vote import Vote
 __all__ = [
     "User",
     "Chat",
+    "Chart",
     "Document",
     "File",
     "Message",
