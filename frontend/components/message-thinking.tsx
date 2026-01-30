@@ -3,7 +3,10 @@
 import { CollapsibleContent } from "@/components/ui/collapsible";
 import type { ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useCallback, useEffect, useRef } from "react";
 import { Reasoning, ReasoningTrigger } from "./elements/reasoning";
+
+const SCROLL_AT_BOTTOM_THRESHOLD_PX = 24;
 
 type MessageThinkingProps = {
   isLoading: boolean;
@@ -25,6 +28,44 @@ export function MessageThinking({
   thinkingParts,
   renderPart,
 }: MessageThinkingProps) {
+  const scrollContainerRef = useRef<HTMLElement>(null);
+  const contentContainerRef = useRef<HTMLDivElement>(null);
+  const isFollowingRef = useRef(true);
+
+  const scrollToBottom = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight - el.clientHeight;
+  }, []);
+
+  // When new parts are added, scroll to bottom and resume following (ResizeObserver handles streaming growth)
+  useEffect(() => {
+    if (thinkingParts.length === 0) return;
+    scrollToBottom();
+    isFollowingRef.current = true;
+  }, [thinkingParts.length, scrollToBottom]);
+
+  // ResizeObserver: when content grows while user is following, keep scrolling to bottom
+  useEffect(() => {
+    const contentEl = contentContainerRef.current;
+    if (!contentEl) return;
+    const ro = new ResizeObserver(() => {
+      if (!isFollowingRef.current) return;
+      scrollToBottom();
+    });
+    ro.observe(contentEl);
+    return () => ro.disconnect();
+  }, [scrollToBottom]);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const atBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight <=
+      SCROLL_AT_BOTTOM_THRESHOLD_PX;
+    isFollowingRef.current = atBottom;
+  }, []);
+
   if (thinkingParts.length === 0) {
     return null;
   }
@@ -47,9 +88,17 @@ export function MessageThinking({
             "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-hidden data-[state=closed]:animate-out data-[state=open]:animate-in",
           )}
         >
-          <div className="relative max-h-[480px] overflow-y-auto pr-4">
+          <section
+            ref={scrollContainerRef}
+            className="relative max-h-[480px] overflow-y-auto pr-4"
+            onScroll={handleScroll}
+            aria-label="Reasoning steps"
+          >
             {/* Steps container */}
-            <div className="relative space-y-4 pl-8 pb-2 text-sm [&_*]:!text-muted-foreground [&_*]:!text-sm [&_.text-xs]:!text-xs [&_button]:!text-foreground [&_button]:!text-sm [&_a]:!text-foreground [&_a]:!text-sm [&_[role='button']]:!text-foreground [&_[role='button']]:!text-sm [&_[data-radix-tooltip-content]]:!text-popover-foreground [&_[data-radix-tooltip-content]_*]:!text-popover-foreground">
+            <div
+              ref={contentContainerRef}
+              className="relative space-y-4 pl-8 pb-2 text-sm [&_*]:!text-muted-foreground [&_*]:!text-sm [&_.text-xs]:!text-xs [&_button]:!text-foreground [&_button]:!text-sm [&_a]:!text-foreground [&_a]:!text-sm [&_[role='button']]:!text-foreground [&_[role='button']]:!text-sm [&_[data-radix-tooltip-content]]:!text-popover-foreground [&_[data-radix-tooltip-content]_*]:!text-popover-foreground"
+            >
               {/* Vertical line connecting all steps - positioned relative to steps container */}
               <div
                 className="absolute left-2 top-2 bottom-0 w-[2px] bg-border"
@@ -102,7 +151,7 @@ export function MessageThinking({
                 </div>
               )}
             </div>
-          </div>
+          </section>
         </CollapsibleContent>
       </Reasoning>
     </div>
