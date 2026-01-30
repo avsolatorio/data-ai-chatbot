@@ -12,7 +12,7 @@ type ChartEditorProps = {
 
 function applyThemeToSpec(
   spec: Record<string, unknown>,
-  theme: Record<string, unknown>
+  theme: Record<string, unknown>,
 ): Record<string, unknown> {
   const mergedConfig = {
     ...(typeof spec.config === "object" && spec.config !== null
@@ -26,11 +26,12 @@ function applyThemeToSpec(
 function ChartEditor({ content, status }: ChartEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<{ resize: (w: number, h: number) => void } | null>(
-    null
+    null,
   );
-  const [themeConfig, setThemeConfig] = useState<Record<string, unknown> | null>(
-    null
-  );
+  const [themeConfig, setThemeConfig] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
   useEffect(() => {
     let cancelled = false;
