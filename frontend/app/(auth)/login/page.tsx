@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 
 import { AuthForm } from "@/components/auth-form";
+import { LoaderIcon } from "@/components/icons";
 import { SubmitButton } from "@/components/submit-button";
 import { toast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
-import { LoaderIcon } from "@/components/icons";
 import { type LoginActionState, login } from "../actions";
 
 export default function Page() {
@@ -22,7 +22,7 @@ export default function Page() {
     login,
     {
       status: "idle",
-    }
+    },
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: router is a stable ref
@@ -64,7 +64,7 @@ export default function Page() {
       // Use window.location.href to navigate to the guest endpoint
       // This allows the server-side route handler to set cookies and redirect properly
       // The route handler will create the guest session and redirect to home
-      window.location.href = "/api/auth/guest?redirectUrl=/";
+      window.location.href = `/api/auth/guest?redirectUrl=${encodeURIComponent(`${window.location.origin}/`)}`;
     } catch (error) {
       console.error("Error creating guest session:", error);
       toast({
