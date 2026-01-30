@@ -112,6 +112,11 @@ export function Chat({
     }>
   >([]);
 
+  // Ref to clear the "refetch latest message" timeout on unmount (avoids setState after unmount)
+  const refetchLatestTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
   // Update preserved parts whenever streaming parts change
   useEffect(() => {
     if (streamingParts.length > 0) {
@@ -122,6 +127,16 @@ export function Chat({
       }));
     }
   }, [streamingParts]);
+
+  // Clear refetch timeout on unmount so we don't call setState after unmount
+  useEffect(() => {
+    return () => {
+      if (refetchLatestTimeoutRef.current !== null) {
+        clearTimeout(refetchLatestTimeoutRef.current);
+        refetchLatestTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const {
     messages,
@@ -188,98 +203,8 @@ export function Chat({
       }
       isWaitingForSavedPartsRef.current = true;
       setIsWaitingForSavedParts(true);
-
       mutate(unstable_serialize(getChatHistoryPaginationKey));
-
-      // Refetch only the last message after a delay to get saved thinking parts from backend
-      // This is much more efficient than fetching all messages
-      // This ensures previous messages have saved parts when a new message starts
-      setTimeout(async () => {
-        try {
-          const response = await fetchWithErrorHandlers(
-            getApiUrl(`/api/chat/${id}/messages/latest?limit=1`),
-          );
-          if (!response.ok) {
-            console.warn(
-              "[Chat] Failed to refetch latest message after stream finish:",
-              response.status,
-            );
-            isWaitingForSavedPartsRef.current = false;
-            setIsWaitingForSavedParts(false);
-            return;
-          }
-
-          const data = await response.json();
-          const { messages: latestMessages } = data as {
-            messages: Array<{
-              id: string;
-              role: string;
-              parts: unknown[];
-              attachments: unknown[];
-              createdAt: string | Date;
-            }>;
-          };
-
-          if (latestMessages.length === 0) {
-            // No messages returned, clear waiting state
-            isWaitingForSavedPartsRef.current = false;
-            setIsWaitingForSavedParts(false);
-            return;
-          }
-
-          // Convert the latest message to DBMessage format
-          const latestMessageFromDb: DBMessage = {
-            id: latestMessages[0].id,
-            chatId: id,
-            role: latestMessages[0].role as "user" | "assistant" | "system",
-            parts: latestMessages[0].parts ?? [],
-            attachments: latestMessages[0].attachments ?? [],
-            createdAt:
-              typeof latestMessages[0].createdAt === "string"
-                ? new Date(latestMessages[0].createdAt)
-                : latestMessages[0].createdAt,
-          };
-
-          const uiMessage = convertToUIMessages([latestMessageFromDb])[0];
-
-          // Clear waiting flag and streaming parts synchronously before updating
-          // This ensures saved parts are used immediately when messages update
-          isWaitingForSavedPartsRef.current = false;
-          setIsWaitingForSavedParts(false);
-          preservedStreamingPartsRef.current = [];
-          clearThinkingStream();
-
-          // Update only the last message with saved thinking parts
-          // This is much more efficient than replacing all messages
-          // Note: We match by position and role, not ID, because:
-          // - useChat generates IDs on the frontend
-          // - Backend generates different IDs when saving
-          // - The last message is always the one we just finished streaming
-          setMessages((prev) => {
-            const updated = [...prev];
-            console.log("[Chat] updated", updated);
-            console.log("[Chat] uiMessage", uiMessage);
-            const lastIndex = updated.length - 1;
-            if (
-              lastIndex >= 0 &&
-              updated[lastIndex].role === "assistant" &&
-              uiMessage.role === "assistant"
-            ) {
-              // Update the last assistant message (which is the one we just streamed)
-              // Replace with the saved version that includes thinking parts
-              updated[lastIndex] = uiMessage;
-            }
-            return updated;
-          });
-        } catch (error) {
-          console.warn(
-            "[Chat] Error refetching latest message after stream finish:",
-            error,
-          );
-          isWaitingForSavedPartsRef.current = false;
-          setIsWaitingForSavedParts(false);
-        }
-      }, 1500); // Wait 1.5 seconds for backend to save
+      // Refetch is scheduled in useEffect when status leaves "streaming" (onFinish may not be called by SDK with custom backend)
     },
     onError: (error) => {
       // Clear streaming parts on error to prevent stale state
@@ -305,30 +230,109 @@ export function Chat({
   // This prevents clearing parts that belong to previous messages
   const streamingPartsMessageIdRef = useRef<string | null>(null);
 
-  // Clear streaming parts when a new message starts, but only if they belong to a message with saved parts
-  // This prevents accumulation while preserving thinking parts for messages that don't have saved parts yet
+  // Clear streaming parts when a new message starts, and schedule refetch when stream ends
+  // Refetch is triggered by status leaving "streaming" (onFinish may not be called with custom backend)
   const prevStatusRef = useRef(status);
   useEffect(() => {
+    const prevStatus = prevStatusRef.current;
+    prevStatusRef.current = status;
+
+    // When stream ends: status was "streaming" and is no longer, schedule refetch of latest message for saved thinking parts
+    if (prevStatus === "streaming" && status !== "streaming") {
+      isWaitingForSavedPartsRef.current = true;
+      setIsWaitingForSavedParts(true);
+      mutate(unstable_serialize(getChatHistoryPaginationKey));
+      refetchLatestTimeoutRef.current = setTimeout(async () => {
+        refetchLatestTimeoutRef.current = null;
+        try {
+          const response = await fetchWithErrorHandlers(
+            getApiUrl(`/api/chat/${id}/messages/latest?limit=1`),
+          );
+          if (!response.ok) {
+            isWaitingForSavedPartsRef.current = false;
+            setIsWaitingForSavedParts(false);
+            return;
+          }
+          const data = await response.json();
+          const { messages: latestMessages } = data as {
+            messages: Array<{
+              id: string;
+              role: string;
+              parts: unknown[];
+              attachments: unknown[];
+              createdAt: string | Date;
+            }>;
+          };
+          if (latestMessages.length === 0) {
+            isWaitingForSavedPartsRef.current = false;
+            setIsWaitingForSavedParts(false);
+            return;
+          }
+          const latestMessageFromDb: DBMessage = {
+            id: latestMessages[0].id,
+            chatId: id,
+            role: latestMessages[0].role as "user" | "assistant" | "system",
+            parts: latestMessages[0].parts ?? [],
+            attachments: latestMessages[0].attachments ?? [],
+            createdAt:
+              typeof latestMessages[0].createdAt === "string"
+                ? new Date(latestMessages[0].createdAt)
+                : latestMessages[0].createdAt,
+          };
+          const refetchedCreatedAt =
+            latestMessageFromDb.createdAt instanceof Date
+              ? latestMessageFromDb.createdAt
+              : new Date(latestMessageFromDb.createdAt);
+          const fiveSecondsAgo = Date.now() - 5 * 1000;
+          if (refetchedCreatedAt.getTime() < fiveSecondsAgo) {
+            isWaitingForSavedPartsRef.current = false;
+            setIsWaitingForSavedParts(false);
+            return;
+          }
+          const uiMessage = convertToUIMessages([latestMessageFromDb])[0];
+          isWaitingForSavedPartsRef.current = false;
+          setIsWaitingForSavedParts(false);
+          preservedStreamingPartsRef.current = [];
+          clearThinkingStream();
+          setMessages((prev) => {
+            const updated = [...prev];
+            const lastIndex = updated.length - 1;
+            if (
+              lastIndex >= 0 &&
+              updated[lastIndex].role === "assistant" &&
+              uiMessage.role === "assistant"
+            ) {
+              updated[lastIndex] = uiMessage;
+            }
+            return updated;
+          });
+        } catch {
+          isWaitingForSavedPartsRef.current = false;
+          setIsWaitingForSavedParts(false);
+        }
+      }, 1500);
+    }
+
     // Detect when a new message starts: status changes from non-submitted to "submitted"
     if (
-      prevStatusRef.current !== "submitted" &&
+      prevStatus !== "submitted" &&
       status === "submitted" &&
       streamingPartsCount > 0
     ) {
-      // Clear streaming parts when a new message starts
-      // By this time, the previous message should have saved parts (from the refetch in onFinish)
-      // If it doesn't, we still clear to prevent showing parts on the wrong message
-      console.log(
-        "[Chat] New message starting, clearing previous streaming thinking parts",
-      );
       preservedStreamingPartsRef.current = [];
       isWaitingForSavedPartsRef.current = false;
       setIsWaitingForSavedParts(false);
       streamingPartsMessageIdRef.current = null;
       clearThinkingStream();
     }
-    prevStatusRef.current = status;
-  }, [status, streamingPartsCount, clearThinkingStream]);
+  }, [
+    status,
+    streamingPartsCount,
+    clearThinkingStream,
+    id,
+    mutate,
+    setMessages,
+  ]);
 
   // Clear streaming parts when saved parts are confirmed in the last message
   // This happens naturally when the page is refreshed and initialMessages includes saved parts
