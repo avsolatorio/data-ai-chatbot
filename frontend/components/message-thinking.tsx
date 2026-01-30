@@ -1,5 +1,7 @@
 "use client";
 
+import { Maximize2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CollapsibleContent } from "@/components/ui/collapsible";
 import {
@@ -12,8 +14,6 @@ import {
 } from "@/components/ui/sheet";
 import type { ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Maximize2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
 import { Reasoning, ReasoningTrigger } from "./elements/reasoning";
 
 const SCROLL_AT_BOTTOM_THRESHOLD_PX = 24;
