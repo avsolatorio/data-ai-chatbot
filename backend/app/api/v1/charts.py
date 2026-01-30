@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
@@ -17,16 +18,18 @@ class ChartStoreRequest(BaseModel):
     """Vega-Lite chart spec. Must include 'title' and full spec (stored as-is)."""
 
     title: str
-    config: dict | None = None
-    data: dict | None = None
-    mark: dict | None = None
-    encoding: dict | None = None
-    params: list | None = None
-    datasets: dict | None = None
+
+    # Vega-Lite-ish top-level fields, but flexible
+    config: dict[str, Any] | None = None
+    data: dict[str, Any] | None = None
+    mark: str | dict[str, Any] | None = None
+    encoding: dict[str, Any] | None = None
+    params: list[dict[str, Any]] | None = None
+    datasets: dict[str, Any] | None = None
 
     model_config = ConfigDict(extra="allow")
 
-    def to_spec(self) -> dict:
+    def to_spec(self) -> dict[str, Any]:
         """Full spec as stored in DB (all fields including extra)."""
         return self.model_dump(exclude_none=True)
 

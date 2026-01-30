@@ -12,6 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 from alembic import op
+from app.db.migration_utils import grant_table_to_app_user
 
 revision: str = "a1b2c3d4e5f6"  # pragma: allowlist secret
 down_revision: Union[str, None] = "8e1b2e947055"  # pragma: allowlist secret
@@ -33,6 +34,7 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
     )
+    grant_table_to_app_user(op, "Chart")
 
 
 def downgrade() -> None:

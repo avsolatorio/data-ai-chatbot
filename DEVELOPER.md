@@ -185,6 +185,26 @@ uv run alembic upgrade head
 uv run alembic downgrade -1
 ```
 
+### Adding new tables (app user permissions)
+
+If the app connects to PostgreSQL with a **different user** than the one that runs migrations (e.g. `POSTGRES_USER` vs `POSTGRES_ALEMBIC_USER`), the app user needs explicit privileges on new tables. Otherwise you get `permission denied for table X`.
+
+**Convention:** In every migration that creates a new table, grant privileges to the app user right after `op.create_table(...)`:
+
+```python
+from app.db.migration_utils import grant_table_to_app_user, revoke_table_from_app_user
+
+def upgrade() -> None:
+    op.create_table("MyTable", ...)
+    grant_table_to_app_user(op, "MyTable")
+
+def downgrade() -> None:
+    revoke_table_from_app_user(op, "MyTable")
+    op.drop_table("MyTable")
+```
+
+The helper uses `POSTGRES_USER` from the environment (default: `postgres`). When running migrations, ensure `POSTGRES_USER` is set to the same user the application uses so grants apply correctly.
+
 ## Backend API
 
 ### API Endpoints
