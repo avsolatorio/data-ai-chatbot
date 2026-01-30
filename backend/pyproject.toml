@@ -3,7 +3,7 @@ name = "backend"
 version = "0.1.0"
 description = "FastAPI backend for AI Chatbot application"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "fastapi[all]>=0.109.0",
     "uvicorn[standard]>=0.27.0",
@@ -55,7 +55,7 @@ dev-dependencies = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]
@@ -63,7 +63,7 @@ ignore = ["E501"]
 
 [tool.black]
 line-length = 100
-target-version = ["py310"]
+target-version = ["py311"]
 
 [dependency-groups]
 dev = [
