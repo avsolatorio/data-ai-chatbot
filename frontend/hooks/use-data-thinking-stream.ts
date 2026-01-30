@@ -57,7 +57,16 @@ export function useDataThinkingStream() {
       }
 
       const thinkingId = event.id; // Outer ID, same for all parts in this thinking response
-      const innerData = event.data as MessagePartOrStreamEvent;
+      const innerData = event.data as MessagePartOrStreamEvent & {
+        type?: string;
+        delta?: string;
+        toolCallId?: string;
+        toolName?: string;
+        input?: unknown;
+        output?: unknown;
+        errorText?: string;
+      };
+      const innerType = innerData.type as string | undefined;
       const partId = getPartId(innerData, thinkingId); // Inner ID, unique per part
 
       setStreamingParts((prev) => {
@@ -65,7 +74,7 @@ export function useDataThinkingStream() {
         const existing = newMap.get(partId);
 
         // Handle text-delta events - accumulate text
-        if (innerData.type === "text-delta" && "delta" in innerData) {
+        if (innerType === "text-delta" && "delta" in innerData) {
           const delta = (innerData as { delta: string }).delta || "";
 
           if (
@@ -100,7 +109,7 @@ export function useDataThinkingStream() {
           }
         }
         // Handle text-start event - initialize text part
-        else if (innerData.type === "text-start") {
+        else if (innerType === "text-start") {
           // Always create/update the part for this inner ID
           // This allows multiple parts with different inner IDs to coexist
           newMap.set(partId, {
@@ -117,7 +126,7 @@ export function useDataThinkingStream() {
           });
         }
         // Handle text-end event - finalize text part
-        else if (innerData.type === "text-end") {
+        else if (innerType === "text-end") {
           if (existing?.data?.type === "text") {
             newMap.set(partId, {
               ...existing,
@@ -127,10 +136,131 @@ export function useDataThinkingStream() {
               } as StreamingThinkingPart as MessagePartOrStreamEvent,
             });
           }
-        } else if (innerData.type === "data-usage") {
+        } else if (innerType === "data-usage") {
           // TODO: Handle data-usage events. We don't need to store this in the streaming parts.
         }
-        // Handle other event types (tools, etc.) - update directly
+        // Tool stream events: merge into a single part with type "tool-<toolName>" so the renderer can show the Tool UI
+        else if (innerType === "tool-input-start") {
+          const payload = innerData as {
+            type: "tool-input-start";
+            toolCallId: string;
+            toolName: string;
+          };
+          const toolType = `tool-${payload.toolName}` as const;
+          newMap.set(partId, {
+            type: "data-thinking",
+            id: thinkingId,
+            data: {
+              type: toolType,
+              toolCallId: payload.toolCallId,
+              state: "input-streaming" as const,
+              input: {},
+              output: undefined,
+            } as MessagePartOrStreamEvent,
+          });
+        } else if (innerType === "tool-input-delta") {
+          // Keep existing merged tool part; do not overwrite with raw delta (would break display)
+          if (!existing?.data || typeof existing.data !== "object")
+            return newMap;
+          const data = existing.data as { type?: string; state?: string };
+          if (
+            !data.type?.startsWith("tool-") ||
+            data.state === "output-available"
+          )
+            return newMap;
+          // Leave part as-is (still input-streaming or input-available)
+        } else if (innerType === "tool-input-available") {
+          const payload = innerData as {
+            type: "tool-input-available";
+            toolCallId: string;
+            toolName: string;
+            input: unknown;
+          };
+          const toolType = `tool-${payload.toolName}` as const;
+          const prev = existing?.data as
+            | {
+                type: string;
+                toolCallId: string;
+                state: string;
+                input?: unknown;
+                output?: unknown;
+              }
+            | undefined;
+          newMap.set(partId, {
+            type: "data-thinking",
+            id: thinkingId,
+            data: {
+              type: prev?.type?.startsWith("tool-") ? prev.type : toolType,
+              toolCallId: payload.toolCallId,
+              state: "input-available" as const,
+              input: payload.input,
+              output: prev?.output,
+            } as MessagePartOrStreamEvent,
+          });
+        } else if (innerType === "tool-output-available") {
+          const payload = innerData as {
+            type: "tool-output-available";
+            toolCallId: string;
+            output: unknown;
+          };
+          const prev = existing?.data as
+            | {
+                type: string;
+                toolCallId: string;
+                state: string;
+                input?: unknown;
+                output?: unknown;
+              }
+            | undefined;
+          newMap.set(partId, {
+            type: "data-thinking",
+            id: thinkingId,
+            data: {
+              type: prev?.type?.startsWith("tool-")
+                ? prev.type
+                : `tool-unknown`,
+              toolCallId: payload.toolCallId,
+              state: "output-available" as const,
+              input: prev?.input ?? {},
+              output: payload.output,
+            } as MessagePartOrStreamEvent,
+          });
+        } else if (
+          innerType === "tool-input-error" ||
+          innerType === "tool-output-error"
+        ) {
+          const payload = innerData as {
+            type: "tool-input-error" | "tool-output-error";
+            toolCallId: string;
+            toolName?: string;
+            errorText: string;
+          };
+          const prev = existing?.data as
+            | {
+                type: string;
+                toolCallId: string;
+                state: string;
+                input?: unknown;
+                output?: unknown;
+              }
+            | undefined;
+          const toolType = prev?.type?.startsWith("tool-")
+            ? prev.type
+            : `tool-${payload.toolName ?? "unknown"}`;
+          newMap.set(partId, {
+            type: "data-thinking",
+            id: thinkingId,
+            data: {
+              type: toolType,
+              toolCallId: payload.toolCallId,
+              state: "output-error" as const,
+              input: prev?.input,
+              output: prev?.output,
+              errorText: payload.errorText,
+            } as MessagePartOrStreamEvent,
+          });
+        }
+        // Other event types (e.g. step-start) - store as-is; renderer may return null
         else {
           newMap.set(partId, {
             type: "data-thinking",
