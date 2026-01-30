@@ -12,6 +12,7 @@ import { GetData } from "./data360/get-data";
 import { GetWdiData } from "./data360/get-wdi-data";
 import { SearchIndicators } from "./data360/search-indicators";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
+import { ChartPreview } from "./chart-preview";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
 import { CodeBlock } from "./elements/code-block";
@@ -199,6 +200,52 @@ function renderMessagePart(
                 )
               }
               useDefaultFormat={true}
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  if ((type as string) === "tool-data360_get_viz_spec") {
+    const toolPart = part as {
+      toolCallId: string;
+      state: "input-available" | "output-available" | "input-streaming" | "output-error";
+      input?: unknown;
+      output?: { url: string | null; error: string | null };
+    };
+    const { toolCallId, state } = toolPart;
+    const output = toolPart.output;
+
+    if (output?.error) {
+      return (
+        <Tool defaultOpen={true} key={toolCallId}>
+          <ToolHeader state={state} type="tool-data360_get_viz_spec" />
+          <ToolContent>
+            {state === "output-available" && (
+              <ToolOutput
+                errorText={output.error}
+                output={null}
+                useDefaultFormat={true}
+              />
+            )}
+          </ToolContent>
+        </Tool>
+      );
+    }
+
+    return (
+      <Tool defaultOpen={true} key={toolCallId}>
+        <ToolHeader state={state} type="tool-data360_get_viz_spec" />
+        <ToolContent>
+          {state === "input-available" && toolPart.input !== undefined && (
+            <ToolInput input={toolPart.input as ToolUIPart["input"]} />
+          )}
+          {state === "output-available" && output?.url && (
+            <ToolOutput
+              errorText={undefined}
+              output={<ChartPreview chartUrl={output.url} isReadonly={isReadonly} />}
+              useDefaultFormat={false}
             />
           )}
         </ToolContent>

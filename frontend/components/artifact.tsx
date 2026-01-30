@@ -12,6 +12,7 @@ import {
 } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { useDebounceCallback, useWindowSize } from "usehooks-ts";
+import { chartArtifact } from "@/artifacts/chart/client";
 import { codeArtifact } from "@/artifacts/code/client";
 import { imageArtifact } from "@/artifacts/image/client";
 import { sheetArtifact } from "@/artifacts/sheet/client";
@@ -35,6 +36,7 @@ export const artifactDefinitions = [
   codeArtifact,
   imageArtifact,
   sheetArtifact,
+  chartArtifact,
 ];
 export type ArtifactKind = (typeof artifactDefinitions)[number]["kind"];
 
@@ -463,9 +465,11 @@ function PureArtifact({
             <div className="h-full max-w-full! items-center overflow-y-scroll bg-background dark:bg-muted">
               <artifactDefinition.content
                 content={
-                  isCurrentVersion
+                  artifact.kind === "chart"
                     ? artifact.content
-                    : getDocumentContentById(currentVersionIndex)
+                    : isCurrentVersion
+                      ? artifact.content
+                      : getDocumentContentById(currentVersionIndex)
                 }
                 currentVersionIndex={currentVersionIndex}
                 getDocumentContentById={getDocumentContentById}
