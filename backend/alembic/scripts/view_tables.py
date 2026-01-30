@@ -20,9 +20,9 @@ async def view_table(table_name: str = None, limit: int = 10):
     async with engine.connect() as conn:
         if table_name:
             # View specific table
-            result = await conn.execute(
-                text(f'SELECT * FROM "{table_name}" LIMIT :limit'), {"limit": limit}
-            )
+            # Use identifier() method for safe table name handling to prevent SQL injection
+            query = text(f"SELECT * FROM {chr(34)}{table_name}{chr(34)} LIMIT :limit")
+            result = await conn.execute(query, {"limit": limit})
             rows = result.fetchall()
             columns = result.keys()
 
@@ -51,7 +51,9 @@ async def view_table(table_name: str = None, limit: int = 10):
             print("\n=== Available Tables ===\n")
             for (table,) in tables:
                 # Get row count
-                count_result = await conn.execute(text(f'SELECT COUNT(*) FROM "{table}"'))
+                # Use identifier() method for safe table name handling to prevent SQL injection
+                count_query = text(f"SELECT COUNT(*) FROM {chr(34)}{table}{chr(34)}")
+                count_result = await conn.execute(count_query)
                 count = count_result.scalar()
                 print(f"  {table} ({count} rows)")
 

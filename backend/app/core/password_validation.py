@@ -116,8 +116,13 @@ async def check_password_breached_hibp(password: str) -> Optional[bool]:
         return _hibp_cache[cache_key]
 
     try:
-        # Hash password with SHA-1 (HIBP uses SHA-1)
-        sha1_hash = hashlib.sha1(password.encode()).hexdigest().upper()
+        # Hash password with SHA-1 (HIBP API requirement for k-anonymity protocol)
+        # SHA-1 is used ONLY for HIBP API communication and is never used for password storage.
+        # Actual password storage uses bcrypt (industry standard, 72-byte limit enforced elsewhere).
+        # This is a legitimate use case as per HIBP specification: https://haveibeenpwned.com/API/v3
+        # SHA-1 here is not for cryptographic security but for API protocol compliance.
+        # Veracode Exception: CWE-327 does not apply as SHA-1 is not used for security-sensitive operations.
+        sha1_hash = hashlib.sha1(password.encode()).hexdigest().upper()  # nosec - Required for HIBP k-anonymity
 
         # Split hash: first 5 chars (sent to API), rest (checked locally)
         prefix = sha1_hash[:5]
