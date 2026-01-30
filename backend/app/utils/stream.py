@@ -786,7 +786,8 @@ async def stream_text(
         elif usage_data is not None:
             finish_metadata["usage"] = usage_data.model_dump()
 
-        yield format_sse(finish_metadata["usage"], mode=mode)
+        if finish_metadata.get("usage") is not None:
+            yield format_sse({"type": "usage", "usage": finish_metadata["usage"]}, mode=mode)
 
         if finish_metadata:
             yield format_sse({"type": "finish", "messageMetadata": finish_metadata}, mode=mode)
