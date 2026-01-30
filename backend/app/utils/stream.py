@@ -18,7 +18,22 @@ from openai.types.chat.chat_completion_message_param import ChatCompletionMessag
 from app.ai.client import AsyncOpenAIChatClientProtocol
 from app.ai.mcp_tools.data360_mcp import call_mcp_tool
 from app.ai.observability.token_usage import build_data_usage_event
-from app.utils.helpers import format_sse
+from app.ai.protocols.stream import (
+    DoneMarker,
+    ErrorPart,
+    FinishMessagePart,
+    StartStepPart,
+    TextDeltaPart,
+    TextEndPart,
+    TextStartPart,
+    ToolInputAvailablePart,
+    ToolInputDeltaPart,
+    ToolInputErrorPart,
+    ToolInputStartPart,
+    ToolOutputAvailablePart,
+    ToolOutputErrorPart,
+    part_to_sse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -193,6 +208,7 @@ def _process_chunk(
     text_stream_id: str,
     tool_calls_state: Dict[int, Dict[str, Any]],
     mode: Literal["thinking", "chat"] = "chat",
+    thinking_id: Optional[str] = None,
 ):
     """
     Process a single chunk from the stream and yield SSE events as they're created.
@@ -225,11 +241,15 @@ def _process_chunk(
                 text_stream_id = getattr(delta, "item_id", text_stream_id)
                 if not text_started:
                     # Yield text-start event immediately
-                    yield format_sse({"type": "text-start", "id": text_stream_id}, mode=mode)
+                    yield part_to_sse(
+                        TextStartPart(id=text_stream_id), mode=mode, thinking_id=thinking_id
+                    )
                     text_started = True
                 # Yield text-delta event immediately
-                yield format_sse(
-                    {"type": "text-delta", "id": text_stream_id, "delta": content}, mode=mode
+                yield part_to_sse(
+                    TextDeltaPart(id=text_stream_id, delta=content),
+                    mode=mode,
+                    thinking_id=thinking_id,
                 )
 
             # Handle tool calls
@@ -256,13 +276,13 @@ def _process_chunk(
                             and not state["started"]
                         ):
                             # Yield tool-input-start event immediately
-                            yield format_sse(
-                                {
-                                    "type": "tool-input-start",
-                                    "toolCallId": state["id"],
-                                    "toolName": state["name"],
-                                },
+                            yield part_to_sse(
+                                ToolInputStartPart(
+                                    toolCallId=state["id"],
+                                    toolName=state["name"],
+                                ),
                                 mode=mode,
+                                thinking_id=thinking_id,
                             )
                             state["started"] = True
 
@@ -277,13 +297,13 @@ def _process_chunk(
                                 and not state["started"]
                             ):
                                 # Yield tool-input-start event immediately
-                                yield format_sse(
-                                    {
-                                        "type": "tool-input-start",
-                                        "toolCallId": state["id"],
-                                        "toolName": state["name"],
-                                    },
+                                yield part_to_sse(
+                                    ToolInputStartPart(
+                                        toolCallId=state["id"],
+                                        toolName=state["name"],
+                                    ),
                                     mode=mode,
+                                    thinking_id=thinking_id,
                                 )
                                 state["started"] = True
 
@@ -295,26 +315,26 @@ def _process_chunk(
                                 and not state["started"]
                             ):
                                 # Yield tool-input-start event immediately
-                                yield format_sse(
-                                    {
-                                        "type": "tool-input-start",
-                                        "toolCallId": state["id"],
-                                        "toolName": state["name"],
-                                    },
+                                yield part_to_sse(
+                                    ToolInputStartPart(
+                                        toolCallId=state["id"],
+                                        toolName=state["name"],
+                                    ),
                                     mode=mode,
+                                    thinking_id=thinking_id,
                                 )
                                 state["started"] = True
 
                             state["arguments"] += function_arguments
                             if state["id"] is not None:
                                 # Yield tool-input-delta event immediately
-                                yield format_sse(
-                                    {
-                                        "type": "tool-input-delta",
-                                        "toolCallId": state["id"],
-                                        "inputTextDelta": function_arguments,
-                                    },
+                                yield part_to_sse(
+                                    ToolInputDeltaPart(
+                                        toolCallId=state["id"],
+                                        inputTextDelta=function_arguments,
+                                    ),
                                     mode=mode,
+                                    thinking_id=thinking_id,
                                 )
 
     # Return state via generator return value (Python 3.3+)
@@ -372,6 +392,7 @@ async def stream_text(
         for turn in range(max_tool_turns):
             logger.info("=== Tool turn %d/%d ===", turn + 1, max_tool_turns)
 
+            thinking_id = f"msg-{turn}" if mode == "thinking" else ""
             text_stream_id = "text-1"
             text_started = False
             text_finished = False
@@ -400,7 +421,7 @@ async def stream_text(
                 raise
             logger.info("Successfully created stream, type: %s", type(stream))
 
-            yield format_sse({"type": "start-step"}, mode=mode)
+            yield part_to_sse(StartStepPart(), mode=mode, thinking_id=thinking_id)
 
             # Process stream chunks
             logger.info("Starting to iterate over stream chunks...")
@@ -434,8 +455,10 @@ async def stream_text(
                             if content is not None:
                                 if not text_started:
                                     # Yield text-start event immediately (only once)
-                                    yield format_sse(
-                                        {"type": "text-start", "id": text_stream_id}, mode=mode
+                                    yield part_to_sse(
+                                        TextStartPart(id=text_stream_id),
+                                        mode=mode,
+                                        thinking_id=thinking_id,
                                     )
                                     text_started = True
                                 # Chunk content word-by-word for smoother streaming
@@ -443,13 +466,13 @@ async def stream_text(
                                 word_chunks = chunk_text_by_words(content)
                                 for word_chunk in word_chunks:
                                     # Yield each word chunk as a separate text-delta event
-                                    yield format_sse(
-                                        {
-                                            "type": "text-delta",
-                                            "id": text_stream_id,
-                                            "delta": word_chunk,
-                                        },
+                                    yield part_to_sse(
+                                        TextDeltaPart(
+                                            id=text_stream_id,
+                                            delta=word_chunk,
+                                        ),
                                         mode=mode,
+                                        thinking_id=thinking_id,
                                     )
                                     # Give event loop a chance to flush immediately
                                     await asyncio.sleep(stream_yield_delay)
@@ -478,13 +501,13 @@ async def stream_text(
                                             and not state["started"]
                                         ):
                                             # Yield tool-input-start event immediately
-                                            yield format_sse(
-                                                {
-                                                    "type": "tool-input-start",
-                                                    "toolCallId": state["id"],
-                                                    "toolName": state["name"],
-                                                },
+                                            yield part_to_sse(
+                                                ToolInputStartPart(
+                                                    toolCallId=state["id"],
+                                                    toolName=state["name"],
+                                                ),
                                                 mode=mode,
+                                                thinking_id=thinking_id,
                                             )
                                             state["started"] = True
 
@@ -499,13 +522,13 @@ async def stream_text(
                                                 and not state["started"]
                                             ):
                                                 # Yield tool-input-start event immediately
-                                                yield format_sse(
-                                                    {
-                                                        "type": "tool-input-start",
-                                                        "toolCallId": state["id"],
-                                                        "toolName": state["name"],
-                                                    },
+                                                yield part_to_sse(
+                                                    ToolInputStartPart(
+                                                        toolCallId=state["id"],
+                                                        toolName=state["name"],
+                                                    ),
                                                     mode=mode,
+                                                    thinking_id=thinking_id,
                                                 )
                                                 state["started"] = True
 
@@ -519,26 +542,26 @@ async def stream_text(
                                                 and not state["started"]
                                             ):
                                                 # Yield tool-input-start event immediately
-                                                yield format_sse(
-                                                    {
-                                                        "type": "tool-input-start",
-                                                        "toolCallId": state["id"],
-                                                        "toolName": state["name"],
-                                                    },
+                                                yield part_to_sse(
+                                                    ToolInputStartPart(
+                                                        toolCallId=state["id"],
+                                                        toolName=state["name"],
+                                                    ),
                                                     mode=mode,
+                                                    thinking_id=thinking_id,
                                                 )
                                                 state["started"] = True
 
                                             state["arguments"] += function_arguments
                                             if state["id"] is not None:
                                                 # Yield tool-input-delta event immediately
-                                                yield format_sse(
-                                                    {
-                                                        "type": "tool-input-delta",
-                                                        "toolCallId": state["id"],
-                                                        "inputTextDelta": function_arguments,
-                                                    },
+                                                yield part_to_sse(
+                                                    ToolInputDeltaPart(
+                                                        toolCallId=state["id"],
+                                                        inputTextDelta=function_arguments,
+                                                    ),
                                                     mode=mode,
+                                                    thinking_id=thinking_id,
                                                 )
 
                     # Check for usage data
@@ -563,7 +586,11 @@ async def stream_text(
 
             # Handle text end - emit if text was started and stream finished
             if finish_reason == "stop" and text_started and not text_finished:
-                yield format_sse({"type": "text-end", "id": text_stream_id}, mode=mode)
+                yield part_to_sse(
+                    TextEndPart(id=text_stream_id),
+                    mode=mode,
+                    thinking_id=thinking_id,
+                )
                 text_finished = True
 
             # Handle tool calls completion
@@ -607,13 +634,13 @@ async def stream_text(
                         continue
 
                     if not state["started"]:
-                        yield format_sse(
-                            {
-                                "type": "tool-input-start",
-                                "toolCallId": tool_call_id,
-                                "toolName": tool_name,
-                            },
+                        yield part_to_sse(
+                            ToolInputStartPart(
+                                toolCallId=tool_call_id,
+                                toolName=tool_name,
+                            ),
                             mode=mode,
+                            thinking_id=thinking_id,
                         )
                         state["started"] = True
 
@@ -621,15 +648,15 @@ async def stream_text(
                     try:
                         parsed_arguments = json.loads(raw_arguments) if raw_arguments else {}
                     except Exception as error:
-                        yield format_sse(
-                            {
-                                "type": "tool-input-error",
-                                "toolCallId": tool_call_id,
-                                "toolName": tool_name,
-                                "input": raw_arguments,
-                                "errorText": str(error),
-                            },
+                        yield part_to_sse(
+                            ToolInputErrorPart(
+                                toolCallId=tool_call_id,
+                                toolName=tool_name,
+                                input=raw_arguments,
+                                errorText=str(error),
+                            ),
                             mode=mode,
+                            thinking_id=thinking_id,
                         )
                         # Add error as tool message
                         tool_messages.append(
@@ -641,27 +668,27 @@ async def stream_text(
                         )
                         continue
 
-                    yield format_sse(
-                        {
-                            "type": "tool-input-available",
-                            "toolCallId": tool_call_id,
-                            "toolName": tool_name,
-                            "input": parsed_arguments,
-                        },
+                    yield part_to_sse(
+                        ToolInputAvailablePart(
+                            toolCallId=tool_call_id,
+                            toolName=tool_name,
+                            input=parsed_arguments,
+                        ),
                         mode=mode,
+                        thinking_id=thinking_id,
                     )
 
                     # Execute tool
                     tool_function = tools.get(tool_name)
                     if tool_function is None:
                         error_msg = f"Tool '{tool_name}' not found."
-                        yield format_sse(
-                            {
-                                "type": "tool-output-error",
-                                "toolCallId": tool_call_id,
-                                "errorText": error_msg,
-                            },
+                        yield part_to_sse(
+                            ToolOutputErrorPart(
+                                toolCallId=tool_call_id,
+                                errorText=error_msg,
+                            ),
                             mode=mode,
+                            thinking_id=thinking_id,
                         )
                         tool_messages.append(
                             {
@@ -691,14 +718,14 @@ async def stream_text(
                             elif event_type == "error":
                                 # Tool failed
                                 error_info = event_data
-                                yield format_sse(
-                                    {
-                                        "type": "tool-output-error",
-                                        "toolCallId": error_info.get("toolCallId", tool_call_id),
-                                        "toolName": error_info.get("toolName", tool_name),
-                                        "errorText": error_info.get("errorText", "Unknown error"),
-                                    },
+                                yield part_to_sse(
+                                    ToolOutputErrorPart(
+                                        toolCallId=error_info.get("toolCallId", tool_call_id),
+                                        toolName=error_info.get("toolName", tool_name),
+                                        errorText=error_info.get("errorText", "Unknown error"),
+                                    ),
                                     mode=mode,
+                                    thinking_id=thinking_id,
                                 )
                                 tool_messages.append(
                                     {
@@ -716,13 +743,13 @@ async def stream_text(
                         # If tool completed successfully, yield result and add to messages
                         if tool_result is not None:
                             # Yield tool result
-                            yield format_sse(
-                                {
-                                    "type": "tool-output-available",
-                                    "toolCallId": tool_call_id,
-                                    "output": tool_result,
-                                },
+                            yield part_to_sse(
+                                ToolOutputAvailablePart(
+                                    toolCallId=tool_call_id,
+                                    output=tool_result,
+                                ),
                                 mode=mode,
+                                thinking_id=thinking_id,
                             )
 
                             # Add tool result to conversation messages
@@ -742,14 +769,14 @@ async def stream_text(
                     except Exception as error:
                         # Handle any unexpected errors
                         error_msg = str(error)
-                        yield format_sse(
-                            {
-                                "type": "tool-output-error",
-                                "toolCallId": tool_call_id,
-                                "toolName": tool_name,
-                                "errorText": error_msg,
-                            },
+                        yield part_to_sse(
+                            ToolOutputErrorPart(
+                                toolCallId=tool_call_id,
+                                toolName=tool_name,
+                                errorText=error_msg,
+                            ),
                             mode=mode,
+                            thinking_id=thinking_id,
                         )
                         tool_messages.append(
                             {
@@ -771,7 +798,11 @@ async def stream_text(
             else:
                 # No tool calls or no tools provided - we're done
                 if text_started and not text_finished:
-                    yield format_sse({"type": "text-end", "id": text_stream_id}, mode=mode)
+                    yield part_to_sse(
+                        TextEndPart(id=text_stream_id),
+                        mode=mode,
+                        thinking_id=thinking_id,
+                    )
                     text_finished = True
                 break
 
@@ -786,24 +817,33 @@ async def stream_text(
         elif usage_data is not None:
             finish_metadata["usage"] = usage_data.model_dump()
 
-        if finish_metadata.get("usage") is not None:
-            yield format_sse({"type": "usage", "usage": finish_metadata["usage"]}, mode=mode)
-
+        # Do not send standalone UsagePart: the AI SDK uiMessageChunkSchema has no "usage" type.
+        # Sending it causes schema validation to fail, the stream to throw, and status to stay "error" instead of "ready".
+        # Usage is already included in the "finish" event's messageMetadata below.
         if finish_metadata:
-            yield format_sse({"type": "finish", "messageMetadata": finish_metadata}, mode=mode)
+            yield part_to_sse(
+                FinishMessagePart(messageMetadata=finish_metadata),
+                mode=mode,
+                thinking_id=thinking_id if mode == "thinking" else None,
+            )
         else:
-            yield format_sse({"type": "finish"}, mode=mode)
+            yield part_to_sse(
+                FinishMessagePart(),
+                mode=mode,
+                thinking_id=thinking_id if mode == "thinking" else None,
+            )
 
         if mode == "chat":
-            yield "data: [DONE]\n\n"
+            yield DoneMarker().to_sse()
     except Exception:
         logger.error("Error in stream_text", exc_info=True)
         stack_trace = traceback.format_exc()
-        yield format_sse(
-            {"type": "error", "error": f"Error in stream_text: {stack_trace}"}, mode=mode
+        yield part_to_sse(
+            ErrorPart(errorText=f"Error in stream_text: {stack_trace}"),
+            mode=mode,
         )
         if mode == "chat":
-            yield "data: [DONE]\n\n"
+            yield DoneMarker().to_sse()
 
 
 def patch_response_with_headers(

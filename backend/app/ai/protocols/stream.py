@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, Literal, Optional, Union
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, TypeAdapter, model_validator
 
 # =========================
 # Base
@@ -36,6 +36,7 @@ class MessageStartPart(StreamPart):
 
 class FinishMessagePart(StreamPart):
     type: Literal["finish"] = "finish"
+    messageMetadata: Optional[dict[str, Any]] = None
 
 
 class AbortPart(StreamPart):
@@ -149,6 +150,21 @@ class ToolOutputAvailablePart(StreamPart):
     output: Any
 
 
+class ToolInputErrorPart(StreamPart):
+    type: Literal["tool-input-error"] = "tool-input-error"
+    toolCallId: str
+    toolName: str
+    input: Any = None
+    errorText: str
+
+
+class ToolOutputErrorPart(StreamPart):
+    type: Literal["tool-output-error"] = "tool-output-error"
+    toolCallId: str
+    toolName: Optional[str] = None
+    errorText: str
+
+
 # =========================
 # Steps
 # =========================
@@ -163,8 +179,26 @@ class FinishStepPart(StreamPart):
 
 
 # =========================
+# Usage / finish metadata
+# =========================
+
+
+class UsagePart(StreamPart):
+    type: Literal["usage"] = "usage"
+    usage: Any
+
+
+# =========================
 # Custom data (data-*)
 # =========================
+
+
+class DataThinkingPart(StreamPart):
+    """SSE envelope for thinking stream: type=data-thinking, id, data."""
+
+    type: Literal["data-thinking"] = "data-thinking"
+    id: str
+    data: Any
 
 
 class DataPart(StreamPart):
@@ -205,8 +239,11 @@ KnownPart = Annotated[
         ToolInputDeltaPart,
         ToolInputAvailablePart,
         ToolOutputAvailablePart,
+        ToolInputErrorPart,
+        ToolOutputErrorPart,
         StartStepPart,
         FinishStepPart,
+        UsagePart,
     ],
     Field(discriminator="type"),
 ]
@@ -219,9 +256,30 @@ StreamPartUnion = Union[KnownPart, DataPart]
 # Parser / dispatcher
 # =========================
 
+_known_part_adapter: TypeAdapter[KnownPart] = TypeAdapter(KnownPart)
+
 
 def parse_stream_part(obj: dict) -> StreamPartUnion:
     t = obj.get("type")
     if isinstance(t, str) and t.startswith("data-"):
         return DataPart.model_validate(obj)
-    return KnownPart.__pydantic_validator__.validate_python(obj)
+    return _known_part_adapter.validate_python(obj)
+
+
+# =========================
+# SSE emission helper
+# =========================
+
+
+def part_to_sse(
+    part: StreamPart,
+    mode: Literal["thinking", "chat"] = "chat",
+    thinking_id: Optional[str] = None,
+) -> str:
+    """
+    Serialize a stream part to SSE. In thinking mode, wrap in DataThinkingPart.
+    """
+    if mode == "thinking":
+        envelope = DataThinkingPart(id=thinking_id or "", data=part.model_dump(exclude_none=True))
+        return envelope.to_sse()
+    return part.to_sse()

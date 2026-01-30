@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any, AsyncIterator, Dict, List, Literal, Optional
 from uuid import UUID, uuid4
 
+from app.ai.protocols.stream import DoneMarker, ErrorPart, FinishMessagePart
 from app.utils.stream import stream_text
 
 logger = logging.getLogger(__name__)
@@ -210,6 +211,9 @@ class StreamEventProcessor:
                 if isinstance(event, str) and event.startswith("data: "):
                     data_str = event[6:].strip()
                     if data_str == "[DONE]":
+                        logger.info(
+                            "Stream: yielding [DONE], then closing (client should see status=ready)"
+                        )
                         yield event_bytes
                         await asyncio.sleep(0)  # Give event loop a chance to flush
                         break
@@ -245,11 +249,9 @@ class StreamEventProcessor:
             error_msg = f"Error in stream: {str(stream_error)}\n{stack_trace}"
             logger.error("Error in stream: %s", error_msg, exc_info=True)
             try:
-                yield f"data: {json.dumps({'type': 'error', 'error': error_msg})}\n\n".encode(
-                    "utf-8"
-                )
-                yield f"data: {json.dumps({'type': 'finish'})}"
-                yield "data: [DONE]\n\n".encode("utf-8")
+                yield ErrorPart(errorText=error_msg).to_sse().encode("utf-8")
+                yield FinishMessagePart().to_sse().encode("utf-8")
+                yield DoneMarker().to_sse().encode("utf-8")
             except Exception:
                 # If we can't yield, connection is likely closed
                 pass

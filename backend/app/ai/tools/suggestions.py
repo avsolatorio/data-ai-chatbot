@@ -9,10 +9,10 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from app.ai.client import get_async_ai_client, get_model_name
+from app.ai.protocols.stream import DataPart
 from app.config import ModelType
 from app.db.queries.document_queries import get_documents_by_id
 from app.db.queries.suggestion_queries import save_suggestions
-from app.utils.stream import format_sse
 
 
 async def request_suggestions_tool(
@@ -145,7 +145,7 @@ async def _generate_suggestions(
 
                 # Emit SSE event for frontend
                 if sse_writer:
-                    sse_writer(format_sse({"type": "data-suggestion", "data": suggestion}))
+                    sse_writer(DataPart(type="data-suggestion", data=suggestion).to_sse())
     except (json.JSONDecodeError, KeyError) as e:
         # If parsing fails, return empty suggestions
         print(f"Error parsing suggestions: {e}")

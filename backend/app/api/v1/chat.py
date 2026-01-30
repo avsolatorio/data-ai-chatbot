@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.client import get_ai_client, get_async_ai_client, get_model_name
 from app.ai.observability.token_usage import DataUsageData
 from app.ai.prompts import get_system_prompt, get_thinking_system_prompt
+from app.ai.protocols.stream import MessageStartPart
 from app.api.deps import get_current_user, get_optional_user
 from app.api.v1.utils.background_tasks import (
     create_save_messages_task,
@@ -34,7 +35,6 @@ from app.db.queries.chat_queries import (
     save_chat,
     save_messages,
 )
-from app.utils.helpers import format_sse
 from app.utils.message_converter import convert_messages_to_openai_format
 from app.utils.resumable_stream import mark_stream_complete, store_stream_chunk
 from app.utils.stream import patch_response_with_headers
@@ -317,7 +317,7 @@ async def create_chat(
         sequence = 0  # Sequence counter for ordering chunks
         try:
             message_id = f"msg-{uuid4().hex}"
-            yield format_sse({"type": "start", "messageId": message_id})
+            yield MessageStartPart(messageId=message_id).to_sse().encode("utf-8")
             await asyncio.sleep(0)  # Flush immediately
 
             # TODO: If thinking stage is completed, store the thinking messages in the database and support resuming the stream from the thinking stage.
@@ -415,6 +415,10 @@ async def create_chat(
             )
             raise  # Re-raise to properly close the generator
         finally:
+            logger.info(
+                "Stream generator exiting (stream_interrupted=%s); HTTP response will close",
+                stream_interrupted,
+            )
             # Only mark as complete if stream finished normally (not interrupted)
             if not stream_interrupted:
                 # Mark stream as complete in Redis (non-blocking)
