@@ -5,7 +5,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import auth, chat, chat_resume, chat_stream, document, files, history, vote
+from app.api.v1 import (
+    auth,
+    chat,
+    chat_resume,
+    chat_stream,
+    document,
+    files,
+    history,
+    mcp_tools,
+    vote,
+)
 from app.config import settings
 from app.core.redis import close_redis_client
 
@@ -75,6 +85,7 @@ app.include_router(history.router, prefix="/api/history", tags=["history"])
 app.include_router(vote.router, prefix="/api/vote", tags=["vote"])
 app.include_router(document.router, prefix="/api/document", tags=["document"])
 app.include_router(files.router, prefix="/api/files", tags=["files"])
+app.include_router(mcp_tools.router, prefix="/api/v1/mcp", tags=["mcp"])
 
 
 @app.get("/health")
