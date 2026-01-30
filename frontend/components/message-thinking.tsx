@@ -21,8 +21,12 @@ const SCROLL_AT_BOTTOM_THRESHOLD_PX = 24;
 const stepsContentClassName =
   "relative space-y-4 pl-8 pb-2 text-sm [&_*]:!text-muted-foreground [&_*]:!text-sm [&_.text-xs]:!text-xs [&_button]:!text-foreground [&_button]:!text-sm [&_a]:!text-foreground [&_a]:!text-sm [&_[role='button']]:!text-foreground [&_[role='button']]:!text-sm [&_[data-radix-tooltip-content]]:!text-popover-foreground [&_[data-radix-tooltip-content]_*]:!text-popover-foreground";
 
+const stepsContentClassNameSheet =
+  "relative space-y-4 pl-8 pb-2 text-sm [&_*]:!text-foreground [&_*]:!text-sm [&_.text-xs]:!text-xs [&_button]:!text-foreground [&_button]:!text-sm [&_a]:!text-foreground [&_a]:!text-sm [&_[role='button']]:!text-foreground [&_[role='button']]:!text-sm [&_[data-radix-tooltip-content]]:!text-popover-foreground [&_[data-radix-tooltip-content]_*]:!text-popover-foreground";
+
 type ThinkingStepsBodyProps = {
   isLoading: boolean;
+  muted?: boolean;
   thinkingParts: Array<{
     type: string;
     id: string;
@@ -36,11 +40,15 @@ type ThinkingStepsBodyProps = {
 
 function ThinkingStepsBody({
   isLoading,
+  muted = true,
   thinkingParts,
   renderPart,
 }: ThinkingStepsBodyProps) {
+  const contentClass = muted
+    ? stepsContentClassName
+    : stepsContentClassNameSheet;
   return (
-    <div className={cn("relative", stepsContentClassName)}>
+    <div className={cn("relative", contentClass)}>
       <div
         className="absolute left-2 top-2 bottom-0 w-[2px] bg-border"
         aria-hidden
@@ -79,7 +87,12 @@ function ThinkingStepsBody({
           >
             <div className="size-1.5 rounded-full bg-background" />
           </div>
-          <div className="min-w-0 flex-1 pt-0 text-muted-foreground text-xs">
+          <div
+            className={cn(
+              "min-w-0 flex-1 pt-0 text-xs",
+              muted ? "text-muted-foreground" : "text-foreground",
+            )}
+          >
             Finished
           </div>
         </div>
@@ -162,7 +175,7 @@ export function MessageThinking({
         defaultOpen={shouldDefaultOpen}
         isStreaming={isLoading}
       >
-        <div className="flex w-full items-center justify-between gap-2">
+        <div className="flex w-full items-center gap-2">
           <ReasoningTrigger />
           <Sheet onOpenChange={setSheetOpen} open={sheetOpen}>
             <SheetTrigger asChild>
@@ -192,6 +205,7 @@ export function MessageThinking({
               >
                 <ThinkingStepsBody
                   isLoading={isLoading}
+                  muted={false}
                   thinkingParts={thinkingParts}
                   renderPart={renderPart}
                 />
