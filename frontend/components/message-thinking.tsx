@@ -1,12 +1,92 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { CollapsibleContent } from "@/components/ui/collapsible";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import type { ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useCallback, useEffect, useRef } from "react";
+import { Maximize2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Reasoning, ReasoningTrigger } from "./elements/reasoning";
 
 const SCROLL_AT_BOTTOM_THRESHOLD_PX = 24;
+
+const stepsContentClassName =
+  "relative space-y-4 pl-8 pb-2 text-sm [&_*]:!text-muted-foreground [&_*]:!text-sm [&_.text-xs]:!text-xs [&_button]:!text-foreground [&_button]:!text-sm [&_a]:!text-foreground [&_a]:!text-sm [&_[role='button']]:!text-foreground [&_[role='button']]:!text-sm [&_[data-radix-tooltip-content]]:!text-popover-foreground [&_[data-radix-tooltip-content]_*]:!text-popover-foreground";
+
+type ThinkingStepsBodyProps = {
+  isLoading: boolean;
+  thinkingParts: Array<{
+    type: string;
+    id: string;
+    data: ChatMessage["parts"][number];
+  }>;
+  renderPart: (
+    part: ChatMessage["parts"][number],
+    key: string,
+  ) => React.ReactNode;
+};
+
+function ThinkingStepsBody({
+  isLoading,
+  thinkingParts,
+  renderPart,
+}: ThinkingStepsBodyProps) {
+  return (
+    <div className={cn("relative", stepsContentClassName)}>
+      <div
+        className="absolute left-2 top-2 bottom-0 w-[2px] bg-border"
+        aria-hidden
+      />
+      {thinkingParts.map((thinkingPart, index) => {
+        const key = `thinking-${thinkingPart.id}-${index}`;
+        const isLast = index === thinkingParts.length - 1;
+        const renderedPart = renderPart(thinkingPart.data, key);
+        return (
+          <div key={key} className="relative flex items-start gap-3">
+            <div
+              className={cn(
+                "absolute z-10 mt-2 flex size-2 shrink-0 items-center justify-center rounded-full border-1 bg-background",
+                "left-[calc(0.5rem+1px-2rem-4px)]",
+                isLoading && !isLast
+                  ? "border-primary"
+                  : "border-muted-foreground",
+              )}
+            >
+              {isLoading && !isLast && (
+                <div className="size-2 animate-pulse rounded-full bg-primary" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1 pt-0">{renderedPart}</div>
+          </div>
+        );
+      })}
+      {!isLoading && (
+        <div className="relative flex items-start gap-3">
+          <div
+            className={cn(
+              "absolute z-10 mt-2 flex size-2 shrink-0 items-center justify-center rounded-full border-1 bg-background",
+              "left-[calc(0.5rem+1px-2rem-4px)]",
+              "border-primary bg-primary",
+            )}
+          >
+            <div className="size-1.5 rounded-full bg-background" />
+          </div>
+          <div className="min-w-0 flex-1 pt-0 text-muted-foreground text-xs">
+            Finished
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 type MessageThinkingProps = {
   isLoading: boolean;
@@ -28,6 +108,7 @@ export function MessageThinking({
   thinkingParts,
   renderPart,
 }: MessageThinkingProps) {
+  const [sheetOpen, setSheetOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLElement>(null);
   const contentContainerRef = useRef<HTMLDivElement>(null);
   const isFollowingRef = useRef(true);
@@ -81,7 +162,43 @@ export function MessageThinking({
         defaultOpen={shouldDefaultOpen}
         isStreaming={isLoading}
       >
-        <ReasoningTrigger />
+        <div className="flex w-full items-center justify-between gap-2">
+          <ReasoningTrigger />
+          <Sheet onOpenChange={setSheetOpen} open={sheetOpen}>
+            <SheetTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Expand agent actions in a larger view"
+              >
+                <Maximize2 className="size-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="right"
+              className="flex w-full flex-col gap-4 sm:max-w-2xl"
+            >
+              <SheetHeader>
+                <SheetTitle>Agent actions</SheetTitle>
+                <SheetDescription>
+                  Steps and tool calls used to produce this answer.
+                </SheetDescription>
+              </SheetHeader>
+              <section
+                className="min-h-0 flex-1 overflow-y-auto pr-4"
+                aria-label="Reasoning steps"
+              >
+                <ThinkingStepsBody
+                  isLoading={isLoading}
+                  thinkingParts={thinkingParts}
+                  renderPart={renderPart}
+                />
+              </section>
+            </SheetContent>
+          </Sheet>
+        </div>
         <CollapsibleContent
           className={cn(
             "mt-2 text-muted-foreground text-xs",
@@ -94,62 +211,12 @@ export function MessageThinking({
             onScroll={handleScroll}
             aria-label="Reasoning steps"
           >
-            {/* Steps container */}
-            <div
-              ref={contentContainerRef}
-              className="relative space-y-4 pl-8 pb-2 text-sm [&_*]:!text-muted-foreground [&_*]:!text-sm [&_.text-xs]:!text-xs [&_button]:!text-foreground [&_button]:!text-sm [&_a]:!text-foreground [&_a]:!text-sm [&_[role='button']]:!text-foreground [&_[role='button']]:!text-sm [&_[data-radix-tooltip-content]]:!text-popover-foreground [&_[data-radix-tooltip-content]_*]:!text-popover-foreground"
-            >
-              {/* Vertical line connecting all steps - positioned relative to steps container */}
-              <div
-                className="absolute left-2 top-2 bottom-0 w-[2px] bg-border"
-                aria-hidden
+            <div ref={contentContainerRef}>
+              <ThinkingStepsBody
+                isLoading={isLoading}
+                thinkingParts={thinkingParts}
+                renderPart={renderPart}
               />
-              {thinkingParts.map((thinkingPart, index) => {
-                const key = `thinking-${thinkingPart.id}-${index}`;
-                const isLast = index === thinkingParts.length - 1;
-                const renderedPart = renderPart(thinkingPart.data, key);
-
-                return (
-                  <div key={key} className="relative flex items-start gap-3">
-                    {/* Step indicator circle */}
-                    <div
-                      className={cn(
-                        "absolute z-10 mt-2 flex size-2 shrink-0 items-center justify-center rounded-full border-1 bg-background",
-                        "left-[calc(0.5rem+1px-2rem-4px)]", // Center 8px circle on 2px line: line at left-2 (8px) + 1px (half line width) - 2rem (pl-8 padding) - 4px (half circle width)
-                        isLoading && !isLast
-                          ? "border-primary"
-                          : "border-muted-foreground",
-                      )}
-                    >
-                      {isLoading && !isLast && (
-                        <div className="size-2 animate-pulse rounded-full bg-primary" />
-                      )}
-                    </div>
-                    {/* Step content */}
-                    <div className="min-w-0 flex-1 pt-0">{renderedPart}</div>
-                  </div>
-                );
-              })}
-
-              {/* Finished step - shown when thinking is complete */}
-              {!isLoading && (
-                <div className="relative flex items-start gap-3">
-                  {/* Finished step indicator circle */}
-                  <div
-                    className={cn(
-                      "absolute z-10 mt-2 flex size-2 shrink-0 items-center justify-center rounded-full border-1 bg-background",
-                      "left-[calc(0.5rem+1px-2rem-4px)]",
-                      "border-primary bg-primary",
-                    )}
-                  >
-                    <div className="size-1.5 rounded-full bg-background" />
-                  </div>
-                  {/* Finished step content */}
-                  <div className="min-w-0 flex-1 pt-0 text-muted-foreground text-xs">
-                    Finished
-                  </div>
-                </div>
-              )}
             </div>
           </section>
         </CollapsibleContent>
