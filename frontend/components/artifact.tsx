@@ -445,6 +445,10 @@ function PureArtifact({
                         }
                       )}`}
                     </div>
+                  ) : artifact.kind === "chart" ? (
+                    <div className="text-muted-foreground text-sm">
+                      Vega-Lite chart
+                    </div>
                   ) : (
                     <div className="mt-2 h-3 w-32 animate-pulse rounded-md bg-muted-foreground/20" />
                   )}
