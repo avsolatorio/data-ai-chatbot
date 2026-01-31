@@ -21,6 +21,7 @@ import { useArtifactSelector } from "@/hooks/use-artifact";
 import { useAutoResume } from "@/hooks/use-auto-resume";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
 import { useDataThinkingStream } from "@/hooks/use-data-thinking-stream";
+import { useHomeConfig } from "@/hooks/use-home-config";
 import { getApiUrl } from "@/lib/api-client";
 import type { DBMessage, Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
@@ -35,6 +36,7 @@ import {
 } from "@/lib/utils";
 import { Artifact } from "./artifact";
 import { useDataStream } from "./data-stream-provider";
+import { Greeting } from "./greeting";
 import { Messages } from "./messages";
 import { MultimodalInput } from "./multimodal-input";
 import { getChatHistoryPaginationKey } from "./sidebar-history";
@@ -419,6 +421,28 @@ export function Chat({
     setMessages,
   });
 
+  const isEmpty = messages.length === 0;
+  const homeConfig = useHomeConfig();
+  const inputComponent = !isReadonly ? (
+    <MultimodalInput
+      attachments={attachments}
+      chatId={id}
+      input={input}
+      messages={messages}
+      onModelChange={setCurrentModelId}
+      selectedModelId={currentModelId}
+      selectedVisibilityType={visibilityType}
+      sendMessage={sendMessage}
+      setAttachments={setAttachments}
+      setInput={setInput}
+      setMessages={setMessages}
+      status={status}
+      stop={stop}
+      suggestions={isEmpty ? homeConfig.suggestions : undefined}
+      usage={usage}
+    />
+  ) : null;
+
   return (
     <>
       <div
@@ -435,53 +459,49 @@ export function Chat({
           selectedVisibilityType={initialVisibilityType}
         />
 
-        <Messages
-          chatId={id}
-          isArtifactVisible={isArtifactVisible}
-          isReadonly={isReadonly}
-          isWaitingForSavedParts={
-            isWaitingForSavedParts || isWaitingForSavedPartsRef.current
-          }
-          messages={messages}
-          regenerate={regenerate}
-          selectedModelId={initialChatModel}
-          setMessages={setMessages}
-          status={status}
-          streamingThinkingParts={
-            // Use preserved parts if we're waiting and current parts are empty (prevents flicker)
-            isWaitingForSavedParts &&
-            dataThinkingStream.streamingParts.length === 0 &&
-            preservedStreamingPartsRef.current.length > 0
-              ? preservedStreamingPartsRef.current
-              : dataThinkingStream.streamingParts.map((part) => ({
-                  type: part.type,
-                  id: part.id,
-                  data: part.data as ChatMessage["parts"][number],
-                }))
-          }
-          votes={votes}
-        />
-
-        <div className="sticky bottom-0 z-1 mx-auto flex w-full max-w-4xl gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4">
-          {!isReadonly && (
-            <MultimodalInput
-              attachments={attachments}
+        {isEmpty ? (
+          <div className="flex flex-1 flex-col justify-center px-4 py-6">
+            <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-8">
+              <Greeting
+                subtitle={homeConfig.greeting.subtitle}
+                title={homeConfig.greeting.title}
+              />
+              <div className="w-full max-w-2xl">{inputComponent}</div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <Messages
               chatId={id}
-              input={input}
+              isArtifactVisible={isArtifactVisible}
+              isReadonly={isReadonly}
+              isWaitingForSavedParts={
+                isWaitingForSavedParts || isWaitingForSavedPartsRef.current
+              }
               messages={messages}
-              onModelChange={setCurrentModelId}
-              selectedModelId={currentModelId}
-              selectedVisibilityType={visibilityType}
-              sendMessage={sendMessage}
-              setAttachments={setAttachments}
-              setInput={setInput}
+              regenerate={regenerate}
+              selectedModelId={initialChatModel}
               setMessages={setMessages}
               status={status}
-              stop={stop}
-              usage={usage}
+              streamingThinkingParts={
+                isWaitingForSavedParts &&
+                dataThinkingStream.streamingParts.length === 0 &&
+                preservedStreamingPartsRef.current.length > 0
+                  ? preservedStreamingPartsRef.current
+                  : dataThinkingStream.streamingParts.map((part) => ({
+                      type: part.type,
+                      id: part.id,
+                      data: part.data as ChatMessage["parts"][number],
+                    }))
+              }
+              votes={votes}
             />
-          )}
-        </div>
+
+            <div className="sticky bottom-0 z-1 mx-auto flex w-full max-w-4xl gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4">
+              {inputComponent}
+            </div>
+          </>
+        )}
       </div>
 
       <Artifact

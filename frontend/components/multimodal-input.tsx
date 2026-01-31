@@ -63,6 +63,7 @@ function PureMultimodalInput({
   selectedModelId,
   onModelChange,
   usage,
+  suggestions: suggestionsProp,
 }: {
   chatId: string;
   input: string;
@@ -79,7 +80,9 @@ function PureMultimodalInput({
   selectedModelId: string;
   onModelChange?: (modelId: string) => void;
   usage?: AppUsage;
+  suggestions?: string[];
 }) {
+  const suggestions = suggestionsProp ?? [];
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
 
@@ -287,18 +290,13 @@ function PureMultimodalInput({
     return () => textarea.removeEventListener("paste", handlePaste);
   }, [handlePaste]);
 
+  const showSuggestions =
+    messages.length === 0 &&
+    attachments.length === 0 &&
+    uploadQueue.length === 0;
+
   return (
     <div className={cn("relative flex w-full flex-col gap-4", className)}>
-      {messages.length === 0 &&
-        attachments.length === 0 &&
-        uploadQueue.length === 0 && (
-          <SuggestedActions
-            chatId={chatId}
-            selectedVisibilityType={selectedVisibilityType}
-            sendMessage={sendMessage}
-          />
-        )}
-
       <input
         className="-top-4 -left-4 pointer-events-none fixed size-0.5 opacity-0"
         multiple
@@ -395,6 +393,15 @@ function PureMultimodalInput({
           )}
         </PromptInputToolbar>
       </PromptInput>
+
+      {showSuggestions && (
+        <SuggestedActions
+          chatId={chatId}
+          selectedVisibilityType={selectedVisibilityType}
+          sendMessage={sendMessage}
+          suggestions={suggestions}
+        />
+      )}
     </div>
   );
 }
@@ -415,6 +422,9 @@ export const MultimodalInput = memo(
       return false;
     }
     if (prevProps.selectedModelId !== nextProps.selectedModelId) {
+      return false;
+    }
+    if (!equal(prevProps.suggestions, nextProps.suggestions)) {
       return false;
     }
 

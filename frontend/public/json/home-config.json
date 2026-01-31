@@ -1,0 +1,12 @@
+{
+  "greeting": {
+    "title": "What would you like to explore?",
+    "subtitle": "Ask a question about development data, or start with one of the examples below."
+  },
+  "suggestions": [
+    "What does the Gini coefficient say about inequality in a country?",
+    "What are the trends in employment in Southeast Asia?",
+    "How has poverty changed over time in low-income countries?",
+    "How do development indicators vary across regions?"
+  ]
+}
