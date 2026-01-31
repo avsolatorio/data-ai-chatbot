@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List, Union
 
 import dotenv
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -22,11 +22,12 @@ class ModelSettings(BaseSettings):
     TITLE_MODEL: str = "gpt-4o-mini"
     ARTIFACT_MODEL: str = "gpt-4o-mini"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        env_file_encoding = "utf-8"
-        extra = "ignore"
+    model_config = ConfigDict(
+        extra="allow",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+    )
 
 
 class Settings(BaseSettings):
@@ -111,11 +112,12 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        env_file_encoding = "utf-8"
-        extra = "ignore"
+    model_config = ConfigDict(
+        extra="allow",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+    )
 
 
 class MCPSettings(BaseSettings):
@@ -126,10 +128,11 @@ class MCPSettings(BaseSettings):
     ssl_verify: bool = True  # Set to False for dev environments with proxy/self-signed certs
     timeout: float = 30.0  # HTTP timeout in seconds
 
-    class Config:
-        env_prefix = "MCP_"
-        case_sensitive = False
-        extra = "ignore"
+    model_config = ConfigDict(
+        extra="forbid",
+        env_prefix="MCP_",
+        case_sensitive=False,
+    )
 
 
 def get_settings() -> Settings:
