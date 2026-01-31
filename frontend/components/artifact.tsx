@@ -578,34 +578,36 @@ function PureArtifact({
               />
             </div>
 
-            <div className="h-full max-w-full! items-center overflow-y-scroll bg-background dark:bg-muted">
-              {(() => {
-                const ContentComponent =
-                  artifactDefinition.content as ComponentType<
-                    ArtifactContent<unknown>
-                  >;
-                const contentProps: ArtifactContent<unknown> = {
-                  content:
-                    artifact.kind === "chart"
-                      ? artifact.content
-                      : isCurrentVersion
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col w-full max-w-full! overflow-y-scroll bg-background dark:bg-muted">
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                {(() => {
+                  const ContentComponent =
+                    artifactDefinition.content as ComponentType<
+                      ArtifactContent<unknown>
+                    >;
+                  const contentProps: ArtifactContent<unknown> = {
+                    content:
+                      artifact.kind === "chart"
                         ? artifact.content
-                        : getDocumentContentById(currentVersionIndex),
-                  currentVersionIndex,
-                  getDocumentContentById,
-                  isCurrentVersion,
-                  isInline: false,
-                  isLoading: isDocumentsFetching && !artifact.content,
-                  metadata,
-                  mode,
-                  onSaveContent: saveContent,
-                  setMetadata,
-                  status: artifact.status,
-                  suggestions: [],
-                  title: artifact.title,
-                };
-                return <ContentComponent {...contentProps} />;
-              })()}
+                        : isCurrentVersion
+                          ? artifact.content
+                          : getDocumentContentById(currentVersionIndex),
+                    currentVersionIndex,
+                    getDocumentContentById,
+                    isCurrentVersion,
+                    isInline: false,
+                    isLoading: isDocumentsFetching && !artifact.content,
+                    metadata,
+                    mode,
+                    onSaveContent: saveContent,
+                    setMetadata,
+                    status: artifact.status,
+                    suggestions: [],
+                    title: artifact.title,
+                  };
+                  return <ContentComponent {...contentProps} />;
+                })()}
+              </div>
 
               <AnimatePresence>
                 {isCurrentVersion && (

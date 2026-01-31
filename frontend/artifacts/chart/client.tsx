@@ -25,9 +25,11 @@ function applyThemeToSpec(
 
 function ChartEditor({ content, status }: ChartEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<{ resize: (w: number, h: number) => void } | null>(
-    null,
-  );
+  const viewRef = useRef<{
+    width: (w?: number) => number;
+    height: (h?: number) => number;
+    run: () => unknown;
+  } | null>(null);
   const [themeConfig, setThemeConfig] = useState<Record<
     string,
     unknown
@@ -64,6 +66,9 @@ function ChartEditor({ content, status }: ChartEditorProps) {
     const el = containerRef.current;
     const initialWidth = el.getBoundingClientRect().width;
 
+    let resizeObserver: ResizeObserver | null = null;
+    let cancelled = false;
+
     void (async () => {
       const { default: embed } = await import("vega-embed");
       const result = await embed(el, specWithTheme, {
@@ -71,30 +76,52 @@ function ChartEditor({ content, status }: ChartEditorProps) {
         actions: false,
         width: Math.max(1, Math.floor(initialWidth)),
       });
-      viewRef.current = result.view;
+      if (cancelled) {
+        el.replaceChildren();
+        return;
+      }
+      const view = result.view;
+      viewRef.current = view;
+
+      let lastW = 0;
+      let lastH = 0;
+      const sizeThreshold = 2;
+
+      const applySize = (w: number, h: number) => {
+        view.width(w).height(h).run();
+      };
+
+      const readSizeAndApply = () => {
+        if (cancelled || !el.isConnected) return;
+        const w = Math.max(1, el.clientWidth);
+        const h = Math.max(1, el.clientHeight);
+        const changed =
+          Math.abs(w - lastW) >= sizeThreshold ||
+          Math.abs(h - lastH) >= sizeThreshold;
+        if (!changed && lastW !== 0 && lastH !== 0) return;
+        lastW = w;
+        lastH = h;
+        applySize(w, h);
+      };
+
+      const onResize = () => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(readSizeAndApply);
+        });
+      };
+
+      resizeObserver = new ResizeObserver(onResize);
+      resizeObserver.observe(el);
+      onResize();
     })();
 
     return () => {
+      cancelled = true;
+      resizeObserver?.disconnect();
       viewRef.current = null;
       el.replaceChildren();
     };
   }, [content, themeConfig]);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries.at(0);
-      if (!entry || !viewRef.current) return;
-      const { width, height } = entry.contentRect;
-      const w = Math.max(1, Math.floor(width));
-      const h = Math.max(1, Math.floor(height));
-      viewRef.current.resize(w, h);
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   if (status === "streaming" && !content?.trim()) {
     return (
@@ -113,8 +140,11 @@ function ChartEditor({ content, status }: ChartEditorProps) {
   }
 
   return (
-    <div className="flex size-full min-h-[300px] flex-col items-center justify-center p-4">
-      <div ref={containerRef} className="w-full flex-1" />
+    <div className="flex size-full min-h-0 min-w-0 flex-col p-4">
+      <div
+        ref={containerRef}
+        className="min-h-0 min-w-0 flex-1 overflow-hidden"
+      />
     </div>
   );
 }

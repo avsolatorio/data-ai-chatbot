@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Figtree, Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import { DataStreamProvider } from "@/components/data-stream-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TokenLensProvider } from "@/components/tokenlens-provider";
 
@@ -90,7 +91,9 @@ export default function RootLayout({
           enableSystem
         >
           <Toaster position="top-center" />
-          <TokenLensProvider>{children}</TokenLensProvider>
+          <DataStreamProvider>
+            <TokenLensProvider>{children}</TokenLensProvider>
+          </DataStreamProvider>
         </ThemeProvider>
       </body>
     </html>
