@@ -579,7 +579,9 @@ function PureArtifact({
             </div>
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col w-full max-w-full! overflow-y-scroll bg-background dark:bg-muted">
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <div
+                className={`flex min-h-0 min-w-0 flex-1 flex-col ${artifact.kind === "chart" ? "overflow-hidden" : "min-h-0 overflow-y-auto"}`}
+              >
                 {(() => {
                   const ContentComponent =
                     artifactDefinition.content as ComponentType<

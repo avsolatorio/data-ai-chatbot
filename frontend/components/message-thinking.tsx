@@ -214,7 +214,7 @@ export function MessageThinking({
               </Button>
             </SheetTrigger>
             <SheetContent
-              side="right"
+              side="left"
               className="flex w-full flex-col gap-4 sm:max-w-2xl"
             >
               <SheetHeader>
