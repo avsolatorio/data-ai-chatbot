@@ -5,6 +5,7 @@ import { DataStreamProvider } from "@/components/data-stream-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TokenLensProvider } from "@/components/tokenlens-provider";
 
+import "@pcn/ui/styles.css";
 import "./globals.css";
 import { appConfig } from "@/lib/config";
 

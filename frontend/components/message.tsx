@@ -10,6 +10,8 @@ import { cn, sanitizeText } from "@/lib/utils";
 import { ChartPreview } from "./chart-preview";
 import { useDataStream } from "./data-stream-provider";
 import { GetData } from "./data360/get-data";
+import { DATA360_GET_DATA_TOOL } from "@pcn/data360";
+import { IngestToolOutput } from "@pcn/ui";
 import { GetWdiData } from "./data360/get-wdi-data";
 import { SearchIndicators } from "./data360/search-indicators";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
@@ -387,7 +389,11 @@ function renderMessagePart(
             <ToolOutput
               errorText={undefined}
               useDefaultFormat={false}
-              output={<GetData output={toolPart.output} />}
+              output={
+                <IngestToolOutput toolName={DATA360_GET_DATA_TOOL} output={toolPart.output}>
+                  <GetData output={toolPart.output} />
+                </IngestToolOutput>
+              }
             />
           )}
         </ToolContent>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { ClaimMark } from "@pcn/ui";
 import {
   Card,
   CardContent,
@@ -186,7 +187,15 @@ export function GetData({ output }: { output: GetDataOutput }) {
             </div>
             <div className="flex items-baseline gap-2">
               <span className="font-semibold text-3xl text-foreground">
-                {formatValue(point.OBS_VALUE, point.DECIMALS)}
+                <ClaimMark
+                  id={point.claim_id}
+                  policy={{
+                    type: "rounded",
+                    decimals: point.DECIMALS ?? 2,
+                  }}
+                >
+                  {formatValue(point.OBS_VALUE, point.DECIMALS)}
+                </ClaimMark>
               </span>
               {point.UNIT_MEASURE && (
                 <span className="text-muted-foreground text-sm">
@@ -372,7 +381,15 @@ export function GetData({ output }: { output: GetDataOutput }) {
                       </div>
                     </td>
                     <td className="px-3 py-2 text-right font-medium">
-                      {formatValue(point.OBS_VALUE, point.DECIMALS)}
+                      <ClaimMark
+                        id={point.claim_id}
+                        policy={{
+                          type: "rounded",
+                          decimals: point.DECIMALS ?? 2,
+                        }}
+                      >
+                        {formatValue(point.OBS_VALUE, point.DECIMALS)}
+                      </ClaimMark>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground text-[10px]">
                       {point.UNIT_MEASURE || "-"}

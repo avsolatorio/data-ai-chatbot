@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Suspense } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { DataStreamProvider } from "@/components/data-stream-provider";
+import { PcnProviderClient } from "@/components/pcn-provider-client";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getCurrentUser } from "@/lib/auth-service";
 import type { User } from "@/lib/auth-service-client";
@@ -15,9 +16,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         strategy="beforeInteractive"
       />
       <DataStreamProvider>
-        <Suspense fallback={<div className="flex h-dvh" />}>
-          <SidebarWrapper>{children}</SidebarWrapper>
-        </Suspense>
+        <PcnProviderClient>
+          <Suspense fallback={<div className="flex h-dvh" />}>
+            <SidebarWrapper>{children}</SidebarWrapper>
+          </Suspense>
+        </PcnProviderClient>
       </DataStreamProvider>
     </>
   );
