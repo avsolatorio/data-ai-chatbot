@@ -6,7 +6,9 @@
     "copymainfile": "node copymain.js",
     "postbuild": "node scripts/postbuild.js",
     "clean": "rimraf ./dist/ && rimraf ./next/ && rimraf ./.next/ && rimraf ./.next",
+    "build:pcn": "pnpm --dir ../../pcn/packages/core build && pnpm --dir ../../pcn/packages/ui build && pnpm --dir ../../pcn/packages/data360 build",
     "dev": "next dev --turbo",
+    "dev:fresh": "pnpm run build:pcn && rimraf .next && next dev --turbo",
     "build": "next build",
     "build:dev": "SET PHASE=dev && next build && node scripts/postbuild.js",
     "build:qa": "SET PHASE=qa && next build && node scripts/postbuild.js",
@@ -110,7 +112,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.2",
-    "@playwright/test": "^1.50.1",
+    "@playwright/test": "^1.51.1",
     "@tailwindcss/postcss": "^4.1.13",
     "@tailwindcss/typography": "^0.5.15",
     "@types/d3-scale": "^4.0.8",
@@ -132,6 +134,16 @@
   "pnpm": {
     "overrides": {
       "@pcn-js/core": "file:../../pcn/packages/core"
+    },
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "@pcn-js/core": "*",
+        "@pcn-js/ui": "*",
+        "next": "*",
+        "react": "*",
+        "react-dom": "*",
+        "@opentelemetry/api-logs": "*"
+      }
     }
   }
 }
