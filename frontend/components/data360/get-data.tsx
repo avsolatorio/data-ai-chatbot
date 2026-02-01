@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { ClaimMark } from "@pcn/ui";
+import { ClaimMark } from "@pcn-js/ui";
 import {
   Card,
   CardContent,

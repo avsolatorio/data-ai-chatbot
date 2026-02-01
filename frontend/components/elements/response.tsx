@@ -1,7 +1,7 @@
 "use client";
 
 import { type ComponentProps, memo } from "react";
-import { streamdownClaimComponents } from "@pcn/ui";
+import { streamdownClaimComponents } from "@pcn-js/ui";
 import { Streamdown } from "streamdown";
 import { cn } from "@/lib/utils";
 

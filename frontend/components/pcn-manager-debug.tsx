@@ -1,6 +1,6 @@
 "use client";
 
-import { useClaimsManager } from "@pcn/ui";
+import { useClaimsManager } from "@pcn-js/ui";
 import { useEffect } from "react";
 
 declare global {

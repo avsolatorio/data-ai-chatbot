@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@pcn/core': file:../../pcn/packages/core
+  '@pcn-js/core': file:../../pcn/packages/core
 
 importers:
 
@@ -47,13 +47,13 @@ importers:
       '@opentelemetry/api-logs':
         specifier: ^0.200.0
         version: 0.200.0
-      '@pcn/core':
+      '@pcn-js/core':
         specifier: file:../../pcn/packages/core
         version: file:../../pcn/packages/core
-      '@pcn/data360':
+      '@pcn-js/data360':
         specifier: file:../../pcn/packages/data360
-        version: file:../../pcn/packages/data360(@pcn/core@file:../../pcn/packages/core)(@pcn/ui@file:../../pcn/packages/ui(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
-      '@pcn/ui':
+        version: file:../../pcn/packages/data360(@pcn-js/core@file:../../pcn/packages/core)(@pcn-js/ui@file:../../pcn/packages/ui(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
+      '@pcn-js/ui':
         specifier: file:../../pcn/packages/ui
         version: file:../../pcn/packages/ui(react@19.0.0-rc-45804af1-20241021)
       '@radix-ui/react-collapsible':
@@ -1261,17 +1261,17 @@ packages:
   '@panva/hkdf@1.2.1':
     resolution: {integrity: sha512-6oclG6Y3PiDFcoyk8srjLfVKyMfVCKJ27JwNPViuXziFpmdz+MZnZN/aKY0JGXgYuO/VghU0jcOAZgWXZ1Dmrw==}
 
-  '@pcn/core@file:../../pcn/packages/core':
+  '@pcn-js/core@file:../../pcn/packages/core':
     resolution: {directory: ../../pcn/packages/core, type: directory}
 
-  '@pcn/data360@file:../../pcn/packages/data360':
+  '@pcn-js/data360@file:../../pcn/packages/data360':
     resolution: {directory: ../../pcn/packages/data360, type: directory}
     peerDependencies:
-      '@pcn/core': file:/Users/avsolatorio/WBG/pcn/packages/core
-      '@pcn/ui': '>=0.1.0'
+      '@pcn-js/core': file:/Users/avsolatorio/WBG/pcn/packages/core
+      '@pcn-js/ui': '>=0.1.1'
       react: '>=18.0.0'
 
-  '@pcn/ui@file:../../pcn/packages/ui':
+  '@pcn-js/ui@file:../../pcn/packages/ui':
     resolution: {directory: ../../pcn/packages/ui, type: directory}
     peerDependencies:
       react: '>=18.0.0'
@@ -5611,20 +5611,20 @@ snapshots:
 
   '@panva/hkdf@1.2.1': {}
 
-  '@pcn/core@file:../../pcn/packages/core':
+  '@pcn-js/core@file:../../pcn/packages/core':
     dependencies:
       cheerio: 1.2.0
       domhandler: 5.0.3
 
-  '@pcn/data360@file:../../pcn/packages/data360(@pcn/core@file:../../pcn/packages/core)(@pcn/ui@file:../../pcn/packages/ui(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)':
+  '@pcn-js/data360@file:../../pcn/packages/data360(@pcn-js/core@file:../../pcn/packages/core)(@pcn-js/ui@file:../../pcn/packages/ui(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)':
     dependencies:
-      '@pcn/core': file:../../pcn/packages/core
-      '@pcn/ui': file:../../pcn/packages/ui(react@19.0.0-rc-45804af1-20241021)
+      '@pcn-js/core': file:../../pcn/packages/core
+      '@pcn-js/ui': file:../../pcn/packages/ui(react@19.0.0-rc-45804af1-20241021)
       react: 19.0.0-rc-45804af1-20241021
 
-  '@pcn/ui@file:../../pcn/packages/ui(react@19.0.0-rc-45804af1-20241021)':
+  '@pcn-js/ui@file:../../pcn/packages/ui(react@19.0.0-rc-45804af1-20241021)':
     dependencies:
-      '@pcn/core': file:../../pcn/packages/core
+      '@pcn-js/core': file:../../pcn/packages/core
       react: 19.0.0-rc-45804af1-20241021
 
   '@playwright/test@1.51.0':
