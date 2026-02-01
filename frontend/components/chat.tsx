@@ -37,7 +37,9 @@ import {
 import { Artifact } from "./artifact";
 import { useDataStream } from "./data-stream-provider";
 import { Greeting } from "./greeting";
+import { IngestSessionData360 } from "./ingest-session-data360";
 import { Messages } from "./messages";
+import { PcnManagerDebug } from "./pcn-manager-debug";
 import { MultimodalInput } from "./multimodal-input";
 import { getChatHistoryPaginationKey } from "./sidebar-history";
 import { toast } from "./toast";
@@ -445,6 +447,11 @@ export function Chat({
 
   return (
     <>
+      <IngestSessionData360
+        messages={messages}
+        initialMessages={initialMessages}
+      />
+      <PcnManagerDebug />
       <div
         className={cn(
           "overscroll-behavior-contain flex h-dvh min-w-0 touch-pan-y flex-col bg-background",

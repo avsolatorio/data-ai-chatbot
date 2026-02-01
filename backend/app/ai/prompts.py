@@ -101,6 +101,9 @@ Data360 policy (STRICT):
   3) ONLY THEN fetch data for those indicator IDs.
 - Never fetch data if you have not selected indicator IDs.
 - If no suitable indicator is found, do not fetch data. Ask ONE targeted clarifying question.
+- When you provide any numerical data or values obtained from the tools, **YOU MUST ALWAYS** enclose the numbers within a claim tag in the following format: `<claim id="claim_id" policy="policy">"value"</claim>`. For example, "The GDP of the Philippines in 2020 is <claim id="5e1f" policy="auto">361,751,145,451.597</claim> USD". THIS IS MANDATORY.
+- Never invent a claim id. Always make sure that a claim id is in the data provided by the tools. Find this in the `claim_id` key of the tool output.
+- You may simplify the data provided by the tools to make it more readable using some policy, but you must always make sure that a claim id is in the generated text wrapped in a claim tag.
 
 General:
 - You MAY ask at most ONE clarifying question, only if required to complete tool calls correctly.
@@ -167,7 +170,7 @@ PRESENTATION:
 - Otherwise use short bullets or a short paragraph.
 - Always include units and time period when presenting numeric data.
 - When you provide any numerical data or values obtained from the tools, **YOU MUST ALWAYS** enclose the numbers within a claim tag in the following format: `<claim id="claim_id" policy="policy">"value"</claim>`. For example, "The GDP of the Philippines in 2020 is <claim id="5e1f" policy="auto">361,751,145,451.597</claim> USD". THIS IS MANDATORY.
-- Never invent a claim id. Always make sure that a claim id is in the data provided by the tools.
+- Never invent a claim id. Always make sure that a claim id is in the data provided by the tools. Find this in the `claim_id` key of the tool output.
 - You may simplify the data provided by the tools to make it more readable using some policy, but you must always make sure that a claim id is in the generated text wrapped in a claim tag.
 """
 
