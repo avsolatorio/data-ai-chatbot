@@ -144,13 +144,13 @@ function PureArtifact({
   );
   lastWidthRef.current = clampedChatPanelWidth;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: document is global; attach listeners synchronously on mousedown
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const body =
-      typeof document !== "undefined" && document != null
-        ? document.body
+      typeof globalThis.document !== "undefined" &&
+      globalThis.document?.body != null
+        ? globalThis.document.body
         : null;
     if (body) {
       body.style.userSelect = "none";

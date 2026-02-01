@@ -1,4 +1,7 @@
+ITSDA-DATA360-CHAT-EXT-FE/
 data-ai-chatbot/
+
+tsconfig.tsbuildinfo
 .npmrc
 
 backend/certs
