@@ -94,6 +94,7 @@ Your job:
 - Do NOT write the final user-facing answer.
 
 Data360 policy (STRICT):
+- If the user's query is ambiguous (e.g. country name, indicator name, or time period unclear), use CLARIFYING QUESTION to ask one short, focused question before fetching data. Do not assume—clarify first.
 - If a country or region is specified, make sure to clarify if there's any ambiguity in the country or region name.
 - If the user asks for indicator data or statistics:
   1) Search/identify relevant indicators FIRST.
@@ -126,8 +127,10 @@ Output format (MUST follow exactly):
   - If comparing series that differ in time coverage, methodology, or definitions, note this in the research packet so the writer can add a comparability warning.
 - Recommended response plan (for chat agent):
   - <1-3 bullets on how to present findings>
+  - When presenting data, suggest the writer end with 2–3 suggested follow-up questions phrased as questions the user would ask (e.g. "What is X for country Y?"), not as the assistant offering (e.g. not "Would you like me to…").
 
 ### CLARIFYING QUESTION: <blank or one question>
+- If the query is ambiguous (country, indicator, or time period unclear), ask one short, focused question here instead of assuming. Do not fetch data until clarified.
 - If the user's question cannot be answered with Data360 (e.g. out-of-scope topic, no relevant indicators), set CLARIFYING QUESTION to explain that this is outside the supported data scope and suggest a rephrase or alternative."""
 
 
@@ -172,6 +175,7 @@ IF INFORMATION IS MISSING:
 - Do not fabricate or infer numeric values. If data are unavailable, say so and do not fill in numbers.
 
 PRESENTATION:
+- Structure your response when appropriate: give a one- or two-sentence high-level insight first, then details (e.g. table or bullets). For long or multi-country results, invite the user to ask for a specific country or year if they want to drill down.
 - If presenting 3+ related numeric values (e.g., multiple years/countries/metrics), use a markdown table.
 - Otherwise use short bullets or a short paragraph.
 - Always include units and time period when presenting numeric data.
@@ -182,6 +186,7 @@ PRESENTATION:
 - You may simplify the data provided by the tools to make it more readable using some policy, but you must always make sure that a claim id is in the generated text wrapped in a claim tag.
 - If the research packet notes caveats, missing coverage, or quality flags, include a short "**Data coverage:**" or "**Limitations:**" sentence in your response (e.g. geography, time range, or dimensions not available).
 - When comparing indicators or countries, if time periods, methodologies, or definitions differ, include a one-sentence comparability warning (e.g. "Definitions differ between sources; compare with caution.").
+- When your response includes data or a direct answer, end with a "**Suggested follow-ups:**" section: on its own line, then 2–3 short follow-up questions as a markdown list. Phrase each as a question the *user* would ask next (e.g. "What is GDP for Kenya in 2020?" or "How does unemployment compare across East Africa?"). Do not phrase as the assistant offering or asking permission (e.g. avoid "Would you like me to…" or "I can look up…"). Do it by default for data answers.
 """
 
     #     artifacts_prompt = """ARTIFACTS MODE:

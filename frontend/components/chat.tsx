@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import { IngestSessionData360 } from "@pcn-js/data360";
 import { DefaultChatTransport } from "ai";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -37,10 +38,9 @@ import {
 import { Artifact } from "./artifact";
 import { useDataStream } from "./data-stream-provider";
 import { Greeting } from "./greeting";
-import { IngestSessionData360 } from "@pcn-js/data360";
 import { Messages } from "./messages";
-import { PcnManagerDebug } from "./pcn-manager-debug";
 import { MultimodalInput } from "./multimodal-input";
+import { PcnManagerDebug } from "./pcn-manager-debug";
 import { getChatHistoryPaginationKey } from "./sidebar-history";
 import { toast } from "./toast";
 import type { VisibilityType } from "./visibility-selector";
@@ -505,6 +505,7 @@ export function Chat({
               messages={messages}
               regenerate={regenerate}
               selectedModelId={initialChatModel}
+              sendMessage={sendMessage}
               setMessages={setMessages}
               status={status}
               streamingThinkingStage={dataThinkingStream.streamingStage}

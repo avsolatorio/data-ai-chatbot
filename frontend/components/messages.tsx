@@ -14,6 +14,7 @@ type MessagesProps = {
   status: UseChatHelpers<ChatMessage>["status"];
   votes: Vote[] | undefined;
   messages: ChatMessage[];
+  sendMessage?: UseChatHelpers<ChatMessage>["sendMessage"];
   setMessages: UseChatHelpers<ChatMessage>["setMessages"];
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
   isReadonly: boolean;
@@ -33,6 +34,7 @@ function PureMessages({
   status,
   votes,
   messages,
+  sendMessage,
   setMessages,
   regenerate,
   isReadonly,
@@ -89,6 +91,7 @@ function PureMessages({
                 key={message.id}
                 message={message}
                 regenerate={regenerate}
+                sendMessage={sendMessage}
                 requiresScrollPadding={
                   hasSentMessage && index === messages.length - 1
                 }
@@ -160,6 +163,9 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
     return false;
   }
   if (prevProps.streamingThinkingStage !== nextProps.streamingThinkingStage) {
+    return false;
+  }
+  if (prevProps.sendMessage !== nextProps.sendMessage) {
     return false;
   }
 

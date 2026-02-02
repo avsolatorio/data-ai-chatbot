@@ -39,11 +39,13 @@ import {
   type Data360SourceEntry,
 } from "@/lib/data360";
 import { SparklesIcon } from "./icons";
+import { parseFollowUps } from "@/lib/parse-follow-ups";
 import { MessageActions } from "./message-actions";
 import { MessageEditor } from "./message-editor";
 import { MessageReasoning } from "./message-reasoning";
 import { MessageThinking } from "./message-thinking";
 import { PreviewAttachment } from "./preview-attachment";
+import { Suggestion } from "./elements/suggestion";
 import { Weather } from "./weather";
 
 // Helper function to render a single message part
@@ -514,6 +516,7 @@ const PurePreviewMessage = ({
   message,
   vote,
   isLoading,
+  sendMessage,
   setMessages,
   regenerate,
   isReadonly,
@@ -526,6 +529,7 @@ const PurePreviewMessage = ({
   message: ChatMessage;
   vote: Vote | undefined;
   isLoading: boolean;
+  sendMessage?: UseChatHelpers<ChatMessage>["sendMessage"];
   setMessages: UseChatHelpers<ChatMessage>["setMessages"];
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
   isReadonly: boolean;
@@ -539,6 +543,12 @@ const PurePreviewMessage = ({
   }>;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
+
+  const assistantText = message.parts
+    .filter((p): p is { type: "text"; text: string } => p.type === "text")
+    .map((p) => p.text)
+    .join("\n");
+  const followUps = parseFollowUps(assistantText);
 
   const attachmentsFromMessage = message.parts.filter(
     (part) => part.type === "file",
@@ -781,6 +791,38 @@ const PurePreviewMessage = ({
                     </Sources>
                   );
                 })()}
+
+                {/* Suggested follow-ups: parse from assistant text and render as clickable chips */}
+                {message.role === "assistant" &&
+                  followUps.length > 0 &&
+                  sendMessage &&
+                  !isReadonly && (
+                    <div
+                      className="mt-2 flex flex-wrap gap-2"
+                      data-testid="follow-up-suggestions"
+                    >
+                      {followUps.map((suggestion) => (
+                        <Suggestion
+                          key={suggestion}
+                          className="h-auto whitespace-normal px-3 py-1.5 text-left text-sm"
+                          onClick={() => {
+                            window.history.pushState(
+                              {},
+                              "",
+                              `/chat/${chatId}`,
+                            );
+                            sendMessage({
+                              role: "user",
+                              parts: [{ type: "text", text: suggestion }],
+                            });
+                          }}
+                          suggestion={suggestion}
+                        >
+                          {suggestion}
+                        </Suggestion>
+                      ))}
+                    </div>
+                  )}
               </>
             );
           })()}
@@ -825,6 +867,9 @@ export const PreviewMessage = memo(
       return false;
     }
     if (prevProps.streamingThinkingStage !== nextProps.streamingThinkingStage) {
+      return false;
+    }
+    if (prevProps.sendMessage !== nextProps.sendMessage) {
       return false;
     }
 
