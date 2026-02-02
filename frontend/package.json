@@ -15,10 +15,10 @@
     "dev": "next dev --turbo",
     "dev:local-pcn": "node scripts/dev-local-pcn.js",
     "build": "next build",
-    "build:dev": "SET PHASE=dev && next build && node scripts/postbuild.js",
-    "build:qa": "SET PHASE=qa && next build && node scripts/postbuild.js",
+    "build:dev": "cross-env PHASE=dev next build && node scripts/postbuild.js",
+    "build:qa": "cross-env PHASE=qa next build && node scripts/postbuild.js",
     "start": "next start",
-    "start:dev": "SET PHASE=dev && next dev -p 4200",
+    "start:dev": "cross-env PHASE=dev next dev -p 4200",
     "lint": "npx ultracite@latest check",
     "format": "npx ultracite@latest fix",
     "db:generate": "drizzle-kit generate",
@@ -116,6 +116,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "@biomejs/biome": "2.2.2",
     "@playwright/test": "^1.51.1",
     "@tailwindcss/postcss": "^4.1.13",

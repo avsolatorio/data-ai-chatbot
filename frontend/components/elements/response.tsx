@@ -36,7 +36,7 @@ function getResultLabel(children: ReactNode): DataLabel | null {
 function ResponseParagraph({
   children,
   ...props
-}: ComponentProps<Components["p"]>) {
+}: ComponentProps<"p">) {
   const label = getResultLabel(children);
   if (!label) {
     return <p {...props}>{children}</p>;
