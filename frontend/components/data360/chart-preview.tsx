@@ -3,8 +3,8 @@
 import type { MouseEvent } from "react";
 import { useCallback, useMemo, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
-import type { UIArtifact } from "./artifact";
-import { FullscreenIcon, LoaderIcon } from "./icons";
+import type { UIArtifact } from "../artifact";
+import { FullscreenIcon, LoaderIcon } from "../icons";
 
 type ChartApiResponse = {
   id: string;

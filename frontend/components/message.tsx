@@ -7,8 +7,8 @@ import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage, StreamingThinkingPart } from "@/lib/types";
 import { isNonRenderableStreamEvent } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
-import { ChartPreview } from "./chart-preview";
 import { useDataStream } from "./data-stream-provider";
+import { ChartPreview } from "./data360/chart-preview";
 import { GetData } from "./data360/get-data";
 import { DATA360_GET_DATA_TOOL } from "@pcn-js/data360";
 import { IngestToolOutput } from "@pcn-js/ui";
@@ -36,7 +36,7 @@ import {
 import {
   getData360SourcesFromParts,
   type Data360SourceEntry,
-} from "@/lib/data360-sources";
+} from "@/lib/data360";
 import { SparklesIcon } from "./icons";
 import { MessageActions } from "./message-actions";
 import { MessageEditor } from "./message-editor";

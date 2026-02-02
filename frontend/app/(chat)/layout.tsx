@@ -3,7 +3,7 @@ import Script from "next/script";
 import { Suspense } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { DataStreamProvider } from "@/components/data-stream-provider";
-import { PcnProviderClient } from "@/components/pcn-provider-client";
+import { PcnProviderClient } from "@/components/data360/pcn-provider-client";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getCurrentUser } from "@/lib/auth-service";
 import type { User } from "@/lib/auth-service-client";
