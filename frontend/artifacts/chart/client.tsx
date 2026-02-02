@@ -64,17 +64,30 @@ function ChartEditor({ content, status }: ChartEditorProps) {
 
     const specWithTheme = applyThemeToSpec(spec, themeConfig);
     const el = containerRef.current;
-    const initialWidth = el.getBoundingClientRect().width;
+    const rect = el.getBoundingClientRect();
+    const initialWidth = rect.width;
+    const getMaxChartHeight = () =>
+      Math.max(
+        1,
+        Math.floor(
+          0.6 * (typeof window !== "undefined" ? window.innerHeight : 600),
+        ),
+      );
 
     let resizeObserver: ResizeObserver | null = null;
     let cancelled = false;
 
     void (async () => {
       const { default: embed } = await import("vega-embed");
+      const initialHeight = Math.min(
+        Math.max(1, rect.height),
+        getMaxChartHeight(),
+      );
       const result = await embed(el, specWithTheme, {
         renderer: "canvas",
         actions: false,
         width: Math.max(1, Math.floor(initialWidth)),
+        height: Math.floor(initialHeight),
       });
       if (cancelled) {
         el.replaceChildren();
@@ -94,7 +107,8 @@ function ChartEditor({ content, status }: ChartEditorProps) {
       const readSizeAndApply = () => {
         if (cancelled || !el.isConnected) return;
         const w = Math.max(1, el.clientWidth);
-        const h = Math.max(1, el.clientHeight);
+        const containerH = Math.max(1, el.clientHeight);
+        const h = Math.min(containerH, getMaxChartHeight());
         const changed =
           Math.abs(w - lastW) >= sizeThreshold ||
           Math.abs(h - lastH) >= sizeThreshold;
