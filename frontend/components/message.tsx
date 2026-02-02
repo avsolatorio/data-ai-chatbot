@@ -21,12 +21,22 @@ import { CodeBlock } from "./elements/code-block";
 import { MessageContent } from "./elements/message";
 import { Response } from "./elements/response";
 import {
+  Source,
+  Sources,
+  SourcesContent,
+  SourcesTrigger,
+} from "./elements/source";
+import {
   Tool,
   ToolContent,
   ToolHeader,
   ToolInput,
   ToolOutput,
 } from "./elements/tool";
+import {
+  getData360SourcesFromParts,
+  type Data360SourceEntry,
+} from "@/lib/data360-sources";
 import { SparklesIcon } from "./icons";
 import { MessageActions } from "./message-actions";
 import { MessageEditor } from "./message-editor";
@@ -721,6 +731,52 @@ const PurePreviewMessage = ({
                     isLoading,
                   });
                 })}
+
+                {/* Data360 sources: show when assistant used Data360 tools */}
+                {message.role === "assistant" && (() => {
+                  const MAX_SOURCE_TITLE_LENGTH = 50;
+                  const allPartsForSources = [
+                    ...finalThinkingParts.map((p) => p.data),
+                    ...regularParts,
+                  ];
+                  const data360Sources =
+                    getData360SourcesFromParts(allPartsForSources);
+                  if (data360Sources.length === 0) {
+                    return null;
+                  }
+                  return (
+                    <Sources className="mt-2">
+                      <SourcesTrigger count={data360Sources.length} />
+                      <SourcesContent>
+                        {data360Sources.map((entry: Data360SourceEntry, i) => {
+                          const truncated =
+                            entry.title.length > MAX_SOURCE_TITLE_LENGTH;
+                          const displayTitle = truncated
+                            ? `${entry.title
+                                .slice(0, MAX_SOURCE_TITLE_LENGTH)
+                                .trim()}...`
+                            : entry.title;
+                          return (
+                            <Source
+                              href={entry.href ?? "#"}
+                              key={`${entry.title}-${i}`}
+                              onClick={
+                                entry.href
+                                  ? undefined
+                                  : (e: React.MouseEvent<HTMLAnchorElement>) =>
+                                      e.preventDefault()
+                              }
+                              title={displayTitle}
+                              titleAttribute={
+                                truncated ? entry.title : undefined
+                              }
+                            />
+                          );
+                        })}
+                      </SourcesContent>
+                    </Sources>
+                  );
+                })()}
               </>
             );
           })()}

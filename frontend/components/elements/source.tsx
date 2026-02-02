@@ -54,14 +54,24 @@ export const SourcesContent = ({
   />
 );
 
-export type SourceProps = ComponentProps<"a">;
+export type SourceProps = ComponentProps<"a"> & {
+  /** Optional hover text (e.g. full name when display title is truncated). */
+  titleAttribute?: string;
+};
 
-export const Source = ({ href, title, children, ...props }: SourceProps) => (
+export const Source = ({
+  href,
+  title,
+  titleAttribute,
+  children,
+  ...props
+}: SourceProps) => (
   <a
     className="flex items-center gap-2"
     href={href}
-    rel="noreferrer"
+    rel="noopener noreferrer"
     target="_blank"
+    title={titleAttribute}
     {...props}
   >
     {children ?? (
