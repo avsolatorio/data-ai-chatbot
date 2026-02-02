@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@pcn-js/core': file:../../pcn/packages/core
-
 importers:
 
   .:
@@ -48,14 +45,14 @@ importers:
         specifier: ^0.200.0
         version: 0.200.0
       '@pcn-js/core':
-        specifier: file:../../pcn/packages/core
-        version: file:../../pcn/packages/core
+        specifier: ^0.1.1
+        version: 0.1.2
       '@pcn-js/data360':
-        specifier: file:../../pcn/packages/data360
-        version: file:../../pcn/packages/data360(@pcn-js/core@file:../../pcn/packages/core)(@pcn-js/ui@file:../../pcn/packages/ui(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
+        specifier: ^0.1.1
+        version: 0.1.2(@pcn-js/core@0.1.2)(@pcn-js/ui@0.1.2(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
       '@pcn-js/ui':
-        specifier: file:../../pcn/packages/ui
-        version: file:../../pcn/packages/ui(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
+        specifier: ^0.1.1
+        version: 0.1.2(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
       '@radix-ui/react-collapsible':
         specifier: ^1.1.12
         version: 1.1.12(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
@@ -1261,18 +1258,18 @@ packages:
   '@panva/hkdf@1.2.1':
     resolution: {integrity: sha512-6oclG6Y3PiDFcoyk8srjLfVKyMfVCKJ27JwNPViuXziFpmdz+MZnZN/aKY0JGXgYuO/VghU0jcOAZgWXZ1Dmrw==}
 
-  '@pcn-js/core@file:../../pcn/packages/core':
-    resolution: {directory: ../../pcn/packages/core, type: directory}
+  '@pcn-js/core@0.1.2':
+    resolution: {integrity: sha512-8yEZsyeloCYOKETFtR9rPCQYbdxxixp5JHJ9gHaQVJ43TxjPPhX9eC+SUfItl8xA+o80QdBj0uIoLSK+cDXZiQ==}
 
-  '@pcn-js/data360@file:../../pcn/packages/data360':
-    resolution: {directory: ../../pcn/packages/data360, type: directory}
+  '@pcn-js/data360@0.1.2':
+    resolution: {integrity: sha512-0Xq2Ef9xDZcv8Ihj0T9FuciC5cmfcNQrhzP2HZRkWknfqu9sGytgZ+6i5pJLdh85P094hYvBX8oZqoHZ4lVFfg==}
     peerDependencies:
-      '@pcn-js/core': file:/Users/avsolatorio/WBG/pcn/packages/core
-      '@pcn-js/ui': '>=0.1.1'
+      '@pcn-js/core': '>=0.1.2'
+      '@pcn-js/ui': '>=0.1.2'
       react: '>=18.0.0'
 
-  '@pcn-js/ui@file:../../pcn/packages/ui':
-    resolution: {directory: ../../pcn/packages/ui, type: directory}
+  '@pcn-js/ui@0.1.2':
+    resolution: {integrity: sha512-l6K+uSrtL04j64+bsNEynBVDIVnQo0frec6N9xiyY2QJcYi5CS4BLO6eOjE2vB0IhZi8hxq8L9ayV/9i/0n1QA==}
     peerDependencies:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
@@ -5612,20 +5609,20 @@ snapshots:
 
   '@panva/hkdf@1.2.1': {}
 
-  '@pcn-js/core@file:../../pcn/packages/core':
+  '@pcn-js/core@0.1.2':
     dependencies:
       cheerio: 1.2.0
       domhandler: 5.0.3
 
-  '@pcn-js/data360@file:../../pcn/packages/data360(@pcn-js/core@file:../../pcn/packages/core)(@pcn-js/ui@file:../../pcn/packages/ui(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)':
+  '@pcn-js/data360@0.1.2(@pcn-js/core@0.1.2)(@pcn-js/ui@0.1.2(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)':
     dependencies:
-      '@pcn-js/core': file:../../pcn/packages/core
-      '@pcn-js/ui': file:../../pcn/packages/ui(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
+      '@pcn-js/core': 0.1.2
+      '@pcn-js/ui': 0.1.2(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
       react: 19.0.0-rc-45804af1-20241021
 
-  '@pcn-js/ui@file:../../pcn/packages/ui(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)':
+  '@pcn-js/ui@0.1.2(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)':
     dependencies:
-      '@pcn-js/core': file:../../pcn/packages/core
+      '@pcn-js/core': 0.1.2
       react: 19.0.0-rc-45804af1-20241021
       react-dom: 19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021)
 

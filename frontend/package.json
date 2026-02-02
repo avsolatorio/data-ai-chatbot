@@ -25,9 +25,9 @@
     "test": "export PLAYWRIGHT=True && pnpm exec playwright test"
   },
   "dependencies": {
-    "@pcn-js/core": "file:../../pcn/packages/core",
-    "@pcn-js/data360": "file:../../pcn/packages/data360",
-    "@pcn-js/ui": "file:../../pcn/packages/ui",
+    "@pcn-js/core": "^0.1.1",
+    "@pcn-js/data360": "^0.1.1",
+    "@pcn-js/ui": "^0.1.1",
     "@ai-sdk/gateway": "^1.0.15",
     "@ai-sdk/provider": "2.0.0",
     "@ai-sdk/react": "2.0.26",
@@ -132,9 +132,6 @@
   },
   "packageManager": "pnpm@9.12.3",
   "pnpm": {
-    "overrides": {
-      "@pcn-js/core": "file:../../pcn/packages/core"
-    },
     "peerDependencyRules": {
       "allowedVersions": {
         "@pcn-js/core": "*",
