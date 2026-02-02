@@ -2,6 +2,7 @@
 
 import { startTransition, useMemo, useOptimistic, useState } from "react";
 import { saveChatModelAsCookie } from "@/app/(chat)/actions";
+import { useAvailableChatModels } from "@/hooks/use-available-chat-models";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,7 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { User } from "@/lib/auth-service-client";
 import { entitlementsByUserType } from "@/lib/ai/entitlements";
-import { chatModels } from "@/lib/ai/models";
 import { cn } from "@/lib/utils";
 import { CheckCircleFillIcon, ChevronDownIcon } from "./icons";
 
@@ -27,10 +27,11 @@ export function ModelSelector({
   const [optimisticModelId, setOptimisticModelId] =
     useOptimistic(selectedModelId);
 
+  const { models: chatModelsFromBackend } = useAvailableChatModels();
   const userType = user.type;
   const { availableChatModelIds } = entitlementsByUserType[userType];
 
-  const availableChatModels = chatModels.filter((chatModel) =>
+  const availableChatModels = chatModelsFromBackend.filter((chatModel) =>
     availableChatModelIds.includes(chatModel.id)
   );
 

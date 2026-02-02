@@ -17,6 +17,9 @@ from app.api.v1 import (
     mcp_tools,
     vote,
 )
+from app.api.v1 import (
+    models as models_router,
+)
 from app.config import settings
 from app.core.redis import close_redis_client
 
@@ -88,6 +91,7 @@ app.include_router(document.router, prefix="/api/document", tags=["document"])
 app.include_router(charts.router, prefix="/api/v1/charts", tags=["charts"])
 app.include_router(files.router, prefix="/api/files", tags=["files"])
 app.include_router(mcp_tools.router, prefix="/api/v1/mcp", tags=["mcp"])
+app.include_router(models_router.router, prefix="/api/models", tags=["models"])
 
 
 @app.get("/health")

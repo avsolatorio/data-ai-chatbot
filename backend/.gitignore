@@ -1,3 +1,6 @@
+.tool-versions
+requirements.txt
+
 data-ai-chatbot/
 # Python
 __pycache__/

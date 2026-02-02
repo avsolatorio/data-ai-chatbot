@@ -19,8 +19,8 @@ import {
 import { toast } from "sonner";
 import { useLocalStorage, useWindowSize } from "usehooks-ts";
 import { saveChatModelAsCookie } from "@/app/(chat)/actions";
+import { useAvailableChatModels } from "@/hooks/use-available-chat-models";
 import { SelectItem } from "@/components/ui/select";
-import { chatModels } from "@/lib/ai/models";
 import { apiFetch } from "@/lib/api-client";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
@@ -469,6 +469,7 @@ function PureModelSelectorCompact({
   onModelChange?: (modelId: string) => void;
 }) {
   const [optimisticModelId, setOptimisticModelId] = useState(selectedModelId);
+  const { models: chatModels } = useAvailableChatModels();
 
   useEffect(() => {
     setOptimisticModelId(selectedModelId);
