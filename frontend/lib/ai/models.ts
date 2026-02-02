@@ -6,16 +6,8 @@ export type ChatModel = {
   description: string;
 };
 
+// Fallback when /api/models is not yet loaded. Names left empty until API responds.
 export const chatModels: ChatModel[] = [
-  {
-    id: "chat-model",
-    name: "GPT-4.1-mini",
-    description: "Advanced multimodal model with vision and text capabilities",
-  },
-  {
-    id: "chat-model-reasoning",
-    name: "GPT-5-mini (with reasoning)",
-    description:
-      "Uses advanced chain-of-thought reasoning for complex problems",
-  },
+  { id: "chat-model", name: "", description: "chat-model" },
+  { id: "chat-model-reasoning", name: "", description: "chat-model-reasoning" },
 ];

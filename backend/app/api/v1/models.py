@@ -3,36 +3,35 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.config import ModelType
+from app.config import ModelType, settings
 
 router = APIRouter()
 
 
 class ChatModelInfo(BaseModel):
-    """Display info for a chat model (id, name, description)."""
+    """Display info for a chat model: ModelType id and configured model name from ModelSettings."""
 
-    id: str
-    name: str
-    description: str
+    id: str  # ModelType value (e.g. "chat-model", "chat-model-reasoning")
+    name: str  # Configured model name from settings (e.g. "gpt-4o-mini", "o1-mini")
+    description: str  # Human-readable label (model type)
 
 
-# Descriptions for chat models (user-facing). Name is aligned with ModelType value.
-# Only CHAT_MODEL and CHAT_MODEL_REASONING are exposed in the model selector.
-CHAT_MODEL_DESCRIPTIONS: dict[ModelType, str] = {
-    ModelType.CHAT_MODEL: "Advanced multimodal model with vision and text capabilities",
-    # ModelType.CHAT_MODEL_REASONING: "Uses advanced chain-of-thought reasoning for complex problems",
-}
+# Only these chat model types are exposed in the model selector.
+EXPOSED_CHAT_MODEL_TYPES: tuple[ModelType, ...] = (
+    ModelType.CHAT_MODEL,
+    ModelType.CHAT_MODEL_REASONING,
+)
 
 
 def get_available_chat_models() -> list[ChatModelInfo]:
-    """Return the list of chat models available in the backend."""
+    """Return chat models from config: ModelType and ModelSettings (configured model name)."""
     return [
         ChatModelInfo(
             id=model_type.value,
-            name=model_type.value,
-            description=CHAT_MODEL_DESCRIPTIONS[model_type],
+            name=getattr(settings.models, model_type.name),
+            description=model_type.value,
         )
-        for model_type in CHAT_MODEL_DESCRIPTIONS
+        for model_type in EXPOSED_CHAT_MODEL_TYPES
     ]
 
 

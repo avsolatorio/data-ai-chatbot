@@ -479,10 +479,15 @@ function PureModelSelectorCompact({
     (model) => model.id === optimisticModelId,
   );
 
+  // Select value must be non-empty (Radix reserves "" for clearing). Use id when name is empty.
+  const selectValue = (model: (typeof chatModels)[number]) => model.name || model.id;
+
   return (
     <PromptInputModelSelect
-      onValueChange={(modelName) => {
-        const model = chatModels.find((m) => m.name === modelName);
+      onValueChange={(value) => {
+        const model = chatModels.find(
+          (m) => m.name === value || m.id === value,
+        );
         if (model) {
           setOptimisticModelId(model.id);
           onModelChange?.(model.id);
@@ -491,7 +496,7 @@ function PureModelSelectorCompact({
           });
         }
       }}
-      value={selectedModel?.name}
+      value={selectedModel ? selectValue(selectedModel) : undefined}
     >
       <Trigger asChild>
         <Button
@@ -501,7 +506,7 @@ function PureModelSelectorCompact({
         >
           <CpuIcon size={16} />
           <span className="hidden font-medium text-xs sm:block">
-            {selectedModel?.name}
+            {selectedModel ? selectValue(selectedModel) : null}
           </span>
           <ChevronDownIcon size={16} />
         </Button>
@@ -512,9 +517,11 @@ function PureModelSelectorCompact({
             <SelectItem
               key={model.id}
               data-testid={`model-selector-item-${model.id}`}
-              value={model.name}
+              value={selectValue(model)}
             >
-              <div className="truncate font-medium text-xs">{model.name}</div>
+              <div className="truncate font-medium text-xs">
+                {model.name || model.id}
+              </div>
               <div className="mt-px truncate text-[10px] text-muted-foreground leading-tight">
                 {model.description}
               </div>
