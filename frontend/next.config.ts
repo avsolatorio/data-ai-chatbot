@@ -4,10 +4,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   cacheComponents: true,
+  transpilePackages: ["@pcn-js/core", "@pcn-js/ui", "@pcn-js/data360"],
   // Avoid embedding absolute build paths in client source maps (standalone output)
   productionBrowserSourceMaps: false,
   // Prevent path segments (e.g. WBG from /Users/.../WBG/...) from becoming folders in .next/standalone.
-  // Run `pnpm build` from the frontend directory so cwd is the project root.
   outputFileTracingRoot: path.resolve(process.cwd()),
   images: {
     remotePatterns: [

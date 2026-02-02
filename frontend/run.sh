@@ -1,1 +1,2 @@
-pnpm dev --port 3001
+#!/usr/bin/env bash
+cd "$(dirname "$0")" && pnpm dev --port 3001
