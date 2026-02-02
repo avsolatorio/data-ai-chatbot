@@ -19,6 +19,7 @@ from app.ai.client import AsyncOpenAIChatClientProtocol
 from app.ai.mcp_tools.data360_mcp import call_mcp_tool
 from app.ai.observability.token_usage import build_data_usage_event
 from app.ai.protocols.stream import (
+    DataPart,
     DoneMarker,
     ErrorPart,
     FinishMessagePart,
@@ -399,6 +400,7 @@ async def stream_text(
             finish_reason = None
             usage_data = None
             tool_calls_state: Dict[int, Dict[str, Any]] = {}
+            stage_retrieving_emitted = False
 
             # Call LiteLLM with async streaming
 
@@ -422,6 +424,8 @@ async def stream_text(
             logger.info("Successfully created stream, type: %s", type(stream))
 
             yield part_to_sse(StartStepPart(), mode=mode, thinking_id=thinking_id)
+            if mode == "thinking":
+                yield DataPart(type="data-stage", data={"stage": "interpreting"}).to_sse()
 
             # Process stream chunks
             logger.info("Starting to iterate over stream chunks...")
@@ -500,6 +504,12 @@ async def stream_text(
                                             and state["name"] is not None
                                             and not state["started"]
                                         ):
+                                            if mode == "thinking" and not stage_retrieving_emitted:
+                                                yield DataPart(
+                                                    type="data-stage",
+                                                    data={"stage": "retrieving"},
+                                                ).to_sse()
+                                                stage_retrieving_emitted = True
                                             # Yield tool-input-start event immediately
                                             yield part_to_sse(
                                                 ToolInputStartPart(
@@ -521,6 +531,15 @@ async def stream_text(
                                                 and state["name"] is not None
                                                 and not state["started"]
                                             ):
+                                                if (
+                                                    mode == "thinking"
+                                                    and not stage_retrieving_emitted
+                                                ):
+                                                    yield DataPart(
+                                                        type="data-stage",
+                                                        data={"stage": "retrieving"},
+                                                    ).to_sse()
+                                                    stage_retrieving_emitted = True
                                                 # Yield tool-input-start event immediately
                                                 yield part_to_sse(
                                                     ToolInputStartPart(
@@ -541,6 +560,15 @@ async def stream_text(
                                                 and state["name"] is not None
                                                 and not state["started"]
                                             ):
+                                                if (
+                                                    mode == "thinking"
+                                                    and not stage_retrieving_emitted
+                                                ):
+                                                    yield DataPart(
+                                                        type="data-stage",
+                                                        data={"stage": "retrieving"},
+                                                    ).to_sse()
+                                                    stage_retrieving_emitted = True
                                                 # Yield tool-input-start event immediately
                                                 yield part_to_sse(
                                                     ToolInputStartPart(
@@ -634,6 +662,12 @@ async def stream_text(
                         continue
 
                     if not state["started"]:
+                        if mode == "thinking" and not stage_retrieving_emitted:
+                            yield DataPart(
+                                type="data-stage",
+                                data={"stage": "retrieving"},
+                            ).to_sse()
+                            stage_retrieving_emitted = True
                         yield part_to_sse(
                             ToolInputStartPart(
                                 toolCallId=tool_call_id,
@@ -820,6 +854,8 @@ async def stream_text(
         # Do not send standalone UsagePart: the AI SDK uiMessageChunkSchema has no "usage" type.
         # Sending it causes schema validation to fail, the stream to throw, and status to stay "error" instead of "ready".
         # Usage is already included in the "finish" event's messageMetadata below.
+        if mode == "thinking":
+            yield DataPart(type="data-stage", data={"stage": "generating"}).to_sse()
         if finish_metadata:
             yield part_to_sse(
                 FinishMessagePart(messageMetadata=finish_metadata),

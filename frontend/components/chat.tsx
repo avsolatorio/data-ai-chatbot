@@ -103,6 +103,7 @@ export function Chat({
   // Extract stable functions/values to avoid infinite loops in useEffect dependencies
   const {
     clear: clearThinkingStream,
+    clearStage: clearThinkingStage,
     streamingParts,
     streamingPartsCount,
   } = dataThinkingStream;
@@ -192,6 +193,20 @@ export function Chat({
         return;
       }
 
+      // Handle data-stage events (processing stage: interpreting / retrieving / generating)
+      if (
+        part.type === "data-stage" &&
+        part.data !== null &&
+        typeof part.data === "object" &&
+        "stage" in part.data &&
+        typeof (part.data as { stage: unknown }).stage === "string"
+      ) {
+        dataThinkingStream.setStreamingStage(
+          (part.data as { stage: string }).stage,
+        );
+        return;
+      }
+
       // Add non-data-thinking events to dataStream for artifact handling
       setDataStream((ds) => (ds ? [...ds, dataPart] : [dataPart]));
 
@@ -241,8 +256,9 @@ export function Chat({
     const prevStatus = prevStatusRef.current;
     prevStatusRef.current = status;
 
-    // When stream ends: status was "streaming" and is no longer, schedule refetch of latest message for saved thinking parts
+    // When stream ends: status was "streaming" and is no longer, clear stage and schedule refetch of latest message for saved thinking parts
     if (prevStatus === "streaming" && status !== "streaming") {
+      clearThinkingStage();
       isWaitingForSavedPartsRef.current = true;
       setIsWaitingForSavedParts(true);
       mutate(unstable_serialize(getChatHistoryPaginationKey));
@@ -332,6 +348,7 @@ export function Chat({
   }, [
     status,
     streamingPartsCount,
+    clearThinkingStage,
     clearThinkingStream,
     id,
     mutate,
@@ -490,6 +507,7 @@ export function Chat({
               selectedModelId={initialChatModel}
               setMessages={setMessages}
               status={status}
+              streamingThinkingStage={dataThinkingStream.streamingStage}
               streamingThinkingParts={
                 isWaitingForSavedParts &&
                 dataThinkingStream.streamingParts.length === 0 &&

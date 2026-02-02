@@ -2,6 +2,7 @@ import type { UseChatHelpers } from "@ai-sdk/react";
 import equal from "fast-deep-equal";
 import { ArrowDownIcon } from "lucide-react";
 import { memo } from "react";
+import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
 import { useMessages } from "@/hooks/use-messages";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
@@ -19,6 +20,7 @@ type MessagesProps = {
   isArtifactVisible: boolean;
   isWaitingForSavedParts?: boolean;
   selectedModelId: string;
+  streamingThinkingStage?: ProcessingStage | null;
   streamingThinkingParts?: Array<{
     type: string;
     id: string;
@@ -36,6 +38,7 @@ function PureMessages({
   isReadonly,
   isWaitingForSavedParts = false,
   selectedModelId: _selectedModelId,
+  streamingThinkingStage = null,
   streamingThinkingParts = [],
 }: MessagesProps) {
   const {
@@ -91,6 +94,9 @@ function PureMessages({
                 }
                 setMessages={setMessages}
                 isWaitingForSavedParts={isWaitingForSavedParts}
+                streamingThinkingStage={
+                  shouldUseStreamingParts ? streamingThinkingStage : null
+                }
                 streamingThinkingParts={
                   shouldUseStreamingParts ? streamingThinkingParts : []
                 }
@@ -151,6 +157,9 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
   if (
     !equal(prevProps.streamingThinkingParts, nextProps.streamingThinkingParts)
   ) {
+    return false;
+  }
+  if (prevProps.streamingThinkingStage !== nextProps.streamingThinkingStage) {
     return false;
   }
 

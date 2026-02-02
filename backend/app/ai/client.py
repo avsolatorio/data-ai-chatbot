@@ -170,7 +170,7 @@ class LiteLLMAsyncChatCompletions:
         self,
         model: str,
         messages: list,
-        stream: bool = False,
+        stream: bool = True,
         temperature: float = 0.7,
         max_tokens: int | None = None,
         max_completion_tokens: int | None = None,
@@ -203,6 +203,7 @@ class LiteLLMAsyncChatCompletions:
             temperature=temperature,
             max_tokens=effective_max_tokens,
             tools=tools,
+            stream_options={"include_usage": True},
             **kwargs,
         )
 

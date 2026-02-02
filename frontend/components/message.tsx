@@ -3,6 +3,7 @@ import type { UseChatHelpers } from "@ai-sdk/react";
 import type { ToolUIPart } from "ai";
 import equal from "fast-deep-equal";
 import { type Dispatch, memo, type SetStateAction, useState } from "react";
+import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage, StreamingThinkingPart } from "@/lib/types";
 import { isNonRenderableStreamEvent } from "@/lib/types";
@@ -518,6 +519,7 @@ const PurePreviewMessage = ({
   isReadonly,
   requiresScrollPadding: _requiresScrollPadding,
   isWaitingForSavedParts = false,
+  streamingThinkingStage = null,
   streamingThinkingParts = [],
 }: {
   chatId: string;
@@ -529,6 +531,7 @@ const PurePreviewMessage = ({
   isReadonly: boolean;
   requiresScrollPadding: boolean;
   isWaitingForSavedParts?: boolean;
+  streamingThinkingStage?: ProcessingStage | null;
   streamingThinkingParts?: Array<{
     type: string;
     id: string;
@@ -698,6 +701,7 @@ const PurePreviewMessage = ({
                   <MessageThinking
                     isLoading={isLoading}
                     isFromSavedParts={!shouldUseStreamingParts}
+                    stage={streamingThinkingStage ?? undefined}
                     renderPart={(
                       nestedPart: ChatMessage["parts"][number],
                       nestedKey: string,
@@ -818,6 +822,9 @@ export const PreviewMessage = memo(
     if (
       !equal(prevProps.streamingThinkingParts, nextProps.streamingThinkingParts)
     ) {
+      return false;
+    }
+    if (prevProps.streamingThinkingStage !== nextProps.streamingThinkingStage) {
       return false;
     }
 

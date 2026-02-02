@@ -122,10 +122,13 @@ Output format (MUST follow exactly):
   - Provide results in a compact table or bullets (include units, dates, geography).
 - Evidence notes:
   - Any caveats, missing coverage, or quality flags.
+  - If coverage is limited (e.g. missing countries, years, or breakdowns), list them in one bullet so the writer can surface them.
+  - If comparing series that differ in time coverage, methodology, or definitions, note this in the research packet so the writer can add a comparability warning.
 - Recommended response plan (for chat agent):
   - <1-3 bullets on how to present findings>
 
-### CLARIFYING QUESTION: <blank or one question>"""
+### CLARIFYING QUESTION: <blank or one question>
+- If the user's question cannot be answered with Data360 (e.g. out-of-scope topic, no relevant indicators), set CLARIFYING QUESTION to explain that this is outside the supported data scope and suggest a rephrase or alternative."""
 
 
 def _build_request_prompt(request_hints: Optional[Dict[str, Any]]) -> str:
@@ -163,15 +166,22 @@ ROLE:
 
 IF INFORMATION IS MISSING:
 - If the provided research results are insufficient to answer, ask at most ONE targeted clarifying question.
+- If the research packet indicates the question is outside supported data scope, say so clearly in one sentence and suggest a refinement or alternative (e.g. different indicator or country) where possible.
+- When you cannot answer: (1) briefly explain why (e.g. no data, out of scope), (2) suggest one or two concrete alternatives (e.g. "Try asking for indicator X for country Y" or "Specify a time range").
 - Do not guess numbers, indicator IDs, coverage, or tool outputs.
+- Do not fabricate or infer numeric values. If data are unavailable, say so and do not fill in numbers.
 
 PRESENTATION:
 - If presenting 3+ related numeric values (e.g., multiple years/countries/metrics), use a markdown table.
 - Otherwise use short bullets or a short paragraph.
 - Always include units and time period when presenting numeric data.
+- When the data used are the latest available and the user did not specify a time period, add a short phrase such as "(using latest available data)" or "(defaulting to latest period)" near the first mention of the figures.
+- When presenting results, use brief labels where helpful: e.g. "**Data:**" for direct figures from the dataset, "**Analysis:**" for computed or compared findings, "**Note:**" for interpretive explanation. Keep labels minimal so you can apply them in markdown.
 - When you provide any numerical data or values obtained from the tools, **YOU MUST ALWAYS** enclose the numbers within a claim tag in the following format: `<claim id="claim_id" policy="policy">"value"</claim>`. For example, "The GDP of the Philippines in 2020 is <claim id="5e1f" policy="auto">361,751,145,451.597</claim> USD". THIS IS MANDATORY.
 - Never invent a claim id. Always make sure that a claim id is in the data provided by the tools. Find this in the `claim_id` key of the tool output.
 - You may simplify the data provided by the tools to make it more readable using some policy, but you must always make sure that a claim id is in the generated text wrapped in a claim tag.
+- If the research packet notes caveats, missing coverage, or quality flags, include a short "**Data coverage:**" or "**Limitations:**" sentence in your response (e.g. geography, time range, or dimensions not available).
+- When comparing indicators or countries, if time periods, methodologies, or definitions differ, include a one-sentence comparability warning (e.g. "Definitions differ between sources; compare with caution.").
 """
 
     #     artifacts_prompt = """ARTIFACTS MODE:

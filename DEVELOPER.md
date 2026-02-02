@@ -274,7 +274,18 @@ vercel-ai-chatbot/
 ```bash
 # Development
 pnpm dev              # Start dev server with Turbo
+pnpm dev:fresh        # Build PCN packages, clear .next cache, then start dev (use after pulling PCN changes)
 
+# PCN packages — see frontend/PCN-SETUP.md for full instructions (run all from frontend/)
+pnpm build:pcn        # Rebuild ../../pcn packages
+pnpm link:pcn         # Symlink local PCN into node_modules
+pnpm unlink:pcn       # Restore published PCN (pnpm install)
+pnpm ensure-pcn       # Reinstall @pcn-js if missing
+pnpm verify-pcn       # Check where @pcn-js packages resolve
+pnpm dev:local-pcn    # Build PCN, link, clear .next, start dev
+```
+
+```bash
 # Building
 pnpm build            # Build for production
 pnpm start            # Start production server

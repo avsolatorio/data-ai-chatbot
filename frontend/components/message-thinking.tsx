@@ -12,12 +12,39 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
 import type { ChatMessage } from "@/lib/types";
 import { isNonRenderableStreamEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Reasoning, ReasoningTrigger } from "./elements/reasoning";
 
 const SCROLL_AT_BOTTOM_THRESHOLD_PX = 24;
+
+function hasToolPart(
+  parts: Array<{ type: string; id: string; data: ChatMessage["parts"][number] }>,
+): boolean {
+  return parts.some((p) => {
+    const d = p.data;
+    if (typeof d !== "object" || d === null) return false;
+    if ("toolCallId" in d && typeof (d as { toolCallId?: unknown }).toolCallId === "string")
+      return true;
+    const t = "type" in d ? (d as { type: unknown }).type : null;
+    return t === "tool-call" || t === "tool-result";
+  });
+}
+
+function getThinkingStage(
+  thinkingParts: Array<{
+    type: string;
+    id: string;
+    data: ChatMessage["parts"][number];
+  }>,
+  isLoading: boolean,
+): ProcessingStage {
+  if (!isLoading) return "Generating answer";
+  if (hasToolPart(thinkingParts)) return "Retrieving data";
+  return "Interpreting your question";
+}
 
 const stepsContentClassName =
   "relative space-y-4 pl-8 pb-2 text-sm [&_*]:!text-muted-foreground [&_*]:!text-sm [&_.text-xs]:!text-xs [&_button]:!text-foreground [&_button]:!text-sm [&_a]:!text-foreground [&_a]:!text-sm [&_[role='button']]:!text-foreground [&_[role='button']]:!text-sm [&_[data-radix-tooltip-content]]:!text-popover-foreground [&_[data-radix-tooltip-content]_*]:!text-popover-foreground";
@@ -123,6 +150,7 @@ function ThinkingStepsBody({
 type MessageThinkingProps = {
   isLoading: boolean;
   isFromSavedParts?: boolean;
+  stage?: ProcessingStage;
   thinkingParts: Array<{
     type: string;
     id: string;
@@ -137,6 +165,7 @@ type MessageThinkingProps = {
 export function MessageThinking({
   isLoading,
   isFromSavedParts = false,
+  stage: stageProp,
   thinkingParts,
   renderPart,
 }: MessageThinkingProps) {
@@ -192,6 +221,9 @@ export function MessageThinking({
     (p) => !isNonRenderableStreamEvent(p.data),
   );
 
+  const processingStage =
+    stageProp ?? getThinkingStage(thinkingParts, isLoading);
+
   return (
     <div className="ml-0 md:ml-0 mb-5" data-testid="message-thinking-wrapper">
       <Reasoning
@@ -201,6 +233,15 @@ export function MessageThinking({
       >
         <div className="flex w-full items-center gap-2">
           <ReasoningTrigger />
+          {isLoading && (
+            <span
+              className="text-muted-foreground text-xs"
+              aria-live="polite"
+              data-stage={processingStage}
+            >
+              {processingStage}
+            </span>
+          )}
           <Sheet onOpenChange={setSheetOpen} open={sheetOpen}>
             <SheetTrigger asChild>
               <Button

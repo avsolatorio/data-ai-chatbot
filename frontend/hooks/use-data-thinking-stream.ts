@@ -7,6 +7,18 @@ import type {
   StreamingThinkingPart,
 } from "@/lib/types";
 
+/** Processing stage labels; must match backend data-stage values after mapping. */
+export type ProcessingStage =
+  | "Interpreting your question"
+  | "Retrieving data"
+  | "Generating answer";
+
+const DATA_STAGE_TO_LABEL: Record<string, ProcessingStage> = {
+  interpreting: "Interpreting your question",
+  retrieving: "Retrieving data",
+  generating: "Generating answer",
+};
+
 /**
  * Hook to accumulate and manage streaming data-thinking events.
  * Similar to how useChat handles text-delta events, but for data-thinking parts.
@@ -19,6 +31,7 @@ export function useDataThinkingStream() {
   const [streamingParts, setStreamingParts] = useState<
     Map<string, DataThinkingPart>
   >(new Map());
+  const [streamingStage, setStreamingStageState] = useState<ProcessingStage | null>(null);
 
   /**
    * Extract the unique identifier for a part from the inner data.
@@ -276,11 +289,27 @@ export function useDataThinkingStream() {
   );
 
   /**
-   * Clear all streaming parts.
+   * Handle data-stage event from the stream (processing stage label).
+   */
+  const setStreamingStage = useCallback((stage: string) => {
+    const label = DATA_STAGE_TO_LABEL[stage];
+    if (label) setStreamingStageState(label);
+  }, []);
+
+  /**
+   * Clear only the stage (e.g. when stream ends so the label does not persist).
+   */
+  const clearStage = useCallback(() => {
+    setStreamingStageState(null);
+  }, []);
+
+  /**
+   * Clear all streaming parts and stage.
    * Call this when a message finishes streaming and saved parts are available.
    */
   const clear = useCallback(() => {
     setStreamingParts(new Map());
+    setStreamingStageState(null);
   }, []);
 
   // Memoize the array to ensure reactivity while avoiding unnecessary re-renders
@@ -291,6 +320,9 @@ export function useDataThinkingStream() {
   return {
     handleDataThinkingEvent,
     streamingParts: streamingPartsArray,
+    streamingStage,
+    setStreamingStage,
+    clearStage,
     clear,
     streamingPartsCount: streamingParts.size,
   };
