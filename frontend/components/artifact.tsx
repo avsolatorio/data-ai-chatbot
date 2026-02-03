@@ -23,7 +23,7 @@ import { useArtifact } from "@/hooks/use-artifact";
 import { apiFetch } from "@/lib/api-client";
 import type { Document, Vote } from "@/lib/db/schema";
 import type { Attachment, ChatMessage } from "@/lib/types";
-import { fetcher } from "@/lib/utils";
+import { cn, fetcher } from "@/lib/utils";
 import { ArtifactActions } from "./artifact-actions";
 import { ArtifactCloseButton } from "./artifact-close-button";
 import { ArtifactMessages } from "./artifact-messages";
@@ -50,6 +50,10 @@ const RESIZE_HANDLE_WIDTH = 8;
 /** Hit area width for easier grabbing; visual indicator stays 8px */
 const RESIZE_HANDLE_HIT_WIDTH = 16;
 const ARTIFACT_PANEL_WIDTH_KEY = "artifact-chat-panel-width";
+
+/** Tailwind classes so artifact overlay and panels sit below the data header */
+const ARTIFACT_BELOW_HEADER =
+  "top-[var(--header-height,0)] h-[calc(100dvh-var(--header-height,0))]";
 
 export type UIArtifact = {
   title: string;
@@ -353,7 +357,10 @@ function PureArtifact({
       {artifact.isVisible && (
         <motion.div
           animate={{ opacity: 1 }}
-          className="fixed top-0 left-0 z-50 flex h-dvh w-dvw flex-row bg-transparent"
+          className={cn(
+            "fixed left-0 z-50 flex w-dvw flex-row bg-transparent",
+            ARTIFACT_BELOW_HEADER,
+          )}
           data-testid="artifact"
           exit={{ opacity: 0, transition: { delay: 0.4 } }}
           initial={{ opacity: 1 }}
@@ -361,7 +368,7 @@ function PureArtifact({
           {!isMobile && (
             <motion.div
               animate={{ width: windowWidth, right: 0 }}
-              className="fixed h-dvh bg-background"
+              className={cn("fixed bg-background", ARTIFACT_BELOW_HEADER)}
               exit={{
                 width: isSidebarOpen ? windowWidth - 256 : windowWidth,
                 right: 0,
@@ -389,7 +396,7 @@ function PureArtifact({
                       damping: 30,
                     },
               }}
-              className="relative h-dvh shrink-0 bg-muted dark:bg-background"
+              className="relative h-full shrink-0 bg-muted dark:bg-background"
               exit={{
                 opacity: 0,
                 x: 0,
@@ -403,7 +410,7 @@ function PureArtifact({
                 {!isCurrentVersion && (
                   <motion.div
                     animate={{ opacity: 1 }}
-                    className="absolute top-0 left-0 z-50 h-dvh bg-zinc-900/50"
+                    className="absolute top-0 left-0 z-50 h-full bg-zinc-900/50"
                     exit={{ opacity: 0 }}
                     initial={{ opacity: 0 }}
                     style={{ width: clampedChatPanelWidth }}
@@ -447,7 +454,10 @@ function PureArtifact({
           {!isMobile && (
             <button
               aria-label="Resize artifact panel"
-              className="fixed z-[70] flex h-dvh shrink-0 cursor-col-resize items-center justify-center border-0 bg-transparent hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50"
+              className={cn(
+                "fixed z-[70] flex shrink-0 cursor-col-resize items-center justify-center border-0 bg-transparent hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50",
+                ARTIFACT_BELOW_HEADER,
+              )}
               data-testid="artifact-resize-handle"
               onMouseDown={handleResizeStart}
               style={{
@@ -505,7 +515,10 @@ function PureArtifact({
                         },
                   }
             }
-            className="fixed z-40 flex h-dvh flex-col overflow-y-scroll border-zinc-200 bg-background md:border-l dark:border-zinc-700 dark:bg-muted"
+            className={cn(
+              "fixed z-40 flex flex-col overflow-y-scroll border-zinc-200 bg-background md:border-l dark:border-zinc-700 dark:bg-muted",
+              ARTIFACT_BELOW_HEADER,
+            )}
             exit={{
               opacity: 0,
               scale: 0.5,

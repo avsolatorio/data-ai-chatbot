@@ -48,6 +48,13 @@
   /* border radius unit */
   --radius: 0.5rem;
   --sidebar: hsl(0 0% 98%);
+  /* Height of the data header; sidebar and main content start below this. Updated by data-header-script when header loads. */
+  --header-height: 64px;
+}
+
+/* When data header is disabled, sidebar and main content use full height */
+.data-header-disabled {
+  --header-height: 0px;
 }
 
 /* define design tokens (dark mode) */

@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
 import { Figtree, Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import { DataHeaderScript } from "@/components/data-header-script";
 import { DataStreamProvider } from "@/components/data-stream-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TokenLensProvider } from "@/components/tokenlens-provider";
 
+import { cn } from "@/lib/utils";
+
 import "@pcn-js/ui/styles.css";
 import "./globals.css";
 import { appConfig } from "@/lib/config";
+
+const DATA_HEADER_ENABLED =
+  /^(1|true|yes)$/i.test(
+    process.env.NEXT_PUBLIC_DATA_HEADER_ENABLED?.trim() ?? ""
+  );
 
 export const metadata: Metadata = {
   metadataBase: new URL(appConfig.metadata.baseUrl),
@@ -68,7 +76,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      className={`${geist.variable} ${geistMono.variable} ${figtree.variable}`}
+      className={`${geist.variable} ${geistMono.variable} ${figtree.variable} h-dvh overflow-hidden`}
       // `next-themes` injects an extra classname to the body element to avoid
       // visual flicker before hydration. Hence the `suppressHydrationWarning`
       // prop is necessary to avoid the React hydration mismatch warning.
@@ -84,18 +92,33 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          disableTransitionOnChange
-          enableSystem
-        >
-          <Toaster position="top-center" />
-          <DataStreamProvider>
-            <TokenLensProvider>{children}</TokenLensProvider>
-          </DataStreamProvider>
-        </ThemeProvider>
+      <body
+        className={cn(
+          "antialiased flex h-full flex-col overflow-hidden",
+          !DATA_HEADER_ENABLED && "data-header-disabled"
+        )}
+      >
+        {DATA_HEADER_ENABLED && (
+          <div className="data-header-wrapper shrink-0">
+            <header className="data-header" />
+            <DataHeaderScript />
+          </div>
+        )}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            disableTransitionOnChange
+            enableSystem
+          >
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <Toaster position="top-center" />
+              <DataStreamProvider>
+                <TokenLensProvider>{children}</TokenLensProvider>
+              </DataStreamProvider>
+            </div>
+          </ThemeProvider>
+        </div>
       </body>
     </html>
   );
