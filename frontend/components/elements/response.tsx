@@ -60,11 +60,11 @@ function ResponseParagraph({
 }
 
 /** Streamdown uses react-markdown + rehype-raw; custom `claim` is supported at runtime but not in Components type. */
-const responseComponents: Partial<Components> = {
+const responseComponents = {
   ...streamdownClaimComponents,
   claim: ClaimMarkStreamdown,
   p: ResponseParagraph,
-};
+} as Partial<Components>;
 
 export const Response = memo(
   ({ className, ...props }: ResponseProps) => {
