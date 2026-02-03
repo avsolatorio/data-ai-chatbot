@@ -8,7 +8,7 @@ import {
   memo,
 } from "react";
 import type { Components } from "react-markdown";
-import { streamdownClaimComponents } from "@pcn-js/ui";
+import { ClaimMarkStreamdown, streamdownClaimComponents } from "@pcn-js/ui";
 import { Streamdown } from "streamdown";
 import { cn } from "@/lib/utils";
 
@@ -60,10 +60,11 @@ function ResponseParagraph({
 }
 
 /** Streamdown uses react-markdown + rehype-raw; custom `claim` is supported at runtime but not in Components type. */
-const responseComponents = {
+const responseComponents: Partial<Components> = {
   ...streamdownClaimComponents,
+  claim: ClaimMarkStreamdown,
   p: ResponseParagraph,
-} as Partial<Components>;
+};
 
 export const Response = memo(
   ({ className, ...props }: ResponseProps) => {
