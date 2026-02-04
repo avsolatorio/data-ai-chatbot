@@ -51,10 +51,7 @@ async def create_tool_wrappers(user_id: UUID, db: AsyncSession) -> Dict[str, Dic
         )
 
     return {
-        "getWeather": {
-            "function": get_weather_wrapper,
-            "type": "tool",
-        },
+
         "createDocument": {
             "function": create_document_wrapper,
             "type": "tool",
@@ -76,7 +73,6 @@ async def prepare_tools(
     tool_set = {
         "local": {
             "tool_definitions": [
-                GET_WEATHER_TOOL_DEFINITION,
                 CREATE_DOCUMENT_TOOL_DEFINITION,
                 UPDATE_DOCUMENT_TOOL_DEFINITION,
             ],
@@ -97,7 +93,8 @@ async def prepare_tools(
                 "type": "mcp",
             }
             tool_set["mcp"]["tool_definitions"].append(tool)
-        logger.info("Successfully loaded %d MCP tools", len(mcp_tools))
+        tool_names = [t["function"]["name"] for t in mcp_tools]
+        logger.info("Successfully loaded %d MCP tools: %s", len(mcp_tools), tool_names)
     except Exception as e:
         logger.warning(
             "Failed to load MCP tools (continuing without them): %s",

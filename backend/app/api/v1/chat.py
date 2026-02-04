@@ -14,6 +14,7 @@ from app.ai.client import get_ai_client, get_async_ai_client, get_model_name
 from app.ai.observability.token_usage import DataUsageData
 from app.ai.prompts import get_system_prompt, get_thinking_system_prompt
 from app.ai.protocols.stream import MessageStartPart
+from app.ai.routing import check_intent
 from app.api.deps import get_current_user, get_optional_user
 from app.api.v1.utils.background_tasks import (
     create_save_messages_task,
@@ -215,7 +216,8 @@ async def create_chat(
             }
             for msg in messages_from_db
         ]
-        logger.info("messages_from_db: %s", json.dumps(messages_from_db, indent=4))
+        logger.info("Fetched %d messages from DB for chat_id: %s", len(messages_from_db), request.id)
+        logger.debug("messages_from_db: %s", json.dumps(messages_from_db, indent=4))
 
     else:
         # Create new chat - generate title from user message
@@ -303,8 +305,13 @@ async def create_chat(
     tool_set = await prepare_tools(user_id, db)
     # logger.info("tool_set: %s", json.dumps(tool_set, indent=4))
 
-    # use_thinking = False
-    use_thinking = True
+    # Determine intent (Fast-Path vs Research Path)
+    intent = await check_intent(openai_messages)
+    use_thinking = (intent == "RESEARCH")
+    
+    if not use_thinking:
+        logger.info("Fast-path: Skipping Research Planner for DIRECT intent.")
+    
     # Create stream processor
     thinking_processor = StreamEventProcessor(request.id, mode="thinking")
     chat_processor = StreamEventProcessor(request.id, mode="chat")

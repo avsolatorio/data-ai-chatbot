@@ -148,8 +148,17 @@ async def execute_tool_with_streaming(
             event = tool_sse_events.popleft()
             yield ("event", event)
 
+        # Log tool input
+        logger.info(">>> Tool Call [%s]: %s", tool_name, json.dumps(parsed_arguments))
+
         # Get tool result
         tool_result = await tool_task
+        
+        # Log tool output (truncated for readability)
+        res_str = json.dumps(tool_result)
+        truncated_res = (res_str[:2000] + '...') if len(res_str) > 2000 else res_str
+        logger.info("<<< Tool Output [%s]: %s", tool_name, truncated_res)
+
         yield ("result", tool_result)
 
     except asyncio.CancelledError:
@@ -173,12 +182,14 @@ async def execute_tool_with_streaming(
 
     except Exception as error:
         tbck = traceback.format_exc()
+        error_text = str(error) + "\n" + tbck
+        logger.error("!!! Tool Error [%s]: %s", tool_name, error_text)
         # Tool execution failed
         tool_error = {
             "type": "tool-error",
             "toolCallId": tool_call_id,
             "toolName": tool_name,
-            "errorText": str(error) + "\n" + tbck,
+            "errorText": error_text,
         }
         yield ("error", tool_error)
         raise

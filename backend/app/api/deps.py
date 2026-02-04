@@ -99,6 +99,22 @@ async def get_current_user(
                         logger.debug("Could not check password_changed_at: %s", e)
                         pass
 
+
+            # Verify user actually exists in the database (crucial for dev envs where DB is reset)
+            try:
+                user_uuid = UUID(user_id)
+                user = await get_user_by_id(db, user_uuid)
+                if not user:
+                    logger.warning(
+                        "Token valid but user not found in DB (DB reset?): user_id=%s", user_id
+                    )
+                    payload = None  # Invalidate token
+            except Exception as e:
+                logger.error("Error verifying user existence: %s", e)
+                # Fail safe? Or continue?
+                # safer to invalidate if we can't check
+                pass
+
             if payload is not None:
                 return {"id": user_id, "type": payload.get("type", "regular")}
         # Token expired or invalid - fall through to guest session check
