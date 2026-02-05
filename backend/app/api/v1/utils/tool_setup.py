@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.mcp_tools.data360_mcp import get_mcp_tools
 from app.ai.tools import (
     CREATE_DOCUMENT_TOOL_DEFINITION,
-    GET_WEATHER_TOOL_DEFINITION,
     UPDATE_DOCUMENT_TOOL_DEFINITION,
     create_document_tool,
     get_weather,
@@ -51,7 +50,6 @@ async def create_tool_wrappers(user_id: UUID, db: AsyncSession) -> Dict[str, Dic
         )
 
     return {
-
         "createDocument": {
             "function": create_document_wrapper,
             "type": "tool",

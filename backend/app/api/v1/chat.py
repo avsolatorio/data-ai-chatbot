@@ -216,7 +216,9 @@ async def create_chat(
             }
             for msg in messages_from_db
         ]
-        logger.info("Fetched %d messages from DB for chat_id: %s", len(messages_from_db), request.id)
+        logger.info(
+            "Fetched %d messages from DB for chat_id: %s", len(messages_from_db), request.id
+        )
         logger.debug("messages_from_db: %s", json.dumps(messages_from_db, indent=4))
 
     else:
@@ -307,11 +309,11 @@ async def create_chat(
 
     # Determine intent (Fast-Path vs Research Path)
     intent = await check_intent(openai_messages)
-    use_thinking = (intent == "RESEARCH")
-    
+    use_thinking = intent == "RESEARCH"
+
     if not use_thinking:
         logger.info("Fast-path: Skipping Research Planner for DIRECT intent.")
-    
+
     # Create stream processor
     thinking_processor = StreamEventProcessor(request.id, mode="thinking")
     chat_processor = StreamEventProcessor(request.id, mode="chat")

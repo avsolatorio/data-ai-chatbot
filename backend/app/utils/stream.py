@@ -153,10 +153,10 @@ async def execute_tool_with_streaming(
 
         # Get tool result
         tool_result = await tool_task
-        
+
         # Log tool output (truncated for readability)
         res_str = json.dumps(tool_result)
-        truncated_res = (res_str[:2000] + '...') if len(res_str) > 2000 else res_str
+        truncated_res = (res_str[:2000] + "...") if len(res_str) > 2000 else res_str
         logger.info("<<< Tool Output [%s]: %s", tool_name, truncated_res)
 
         yield ("result", tool_result)

@@ -99,7 +99,6 @@ async def get_current_user(
                         logger.debug("Could not check password_changed_at: %s", e)
                         pass
 
-
             # Verify user actually exists in the database (crucial for dev envs where DB is reset)
             try:
                 user_uuid = UUID(user_id)

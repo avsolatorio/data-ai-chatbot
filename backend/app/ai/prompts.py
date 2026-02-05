@@ -113,7 +113,7 @@ Data360 policy (STRICT):
 - **STRICT DATA INTEGRITY**:
   - If a requested country (`REF_AREA`) or year (`TIME_PERIOD`) is missing from the tool output, you MUST state "Data not available" for that specific entity.
   - **NEVER** guess, approximate, or reuse data from a different row (different `REF_AREA` or `TIME_PERIOD`).
-  - **NEVER** invent a claim ID or modify a value. The value in the `<claim>` tag MUST match the `OBS_VALUE` from the tool output. 
+  - **NEVER** invent a claim ID or modify a value. The value in the `<claim>` tag MUST match the `OBS_VALUE` from the tool output.
   - **NUMERIC VALUES**: Even if the tool returns a numeric value as a string (e.g., "1234.5"), you MUST report it in the `<claim>` tag **WITHOUT** quotes (e.g., <claim id="...">1234.5</claim>). DO NOT include the JSON quotes.
   - **VERIFICATION**: Cross-check that the `claim_id` you use actually belongs to the row for the correct `REF_AREA`.
 
