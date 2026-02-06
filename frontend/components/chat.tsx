@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { IngestSessionData360 } from "@pcn-js/data360";
 import { DefaultChatTransport } from "ai";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
 import { ChatHeader } from "@/components/chat-header";
@@ -39,7 +39,10 @@ import { Artifact } from "./artifact";
 import { useDataStream } from "./data-stream-provider";
 import { Greeting } from "./greeting";
 import { Messages } from "./messages";
-import { MultimodalInput } from "./multimodal-input";
+import {
+  MultimodalInput,
+  type MultimodalInputHandle,
+} from "./multimodal-input";
 import { PcnManagerDebug } from "./pcn-manager-debug";
 import { getChatHistoryPaginationKey } from "./sidebar-history";
 import { toast } from "./toast";
@@ -432,6 +435,14 @@ export function Chat({
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
+  const inputFocusRef = useRef<MultimodalInputHandle | null>(null);
+
+  const onFollowUpPopulateInput = useCallback((text: string) => {
+    setInput(text);
+    setTimeout(() => {
+      inputFocusRef.current?.focus();
+    }, 0);
+  }, []);
 
   useAutoResume({
     autoResume,
@@ -444,6 +455,7 @@ export function Chat({
   const homeConfig = useHomeConfig();
   const inputComponent = !isReadonly ? (
     <MultimodalInput
+      ref={inputFocusRef}
       attachments={attachments}
       chatId={id}
       input={input}
@@ -497,12 +509,16 @@ export function Chat({
           <>
             <Messages
               chatId={id}
+              followUpSuggestionsPopulateInput={
+                homeConfig.followUpSuggestionsPopulateInput
+              }
               isArtifactVisible={isArtifactVisible}
               isReadonly={isReadonly}
               isWaitingForSavedParts={
                 isWaitingForSavedParts || isWaitingForSavedPartsRef.current
               }
               messages={messages}
+              onFollowUpPopulateInput={onFollowUpPopulateInput}
               regenerate={regenerate}
               selectedModelId={initialChatModel}
               sendMessage={sendMessage}

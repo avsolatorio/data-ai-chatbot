@@ -524,6 +524,8 @@ const PurePreviewMessage = ({
   isWaitingForSavedParts = false,
   streamingThinkingStage = null,
   streamingThinkingParts = [],
+  followUpSuggestionsPopulateInput = true,
+  onFollowUpPopulateInput,
 }: {
   chatId: string;
   message: ChatMessage;
@@ -541,6 +543,8 @@ const PurePreviewMessage = ({
     id: string;
     data: ChatMessage["parts"][number];
   }>;
+  followUpSuggestionsPopulateInput?: boolean;
+  onFollowUpPopulateInput?: (text: string) => void;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
 
@@ -792,11 +796,12 @@ const PurePreviewMessage = ({
                   );
                 })()}
 
-                {/* Suggested follow-ups: parse from assistant text and render as clickable chips */}
+                {/* Suggested follow-ups: parse from assistant text and render as clickable chips — only after response is complete to avoid distraction during streaming */}
                 {message.role === "assistant" &&
                   followUps.length > 0 &&
                   sendMessage &&
-                  !isReadonly && (
+                  !isReadonly &&
+                  !isLoading && (
                     <div
                       className="mt-2 flex flex-wrap gap-2"
                       data-testid="follow-up-suggestions"
@@ -811,10 +816,17 @@ const PurePreviewMessage = ({
                               "",
                               `/chat/${chatId}`,
                             );
-                            sendMessage({
-                              role: "user",
-                              parts: [{ type: "text", text: suggestion }],
-                            });
+                            if (
+                              followUpSuggestionsPopulateInput &&
+                              onFollowUpPopulateInput
+                            ) {
+                              onFollowUpPopulateInput(suggestion);
+                            } else if (sendMessage) {
+                              sendMessage({
+                                role: "user",
+                                parts: [{ type: "text", text: suggestion }],
+                              });
+                            }
                           }}
                           suggestion={suggestion}
                         >
@@ -872,8 +884,17 @@ export const PreviewMessage = memo(
     if (prevProps.sendMessage !== nextProps.sendMessage) {
       return false;
     }
+    if (
+      prevProps.followUpSuggestionsPopulateInput !==
+      nextProps.followUpSuggestionsPopulateInput
+    ) {
+      return false;
+    }
+    if (prevProps.onFollowUpPopulateInput !== nextProps.onFollowUpPopulateInput) {
+      return false;
+    }
 
-    return false;
+    return true;
   },
 );
 

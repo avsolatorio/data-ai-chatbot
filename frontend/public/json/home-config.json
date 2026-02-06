@@ -8,5 +8,6 @@
     "What are the trends in employment in Southeast Asia?",
     "How has poverty changed over time in low-income countries?",
     "How do development indicators vary across regions?"
-  ]
+  ],
+  "followUpSuggestionsPopulateInput": true
 }

@@ -7,11 +7,13 @@ import equal from "fast-deep-equal";
 import {
   type ChangeEvent,
   type Dispatch,
+  forwardRef,
   memo,
   type SetStateAction,
   startTransition,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -47,44 +49,62 @@ import { SuggestedActions } from "./suggested-actions";
 import { Button } from "./ui/button";
 import type { VisibilityType } from "./visibility-selector";
 
-function PureMultimodalInput({
-  chatId,
-  input,
-  setInput,
-  status,
-  stop,
-  attachments,
-  setAttachments,
-  messages,
-  setMessages,
-  sendMessage,
-  className,
-  selectedVisibilityType,
-  selectedModelId,
-  onModelChange,
-  usage,
-  suggestions: suggestionsProp,
-}: {
-  chatId: string;
-  input: string;
-  setInput: Dispatch<SetStateAction<string>>;
-  status: UseChatHelpers<ChatMessage>["status"];
-  stop: () => void;
-  attachments: Attachment[];
-  setAttachments: Dispatch<SetStateAction<Attachment[]>>;
-  messages: UIMessage[];
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-  sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
-  className?: string;
-  selectedVisibilityType: VisibilityType;
-  selectedModelId: string;
-  onModelChange?: (modelId: string) => void;
-  usage?: AppUsage;
-  suggestions?: string[];
-}) {
+export type MultimodalInputHandle = { focus: () => void };
+
+const PureMultimodalInput = forwardRef<
+  MultimodalInputHandle,
+  {
+    chatId: string;
+    input: string;
+    setInput: Dispatch<SetStateAction<string>>;
+    status: UseChatHelpers<ChatMessage>["status"];
+    stop: () => void;
+    attachments: Attachment[];
+    setAttachments: Dispatch<SetStateAction<Attachment[]>>;
+    messages: UIMessage[];
+    setMessages: UseChatHelpers<ChatMessage>["setMessages"];
+    sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
+    className?: string;
+    selectedVisibilityType: VisibilityType;
+    selectedModelId: string;
+    onModelChange?: (modelId: string) => void;
+    usage?: AppUsage;
+    suggestions?: string[];
+  }
+>(function PureMultimodalInput(
+  {
+    chatId,
+    input,
+    setInput,
+    status,
+    stop,
+    attachments,
+    setAttachments,
+    messages,
+    setMessages,
+    sendMessage,
+    className,
+    selectedVisibilityType,
+    selectedModelId,
+    onModelChange,
+    usage,
+    suggestions: suggestionsProp,
+  },
+  ref,
+) {
   const suggestions = suggestionsProp ?? [];
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus() {
+        textareaRef.current?.focus();
+      },
+    }),
+    [],
+  );
 
   const adjustHeight = useCallback(() => {
     if (textareaRef.current) {
@@ -404,7 +424,7 @@ function PureMultimodalInput({
       )}
     </div>
   );
-}
+});
 
 export const MultimodalInput = memo(
   PureMultimodalInput,

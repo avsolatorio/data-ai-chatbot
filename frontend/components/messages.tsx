@@ -11,9 +11,11 @@ import { PreviewMessage, ThinkingMessage } from "./message";
 
 type MessagesProps = {
   chatId: string;
+  followUpSuggestionsPopulateInput: boolean;
   status: UseChatHelpers<ChatMessage>["status"];
   votes: Vote[] | undefined;
   messages: ChatMessage[];
+  onFollowUpPopulateInput?: (text: string) => void;
   sendMessage?: UseChatHelpers<ChatMessage>["sendMessage"];
   setMessages: UseChatHelpers<ChatMessage>["setMessages"];
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
@@ -31,9 +33,11 @@ type MessagesProps = {
 
 function PureMessages({
   chatId,
+  followUpSuggestionsPopulateInput,
   status,
   votes,
   messages,
+  onFollowUpPopulateInput,
   sendMessage,
   setMessages,
   regenerate,
@@ -86,10 +90,14 @@ function PureMessages({
             return (
               <PreviewMessage
                 chatId={chatId}
+                followUpSuggestionsPopulateInput={
+                  followUpSuggestionsPopulateInput
+                }
                 isLoading={isLoading}
                 isReadonly={isReadonly}
                 key={message.id}
                 message={message}
+                onFollowUpPopulateInput={onFollowUpPopulateInput}
                 regenerate={regenerate}
                 sendMessage={sendMessage}
                 requiresScrollPadding={
@@ -166,6 +174,15 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
     return false;
   }
   if (prevProps.sendMessage !== nextProps.sendMessage) {
+    return false;
+  }
+  if (
+    prevProps.followUpSuggestionsPopulateInput !==
+    nextProps.followUpSuggestionsPopulateInput
+  ) {
+    return false;
+  }
+  if (prevProps.onFollowUpPopulateInput !== nextProps.onFollowUpPopulateInput) {
     return false;
   }
 

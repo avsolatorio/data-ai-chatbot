@@ -8,6 +8,8 @@ export type HomeConfig = {
     subtitle: string;
   };
   suggestions: string[];
+  /** When true (default), clicking a follow-up suggestion fills the input for editing; when false, it submits immediately. */
+  followUpSuggestionsPopulateInput: boolean;
 };
 
 const DEFAULT_CONFIG: HomeConfig = {
@@ -22,6 +24,7 @@ const DEFAULT_CONFIG: HomeConfig = {
     "What are the main takeaways?",
     "Suggest next steps or recommendations",
   ],
+  followUpSuggestionsPopulateInput: true,
 };
 
 export function useHomeConfig(): HomeConfig {
@@ -66,11 +69,22 @@ function parseHomeConfig(data: unknown): HomeConfig {
   const obj = data as Record<string, unknown>;
   const greeting = parseGreeting(obj.greeting);
   const suggestions = parseSuggestions(obj.suggestions);
+  const followUpSuggestionsPopulateInput = parseFollowUpSuggestionsPopulateInput(
+    obj.followUpSuggestionsPopulateInput,
+  );
 
   return {
     greeting,
     suggestions: suggestions.length > 0 ? suggestions : DEFAULT_CONFIG.suggestions,
+    followUpSuggestionsPopulateInput,
   };
+}
+
+function parseFollowUpSuggestionsPopulateInput(value: unknown): boolean {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  return DEFAULT_CONFIG.followUpSuggestionsPopulateInput;
 }
 
 function parseGreeting(value: unknown): HomeConfig["greeting"] {
