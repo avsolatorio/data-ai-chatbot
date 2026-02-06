@@ -123,6 +123,10 @@ function PureArtifact({
   const [chatPanelWidth, setChatPanelWidth] = useState(
     DEFAULT_CHAT_PANEL_WIDTH,
   );
+  const [quotedText, setQuotedText] = useState<string | null>(null);
+  const [quotedSourceMessageId, setQuotedSourceMessageId] = useState<
+    string | null
+  >(null);
   const [isResizing, setIsResizing] = useState(false);
   const lastWidthRef = useRef(chatPanelWidth);
 
@@ -437,10 +441,18 @@ function PureArtifact({
                     className="bg-background dark:bg-muted"
                     input={input}
                     messages={messages}
+                    onAskAboutClear={() => {
+                      setQuotedText(null);
+                      setQuotedSourceMessageId(null);
+                    }}
+                    quotedSourceMessageId={quotedSourceMessageId}
+                    quotedText={quotedText}
                     selectedModelId={selectedModelId}
                     selectedVisibilityType={selectedVisibilityType}
                     sendMessage={sendMessage}
                     setAttachments={setAttachments}
+                    setQuotedSourceMessageId={setQuotedSourceMessageId}
+                    setQuotedText={setQuotedText}
                     setInput={setInput}
                     setMessages={setMessages}
                     status={status}
