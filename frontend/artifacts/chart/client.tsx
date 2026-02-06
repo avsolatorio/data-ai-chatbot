@@ -3,7 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Artifact } from "@/components/create-artifact";
 
-const VEGA_STYLE_GUIDE_URL = "/json/vega-style-guide-them.json";
+/** Default Vega theme URL (World Bank style guide). Override via NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL in .env. */
+const DEFAULT_VEGA_THEME_URL =
+  "https://worldbank.github.io/data-visualization-style-guide/vega/wb-vega-theme.json";
+
+function getVegaThemeUrl(): string {
+  const url = process.env.NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL?.trim();
+  return url ?? DEFAULT_VEGA_THEME_URL;
+}
 
 type ChartEditorProps = {
   content: string;
@@ -37,7 +44,8 @@ function ChartEditor({ content, status }: ChartEditorProps) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(VEGA_STYLE_GUIDE_URL)
+    const themeUrl = getVegaThemeUrl();
+    fetch(themeUrl)
       .then((res) => res.json())
       .then((data: Record<string, unknown>) => {
         if (!cancelled) setThemeConfig(data);
