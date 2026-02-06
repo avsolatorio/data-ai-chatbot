@@ -436,6 +436,9 @@ export function Chat({
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [quotedText, setQuotedText] = useState<string | null>(null);
+  const [quotedSourceMessageId, setQuotedSourceMessageId] = useState<
+    string | null
+  >(null);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
   const inputFocusRef = useRef<MultimodalInputHandle | null>(null);
 
@@ -446,13 +449,17 @@ export function Chat({
     }, 0);
   }, []);
 
-  const onAskAboutSelection = useCallback((selectedText: string) => {
-    setQuotedText(selectedText);
-    setInput("");
-    setTimeout(() => {
-      inputFocusRef.current?.focus();
-    }, 0);
-  }, []);
+  const onAskAboutSelection = useCallback(
+    (selectedText: string, sourceMessageId?: string | null) => {
+      setQuotedText(selectedText);
+      setQuotedSourceMessageId(sourceMessageId ?? null);
+      setInput("");
+      setTimeout(() => {
+        inputFocusRef.current?.focus();
+      }, 0);
+    },
+    [],
+  );
 
   useAutoResume({
     autoResume,
@@ -470,8 +477,12 @@ export function Chat({
       chatId={id}
       input={input}
       messages={messages}
-      onAskAboutClear={() => setQuotedText(null)}
+      onAskAboutClear={() => {
+        setQuotedText(null);
+        setQuotedSourceMessageId(null);
+      }}
       onModelChange={setCurrentModelId}
+      quotedSourceMessageId={quotedSourceMessageId}
       quotedText={quotedText}
       selectedModelId={currentModelId}
       selectedVisibilityType={visibilityType}
@@ -479,6 +490,7 @@ export function Chat({
       setAttachments={setAttachments}
       setInput={setInput}
       setMessages={setMessages}
+      setQuotedSourceMessageId={setQuotedSourceMessageId}
       setQuotedText={setQuotedText}
       status={status}
       stop={stop}

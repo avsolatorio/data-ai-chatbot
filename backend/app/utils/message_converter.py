@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Any, Dict, List
 from urllib.parse import urljoin, urlparse
 
@@ -9,6 +10,14 @@ from app.config import settings
 from app.utils.file_handler import extract_file_id_from_url, get_file_base64
 
 logger = logging.getLogger(__name__)
+
+# Strip [ref:messageId] from "Ask about this" messages so the model doesn't see it.
+# Stored messages keep the ref so the frontend can scroll to/highlight the source.
+REF_STRIP_PATTERN = re.compile(r"\n\n\[ref:[^\]]+\]\n\n")
+
+
+def strip_ref_from_regarding_text(text: str) -> str:
+    return REF_STRIP_PATTERN.sub("\n\n", text)
 
 
 async def convert_messages_to_openai_format(
@@ -29,9 +38,10 @@ async def convert_messages_to_openai_format(
             content = []
             for part in parts:
                 if part.get("type") == "text":
-                    content.append({"type": "text", "text": part.get("text", "")})
+                    raw_text = part.get("text", "")
+                    text_for_model = strip_ref_from_regarding_text(raw_text)
+                    content.append({"type": "text", "text": text_for_model})
                 elif part.get("type") == "file":
-                    # Handle files (same as before)
                     file_url = part.get("url", "")
                     file_name = part.get("name", "file")
                     media_type = part.get("mediaType") or part.get(

@@ -67,7 +67,9 @@ const PureMultimodalInput = forwardRef<
     sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
     className?: string;
     quotedText: string | null;
+    quotedSourceMessageId: string | null;
     setQuotedText: Dispatch<SetStateAction<string | null>>;
+    setQuotedSourceMessageId: Dispatch<SetStateAction<string | null>>;
     onAskAboutClear?: () => void;
     selectedVisibilityType: VisibilityType;
     selectedModelId: string;
@@ -89,7 +91,9 @@ const PureMultimodalInput = forwardRef<
     sendMessage,
     className,
     quotedText,
+    quotedSourceMessageId,
     setQuotedText,
+    setQuotedSourceMessageId,
     onAskAboutClear,
     selectedVisibilityType,
     selectedModelId,
@@ -165,7 +169,9 @@ const PureMultimodalInput = forwardRef<
 
     const hasQuoted = quotedText != null && quotedText.trim().length > 0;
     const messageText = hasQuoted
-      ? `Regarding: "${quotedText.trim()}"\n\n${input}`
+      ? quotedSourceMessageId
+        ? `Regarding: "${quotedText.trim()}"\n\n[ref:${quotedSourceMessageId}]\n\n${input}`
+        : `Regarding: "${quotedText.trim()}"\n\n${input}`
       : input;
 
     sendMessage({
@@ -186,6 +192,7 @@ const PureMultimodalInput = forwardRef<
 
     setAttachments([]);
     setQuotedText(null);
+    setQuotedSourceMessageId(null);
     setLocalStorageInput("");
     resetHeight();
     setInput("");
@@ -196,8 +203,10 @@ const PureMultimodalInput = forwardRef<
   }, [
     input,
     quotedText,
+    quotedSourceMessageId,
     setInput,
     setQuotedText,
+    setQuotedSourceMessageId,
     attachments,
     sendMessage,
     setAttachments,
@@ -462,6 +471,9 @@ export const MultimodalInput = memo(
       return false;
     }
     if (prevProps.quotedText !== nextProps.quotedText) {
+      return false;
+    }
+    if (prevProps.quotedSourceMessageId !== nextProps.quotedSourceMessageId) {
       return false;
     }
     if (!equal(prevProps.attachments, nextProps.attachments)) {

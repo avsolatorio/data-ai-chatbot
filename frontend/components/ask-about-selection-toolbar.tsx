@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const SELECTION_CONTEXT_ATTR = "data-ask-about-context";
+const MESSAGE_ID_ATTR = "data-message-id";
 
 type SelectionState = {
   text: string;
   rect: DOMRect;
+  sourceMessageId: string | null;
 } | null;
 
 function getSelectionInContext(): SelectionState {
@@ -33,15 +35,20 @@ function getSelectionInContext(): SelectionState {
   if (!contextEl) {
     return null;
   }
+  const messageEl = contextEl.closest(`[${MESSAGE_ID_ATTR}]`);
+  const sourceMessageId =
+    messageEl instanceof Element
+      ? messageEl.getAttribute(MESSAGE_ID_ATTR)
+      : null;
   const rect = range.getBoundingClientRect();
   if (rect.width === 0 && rect.height === 0) {
     return null;
   }
-  return { text, rect };
+  return { text, rect, sourceMessageId };
 }
 
 export type AskAboutSelectionToolbarProps = {
-  onAskAbout: (selectedText: string) => void;
+  onAskAbout: (selectedText: string, sourceMessageId?: string | null) => void;
   disabled?: boolean;
   className?: string;
 };
@@ -57,12 +64,16 @@ export function AskAboutSelectionToolbar({
   // selectionchange has already cleared the selection and set state to null.
   const lastSelectedTextRef = useRef<string | null>(null);
 
+  const lastSourceMessageIdRef = useRef<string | null>(null);
+
   const updateSelection = useCallback(() => {
     const next = getSelectionInContext();
     if (next) {
       lastSelectedTextRef.current = next.text;
+      lastSourceMessageIdRef.current = next.sourceMessageId ?? null;
     } else {
       lastSelectedTextRef.current = null;
+      lastSourceMessageIdRef.current = null;
     }
     setState((prev) => {
       if (!next) return null;
@@ -76,6 +87,7 @@ export function AskAboutSelectionToolbar({
   const clearSelection = useCallback(() => {
     document.getSelection()?.removeAllRanges();
     lastSelectedTextRef.current = null;
+    lastSourceMessageIdRef.current = null;
     setState(null);
   }, []);
 
@@ -99,10 +111,12 @@ export function AskAboutSelectionToolbar({
       event?.preventDefault();
       const text = lastSelectedTextRef.current ?? state?.text ?? null;
       if (!text) return;
-      onAskAbout(text);
+      const sourceMessageId =
+        lastSourceMessageIdRef.current ?? state?.sourceMessageId ?? null;
+      onAskAbout(text, sourceMessageId);
       clearSelection();
     },
-    [state?.text, onAskAbout, clearSelection],
+    [state?.text, state?.sourceMessageId, onAskAbout, clearSelection],
   );
 
   const handleKeyDown = useCallback(

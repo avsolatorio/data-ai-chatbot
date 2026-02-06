@@ -14,6 +14,10 @@ export type QuotedContextBlockProps = {
   expand?: boolean;
   /** When true, use light text (e.g. when inside a colored user message bubble). */
   inverted?: boolean;
+  /** When set with onQuoteClick, the block is clickable and scrolls to / highlights the source message. */
+  sourceMessageId?: string | null;
+  /** Called when the quoted block is clicked and sourceMessageId is set. */
+  onQuoteClick?: (sourceMessageId: string) => void;
   "data-testid"?: string;
 };
 
@@ -33,9 +37,16 @@ export function QuotedContextBlock({
   onDismiss,
   expand = false,
   inverted = false,
+  sourceMessageId = null,
+  onQuoteClick,
   "data-testid": dataTestId = "quoted-context",
 }: QuotedContextBlockProps) {
   const textClasses = inverted ? invertedClasses : mutedClasses;
+  const isClickable =
+    sourceMessageId != null &&
+    sourceMessageId.length > 0 &&
+    onQuoteClick != null;
+
   const content = (
     <>
       <span
@@ -82,11 +93,31 @@ export function QuotedContextBlock({
     </>
   );
 
+  const wrapperClassName = cn(
+    "flex items-start gap-2 pl-4 text-left text-sm",
+    isClickable &&
+      "w-full cursor-pointer rounded-md transition-colors hover:bg-muted/60",
+    className,
+  );
+
+  if (isClickable) {
+    return (
+      <button
+        aria-label="Scroll to source message and highlight"
+        className={wrapperClassName}
+        data-testid={dataTestId}
+        type="button"
+        onClick={() => {
+          onQuoteClick?.(sourceMessageId as string);
+        }}
+      >
+        {content}
+      </button>
+    );
+  }
+
   return (
-    <div
-      className={cn("flex items-start gap-2 pl-4 text-sm", className)}
-      data-testid={dataTestId}
-    >
+    <div className={wrapperClassName} data-testid={dataTestId}>
       {content}
     </div>
   );
@@ -94,15 +125,17 @@ export function QuotedContextBlock({
 
 const REGARDING_PREFIX = 'Regarding: "';
 const REGARDING_END = '"\n\n';
+const REF_LINE_REGEX = /^\s*\[ref:([^\]]+)\]\s*\n?\s*/;
 
 /**
  * Parses user message text that was sent via "Ask about this".
- * Format: Regarding: "<quoted>"\n\n<question>
- * Returns { quoted, question } or null if the text doesn't match.
+ * Format: Regarding: "<quoted>"\n\n[ref:messageId]\n\n<question> or without ref.
+ * Returns { quoted, question, sourceMessageId } or null if the text doesn't match.
  */
 export function parseRegardingPrompt(text: string): {
   quoted: string;
   question: string;
+  sourceMessageId: string | null;
 } | null {
   const trimmed = text.trim();
   if (!trimmed.startsWith(REGARDING_PREFIX)) {
@@ -114,6 +147,48 @@ export function parseRegardingPrompt(text: string): {
     return null;
   }
   const quoted = afterPrefix.slice(0, endIdx).trim();
-  const question = afterPrefix.slice(endIdx + REGARDING_END.length).trim();
-  return { quoted, question };
+  const rest = afterPrefix.slice(endIdx + REGARDING_END.length);
+  const refMatch = rest.match(REF_LINE_REGEX);
+  const sourceMessageId = refMatch != null ? refMatch[1] ?? null : null;
+  const question = (refMatch != null ? rest.slice(refMatch[0].length) : rest).trim();
+  return { quoted, question, sourceMessageId };
+}
+
+/** Matches \n\n[ref:messageId]\n\n in the full message text. */
+const REF_STRIP_REGEX = /\n\n\[ref:[^\]]+\]\n\n/;
+
+/**
+ * Strips the [ref:messageId] line from message text so the model doesn't receive it.
+ */
+export function stripRefFromRegardingText(text: string): string {
+  return text.replace(REF_STRIP_REGEX, "\n\n");
+}
+
+const HIGHLIGHT_CLASSES = [
+  "ring-2",
+  "ring-yellow-400/60",
+  "ring-offset-2",
+  "rounded-lg",
+] as const;
+const HIGHLIGHT_DURATION_MS = 2000;
+
+/**
+ * Scrolls to the message with the given id and briefly highlights it.
+ * Call this when the user clicks the quoted block in a user message.
+ */
+export function scrollToAndHighlightMessage(sourceMessageId: string): void {
+  if (typeof document === "undefined") return;
+  const el = document.querySelector(
+    `[data-message-id="${sourceMessageId}"]`,
+  ) as HTMLElement | null;
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  for (const c of HIGHLIGHT_CLASSES) {
+    el.classList.add(c);
+  }
+  window.setTimeout(() => {
+    for (const c of HIGHLIGHT_CLASSES) {
+      el.classList.remove(c);
+    }
+  }, HIGHLIGHT_DURATION_MS);
 }

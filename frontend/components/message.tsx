@@ -45,6 +45,7 @@ import { MessageActions } from "./message-actions";
 import {
   parseRegardingPrompt,
   QuotedContextBlock,
+  scrollToAndHighlightMessage,
 } from "./quoted-context-block";
 import { MessageEditor } from "./message-editor";
 import { MessageReasoning } from "./message-reasoning";
@@ -105,7 +106,9 @@ function renderMessagePart(
           {isUserWithRegarding && (
             <QuotedContextBlock
               expand
+              onQuoteClick={scrollToAndHighlightMessage}
               quotedText={isUserWithRegarding.quoted}
+              sourceMessageId={isUserWithRegarding.sourceMessageId}
             />
           )}
           {(isUserWithRegarding
@@ -597,6 +600,7 @@ const PurePreviewMessage = ({
   return (
     <div
       className="group/message fade-in w-full animate-in duration-200"
+      data-message-id={message.id}
       data-role={message.role}
       data-testid={`message-${message.role}`}
     >
