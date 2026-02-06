@@ -24,6 +24,8 @@ import {
 import { apiFetch } from "@/lib/api-client";
 import type { User } from "@/lib/auth-service-client";
 import { appConfig } from "@/lib/config";
+import { ApplicationStatusBanner } from "@/components/application-status-banner";
+import { FeedbackDialog } from "@/components/feedback-dialog";
 import { useAutoRefreshToken } from "@/hooks/use-auto-refresh-token";
 import {
   AlertDialog,
@@ -44,6 +46,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const { setOpenMobile } = useSidebar();
   const { mutate } = useSWRConfig();
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const handleDeleteAll = () => {
     const deletePromise = apiFetch("/api/history", {
@@ -120,15 +123,21 @@ export function AppSidebar({ user }: { user: User | undefined }) {
             </div>
           </SidebarMenu>
         </SidebarHeader>
+        <ApplicationStatusBanner
+          onOpenFeedback={() => setFeedbackOpen(true)}
+          variant="sidebar"
+        />
         <SidebarContent>
           <SidebarHistory user={user} />
         </SidebarContent>
         <SidebarFooter>
+          <FeedbackDialog
+            onOpenChange={setFeedbackOpen}
+            open={feedbackOpen}
+          />
           {user ? (
             <SidebarUserNav user={user} />
           ) : (
-            // Fallback: Should not happen as middleware ensures user exists
-            // But handle gracefully if it does
             <SidebarUserNav
               isLoading={true}
               user={{

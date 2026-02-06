@@ -5,7 +5,46 @@
  * Modify these values to customize your application's metadata.
  */
 
+/** Application lifecycle status shown in the UI when set. */
+export type ApplicationStatus = "pre-alpha" | "alpha" | "beta";
+
+/** Feedback contact shown in the feedback pop-up. */
+export type FeedbackContact = {
+  label: string;
+  url: string;
+};
+
+function getApplicationStatus(): ApplicationStatus | null {
+  const v = process.env.NEXT_PUBLIC_APPLICATION_STATUS;
+  if (v === "pre-alpha" || v === "alpha" || v === "beta") return v;
+  // Show banner in development when not set so you can verify placement
+  if (process.env.NODE_ENV === "development") return "alpha";
+  return null;
+}
+
+function getFeedbackContact(): FeedbackContact | null {
+  const url = process.env.NEXT_PUBLIC_FEEDBACK_CONTACT_URL;
+  const label =
+    process.env.NEXT_PUBLIC_FEEDBACK_CONTACT_LABEL || "Contact us for feedback";
+  if (url && url.trim().length > 0) {
+    return { label: label.trim(), url: url.trim() };
+  }
+  return null;
+}
+
 export const appConfig = {
+  /**
+   * When set (e.g. "alpha", "beta"), a status badge is shown so users know the app is not stable.
+   * Set via NEXT_PUBLIC_APPLICATION_STATUS.
+   */
+  applicationStatus: getApplicationStatus(),
+
+  /**
+   * When set, a "Give feedback" entry point and pop-up are shown.
+   * Set via NEXT_PUBLIC_FEEDBACK_CONTACT_URL and optionally NEXT_PUBLIC_FEEDBACK_CONTACT_LABEL.
+   */
+  feedbackContact: getFeedbackContact(),
+
   metadata: {
     /**
      * The base URL for your application.
@@ -48,4 +87,4 @@ export const appConfig = {
   sidebar: {
     appName: "Data360 Chat",
   },
-} as const;
+};
