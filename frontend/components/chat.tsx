@@ -36,6 +36,7 @@ import {
   generateUUID,
 } from "@/lib/utils";
 import { Artifact } from "./artifact";
+import { AskAboutSelectionToolbar } from "./ask-about-selection-toolbar";
 import { useDataStream } from "./data-stream-provider";
 import { Greeting } from "./greeting";
 import { Messages } from "./messages";
@@ -434,11 +435,20 @@ export function Chat({
   );
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [quotedText, setQuotedText] = useState<string | null>(null);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
   const inputFocusRef = useRef<MultimodalInputHandle | null>(null);
 
   const onFollowUpPopulateInput = useCallback((text: string) => {
     setInput(text);
+    setTimeout(() => {
+      inputFocusRef.current?.focus();
+    }, 0);
+  }, []);
+
+  const onAskAboutSelection = useCallback((selectedText: string) => {
+    setQuotedText(selectedText);
+    setInput("");
     setTimeout(() => {
       inputFocusRef.current?.focus();
     }, 0);
@@ -460,13 +470,16 @@ export function Chat({
       chatId={id}
       input={input}
       messages={messages}
+      onAskAboutClear={() => setQuotedText(null)}
       onModelChange={setCurrentModelId}
+      quotedText={quotedText}
       selectedModelId={currentModelId}
       selectedVisibilityType={visibilityType}
       sendMessage={sendMessage}
       setAttachments={setAttachments}
       setInput={setInput}
       setMessages={setMessages}
+      setQuotedText={setQuotedText}
       status={status}
       stop={stop}
       suggestions={isEmpty ? homeConfig.suggestions : undefined}
@@ -507,6 +520,12 @@ export function Chat({
           </div>
         ) : (
           <>
+            {!isReadonly && (
+              <AskAboutSelectionToolbar
+                disabled={status !== "ready"}
+                onAskAbout={onAskAboutSelection}
+              />
+            )}
             <Messages
               chatId={id}
               followUpSuggestionsPopulateInput={

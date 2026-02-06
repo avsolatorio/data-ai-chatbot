@@ -44,6 +44,7 @@ import {
   PaperclipIcon,
   StopIcon,
 } from "./icons";
+import { QuotedContextBlock } from "./quoted-context-block";
 import { PreviewAttachment } from "./preview-attachment";
 import { SuggestedActions } from "./suggested-actions";
 import { Button } from "./ui/button";
@@ -65,6 +66,9 @@ const PureMultimodalInput = forwardRef<
     setMessages: UseChatHelpers<ChatMessage>["setMessages"];
     sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
     className?: string;
+    quotedText: string | null;
+    setQuotedText: Dispatch<SetStateAction<string | null>>;
+    onAskAboutClear?: () => void;
     selectedVisibilityType: VisibilityType;
     selectedModelId: string;
     onModelChange?: (modelId: string) => void;
@@ -84,6 +88,9 @@ const PureMultimodalInput = forwardRef<
     setMessages,
     sendMessage,
     className,
+    quotedText,
+    setQuotedText,
+    onAskAboutClear,
     selectedVisibilityType,
     selectedModelId,
     onModelChange,
@@ -93,6 +100,7 @@ const PureMultimodalInput = forwardRef<
   ref,
 ) {
   const suggestions = suggestionsProp ?? [];
+  const clearQuoted = onAskAboutClear ?? (() => setQuotedText(null));
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
 
@@ -155,6 +163,11 @@ const PureMultimodalInput = forwardRef<
   const submitForm = useCallback(() => {
     window.history.pushState({}, "", `/chat/${chatId}`);
 
+    const hasQuoted = quotedText != null && quotedText.trim().length > 0;
+    const messageText = hasQuoted
+      ? `Regarding: "${quotedText.trim()}"\n\n${input}`
+      : input;
+
     sendMessage({
       role: "user",
       parts: [
@@ -166,12 +179,13 @@ const PureMultimodalInput = forwardRef<
         })),
         {
           type: "text",
-          text: input,
+          text: messageText,
         },
       ],
     });
 
     setAttachments([]);
+    setQuotedText(null);
     setLocalStorageInput("");
     resetHeight();
     setInput("");
@@ -181,7 +195,9 @@ const PureMultimodalInput = forwardRef<
     }
   }, [
     input,
+    quotedText,
     setInput,
+    setQuotedText,
     attachments,
     sendMessage,
     setAttachments,
@@ -337,6 +353,12 @@ const PureMultimodalInput = forwardRef<
           }
         }}
       >
+        {quotedText != null && quotedText.trim().length > 0 && (
+          <QuotedContextBlock
+            onDismiss={() => clearQuoted()}
+            quotedText={quotedText.trim()}
+          />
+        )}
         {(attachments.length > 0 || uploadQueue.length > 0) && (
           <div
             className="flex flex-row items-end gap-2 overflow-x-scroll"
@@ -379,7 +401,11 @@ const PureMultimodalInput = forwardRef<
             maxHeight={200}
             minHeight={44}
             onChange={handleInput}
-            placeholder="Send a message..."
+            placeholder={
+              quotedText?.trim()
+                ? "Ask a follow-up question..."
+                : "Send a message..."
+            }
             ref={textareaRef}
             rows={1}
             value={input}
@@ -433,6 +459,9 @@ export const MultimodalInput = memo(
       return false;
     }
     if (prevProps.status !== nextProps.status) {
+      return false;
+    }
+    if (prevProps.quotedText !== nextProps.quotedText) {
       return false;
     }
     if (!equal(prevProps.attachments, nextProps.attachments)) {

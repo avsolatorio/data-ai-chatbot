@@ -40,7 +40,12 @@ import {
 } from "@/lib/data360";
 import { SparklesIcon } from "./icons";
 import { parseFollowUps } from "@/lib/parse-follow-ups";
+import { ASK_ABOUT_SELECTION_CONTEXT_ATTR } from "./ask-about-selection-toolbar";
 import { MessageActions } from "./message-actions";
+import {
+  parseRegardingPrompt,
+  QuotedContextBlock,
+} from "./quoted-context-block";
 import { MessageEditor } from "./message-editor";
 import { MessageReasoning } from "./message-reasoning";
 import { MessageThinking } from "./message-thinking";
@@ -82,24 +87,53 @@ function renderMessagePart(
 
   if (type === "text") {
     if (mode === "view") {
+      const isUserWithRegarding =
+        message.role === "user" && parseRegardingPrompt(part.text);
+
       return (
-        <div key={key}>
-          <MessageContent
-            className={cn({
-              "w-fit break-words rounded-2xl px-3 py-2 text-right text-white":
-                message.role === "user",
-              "bg-transparent px-0 py-0 text-left":
-                message.role === "assistant",
-            })}
-            data-testid="message-content"
-            style={
-              message.role === "user"
-                ? { backgroundColor: "#006cff" }
-                : undefined
-            }
-          >
-            <Response>{sanitizeText(part.text)}</Response>
-          </MessageContent>
+        <div
+          key={key}
+          className={cn(
+            message.role === "user" &&
+              isUserWithRegarding &&
+              "flex flex-col items-end gap-2",
+          )}
+          {...(message.role === "assistant"
+            ? { [ASK_ABOUT_SELECTION_CONTEXT_ATTR]: "assistant" }
+            : {})}
+        >
+          {isUserWithRegarding && (
+            <QuotedContextBlock
+              expand
+              quotedText={isUserWithRegarding.quoted}
+            />
+          )}
+          {(isUserWithRegarding
+            ? isUserWithRegarding.question.length > 0
+            : true) && (
+            <MessageContent
+              className={cn({
+                "w-fit break-words rounded-2xl px-3 py-2 text-right text-white":
+                  message.role === "user",
+                "bg-transparent px-0 py-0 text-left":
+                  message.role === "assistant",
+              })}
+              data-testid="message-content"
+              style={
+                message.role === "user"
+                  ? { backgroundColor: "#006cff" }
+                  : undefined
+              }
+            >
+              {isUserWithRegarding ? (
+                <Response>
+                  {sanitizeText(isUserWithRegarding.question)}
+                </Response>
+              ) : (
+                <Response>{sanitizeText(part.text)}</Response>
+              )}
+            </MessageContent>
+          )}
         </div>
       );
     }
