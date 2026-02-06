@@ -146,7 +146,6 @@ export function DataHeaderScript() {
               });
             }
             // Sync sidebar offset after header is populated (DOM may update async).
-            setTimeout(syncHeaderHeight, 100);
             setTimeout(syncHeaderHeight, 500);
           } catch {
             // Sync error (e.g. CORS, localhost, network).
