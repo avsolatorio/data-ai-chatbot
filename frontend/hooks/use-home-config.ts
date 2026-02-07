@@ -69,13 +69,13 @@ function parseHomeConfig(data: unknown): HomeConfig {
   const obj = data as Record<string, unknown>;
   const greeting = parseGreeting(obj.greeting);
   const suggestions = parseSuggestions(obj.suggestions);
-  const followUpSuggestionsPopulateInput = parseFollowUpSuggestionsPopulateInput(
-    obj.followUpSuggestionsPopulateInput,
-  );
+  const followUpSuggestionsPopulateInput =
+    parseFollowUpSuggestionsPopulateInput(obj.followUpSuggestionsPopulateInput);
 
   return {
     greeting,
-    suggestions: suggestions.length > 0 ? suggestions : DEFAULT_CONFIG.suggestions,
+    suggestions:
+      suggestions.length > 0 ? suggestions : DEFAULT_CONFIG.suggestions,
     followUpSuggestionsPopulateInput,
   };
 }
@@ -111,6 +111,9 @@ function parseSuggestions(value: unknown): string[] {
   }
 
   return value
-    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    .filter(
+      (item): item is string =>
+        typeof item === "string" && item.trim().length > 0,
+    )
     .map((s) => s.trim());
 }

@@ -1,18 +1,26 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
+import { DATA360_GET_DATA_TOOL } from "@pcn-js/data360";
+import { IngestToolOutput } from "@pcn-js/ui";
 import type { ToolUIPart } from "ai";
 import equal from "fast-deep-equal";
 import { type Dispatch, memo, type SetStateAction, useState } from "react";
+import { useArtifact } from "@/hooks/use-artifact";
 import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
+import {
+  type Data360SourceEntry,
+  getData360SourcesFromParts,
+  isIndicatorUrl,
+} from "@/lib/data360";
 import type { Vote } from "@/lib/db/schema";
+import { parseFollowUps } from "@/lib/parse-follow-ups";
 import type { ChatMessage, StreamingThinkingPart } from "@/lib/types";
 import { isNonRenderableStreamEvent } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
+import { ASK_ABOUT_SELECTION_CONTEXT_ATTR } from "./ask-about-selection-toolbar";
 import { useDataStream } from "./data-stream-provider";
 import { ChartPreview } from "./data360/chart-preview";
 import { GetData } from "./data360/get-data";
-import { DATA360_GET_DATA_TOOL } from "@pcn-js/data360";
-import { IngestToolOutput } from "@pcn-js/ui";
 import { GetWdiData } from "./data360/get-wdi-data";
 import { SearchIndicators } from "./data360/search-indicators";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
@@ -27,6 +35,7 @@ import {
   SourcesContent,
   SourcesTrigger,
 } from "./elements/source";
+import { Suggestion } from "./elements/suggestion";
 import {
   Tool,
   ToolContent,
@@ -34,24 +43,17 @@ import {
   ToolInput,
   ToolOutput,
 } from "./elements/tool";
-import {
-  getData360SourcesFromParts,
-  type Data360SourceEntry,
-} from "@/lib/data360";
 import { SparklesIcon } from "./icons";
-import { parseFollowUps } from "@/lib/parse-follow-ups";
-import { ASK_ABOUT_SELECTION_CONTEXT_ATTR } from "./ask-about-selection-toolbar";
 import { MessageActions } from "./message-actions";
+import { MessageEditor } from "./message-editor";
+import { MessageReasoning } from "./message-reasoning";
+import { MessageThinking } from "./message-thinking";
+import { PreviewAttachment } from "./preview-attachment";
 import {
   parseRegardingPrompt,
   QuotedContextBlock,
   scrollToAndHighlightMessage,
 } from "./quoted-context-block";
-import { MessageEditor } from "./message-editor";
-import { MessageReasoning } from "./message-reasoning";
-import { MessageThinking } from "./message-thinking";
-import { PreviewAttachment } from "./preview-attachment";
-import { Suggestion } from "./elements/suggestion";
 import { Weather } from "./weather";
 
 // Helper function to render a single message part
@@ -442,7 +444,10 @@ function renderMessagePart(
               errorText={undefined}
               useDefaultFormat={false}
               output={
-                <IngestToolOutput toolName={DATA360_GET_DATA_TOOL} output={toolPart.output}>
+                <IngestToolOutput
+                  toolName={DATA360_GET_DATA_TOOL}
+                  output={toolPart.output}
+                >
                   <GetData output={toolPart.output} />
                 </IngestToolOutput>
               }
@@ -588,6 +593,7 @@ const PurePreviewMessage = ({
   onScrollToMessageId?: (messageId: string) => void;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
+  const { setArtifact } = useArtifact();
 
   const assistantText = message.parts
     .filter((p): p is { type: "text"; text: string } => p.type === "text")
@@ -795,50 +801,76 @@ const PurePreviewMessage = ({
                 })}
 
                 {/* Data360 sources: show when assistant used Data360 tools */}
-                {message.role === "assistant" && (() => {
-                  const MAX_SOURCE_TITLE_LENGTH = 50;
-                  const allPartsForSources = [
-                    ...finalThinkingParts.map((p) => p.data),
-                    ...regularParts,
-                  ];
-                  const data360Sources =
-                    getData360SourcesFromParts(allPartsForSources);
-                  if (data360Sources.length === 0) {
-                    return null;
-                  }
-                  return (
-                    <Sources className="mt-2">
-                      <SourcesTrigger count={data360Sources.length} />
-                      <SourcesContent>
-                        {data360Sources.map((entry: Data360SourceEntry, i) => {
-                          const truncated =
-                            entry.title.length > MAX_SOURCE_TITLE_LENGTH;
-                          const displayTitle = truncated
-                            ? `${entry.title
-                                .slice(0, MAX_SOURCE_TITLE_LENGTH)
-                                .trim()}...`
-                            : entry.title;
-                          return (
-                            <Source
-                              href={entry.href ?? "#"}
-                              key={`${entry.title}-${i}`}
-                              onClick={
-                                entry.href
-                                  ? undefined
-                                  : (e: React.MouseEvent<HTMLAnchorElement>) =>
-                                      e.preventDefault()
-                              }
-                              title={displayTitle}
-                              titleAttribute={
-                                truncated ? entry.title : undefined
-                              }
-                            />
-                          );
-                        })}
-                      </SourcesContent>
-                    </Sources>
-                  );
-                })()}
+                {message.role === "assistant" &&
+                  (() => {
+                    const MAX_SOURCE_TITLE_LENGTH = 50;
+                    const allPartsForSources = [
+                      ...finalThinkingParts.map((p) => p.data),
+                      ...regularParts,
+                    ];
+                    const data360Sources =
+                      getData360SourcesFromParts(allPartsForSources);
+                    if (data360Sources.length === 0) {
+                      return null;
+                    }
+                    return (
+                      <Sources className="mt-2">
+                        <SourcesTrigger count={data360Sources.length} />
+                        <SourcesContent>
+                          {data360Sources.map(
+                            (entry: Data360SourceEntry, i) => {
+                              const truncated =
+                                entry.title.length > MAX_SOURCE_TITLE_LENGTH;
+                              const displayTitle = truncated
+                                ? `${entry.title
+                                    .slice(0, MAX_SOURCE_TITLE_LENGTH)
+                                    .trim()}...`
+                                : entry.title;
+                              const openInEmbed =
+                                entry.href && isIndicatorUrl(entry.href);
+                              return (
+                                <Source
+                                  href={entry.href ?? "#"}
+                                  key={`${entry.title}-${i}`}
+                                  onClick={
+                                    openInEmbed
+                                      ? (
+                                          e: React.MouseEvent<HTMLAnchorElement>,
+                                        ) => {
+                                          e.preventDefault();
+                                          setArtifact({
+                                            boundingBox: {
+                                              height: 300,
+                                              left: 0,
+                                              top: 0,
+                                              width: 400,
+                                            },
+                                            content: entry.href as string,
+                                            documentId: "init",
+                                            isVisible: true,
+                                            kind: "embed",
+                                            status: "idle",
+                                            title: entry.title,
+                                          });
+                                        }
+                                      : entry.href
+                                        ? undefined
+                                        : (
+                                            e: React.MouseEvent<HTMLAnchorElement>,
+                                          ) => e.preventDefault()
+                                  }
+                                  title={displayTitle}
+                                  titleAttribute={
+                                    truncated ? entry.title : undefined
+                                  }
+                                />
+                              );
+                            },
+                          )}
+                        </SourcesContent>
+                      </Sources>
+                    );
+                  })()}
 
                 {/* Suggested follow-ups: parse from assistant text and render as clickable chips — only after response is complete to avoid distraction during streaming */}
                 {message.role === "assistant" &&
@@ -855,11 +887,7 @@ const PurePreviewMessage = ({
                           key={suggestion}
                           className="h-auto whitespace-normal px-3 py-1.5 text-left text-sm"
                           onClick={() => {
-                            window.history.pushState(
-                              {},
-                              "",
-                              `/chat/${chatId}`,
-                            );
+                            window.history.pushState({}, "", `/chat/${chatId}`);
                             if (
                               followUpSuggestionsPopulateInput &&
                               onFollowUpPopulateInput
@@ -934,7 +962,9 @@ export const PreviewMessage = memo(
     ) {
       return false;
     }
-    if (prevProps.onFollowUpPopulateInput !== nextProps.onFollowUpPopulateInput) {
+    if (
+      prevProps.onFollowUpPopulateInput !== nextProps.onFollowUpPopulateInput
+    ) {
       return false;
     }
     if (prevProps.onScrollToMessageId !== nextProps.onScrollToMessageId) {

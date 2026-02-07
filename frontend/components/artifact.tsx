@@ -16,6 +16,7 @@ import useSWR, { useSWRConfig } from "swr";
 import { useDebounceCallback, useWindowSize } from "usehooks-ts";
 import { chartArtifact } from "@/artifacts/chart/client";
 import { codeArtifact } from "@/artifacts/code/client";
+import { embedArtifact } from "@/artifacts/embed/client";
 import { imageArtifact } from "@/artifacts/image/client";
 import { sheetArtifact } from "@/artifacts/sheet/client";
 import { textArtifact } from "@/artifacts/text/client";
@@ -40,6 +41,7 @@ export const artifactDefinitions = [
   imageArtifact,
   sheetArtifact,
   chartArtifact,
+  embedArtifact,
 ];
 export type ArtifactKind = (typeof artifactDefinitions)[number]["kind"];
 
@@ -586,6 +588,10 @@ function PureArtifact({
                     <div className="text-muted-foreground text-sm">
                       Vega-Lite chart
                     </div>
+                  ) : artifact.kind === "embed" ? (
+                    <div className="text-muted-foreground text-sm">
+                      Embedded page
+                    </div>
                   ) : (
                     <div className="mt-2 h-3 w-32 animate-pulse rounded-md bg-muted-foreground/20" />
                   )}
@@ -605,7 +611,7 @@ function PureArtifact({
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col w-full max-w-full! overflow-y-scroll bg-background dark:bg-muted">
               <div
-                className={`flex min-h-0 min-w-0 flex-1 flex-col ${artifact.kind === "chart" ? "overflow-hidden" : "min-h-0 overflow-y-auto"}`}
+                className={`flex min-h-0 min-w-0 flex-1 flex-col ${artifact.kind === "chart" || artifact.kind === "embed" ? "overflow-hidden" : "min-h-0 overflow-y-auto"}`}
               >
                 {(() => {
                   const ContentComponent =
@@ -614,7 +620,7 @@ function PureArtifact({
                     >;
                   const contentProps: ArtifactContent<unknown> = {
                     content:
-                      artifact.kind === "chart"
+                      artifact.kind === "chart" || artifact.kind === "embed"
                         ? artifact.content
                         : isCurrentVersion
                           ? artifact.content
@@ -623,7 +629,10 @@ function PureArtifact({
                     getDocumentContentById,
                     isCurrentVersion,
                     isInline: false,
-                    isLoading: isDocumentsFetching && !artifact.content,
+                    isLoading:
+                    artifact.kind === "embed"
+                      ? false
+                      : isDocumentsFetching && !artifact.content,
                     metadata,
                     mode,
                     onSaveContent: saveContent,

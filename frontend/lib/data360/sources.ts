@@ -5,8 +5,7 @@
  */
 
 /** Base URL for Data360 indicator pages (opens in new tab). */
-const DATA360_INDICATOR_BASE_URL =
-  "https://data360.worldbank.org/en/int/indicator";
+const DATA360_INDICATOR_BASE_URL = "https://data360.worldbank.org/en/indicator";
 
 export type Data360SourceEntry = {
   title: string;
@@ -49,7 +48,9 @@ function isToolPartWithOutput(
  * Collects unique Data360 source entries from tool outputs.
  * Deduplicates by title (and href when present).
  */
-export function getData360SourcesFromParts(parts: PartLike[]): Data360SourceEntry[] {
+export function getData360SourcesFromParts(
+  parts: PartLike[],
+): Data360SourceEntry[] {
   const seen = new Set<string>();
   const entries: Data360SourceEntry[] = [];
 
@@ -69,17 +70,18 @@ export function getData360SourcesFromParts(parts: PartLike[]): Data360SourceEntr
       const data = Array.isArray(out.data) ? out.data : [];
       for (const row of data) {
         const r = row as Record<string, unknown>;
-        const databaseId = typeof r.DATABASE_ID === "string" ? r.DATABASE_ID : "";
+        const databaseId =
+          typeof r.DATABASE_ID === "string" ? r.DATABASE_ID : "";
         const indicator = typeof r.INDICATOR === "string" ? r.INDICATOR : "";
         const indicatorName =
           typeof r.INDICATOR_NAME === "string" ? r.INDICATOR_NAME : "";
-        const title = indicatorName.trim() || indicator || databaseId || "Data360 data";
+        const title =
+          indicatorName.trim() || indicator || databaseId || "Data360 data";
         const key = `${databaseId}:${indicator}`;
         if (key && !seen.has(key)) {
           seen.add(key);
-          const indicatorSlug = [databaseId, indicator].filter(Boolean).join("_");
-          const href = indicatorSlug
-            ? `${DATA360_INDICATOR_BASE_URL}/${indicatorSlug}`
+          const href = indicator
+            ? `${DATA360_INDICATOR_BASE_URL}/${indicator}`
             : undefined;
           entries.push({ title, href });
         }
