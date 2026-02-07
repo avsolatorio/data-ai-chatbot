@@ -1,13 +1,19 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import equal from "fast-deep-equal";
 import { ArrowDownIcon } from "lucide-react";
-import { memo } from "react";
+import { memo, useCallback, useEffect } from "react";
 import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
 import { useMessages } from "@/hooks/use-messages";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { useDataStream } from "./data-stream-provider";
 import { PreviewMessage, ThinkingMessage } from "./message";
+import { scrollToAndHighlightMessage } from "./quoted-context-block";
+
+const ROW_GAP = 16;
+const ESTIMATE_SIZE = 200;
+const OVERSCAN = 3;
 
 type MessagesProps = {
   chatId: string;
@@ -59,73 +65,203 @@ function PureMessages({
 
   useDataStream();
 
+  const virtualItemCount =
+    messages.length + (status === "submitted" ? 1 : 0);
+
+  const virtualizer = useVirtualizer({
+    count: virtualItemCount,
+    getScrollElement: () => messagesContainerRef.current,
+    estimateSize: () => ESTIMATE_SIZE + ROW_GAP,
+    overscan: OVERSCAN,
+    getItemKey: (index) =>
+      index < messages.length ? messages[index].id : "thinking",
+    measureElement:
+      typeof window !== "undefined" &&
+      typeof navigator !== "undefined" &&
+      navigator.userAgent.indexOf("Firefox") === -1
+        ? (el) => (el?.getBoundingClientRect().height ?? ESTIMATE_SIZE) + ROW_GAP
+        : undefined,
+  });
+
+  // Smooth scroll to bottom when user sends a new message (status becomes "submitted")
+  useEffect(() => {
+    if (status !== "submitted" || virtualItemCount === 0) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      virtualizer.scrollToIndex(virtualItemCount - 1, {
+        align: "end",
+        behavior: "smooth",
+      });
+    });
+  }, [status, virtualItemCount, virtualizer]);
+
+  // Stick to bottom while streaming when user is at bottom (virtual list height may not change so observers don't fire)
+  const lastMessageTextLength =
+    messages.length > 0
+      ? (messages.at(-1)?.parts ?? [])
+          .filter(
+            (p): p is { type: "text"; text: string } => p.type === "text",
+          )
+          .reduce((sum, p) => sum + (p.text?.length ?? 0), 0)
+      : 0;
+  const streamingThinkingScrollKey =
+    streamingThinkingParts.length > 0
+      ? `${streamingThinkingParts.length}-${
+          (() => {
+            const last = streamingThinkingParts.at(-1)?.data;
+            if (
+              typeof last === "object" &&
+              last !== null &&
+              "text" in last &&
+              typeof (last as { text?: unknown }).text === "string"
+            ) {
+              return (last as { text: string }).text.length;
+            }
+            return 0;
+          })()
+        }`
+      : "0";
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deps re-run when message or thinking content appends
+  useEffect(() => {
+    if (
+      (status !== "streaming" && status !== "submitted") ||
+      !isAtBottom ||
+      virtualItemCount === 0
+    ) {
+      return;
+    }
+    virtualizer.scrollToIndex(virtualItemCount - 1, {
+      align: "end",
+      behavior: "instant",
+    });
+  }, [
+    status,
+    isAtBottom,
+    virtualItemCount,
+    virtualizer,
+    lastMessageTextLength,
+    streamingThinkingScrollKey,
+  ]);
+
+  // Scroll to a message by ID then highlight (for "go to response" / quoted block click in virtualized list)
+  const onScrollToMessageId = useCallback(
+    (messageId: string) => {
+      const index = messages.findIndex((m) => m.id === messageId);
+      if (index < 0) return;
+      virtualizer.scrollToIndex(index, {
+        align: "start",
+        behavior: "auto",
+      });
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToAndHighlightMessage(messageId, { scroll: false });
+        });
+      });
+    },
+    [messages, virtualizer],
+  );
+
+  const virtualItems = virtualizer.getVirtualItems();
+
   return (
     <div className="relative flex-1">
       <div
         className="absolute inset-0 touch-pan-y overflow-y-auto"
         ref={messagesContainerRef}
       >
-        <div className="mx-auto flex min-w-0 max-w-4xl flex-col gap-4 px-2 py-4 md:gap-6 md:px-4">
-          {messages.map((message, index) => {
+        <div
+          className="mx-auto min-w-0 max-w-4xl px-2 py-4 md:px-4"
+          ref={messagesEndRef}
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            position: "relative",
+            width: "100%",
+          }}
+        >
+          {virtualItems.map((virtualRow) => {
+            const index = virtualRow.index;
+            if (index >= messages.length) {
+              return (
+                <div
+                  key="thinking"
+                  className="mb-4 md:mb-6"
+                  data-index={index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <ThinkingMessage />
+                </div>
+              );
+            }
+
+            const message = messages[index];
             const isLoading =
               status === "streaming" && messages.length - 1 === index;
-            // Pass streaming parts to messages that need them:
-            // 1. The last message (currently streaming or just finished)
-            // 2. Previous messages that don't have saved parts yet
             const isLastMessage = index === messages.length - 1;
-            // Check if message has saved thinking parts
             const hasSavedThinkingParts =
               message.parts?.some(
                 (part) =>
                   typeof part.type === "string" &&
                   part.type.startsWith("data-thinking"),
               ) ?? false;
-            // Use streaming parts only for the last message
-            // Use streaming parts if: we have them AND (we're loading OR no saved parts OR waiting for saved parts)
             const shouldUseStreamingParts =
               isLastMessage &&
               streamingThinkingParts.length > 0 &&
               (isLoading || !hasSavedThinkingParts || isWaitingForSavedParts);
 
             return (
-              <PreviewMessage
-                chatId={chatId}
-                followUpSuggestionsPopulateInput={
-                  followUpSuggestionsPopulateInput
-                }
-                isLoading={isLoading}
-                isReadonly={isReadonly}
+              <div
                 key={message.id}
-                message={message}
-                onFollowUpPopulateInput={onFollowUpPopulateInput}
-                regenerate={regenerate}
-                sendMessage={sendMessage}
-                requiresScrollPadding={
-                  hasSentMessage && index === messages.length - 1
-                }
-                setMessages={setMessages}
-                isWaitingForSavedParts={isWaitingForSavedParts}
-                streamingThinkingStage={
-                  shouldUseStreamingParts ? streamingThinkingStage : null
-                }
-                streamingThinkingParts={
-                  shouldUseStreamingParts ? streamingThinkingParts : []
-                }
-                vote={
-                  votes
-                    ? votes.find((vote) => vote.messageId === message.id)
-                    : undefined
-                }
-              />
+                className="mb-4 md:mb-6"
+                data-index={index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <PreviewMessage
+                  chatId={chatId}
+                  followUpSuggestionsPopulateInput={
+                    followUpSuggestionsPopulateInput
+                  }
+                  isLoading={isLoading}
+                  isReadonly={isReadonly}
+                  message={message}
+                  onFollowUpPopulateInput={onFollowUpPopulateInput}
+                  onScrollToMessageId={onScrollToMessageId}
+                  regenerate={regenerate}
+                  sendMessage={sendMessage}
+                  requiresScrollPadding={
+                    hasSentMessage && index === messages.length - 1
+                  }
+                  setMessages={setMessages}
+                  isWaitingForSavedParts={isWaitingForSavedParts}
+                  streamingThinkingStage={
+                    shouldUseStreamingParts ? streamingThinkingStage : null
+                  }
+                  streamingThinkingParts={
+                    shouldUseStreamingParts ? streamingThinkingParts : []
+                  }
+                  vote={
+                    votes
+                      ? votes.find((vote) => vote.messageId === message.id)
+                      : undefined
+                  }
+                />
+              </div>
             );
           })}
-
-          {status === "submitted" && <ThinkingMessage />}
-
-          <div
-            className="min-h-[24px] min-w-[24px] shrink-0"
-            ref={messagesEndRef}
-          />
         </div>
       </div>
 
@@ -150,10 +286,19 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
     return true;
   }
 
+  if (prevProps.chatId !== nextProps.chatId) {
+    return false;
+  }
   if (prevProps.status !== nextProps.status) {
     return false;
   }
   if (prevProps.selectedModelId !== nextProps.selectedModelId) {
+    return false;
+  }
+  if (prevProps.isReadonly !== nextProps.isReadonly) {
+    return false;
+  }
+  if (prevProps.isWaitingForSavedParts !== nextProps.isWaitingForSavedParts) {
     return false;
   }
   if (prevProps.messages.length !== nextProps.messages.length) {
@@ -186,5 +331,5 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
     return false;
   }
 
-  return false;
+  return true;
 });

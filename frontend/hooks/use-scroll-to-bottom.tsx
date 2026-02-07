@@ -6,6 +6,7 @@ export function useScrollToBottom() {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const isAtBottomRef = useRef(true);
   const isUserScrollingRef = useRef(false);
+  const lastScrollTimeRef = useRef(0);
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -17,7 +18,7 @@ export function useScrollToBottom() {
       return true;
     }
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    return scrollTop + clientHeight >= scrollHeight - 100;
+    return scrollTop + clientHeight >= scrollHeight - 20;
   }, []);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
@@ -30,7 +31,7 @@ export function useScrollToBottom() {
     });
   }, []);
 
-  // Handle user scroll events
+  // Handle user scroll events — update ref on every scroll, state only when scroll settles (avoids flicker from re-renders during scroll)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) {
@@ -40,18 +41,16 @@ export function useScrollToBottom() {
     let scrollTimeout: ReturnType<typeof setTimeout>;
 
     const handleScroll = () => {
-      // Mark as user scrolling
+      lastScrollTimeRef.current = Date.now();
       isUserScrollingRef.current = true;
       clearTimeout(scrollTimeout);
 
-      // Update isAtBottom state
       const atBottom = checkIfAtBottom();
-      setIsAtBottom(atBottom);
       isAtBottomRef.current = atBottom;
 
-      // Reset user scrolling flag after scroll ends
       scrollTimeout = setTimeout(() => {
         isUserScrollingRef.current = false;
+        setIsAtBottom(isAtBottomRef.current);
       }, 150);
     };
 
@@ -62,28 +61,37 @@ export function useScrollToBottom() {
     };
   }, [checkIfAtBottom]);
 
-  // Auto-scroll when content changes
+  // Auto-scroll when content changes (debounced to avoid jumpiness with virtual lists)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) {
       return;
     }
 
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const DEBOUNCE_MS = 120;
+    const SCROLL_COOLDOWN_MS = 400;
+
     const scrollIfNeeded = () => {
-      // Only auto-scroll if user was at bottom and isn't actively scrolling
-      if (isAtBottomRef.current && !isUserScrollingRef.current) {
+      if (debounceTimer !== null) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        if (!containerRef.current) return;
+        const el = containerRef.current;
+        if (!isAtBottomRef.current || isUserScrollingRef.current) return;
+        if (Date.now() - lastScrollTimeRef.current < SCROLL_COOLDOWN_MS) return;
         requestAnimationFrame(() => {
-          container.scrollTo({
-            top: container.scrollHeight,
+          if (!containerRef.current) return;
+          el.scrollTo({
+            top: el.scrollHeight,
             behavior: "instant",
           });
           setIsAtBottom(true);
           isAtBottomRef.current = true;
         });
-      }
+      }, DEBOUNCE_MS);
     };
 
-    // Watch for DOM changes
     const mutationObserver = new MutationObserver(scrollIfNeeded);
     mutationObserver.observe(container, {
       childList: true,
@@ -91,16 +99,15 @@ export function useScrollToBottom() {
       characterData: true,
     });
 
-    // Watch for size changes
     const resizeObserver = new ResizeObserver(scrollIfNeeded);
     resizeObserver.observe(container);
 
-    // Also observe children for size changes
     for (const child of container.children) {
       resizeObserver.observe(child);
     }
 
     return () => {
+      if (debounceTimer !== null) clearTimeout(debounceTimer);
       mutationObserver.disconnect();
       resizeObserver.disconnect();
     };

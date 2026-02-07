@@ -67,6 +67,7 @@ function renderMessagePart(
     setMessages: UseChatHelpers<ChatMessage>["setMessages"];
     isReadonly: boolean;
     isLoading: boolean;
+    onScrollToMessageId?: (messageId: string) => void;
   },
 ): React.ReactNode {
   const { type } = part;
@@ -78,6 +79,7 @@ function renderMessagePart(
     setMessages,
     isReadonly,
     isLoading,
+    onScrollToMessageId,
   } = options;
 
   if (type === "reasoning" && part.text?.trim().length > 0) {
@@ -106,7 +108,7 @@ function renderMessagePart(
           {isUserWithRegarding && (
             <QuotedContextBlock
               expand
-              onQuoteClick={scrollToAndHighlightMessage}
+              onQuoteClick={onScrollToMessageId ?? scrollToAndHighlightMessage}
               quotedText={isUserWithRegarding.quoted}
               sourceMessageId={isUserWithRegarding.sourceMessageId}
             />
@@ -563,6 +565,7 @@ const PurePreviewMessage = ({
   streamingThinkingParts = [],
   followUpSuggestionsPopulateInput = true,
   onFollowUpPopulateInput,
+  onScrollToMessageId,
 }: {
   chatId: string;
   message: ChatMessage;
@@ -582,6 +585,7 @@ const PurePreviewMessage = ({
   }>;
   followUpSuggestionsPopulateInput?: boolean;
   onFollowUpPopulateInput?: (text: string) => void;
+  onScrollToMessageId?: (messageId: string) => void;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
 
@@ -766,6 +770,7 @@ const PurePreviewMessage = ({
                         setMessages,
                         isReadonly,
                         isLoading,
+                        onScrollToMessageId,
                       })
                     }
                     thinkingParts={finalThinkingParts}
@@ -785,6 +790,7 @@ const PurePreviewMessage = ({
                     setMessages,
                     isReadonly,
                     isLoading,
+                    onScrollToMessageId,
                   });
                 })}
 
@@ -929,6 +935,9 @@ export const PreviewMessage = memo(
       return false;
     }
     if (prevProps.onFollowUpPopulateInput !== nextProps.onFollowUpPopulateInput) {
+      return false;
+    }
+    if (prevProps.onScrollToMessageId !== nextProps.onScrollToMessageId) {
       return false;
     }
 

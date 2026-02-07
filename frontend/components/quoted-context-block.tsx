@@ -172,17 +172,28 @@ const HIGHLIGHT_CLASSES = [
 ] as const;
 const HIGHLIGHT_DURATION_MS = 2000;
 
+export type ScrollToAndHighlightOptions = {
+  /** When false, only highlight (caller already scrolled). Default true. */
+  scroll?: boolean;
+};
+
 /**
  * Scrolls to the message with the given id and briefly highlights it.
  * Call this when the user clicks the quoted block in a user message.
  */
-export function scrollToAndHighlightMessage(sourceMessageId: string): void {
+export function scrollToAndHighlightMessage(
+  sourceMessageId: string,
+  options?: ScrollToAndHighlightOptions,
+): void {
   if (typeof document === "undefined") return;
   const el = document.querySelector(
     `[data-message-id="${sourceMessageId}"]`,
   ) as HTMLElement | null;
   if (!el) return;
-  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  const shouldScroll = options?.scroll !== false;
+  if (shouldScroll) {
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
   for (const c of HIGHLIGHT_CLASSES) {
     el.classList.add(c);
   }
