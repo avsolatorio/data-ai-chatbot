@@ -20,7 +20,7 @@ export const Greeting = ({ title, subtitle }: GreetingProps) => {
     >
       <motion.h1
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-2xl font-semibold tracking-tight text-foreground text-3xl leading-tight md:text-5xl md:leading-[1.2]"
+        className="max-w-2xl font-semibold tracking-tight text-[#184683] text-3xl leading-tight md:text-5xl md:leading-[1.2]"
         exit={{ opacity: 0, y: 10 }}
         initial={{ opacity: 0, y: 10 }}
         transition={{ delay: 0.15, duration: 0.35 }}

@@ -64,12 +64,13 @@ const PREVIEW_ASPECT_RATIO = 16 / 9;
 /** Renders a small Vega-Lite chart from a spec string (with theme). Fills container width with aspect-ratio height. */
 function ChartThumbnail({ specJson }: { specJson: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<{
-    width: (w?: number) => number;
-    height: (h?: number) => number;
+  type VegaViewRef = {
+    width: (w?: number) => VegaViewRef;
+    height: (h?: number) => VegaViewRef;
     run: () => unknown;
     finalize?: () => void;
-  } | null>(null);
+  };
+  const viewRef = useRef<VegaViewRef | null>(null);
   const [themeConfig, setThemeConfig] = useState<Record<
     string,
     unknown
@@ -143,7 +144,7 @@ function ChartThumbnail({ specJson }: { specJson: string }) {
             result.view.finalize();
             return;
           }
-          viewRef.current = result.view;
+          viewRef.current = result.view as VegaViewRef;
         });
       };
 
