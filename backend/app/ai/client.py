@@ -203,7 +203,7 @@ class LiteLLMAsyncChatCompletions:
             temperature=temperature,
             max_tokens=effective_max_tokens,
             tools=tools,
-            stream_options={"include_usage": True},
+            stream_options={"include_usage": True} if stream else None,
             **kwargs,
         )
 

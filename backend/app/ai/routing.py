@@ -1,10 +1,9 @@
 import json
 import logging
-from typing import Any, Dict, List, Literal
+from typing import Any, Dict, List
 
 from app.ai.client import get_async_ai_client
 from app.ai.prompts import get_routing_system_prompt
-
 from app.config import IntentType, settings
 
 logger = logging.getLogger(__name__)

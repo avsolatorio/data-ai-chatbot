@@ -92,31 +92,50 @@ async def convert_messages_to_openai_format(
 
         elif role == "assistant":
             # Assistant messages can be complex, containing thinking text, tool calls, and final responses.
-            # We expand them into: [Assistant(tool_calls), Tool(result), Assistant(text), ...]
+            # We expand them into: [Assistant(tool_calls), Tool(result), ..., Assistant(text), ...]
+            # Rule: every assistant message with tool_calls must be immediately followed by one tool
+            # message per tool_call_id (Azure/OpenAI requirement).
 
             pending_tool_calls = []
             pending_tool_results = []
             current_text_content = []
 
+            def flush_tool_turn():
+                """Emit assistant message with tool_calls and corresponding tool results, then clear state."""
+                nonlocal pending_tool_calls, pending_tool_results, current_text_content
+                if not pending_tool_calls:
+                    return
+                # Ensure every tool call has a response (required by API)
+                call_ids = {tc["id"] for tc in pending_tool_calls}
+                result_ids = {r["tool_call_id"] for r in pending_tool_results}
+                for tc_id in call_ids:
+                    if tc_id not in result_ids:
+                        pending_tool_results.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": tc_id,
+                                "content": "{}",
+                            }
+                        )
+                openai_messages.append(
+                    {
+                        "role": "assistant",
+                        "content": current_text_content if current_text_content else None,
+                        "tool_calls": pending_tool_calls,
+                    }
+                )
+                for res in pending_tool_results:
+                    openai_messages.append(res)
+                pending_tool_calls = []
+                pending_tool_results = []
+                current_text_content = []
+
             for part in parts:
                 part_type = part.get("type")
 
                 if part_type == "text":
-                    # If we have tool calls pending, we MUST flush them before text
-                    if pending_tool_calls:
-                        openai_messages.append(
-                            {
-                                "role": "assistant",
-                                "content": current_text_content if current_text_content else None,
-                                "tool_calls": pending_tool_calls,
-                            }
-                        )
-                        pending_tool_calls = []
-                        current_text_content = []
-                        # Flush tool results immediately after assistant call
-                        for res in pending_tool_results:
-                            openai_messages.append(res)
-                        pending_tool_results = []
+                    # Flush any pending tool turn before text (so tool_calls are followed by their results)
+                    flush_tool_turn()
 
                     text = part.get("text", "")
                     if text:
@@ -141,13 +160,21 @@ async def convert_messages_to_openai_format(
                             }
                         )
 
-                        # Add any available output as a pending tool result
+                        # Every tool call must have a tool result (API requirement)
                         if "output" in data:
                             pending_tool_results.append(
                                 {
                                     "role": "tool",
                                     "tool_call_id": tool_call_id,
                                     "content": json.dumps(data["output"]),
+                                }
+                            )
+                        else:
+                            pending_tool_results.append(
+                                {
+                                    "role": "tool",
+                                    "tool_call_id": tool_call_id,
+                                    "content": "{}",
                                 }
                             )
 
@@ -157,20 +184,8 @@ async def convert_messages_to_openai_format(
                         if text:
                             current_text_content.append({"type": "text", "text": text})
 
-            # Final flush of tool calls if any
-            if pending_tool_calls:
-                openai_messages.append(
-                    {
-                        "role": "assistant",
-                        "content": current_text_content if current_text_content else None,
-                        "tool_calls": pending_tool_calls,
-                    }
-                )
-                # Flush tool results
-                for res in pending_tool_results:
-                    openai_messages.append(res)
-                # Reset
-                current_text_content = []
+            # Flush any remaining tool turn at end of parts
+            flush_tool_turn()
 
             # Final assistant text part
             if current_text_content:
