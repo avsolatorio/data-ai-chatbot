@@ -1,13 +1,13 @@
 {
   "greeting": {
-    "title": "What would you like to explore?",
-    "subtitle": "Ask a question about development data, or start with one of the examples below."
+    "title": "Turn development data into insights",
+    "subtitle": "Ask a question and explore trends using trusted development data."
   },
   "suggestions": [
-    "What does the Gini coefficient say about inequality in a country?",
-    "What are the trends in employment in Southeast Asia?",
-    "How has poverty changed over time in low-income countries?",
-    "How do development indicators vary across regions?"
+    "What is the child malnutrition rate in South Asia in 2021?",
+    "How has unemployment changed in Southeast Asia since 2010?",
+    "What was the poverty headcount ratio in Kenya in 2019?",
+    "How do health indicators compare across regions in 2020?"
   ],
   "followUpSuggestionsPopulateInput": true
 }

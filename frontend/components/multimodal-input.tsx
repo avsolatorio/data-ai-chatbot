@@ -352,7 +352,12 @@ const PureMultimodalInput = forwardRef<
       />
 
       <PromptInput
-        className="rounded-xl border border-border bg-background p-3 shadow-xs transition-all duration-200 focus-within:border-border hover:border-muted-foreground/50"
+        className={cn(
+          "rounded-xl border bg-background transition-all duration-200",
+          suggestions.length > 0
+            ? "home-input-prominent p-4 shadow-xs"
+            : "border-border p-3 shadow-xs focus-within:border-border hover:border-muted-foreground/50"
+        )}
         onSubmit={(event) => {
           event.preventDefault();
           if (status !== "ready") {
@@ -413,7 +418,7 @@ const PureMultimodalInput = forwardRef<
             placeholder={
               quotedText?.trim()
                 ? "Ask a follow-up question..."
-                : "Send a message..."
+                : "Ask a question here..."
             }
             ref={textareaRef}
             rows={1}

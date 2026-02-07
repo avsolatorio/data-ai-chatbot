@@ -15,24 +15,24 @@ export const Greeting = ({ title, subtitle }: GreetingProps) => {
 
   return (
     <div
-      className="flex flex-col items-center gap-2 text-center"
+      className="flex flex-col items-center gap-4 text-center"
       key="overview"
     >
       <motion.h1
         animate={{ opacity: 1, y: 0 }}
-        className="font-semibold text-2xl tracking-tight text-foreground md:text-3xl"
+        className="max-w-2xl font-semibold tracking-tight text-foreground text-3xl leading-tight md:text-5xl md:leading-[1.2]"
         exit={{ opacity: 0, y: 10 }}
         initial={{ opacity: 0, y: 10 }}
-        transition={{ delay: 0.2, duration: 0.3 }}
+        transition={{ delay: 0.15, duration: 0.35 }}
       >
         {displayTitle}
       </motion.h1>
       <motion.p
         animate={{ opacity: 1, y: 0 }}
-        className="text-base text-muted-foreground md:text-lg"
+        className="max-w-xl text-muted-foreground text-base leading-relaxed md:text-lg"
         exit={{ opacity: 0, y: 10 }}
         initial={{ opacity: 0, y: 10 }}
-        transition={{ delay: 0.35, duration: 0.3 }}
+        transition={{ delay: 0.3, duration: 0.35 }}
       >
         {displaySubtitle}
       </motion.p>

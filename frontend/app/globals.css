@@ -52,11 +52,72 @@
   --data-header-default-height: 107.5px;
   /* Height of the data header; sidebar and main content start below this. Updated by data-header-script when header loads. */
   --header-height: var(--data-header-default-height);
+  /* Homepage hero accent (e.g. #004370) */
+  --home-accent: #004370;
+  --home-accent-rgb: 0 67 112;
 }
 
 /* When data header is disabled, sidebar and main content use full height */
 .data-header-disabled {
   --header-height: 0px;
+}
+
+/* Homepage input: more prominent default + accent on hover */
+.home-input-prominent {
+  border-color: rgb(var(--home-accent-rgb) / 0.3);
+  box-shadow: 0 2px 8px rgb(var(--home-accent-rgb) / 0.08);
+}
+
+.dark .home-input-prominent {
+  border-color: rgb(var(--home-accent-rgb) / 0.4);
+  box-shadow: 0 2px 12px rgb(var(--home-accent-rgb) / 0.12);
+}
+
+.home-input-prominent:hover {
+  border-color: rgb(var(--home-accent-rgb) / 0.5);
+  box-shadow: 0 4px 12px rgb(var(--home-accent-rgb) / 0.1);
+}
+
+.dark .home-input-prominent:hover {
+  border-color: rgb(var(--home-accent-rgb) / 0.6);
+  box-shadow: 0 4px 16px rgb(var(--home-accent-rgb) / 0.15);
+}
+
+.home-input-prominent:focus-within {
+  border-color: rgb(var(--home-accent-rgb) / 0.5);
+  box-shadow: 0 0 0 3px rgb(var(--home-accent-rgb) / 0.15);
+}
+
+.dark .home-input-prominent:focus-within {
+  border-color: rgb(var(--home-accent-rgb) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--home-accent-rgb) / 0.2);
+}
+
+/* Homepage "Suggested questions" label and chips (button selector wins over Tailwind) */
+.home-suggestions-label {
+  color: var(--home-accent);
+}
+
+button.home-suggestion-chip {
+  background-color: var(--background);
+  border: 1px solid rgb(var(--home-accent-rgb) / 0.35);
+}
+
+.dark button.home-suggestion-chip {
+  background-color: var(--background);
+  border-color: rgb(var(--home-accent-rgb) / 0.45);
+}
+
+button.home-suggestion-chip:hover {
+  background-color: rgb(var(--home-accent-rgb) / 0.12);
+  border-color: rgb(var(--home-accent-rgb) / 0.55);
+  border-width: 2px;
+}
+
+.dark button.home-suggestion-chip:hover {
+  background-color: rgb(var(--home-accent-rgb) / 0.2);
+  border-color: rgb(var(--home-accent-rgb) / 0.65);
+  border-width: 2px;
 }
 
 /* define design tokens (dark mode) */

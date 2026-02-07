@@ -14,15 +14,20 @@ const DEFAULT_SUGGESTIONS = [
   "Suggest next steps or recommendations",
 ] as const;
 
+const SUGGESTIONS_LABEL = "Suggested questions";
+
 type SuggestedActionsProps = {
   chatId: string;
   sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
   selectedVisibilityType: VisibilityType;
   suggestions?: string[];
+  /** Optional label shown above the suggestion chips. */
+  label?: string;
 };
 
 function PureSuggestedActions({
   chatId,
+  label = SUGGESTIONS_LABEL,
   sendMessage,
   suggestions: suggestionsProp,
 }: SuggestedActionsProps) {
@@ -31,33 +36,41 @@ function PureSuggestedActions({
     : [...DEFAULT_SUGGESTIONS];
 
   return (
-    <div
-      className="grid w-full gap-2 sm:grid-cols-2"
-      data-testid="suggested-actions"
-    >
-      {suggestions.map((suggestedAction, index) => (
-        <motion.div
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          initial={{ opacity: 0, y: 20 }}
-          key={suggestedAction}
-          transition={{ delay: 0.05 * index, duration: 0.25 }}
-        >
-          <Suggestion
-            className="h-auto w-full whitespace-normal p-3 text-center text-sm"
-            onClick={(suggestion) => {
-              window.history.pushState({}, "", `/chat/${chatId}`);
-              sendMessage({
-                role: "user",
-                parts: [{ type: "text", text: suggestion }],
-              });
-            }}
-            suggestion={suggestedAction}
+    <div className="flex w-full flex-col gap-3" data-testid="suggested-actions">
+      <motion.p
+        animate={{ opacity: 1 }}
+        className="home-suggestions-label text-xs font-medium uppercase tracking-wider"
+        initial={{ opacity: 0 }}
+        transition={{ delay: 0.4, duration: 0.25 }}
+      >
+        {label}
+      </motion.p>
+      <div className="grid w-full gap-2 sm:grid-cols-2">
+        {suggestions.map((suggestedAction, index) => (
+          <motion.div
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 20 }}
+            key={suggestedAction}
+            transition={{ delay: 0.45 + 0.04 * index, duration: 0.25 }}
           >
-            {suggestedAction}
-          </Suggestion>
-        </motion.div>
-      ))}
+            <Suggestion
+              className="home-suggestion-chip h-auto w-full whitespace-normal rounded-lg border py-3 text-center text-sm transition-colors"
+              onClick={(suggestion) => {
+                window.history.pushState({}, "", `/chat/${chatId}`);
+                sendMessage({
+                  role: "user",
+                  parts: [{ type: "text", text: suggestion }],
+                });
+              }}
+              suggestion={suggestedAction}
+              variant="ghost"
+            >
+              {suggestedAction}
+            </Suggestion>
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -66,6 +79,9 @@ export const SuggestedActions = memo(
   PureSuggestedActions,
   (prevProps, nextProps) => {
     if (prevProps.chatId !== nextProps.chatId) {
+      return false;
+    }
+    if (prevProps.label !== nextProps.label) {
       return false;
     }
     if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType) {

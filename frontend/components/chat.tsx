@@ -521,13 +521,25 @@ export function Chat({
         />
 
         {isEmpty ? (
-          <div className="flex flex-1 flex-col justify-center px-4 py-6">
-            <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-8">
-              <Greeting
-                subtitle={homeConfig.greeting.subtitle}
-                title={homeConfig.greeting.title}
-              />
-              <div className="w-full max-w-2xl">{inputComponent}</div>
+          <div className="flex flex-1 flex-col px-4 py-10 sm:px-6 md:py-14">
+            <div className="flex min-h-0 flex-[0.42] flex-col justify-end pb-24 md:pb-32">
+              <div className="mx-auto w-full max-w-2xl">
+                <Greeting
+                  subtitle={homeConfig.greeting.subtitle}
+                  title={homeConfig.greeting.title}
+                />
+              </div>
+            </div>
+            <div className="mx-auto w-full max-w-3xl shrink-0">
+              {inputComponent}
+            </div>
+            <div className="flex min-h-0 flex-[0.58] flex-col justify-start gap-6 pt-6">
+              <p
+                className="text-muted-foreground mx-auto text-xs"
+                aria-label="Powered by Data360 MCP"
+              >
+                Powered by Data360 MCP
+              </p>
             </div>
           </div>
         ) : (
