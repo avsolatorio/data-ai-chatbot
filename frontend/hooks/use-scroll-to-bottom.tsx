@@ -31,7 +31,7 @@ export function useScrollToBottom() {
     });
   }, []);
 
-  // Handle user scroll events — update ref on every scroll, state only when scroll settles (avoids flicker from re-renders during scroll)
+  // Handle user scroll events — throttle to rAF so we don't read layout every event; state only when scroll settles
   useEffect(() => {
     const container = containerRef.current;
     if (!container) {
@@ -39,25 +39,32 @@ export function useScrollToBottom() {
     }
 
     let scrollTimeout: ReturnType<typeof setTimeout>;
+    let rafId: number | null = null;
 
     const handleScroll = () => {
       lastScrollTimeRef.current = Date.now();
       isUserScrollingRef.current = true;
       clearTimeout(scrollTimeout);
 
-      const atBottom = checkIfAtBottom();
-      isAtBottomRef.current = atBottom;
+      if (rafId === null) {
+        rafId = requestAnimationFrame(() => {
+          rafId = null;
+          const atBottom = checkIfAtBottom();
+          isAtBottomRef.current = atBottom;
+        });
+      }
 
       scrollTimeout = setTimeout(() => {
         isUserScrollingRef.current = false;
         setIsAtBottom(isAtBottomRef.current);
-      }, 150);
+      }, 200);
     };
 
     container.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       container.removeEventListener("scroll", handleScroll);
       clearTimeout(scrollTimeout);
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, [checkIfAtBottom]);
 
@@ -69,42 +76,44 @@ export function useScrollToBottom() {
     }
 
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    const DEBOUNCE_MS = 120;
-    const SCROLL_COOLDOWN_MS = 400;
+    const DEBOUNCE_MS = 250;
+    const SCROLL_COOLDOWN_MS = 500;
 
-    const scrollIfNeeded = () => {
+    const scrollToBottomIfNeeded = () => {
+      if (!containerRef.current) return;
+      if (!isAtBottomRef.current || isUserScrollingRef.current) return;
+      if (Date.now() - lastScrollTimeRef.current < SCROLL_COOLDOWN_MS) return;
+      requestAnimationFrame(() => {
+        if (!containerRef.current) return;
+        containerRef.current.scrollTo({
+          top: containerRef.current.scrollHeight,
+          behavior: "instant",
+        });
+        setIsAtBottom(true);
+        isAtBottomRef.current = true;
+      });
+    };
+
+    const scheduleScrollIfNeeded = () => {
       if (debounceTimer !== null) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         debounceTimer = null;
-        if (!containerRef.current) return;
-        const el = containerRef.current;
-        if (!isAtBottomRef.current || isUserScrollingRef.current) return;
-        if (Date.now() - lastScrollTimeRef.current < SCROLL_COOLDOWN_MS) return;
-        requestAnimationFrame(() => {
-          if (!containerRef.current) return;
-          el.scrollTo({
-            top: el.scrollHeight,
-            behavior: "instant",
-          });
-          setIsAtBottom(true);
-          isAtBottomRef.current = true;
-        });
+        scrollToBottomIfNeeded();
       }, DEBOUNCE_MS);
     };
 
-    const mutationObserver = new MutationObserver(scrollIfNeeded);
+    const mutationObserver = new MutationObserver(scheduleScrollIfNeeded);
     mutationObserver.observe(container, {
       childList: true,
-      subtree: true,
-      characterData: true,
+      subtree: false,
     });
 
-    const resizeObserver = new ResizeObserver(scrollIfNeeded);
+    const resizeObserver = new ResizeObserver((entries) => {
+      const isContainerResize = entries.some((e) => e.target === container);
+      if (!isContainerResize) return;
+      scheduleScrollIfNeeded();
+    });
     resizeObserver.observe(container);
-
-    for (const child of container.children) {
-      resizeObserver.observe(child);
-    }
 
     return () => {
       if (debounceTimer !== null) clearTimeout(debounceTimer);

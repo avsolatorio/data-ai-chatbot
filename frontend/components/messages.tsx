@@ -194,6 +194,7 @@ function PureMessages({
                     left: 0,
                     width: "100%",
                     transform: `translateY(${virtualRow.start}px)`,
+                    willChange: "transform",
                   }}
                 >
                   <ThinkingMessage />
@@ -228,6 +229,7 @@ function PureMessages({
                   left: 0,
                   width: "100%",
                   transform: `translateY(${virtualRow.start}px)`,
+                  willChange: "transform",
                 }}
               >
                 <PreviewMessage
