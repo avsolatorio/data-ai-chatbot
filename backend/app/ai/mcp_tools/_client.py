@@ -10,7 +10,7 @@ from app.config import get_mcp_settings
 
 @cache
 def get_mcp_client(
-    transport: Literal["sse", "http"] = "sse",
+    transport: Literal["sse", "http"] = "http",
 ) -> Client[SSETransport | StreamableHttpTransport]:
     """Get a cached MCP client instance.
     TODO: Deprecate SSE transport.

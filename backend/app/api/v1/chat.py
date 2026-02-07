@@ -16,6 +16,7 @@ from app.ai.prompts import get_system_prompt, get_thinking_system_prompt
 from app.ai.protocols.stream import MessageStartPart
 from app.ai.routing import check_intent
 from app.api.deps import get_current_user, get_optional_user
+from app.config import IntentType, ModelType
 from app.api.v1.utils.background_tasks import (
     create_save_messages_task,
     create_update_context_task,
@@ -309,7 +310,7 @@ async def create_chat(
 
     # Determine intent (Fast-Path vs Research Path)
     intent = await check_intent(openai_messages)
-    use_thinking = intent == "RESEARCH"
+    use_thinking = intent == IntentType.RESEARCH
 
     if not use_thinking:
         logger.info("Fast-path: Skipping Research Planner for DIRECT intent.")

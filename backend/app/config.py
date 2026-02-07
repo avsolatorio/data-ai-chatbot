@@ -15,6 +15,13 @@ class ModelType(str, Enum):
     ARTIFACT_MODEL = "artifact-model"
 
 
+class IntentType(str, Enum):
+    """Enum for chat intent types."""
+
+    RESEARCH = "RESEARCH"
+    DIRECT = "DIRECT"
+
+
 class ModelSettings(BaseSettings):
     MODEL_PROVIDER: str = "azure/"
     CHAT_MODEL: str = "gpt-4o-mini"
@@ -85,6 +92,10 @@ class Settings(BaseSettings):
 
     # AI Model Configuration - can be overridden via environment variables
     models: ModelSettings = ModelSettings()
+
+    # Routing Configuration
+    ROUTING_MODEL: str = "gpt-4o-mini"
+    ROUTING_HISTORY_LIMIT: int = 3
 
     # App
     ENVIRONMENT: str = "development"

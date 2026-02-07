@@ -11,7 +11,6 @@ from app.ai.tools import (
     CREATE_DOCUMENT_TOOL_DEFINITION,
     UPDATE_DOCUMENT_TOOL_DEFINITION,
     create_document_tool,
-    get_weather,
     update_document_tool,
 )
 
@@ -23,11 +22,6 @@ async def create_tool_wrappers(user_id: UUID, db: AsyncSession) -> Dict[str, Dic
     Create async tool wrappers for OpenAI tools.
     These wrappers handle the _sse_writer parameter and pass user_id/db_session.
     """
-
-    async def get_weather_wrapper(**kwargs):
-        # Remove _sse_writer if present (weather doesn't need it)
-        kwargs.pop("_sse_writer", None)
-        return await get_weather(**kwargs)
 
     async def create_document_wrapper(**kwargs):
         sse_writer = kwargs.pop("_sse_writer", None)

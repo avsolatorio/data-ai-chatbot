@@ -149,7 +149,7 @@ async def execute_tool_with_streaming(
             yield ("event", event)
 
         # Log tool input
-        logger.info(">>> Tool Call [%s]: %s", tool_name, json.dumps(parsed_arguments))
+        logger.debug(">>> Tool Call [%s]: %s", tool_name, json.dumps(parsed_arguments))
 
         # Get tool result
         tool_result = await tool_task
@@ -157,7 +157,7 @@ async def execute_tool_with_streaming(
         # Log tool output (truncated for readability)
         res_str = json.dumps(tool_result)
         truncated_res = (res_str[:2000] + "...") if len(res_str) > 2000 else res_str
-        logger.info("<<< Tool Output [%s]: %s", tool_name, truncated_res)
+        logger.debug("<<< Tool Output [%s]: %s", tool_name, truncated_res)
 
         yield ("result", tool_result)
 
@@ -395,14 +395,14 @@ async def stream_text(
             # Insert system message at the beginning
             conversation_messages.insert(0, {"role": "system", "content": system})
 
-        logger.info("Conversation messages: %s", conversation_messages)
+        logger.debug("Conversation messages: %s", conversation_messages)
 
         # Track cumulative usage across all turns
         total_usage_data = None
 
         # Multi-turn tool calling loop
         for turn in range(max_tool_turns):
-            logger.info("=== Tool turn %d/%d ===", turn + 1, max_tool_turns)
+            logger.debug("=== Tool turn %d/%d ===", turn + 1, max_tool_turns)
 
             thinking_id = f"msg-{turn}" if mode == "thinking" else ""
             text_stream_id = "text-1"
@@ -425,21 +425,21 @@ async def stream_text(
             )
 
             # TODO: Clean up this logging and exception handling for debugging purposes
-            logger.info("About to call client.chat.completions.create with mode=%s", mode)
+            logger.debug("About to call client.chat.completions.create with mode=%s", mode)
             try:
                 stream = await client.chat.completions.create(**chat_input)
-                logger.info("Successfully created stream, type: %s", type(stream))
+                logger.debug("Successfully created stream, type: %s", type(stream))
             except Exception as e:
                 logger.error("Exception during stream creation: %s", e, exc_info=True)
                 raise
-            logger.info("Successfully created stream, type: %s", type(stream))
+            logger.debug("Successfully created stream, type: %s", type(stream))
 
             yield part_to_sse(StartStepPart(), mode=mode, thinking_id=thinking_id)
             if mode == "thinking":
                 yield DataPart(type="data-stage", data={"stage": "interpreting"}).to_sse()
 
             # Process stream chunks
-            logger.info("Starting to iterate over stream chunks...")
+            logger.debug("Starting to iterate over stream chunks...")
             chunk_count = 0
             try:
                 # Iterate over stream chunks using async iteration
@@ -449,7 +449,7 @@ async def stream_text(
                     await asyncio.sleep(stream_yield_delay)
                     chunk_count += 1
                     if chunk_count == 1:
-                        logger.info("First chunk received in turn %d", turn + 1)
+                        logger.debug("First chunk received in turn %d", turn + 1)
                     text_stream_id = chunk.id
 
                     # Check if chunk has choices (OpenAI-like format)
@@ -634,7 +634,7 @@ async def stream_text(
 
             # Handle tool calls completion
             if finish_reason == "tool_calls" and tools:
-                logger.info("Tool calls detected, executing tools...")
+                logger.debug("Tool calls detected, executing tools...")
 
                 # First, add the assistant message with tool calls to conversation
                 assistant_tool_calls = []
@@ -834,7 +834,7 @@ async def stream_text(
 
                 # Add tool results to conversation for next turn
                 if tool_messages:
-                    logger.info(
+                    logger.debug(
                         "Adding %d tool result(s) to conversation for next turn", len(tool_messages)
                     )
                     conversation_messages.extend(tool_messages)
