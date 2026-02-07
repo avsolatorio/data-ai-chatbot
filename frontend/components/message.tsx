@@ -201,6 +201,7 @@ function renderMessagePart(
       <DocumentPreview
         isReadonly={isReadonly}
         key={toolCallId}
+        messageId={message.id}
         result={part.output}
       />
     );
@@ -225,6 +226,7 @@ function renderMessagePart(
         <DocumentPreview
           args={{ ...part.output, isUpdate: true }}
           isReadonly={isReadonly}
+          messageId={message.id}
           result={part.output}
         />
       </div>
@@ -305,7 +307,11 @@ function renderMessagePart(
             <ToolOutput
               errorText={undefined}
               output={
-                <ChartPreview chartUrl={output.url} isReadonly={isReadonly} />
+                <ChartPreview
+                  chartUrl={output.url}
+                  isReadonly={isReadonly}
+                  messageId={message.id}
+                />
               }
               useDefaultFormat={false}
             />
@@ -851,6 +857,7 @@ const PurePreviewMessage = ({
                                             kind: "embed",
                                             status: "idle",
                                             title: entry.title,
+                                            triggerMessageId: message.id,
                                           });
                                         }
                                       : entry.href

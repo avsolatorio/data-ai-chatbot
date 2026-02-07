@@ -70,6 +70,8 @@ export type UIArtifact = {
     width: number;
     height: number;
   };
+  /** When set, chat can scroll to this message when using "trigger" scroll behavior. */
+  triggerMessageId?: string;
 };
 
 function PureArtifact({
@@ -433,6 +435,7 @@ function PureArtifact({
                   regenerate={regenerate}
                   setMessages={setMessages}
                   status={status}
+                  triggerMessageId={artifact.triggerMessageId}
                   votes={votes}
                 />
 

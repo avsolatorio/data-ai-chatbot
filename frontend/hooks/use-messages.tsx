@@ -5,8 +5,11 @@ import { useScrollToBottom } from "./use-scroll-to-bottom";
 
 export function useMessages({
   status,
+  disableAutoScroll,
 }: {
   status: UseChatHelpers<ChatMessage>["status"];
+  /** When true, do not auto-scroll to bottom on content change (e.g. when artifact panel should show trigger message). */
+  disableAutoScroll?: boolean;
 }) {
   const {
     containerRef,
@@ -15,7 +18,7 @@ export function useMessages({
     scrollToBottom,
     onViewportEnter,
     onViewportLeave,
-  } = useScrollToBottom();
+  } = useScrollToBottom({ disableAutoScroll });
 
   const [hasSentMessage, setHasSentMessage] = useState(false);
 

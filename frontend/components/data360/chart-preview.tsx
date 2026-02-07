@@ -16,6 +16,8 @@ type ChartApiResponse = {
 type ChartPreviewProps = {
   chartUrl: string;
   isReadonly?: boolean;
+  /** Message that contains this chart; used to scroll chat to it when artifact scroll behavior is "trigger". */
+  messageId?: string;
 };
 
 /**
@@ -35,7 +37,11 @@ function proxyChartUrl(url: string): string {
   return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
 }
 
-export function ChartPreview({ chartUrl, isReadonly }: ChartPreviewProps) {
+export function ChartPreview({
+  chartUrl,
+  isReadonly,
+  messageId,
+}: ChartPreviewProps) {
   const { setArtifact } = useArtifact();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +81,7 @@ export function ChartPreview({ chartUrl, isReadonly }: ChartPreviewProps) {
             width: boundingBox.width,
             height: boundingBox.height,
           },
+          ...(messageId ? { triggerMessageId: messageId } : {}),
         }));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load chart");
@@ -82,7 +89,7 @@ export function ChartPreview({ chartUrl, isReadonly }: ChartPreviewProps) {
         setIsLoading(false);
       }
     },
-    [proxiedUrl, isReadonly, setArtifact]
+    [proxiedUrl, isReadonly, setArtifact, messageId]
   );
 
   if (error) {

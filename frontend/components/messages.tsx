@@ -2,11 +2,13 @@ import type { UseChatHelpers } from "@ai-sdk/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import equal from "fast-deep-equal";
 import { ArrowDownIcon } from "lucide-react";
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
 import { useMessages } from "@/hooks/use-messages";
 import type { Vote } from "@/lib/db/schema";
+import { appConfig } from "@/lib/config";
 import type { ChatMessage } from "@/lib/types";
+import { useArtifactSelector } from "@/hooks/use-artifact";
 import { useDataStream } from "./data-stream-provider";
 import { PreviewMessage, ThinkingMessage } from "./message";
 import { scrollToAndHighlightMessage } from "./quoted-context-block";
@@ -48,11 +50,19 @@ function PureMessages({
   setMessages,
   regenerate,
   isReadonly,
+  isArtifactVisible,
   isWaitingForSavedParts = false,
   selectedModelId: _selectedModelId,
   streamingThinkingStage = null,
   streamingThinkingParts = [],
 }: MessagesProps) {
+  const artifactScrollBehavior = appConfig.artifactScrollBehavior;
+  const artifactTriggerMessageId = useArtifactSelector(
+    (state) => state.triggerMessageId,
+  );
+  const prevArtifactVisibleRef = useRef(isArtifactVisible);
+  const lastTriggerMessageIdRef = useRef<string | undefined>(undefined);
+  const hasScrolledInitialForChatRef = useRef(false);
   const {
     containerRef: messagesContainerRef,
     endRef: messagesEndRef,
@@ -96,6 +106,75 @@ function PureMessages({
     });
   }, [status, virtualItemCount, virtualizer]);
 
+  // When artifact panel opens: store trigger message id so we can show it when the panel closes (chat is hidden while artifact is open). When panel closes: scroll to trigger message if we have one, otherwise scroll to bottom if behavior is "bottom".
+  useEffect(() => {
+    const wasVisible = prevArtifactVisibleRef.current;
+    prevArtifactVisibleRef.current = isArtifactVisible;
+
+    if (!wasVisible && isArtifactVisible && artifactTriggerMessageId) {
+      lastTriggerMessageIdRef.current = artifactTriggerMessageId;
+      return undefined;
+    }
+
+    if (wasVisible && !isArtifactVisible && virtualItemCount > 0) {
+      const triggerId = lastTriggerMessageIdRef.current;
+      lastTriggerMessageIdRef.current = undefined;
+      if (triggerId) {
+        const index = messages.findIndex((m) => m.id === triggerId);
+        if (index >= 0) {
+          const t = setTimeout(() => {
+            virtualizer.scrollToIndex(index, {
+              align: "start",
+              behavior: "auto",
+            });
+          }, 150);
+          return () => clearTimeout(t);
+        }
+      }
+      if (artifactScrollBehavior === "bottom") {
+        const t = setTimeout(() => {
+          virtualizer.scrollToIndex(virtualItemCount - 1, {
+            align: "end",
+            behavior: "auto",
+          });
+          scrollToBottom("auto");
+        }, 150);
+        return () => clearTimeout(t);
+      }
+    }
+  }, [
+    isArtifactVisible,
+    artifactScrollBehavior,
+    artifactTriggerMessageId,
+    messages,
+    virtualItemCount,
+    virtualizer,
+    scrollToBottom,
+  ]);
+
+  // Scroll to bottom on load/refresh when conversation already has messages
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset initial-scroll flag when switching chats
+  useEffect(() => {
+    hasScrolledInitialForChatRef.current = false;
+  }, [chatId]);
+  useEffect(() => {
+    if (
+      virtualItemCount === 0 ||
+      status !== "ready" ||
+      hasScrolledInitialForChatRef.current
+    ) {
+      return;
+    }
+    hasScrolledInitialForChatRef.current = true;
+    const t = setTimeout(() => {
+      virtualizer.scrollToIndex(virtualItemCount - 1, {
+        align: "end",
+        behavior: "auto",
+      });
+    }, 100);
+    return () => clearTimeout(t);
+  }, [virtualItemCount, status, virtualizer]);
+
   // Stick to bottom while streaming when user is at bottom (virtual list height may not change so observers don't fire)
   const lastMessageTextLength =
     messages.length > 0
@@ -133,7 +212,7 @@ function PureMessages({
     }
     virtualizer.scrollToIndex(virtualItemCount - 1, {
       align: "end",
-      behavior: "instant",
+      behavior: "auto",
     });
   }, [
     status,
@@ -286,6 +365,9 @@ function PureMessages({
 export const Messages = memo(PureMessages, (prevProps, nextProps) => {
   if (prevProps.isArtifactVisible && nextProps.isArtifactVisible) {
     return true;
+  }
+  if (prevProps.isArtifactVisible !== nextProps.isArtifactVisible) {
+    return false;
   }
 
   if (prevProps.chatId !== nextProps.chatId) {

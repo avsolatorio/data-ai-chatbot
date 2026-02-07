@@ -32,6 +32,20 @@ function getFeedbackContact(): FeedbackContact | null {
   return null;
 }
 
+/**
+ * When artifact panel closes with no trigger message (e.g. opened by stream):
+ * - "bottom": scroll main chat to latest message.
+ * - "trigger": do not scroll (leave position as-is).
+ * When there is a trigger message we always scroll to it; this flag does not apply.
+ */
+export type ArtifactScrollBehavior = "bottom" | "trigger";
+
+function getArtifactScrollBehavior(): ArtifactScrollBehavior {
+  const v = process.env.NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR;
+  if (v === "trigger" || v === "bottom") return v;
+  return "bottom";
+}
+
 export const appConfig = {
   /**
    * When set (e.g. "alpha", "beta"), a status badge is shown so users know the app is not stable.
@@ -87,4 +101,10 @@ export const appConfig = {
   sidebar: {
     appName: "Data360 Chat",
   },
+
+  /**
+   * When artifact closes with no trigger message: "bottom" scrolls chat to latest; "trigger" leaves scroll as-is.
+   * Set via NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR.
+   */
+  artifactScrollBehavior: getArtifactScrollBehavior(),
 };

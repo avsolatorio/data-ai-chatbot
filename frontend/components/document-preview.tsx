@@ -26,12 +26,15 @@ type DocumentPreviewProps = {
   isReadonly: boolean;
   result?: any;
   args?: any;
+  /** Message that contains this preview; used to scroll chat to it when artifact scroll behavior is "trigger". */
+  messageId?: string;
 };
 
 export function DocumentPreview({
   isReadonly,
   result,
   args,
+  messageId,
 }: DocumentPreviewProps) {
   const { artifact, setArtifact } = useArtifact();
 
@@ -86,7 +89,9 @@ export function DocumentPreview({
 
   const document: Document | null = previewDocument
     ? previewDocument
-    : artifact.status === "streaming" && artifact.kind !== "chart"
+    : artifact.status === "streaming" &&
+        artifact.kind !== "chart" &&
+        artifact.kind !== "embed"
       ? {
           title: artifact.title,
           kind: artifact.kind,
@@ -105,6 +110,7 @@ export function DocumentPreview({
     <div className="relative w-full cursor-pointer">
       <HitboxLayer
         hitboxRef={hitboxRef}
+        messageId={messageId}
         result={result}
         setArtifact={setArtifact}
       />
@@ -146,10 +152,12 @@ const LoadingSkeleton = ({ artifactKind }: { artifactKind: ArtifactKind }) => (
 const PureHitboxLayer = ({
   hitboxRef,
   result,
+  messageId,
   setArtifact,
 }: {
   hitboxRef: React.RefObject<HTMLDivElement>;
   result: any;
+  messageId?: string;
   setArtifact: (
     updaterFn: UIArtifact | ((currentArtifact: UIArtifact) => UIArtifact)
   ) => void;
@@ -173,10 +181,11 @@ const PureHitboxLayer = ({
                 width: boundingBox.width,
                 height: boundingBox.height,
               },
+              ...(messageId ? { triggerMessageId: messageId } : {}),
             }
       );
     },
-    [setArtifact, result]
+    [setArtifact, result, messageId]
   );
 
   return (
@@ -198,6 +207,9 @@ const PureHitboxLayer = ({
 
 const HitboxLayer = memo(PureHitboxLayer, (prevProps, nextProps) => {
   if (!equal(prevProps.result, nextProps.result)) {
+    return false;
+  }
+  if (prevProps.messageId !== nextProps.messageId) {
     return false;
   }
   return true;

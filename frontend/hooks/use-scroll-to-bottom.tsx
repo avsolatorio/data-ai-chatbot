@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export function useScrollToBottom() {
+export function useScrollToBottom(options?: { disableAutoScroll?: boolean }) {
+  const disableAutoScroll = options?.disableAutoScroll ?? false;
   const containerRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -68,11 +69,14 @@ export function useScrollToBottom() {
     };
   }, [checkIfAtBottom]);
 
-  // Auto-scroll when content changes (debounced to avoid jumpiness with virtual lists)
+  // Auto-scroll when content changes (debounced to avoid jumpiness with virtual lists). Skip when disableAutoScroll (e.g. artifact panel showing trigger message).
   useEffect(() => {
+    if (disableAutoScroll) {
+      return undefined;
+    }
     const container = containerRef.current;
     if (!container) {
-      return;
+      return undefined;
     }
 
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -120,7 +124,7 @@ export function useScrollToBottom() {
       mutationObserver.disconnect();
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [disableAutoScroll]);
 
   function onViewportEnter() {
     setIsAtBottom(true);
