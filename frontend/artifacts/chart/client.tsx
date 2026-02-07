@@ -36,6 +36,7 @@ function ChartEditor({ content, status }: ChartEditorProps) {
     width: (w?: number) => number;
     height: (h?: number) => number;
     run: () => unknown;
+    finalize?: () => void;
   } | null>(null);
   const [themeConfig, setThemeConfig] = useState<Record<
     string,
@@ -73,7 +74,7 @@ function ChartEditor({ content, status }: ChartEditorProps) {
     const specWithTheme = applyThemeToSpec(spec, themeConfig);
     const el = containerRef.current;
     const rect = el.getBoundingClientRect();
-    const initialWidth = rect.width;
+    const initialWidth = Math.max(1, Math.floor(rect.width));
     const getMaxChartHeight = () =>
       Math.max(
         1,
@@ -81,23 +82,44 @@ function ChartEditor({ content, status }: ChartEditorProps) {
           0.6 * (typeof window !== "undefined" ? window.innerHeight : 600),
         ),
       );
+    const initialHeight = Math.min(
+      Math.max(1, Math.floor(rect.height)),
+      getMaxChartHeight(),
+    );
+
+    // With autosize "fit", padding can expand the view and cause clipping, so pass
+    // inner dimensions (minus padding) so the full chart stays visible in the container.
+    const CHART_PADDING = 24;
+    const padTotalX = CHART_PADDING * 2;
+    const padTotalY = CHART_PADDING * 2;
 
     let resizeObserver: ResizeObserver | null = null;
     let cancelled = false;
 
+    const buildSpecForSize = (w: number, h: number) => {
+      const innerW = Math.max(1, w - padTotalX);
+      const innerH = Math.max(1, h - padTotalY);
+      return {
+        ...specWithTheme,
+        width: innerW,
+        height: innerH,
+        padding: CHART_PADDING,
+        autosize: { type: "fit" as const, contain: "padding" as const },
+      };
+    };
+
     void (async () => {
       const { default: embed } = await import("vega-embed");
-      const initialHeight = Math.min(
-        Math.max(1, rect.height),
-        getMaxChartHeight(),
+      const result = await embed(
+        el,
+        buildSpecForSize(initialWidth, initialHeight),
+        {
+          renderer: "canvas",
+          actions: false,
+        },
       );
-      const result = await embed(el, specWithTheme, {
-        renderer: "canvas",
-        actions: false,
-        width: Math.max(1, Math.floor(initialWidth)),
-        height: Math.floor(initialHeight),
-      });
       if (cancelled) {
+        result.view.finalize();
         el.replaceChildren();
         return;
       }
@@ -109,7 +131,9 @@ function ChartEditor({ content, status }: ChartEditorProps) {
       const sizeThreshold = 2;
 
       const applySize = (w: number, h: number) => {
-        view.width(w).height(h).run();
+        const innerW = Math.max(1, w - padTotalX);
+        const innerH = Math.max(1, h - padTotalY);
+        view.width(innerW).height(innerH).run();
       };
 
       const readSizeAndApply = () => {
@@ -140,7 +164,9 @@ function ChartEditor({ content, status }: ChartEditorProps) {
     return () => {
       cancelled = true;
       resizeObserver?.disconnect();
+      const view = viewRef.current;
       viewRef.current = null;
+      if (view?.finalize) view.finalize();
       el.replaceChildren();
     };
   }, [content, themeConfig]);

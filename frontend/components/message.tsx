@@ -56,6 +56,44 @@ import {
 } from "./quoted-context-block";
 import { Weather } from "./weather";
 
+/** Bare chart URL (path or full URL). */
+const CHART_URL_REGEX =
+  /(?:\/api\/v1\/charts\/[^\s"'<>)\]]+|https?:\/\/[^\s]*\/api\/v1\/charts\/[^\s"'<>)\]]+)/;
+
+/** Markdown link whose href is a chart URL: [label](chartUrl). Group 1 = chartUrl, full match = whole link. */
+const CHART_MARKDOWN_LINK_REGEX = new RegExp(
+  `\\[[^\\]]*\\]\\s*\\(\\s*(${CHART_URL_REGEX.source})\\s*\\)`,
+);
+
+/** Splits text at the first chart URL (or markdown link with chart URL) so it can be replaced by ChartPreview inline. */
+function splitTextAtChartUrl(text: string): {
+  before: string;
+  chartUrl: string;
+  after: string;
+} | null {
+  // Prefer replacing the entire markdown link [label](chartUrl) so the label is not left visible
+  const mdLinkMatch = text.match(CHART_MARKDOWN_LINK_REGEX);
+  if (mdLinkMatch && mdLinkMatch.index !== undefined) {
+    const start = mdLinkMatch.index;
+    const end = start + mdLinkMatch[0].length;
+    const chartUrl = (mdLinkMatch[1] ?? mdLinkMatch[0]).trim();
+    return {
+      before: text.slice(0, start),
+      chartUrl,
+      after: text.slice(end),
+    };
+  }
+  const match = text.match(CHART_URL_REGEX);
+  if (!match || match.index === undefined) return null;
+  const start = match.index;
+  const end = start + match[0].length;
+  return {
+    before: text.slice(0, start),
+    chartUrl: match[0].trim(),
+    after: text.slice(end),
+  };
+}
+
 // Helper function to render a single message part
 // This is extracted to be reusable for nested parts in data-thinking
 function renderMessagePart(
@@ -136,6 +174,29 @@ function renderMessagePart(
                 <Response>
                   {sanitizeText(isUserWithRegarding.question)}
                 </Response>
+              ) : message.role === "assistant" ? (
+                (() => {
+                  const split = splitTextAtChartUrl(part.text);
+                  if (!split) {
+                    return <Response>{sanitizeText(part.text)}</Response>;
+                  }
+                  const { before, chartUrl, after } = split;
+                  return (
+                    <>
+                      {before.trim().length > 0 ? (
+                        <Response>{sanitizeText(before)}</Response>
+                      ) : null}
+                      <ChartPreview
+                        chartUrl={chartUrl}
+                        isReadonly={isReadonly}
+                        messageId={message.id}
+                      />
+                      {after.trim().length > 0 ? (
+                        <Response>{sanitizeText(after)}</Response>
+                      ) : null}
+                    </>
+                  );
+                })()
               ) : (
                 <Response>{sanitizeText(part.text)}</Response>
               )}
