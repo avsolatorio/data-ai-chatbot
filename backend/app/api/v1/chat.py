@@ -52,6 +52,117 @@ from app.utils.user_id import get_user_id_uuid, user_ids_match
 logger = logging.getLogger(__name__)
 logger.info("=== CHAT ENDPOINT CALLED ===")
 
+
+# ---- Stream generator helpers (keep stream_generator readable) ----
+
+
+async def _store_and_yield(stream_id: UUID, state: dict, sse_bytes: bytes):
+    """Yield one SSE chunk after storing it; increment sequence and flush."""
+    seq = state["sequence"]
+    state["sequence"] += 1
+    asyncio.create_task(store_stream_chunk(stream_id, sse_bytes, seq))
+    return sse_bytes
+
+
+async def _emit_routing_phase(
+    message_id: str,
+    stream_id: UUID,
+    openai_messages: list,
+    state: dict,
+    out: dict,
+):
+    """Async generator: emit routing stage + 'Understanding your question' + check_intent + reasoning. Sets out['use_thinking'] and out['reasoning']."""
+    # Stage and static text
+    yield await _store_and_yield(
+        stream_id,
+        state,
+        DataPart(type="data-stage", data={"stage": "routing"}).to_sse().encode("utf-8"),
+    )
+    await asyncio.sleep(0)
+    routing_part_id = f"routing-{message_id}"
+    for part in (
+        TextStartPart(id=routing_part_id),
+        TextDeltaPart(id=routing_part_id, delta="Understanding your question…"),
+        TextEndPart(id=routing_part_id),
+    ):
+        sse_bytes = (
+            DataThinkingPart(id=message_id, data=part.model_dump(exclude_none=True))
+            .to_sse()
+            .encode("utf-8")
+        )
+        yield await _store_and_yield(stream_id, state, sse_bytes)
+        await asyncio.sleep(0)
+
+    intent, reasoning = await check_intent(openai_messages)
+    out["use_thinking"] = intent == IntentType.RESEARCH
+    out["reasoning"] = reasoning or ""
+    if not out["use_thinking"]:
+        logger.info(
+            "Fast-path: DIRECT intent. Chat phase streams text-start/text-delta; frontend shows them via useChat."
+        )
+
+    if reasoning:
+        reason_part_id = f"routing-reason-{message_id}"
+        for part in (
+            TextStartPart(id=reason_part_id),
+            TextDeltaPart(id=reason_part_id, delta=reasoning),
+            TextEndPart(id=reason_part_id),
+        ):
+            sse_bytes = (
+                DataThinkingPart(id=message_id, data=part.model_dump(exclude_none=True))
+                .to_sse()
+                .encode("utf-8")
+            )
+            yield await _store_and_yield(stream_id, state, sse_bytes)
+            await asyncio.sleep(0)
+
+
+async def _stream_with_store(stream_id: UUID, state: dict, aiter):
+    """Forward an async iterable of SSE bytes, storing each and yielding it."""
+    async for event_bytes in aiter:
+        yield await _store_and_yield(stream_id, state, event_bytes)
+        await asyncio.sleep(0)
+
+
+def _build_routing_parts(message_id: str, reasoning: str) -> List[dict]:
+    """Parts to prepend to assistant message for the Reasoning block (reload)."""
+    parts = [
+        {
+            "type": "data-thinking",
+            "id": message_id,
+            "data": {"type": "text", "text": "Understanding your question…"},
+        },
+    ]
+    if reasoning:
+        parts.append(
+            {
+                "type": "data-thinking",
+                "id": message_id,
+                "data": {"type": "text", "text": reasoning},
+            }
+        )
+    return parts
+
+
+def _build_assistant_message(
+    message_id: str,
+    reasoning: str,
+    use_thinking: bool,
+    thinking_processor: StreamEventProcessor,
+    chat_processor: StreamEventProcessor,
+) -> dict:
+    """Build the assistant message dict with routing parts for saving."""
+    routing_parts = _build_routing_parts(message_id, reasoning)
+    if use_thinking:
+        assistant_message = thinking_processor.assistant_messages[0].copy()
+        assistant_message["parts"] = routing_parts + assistant_message["parts"]
+        assistant_message["parts"].extend(chat_processor.assistant_messages[0]["parts"])
+    else:
+        assistant_message = chat_processor.assistant_messages[0].copy()
+        assistant_message["parts"] = routing_parts + assistant_message["parts"]
+    return assistant_message
+
+
 router = APIRouter()
 
 # Rate limiting configuration
@@ -323,133 +434,70 @@ async def create_chat(
 
     async def stream_generator():
         nonlocal stream_interrupted
-        sequence = 0  # Sequence counter for ordering chunks
+        state = {"sequence": 0}
+        message_id = f"msg-{uuid4().hex}"
+        use_thinking = False
+        reasoning = ""
+
         try:
-            message_id = f"msg-{uuid4().hex}"
-            use_thinking = False  # Set after routing; ensures finally block can reference it
-            reasoning = ""  # Set after check_intent; used when saving direct-path message
             yield MessageStartPart(messageId=message_id).to_sse().encode("utf-8")
-            await asyncio.sleep(0)  # Flush immediately
-
-            # Routing as first "thinking" stage: show "Understanding your question" and stream data-thinking
-            sse_bytes = (
-                DataPart(type="data-stage", data={"stage": "routing"}).to_sse().encode("utf-8")
-            )
-            current_sequence = sequence
-            sequence += 1
-            asyncio.create_task(store_stream_chunk(stream_id, sse_bytes, current_sequence))
-            yield sse_bytes
             await asyncio.sleep(0)
-            routing_part_id = f"routing-{message_id}"
-            for part in (
-                TextStartPart(id=routing_part_id),
-                TextDeltaPart(id=routing_part_id, delta="Understanding your question…"),
-                TextEndPart(id=routing_part_id),
+
+            out = {}
+            async for chunk in _emit_routing_phase(
+                message_id, stream_id, openai_messages, state, out
             ):
-                sse_bytes = (
-                    DataThinkingPart(id=message_id, data=part.model_dump(exclude_none=True))
-                    .to_sse()
-                    .encode("utf-8")
-                )
-                current_sequence = sequence
-                sequence += 1
-                asyncio.create_task(store_stream_chunk(stream_id, sse_bytes, current_sequence))
-                yield sse_bytes
-                await asyncio.sleep(0)
+                yield chunk
+            use_thinking = out["use_thinking"]
+            reasoning = out["reasoning"]
 
-            intent, reasoning = await check_intent(openai_messages)
-            use_thinking = intent == IntentType.RESEARCH
-            if not use_thinking:
-                logger.info(
-                    "Fast-path: DIRECT intent. Chat phase streams text-start/text-delta; frontend shows them via useChat."
-                )
-            # Stream routing reasoning to the frontend so the Reasoning block shows why we chose this path
-            if reasoning:
-                reason_part_id = f"routing-reason-{message_id}"
-                for part in (
-                    TextStartPart(id=reason_part_id),
-                    TextDeltaPart(id=reason_part_id, delta=reasoning),
-                    TextEndPart(id=reason_part_id),
-                ):
-                    sse_bytes = (
-                        DataThinkingPart(id=message_id, data=part.model_dump(exclude_none=True))
-                        .to_sse()
-                        .encode("utf-8")
-                    )
-                    current_sequence = sequence
-                    sequence += 1
-                    asyncio.create_task(store_stream_chunk(stream_id, sse_bytes, current_sequence))
-                    yield sse_bytes
-                    await asyncio.sleep(0)
-
-            # TODO: If thinking stage is completed, store the thinking messages in the database and support resuming the stream from the thinking stage.
             thinking_messages = [
                 convert_message_data_to_message_model(msg).model_dump()
                 for msg in thinking_processor.assistant_messages
             ]
-
             if not thinking_messages:
                 logger.info("No thinking messages, using chat messages")
                 thinking_messages = openai_messages
 
-            # logger.info(
-            #     "Thinking messages before conversion: %s", json.dumps(thinking_messages, indent=4)
-            # )
-
             if use_thinking:
-                async for event_bytes in thinking_processor.process_stream(
-                    client=client,
-                    model=model,
-                    messages=thinking_messages,
-                    system=thinking_system,
-                    tools=tool_set["mcp"]["tools"],
-                    tool_definitions=tool_set["mcp"]["tool_definitions"],
+                async for chunk in _stream_with_store(
+                    stream_id,
+                    state,
+                    thinking_processor.process_stream(
+                        client=client,
+                        model=model,
+                        messages=thinking_messages,
+                        system=thinking_system,
+                        tools=tool_set["mcp"]["tools"],
+                        tool_definitions=tool_set["mcp"]["tool_definitions"],
+                    ),
                 ):
-                    # Store chunk in Redis asynchronously with sequence number
-                    current_sequence = sequence
-                    sequence += 1
-                    asyncio.create_task(
-                        store_stream_chunk(stream_id, event_bytes, current_sequence)
-                    )
-                    yield event_bytes
+                    yield chunk
 
-                # TODO: If thinking stage is completed, store the thinking messages in the database and support resuming the stream from the thinking stage.
-                logger.info(
-                    "Thinking processor assistant messages count: %d",
-                    len(thinking_processor.assistant_messages),
-                )
                 thinking_messages = [
                     convert_message_data_to_message_model(msg).model_dump()
                     for msg in thinking_processor.assistant_messages
                 ]
-
-                # Unpack the data from the thinking parts so we can convert them to OpenAI format
                 thinking_messages = [
                     {**msg, "parts": [part["data"] for part in msg["parts"]]}
                     for msg in thinking_messages
                 ]
-
-                logger.info(
-                    "Thinking messages chat messages before conversion: %d", len(thinking_messages)
-                )
                 thinking_messages = await convert_messages_to_openai_format(thinking_messages, db)
 
-            logger.info(
-                "Thinking messages chat messages after conversion: %d",
-                len(thinking_messages),
-            )
-            async for event_bytes in chat_processor.process_stream(
-                client=client,
-                model=model,
-                messages=thinking_messages,
-                system=system,
-                tools=tool_set["local"]["tools"],
-                tool_definitions=tool_set["local"]["tool_definitions"],
+            async for chunk in _stream_with_store(
+                stream_id,
+                state,
+                chat_processor.process_stream(
+                    client=client,
+                    model=model,
+                    messages=thinking_messages,
+                    system=system,
+                    tools=tool_set["local"]["tools"],
+                    tool_definitions=tool_set["local"]["tool_definitions"],
+                ),
             ):
-                current_sequence = sequence
-                sequence += 1
-                asyncio.create_task(store_stream_chunk(stream_id, event_bytes, current_sequence))
-                yield event_bytes
+                yield chunk
+
         except GeneratorExit:
             # Client disconnected (browser refresh, navigation, etc.)
             stream_interrupted = True
@@ -471,7 +519,7 @@ async def create_chat(
                     tool_definitions=tool_set["local"]["tool_definitions"],
                     background_tasks=background_tasks,
                     processor=thinking_processor,
-                    current_sequence=sequence,
+                    current_sequence=state["sequence"],
                 )
             )
             raise  # Re-raise to properly close the generator
@@ -496,32 +544,10 @@ async def create_chat(
                     % len(chat_processor.assistant_messages)
                 )
 
-                # Build routing data-thinking parts for both paths (shown in Reasoning on reload)
-                routing_parts = [
-                    {
-                        "type": "data-thinking",
-                        "id": message_id,
-                        "data": {"type": "text", "text": "Understanding your question…"},
-                    },
-                ]
-                if reasoning:
-                    routing_parts.append(
-                        {
-                            "type": "data-thinking",
-                            "id": message_id,
-                            "data": {"type": "text", "text": reasoning},
-                        }
-                    )
-                if use_thinking:
-                    assistant_message = thinking_processor.assistant_messages[0].copy()
-                    assistant_message["parts"] = routing_parts + assistant_message["parts"]
-                    assistant_message["parts"].extend(chat_processor.assistant_messages[0]["parts"])
-                else:
-                    assistant_message = chat_processor.assistant_messages[0].copy()
-                    assistant_message["parts"] = routing_parts + assistant_message["parts"]
-
+                assistant_message = _build_assistant_message(
+                    message_id, reasoning, use_thinking, thinking_processor, chat_processor
+                )
                 logger.info("Assistant message: %s", assistant_message)
-
                 create_save_messages_task(
                     background_tasks,
                     request.id,
