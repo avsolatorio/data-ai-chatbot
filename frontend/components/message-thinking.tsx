@@ -13,6 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
+import { appConfig } from "@/lib/config";
 import type { ChatMessage } from "@/lib/types";
 import { isNonRenderableStreamEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -21,12 +22,19 @@ import { Reasoning, ReasoningTrigger } from "./elements/reasoning";
 const SCROLL_AT_BOTTOM_THRESHOLD_PX = 24;
 
 function hasToolPart(
-  parts: Array<{ type: string; id: string; data: ChatMessage["parts"][number] }>,
+  parts: Array<{
+    type: string;
+    id: string;
+    data: ChatMessage["parts"][number];
+  }>,
 ): boolean {
   return parts.some((p) => {
     const d = p.data;
     if (typeof d !== "object" || d === null) return false;
-    if ("toolCallId" in d && typeof (d as { toolCallId?: unknown }).toolCallId === "string")
+    if (
+      "toolCallId" in d &&
+      typeof (d as { toolCallId?: unknown }).toolCallId === "string"
+    )
       return true;
     const t = "type" in d ? (d as { type: unknown }).type : null;
     return t === "tool-call" || t === "tool-result";
@@ -55,6 +63,8 @@ const stepsContentClassNameSheet =
 type ThinkingStepsBodyProps = {
   isLoading: boolean;
   muted?: boolean;
+  /** When true, show part type (e.g. "text", "tool-xyz") beside each step. Controlled by appConfig.showReasoningPartType. */
+  showPartType?: boolean;
   thinkingParts: Array<{
     type: string;
     id: string;
@@ -69,6 +79,7 @@ type ThinkingStepsBodyProps = {
 function ThinkingStepsBody({
   isLoading,
   muted = true,
+  showPartType = false,
   thinkingParts,
   renderPart,
 }: ThinkingStepsBodyProps) {
@@ -111,12 +122,14 @@ function ThinkingStepsBody({
               )}
             </div>
             <div className="min-w-0 flex-1 pt-0">
-              <div
-                className="mb-0.5 font-mono text-[10px] text-muted-foreground"
-                title={`part: ${partType}`}
-              >
-                <span aria-hidden>{partType}</span>
-              </div>
+              {showPartType && (
+                <div
+                  className="mb-0.5 font-mono text-[10px] text-muted-foreground"
+                  title={`part: ${partType}`}
+                >
+                  <span aria-hidden>{partType}</span>
+                </div>
+              )}
               {renderedPart}
             </div>
           </div>
@@ -271,6 +284,7 @@ export function MessageThinking({
                 <ThinkingStepsBody
                   isLoading={isLoading}
                   muted={false}
+                  showPartType={appConfig.showReasoningPartType}
                   thinkingParts={renderableParts}
                   renderPart={renderPart}
                 />
@@ -293,6 +307,7 @@ export function MessageThinking({
             <div ref={contentContainerRef}>
               <ThinkingStepsBody
                 isLoading={isLoading}
+                showPartType={appConfig.showReasoningPartType}
                 thinkingParts={renderableParts}
                 renderPart={renderPart}
               />

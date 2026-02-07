@@ -46,6 +46,13 @@ function getArtifactScrollBehavior(): ArtifactScrollBehavior {
   return "bottom";
 }
 
+function getShowReasoningPartType(): boolean {
+  const v = process.env.NEXT_PUBLIC_SHOW_REASONING_PART_TYPE;
+  if (v === "true" || v === "1") return true;
+  if (v === "false" || v === "0") return false;
+  return false;
+}
+
 export const appConfig = {
   /**
    * When set (e.g. "alpha", "beta"), a status badge is shown so users know the app is not stable.
@@ -107,4 +114,10 @@ export const appConfig = {
    * Set via NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR.
    */
   artifactScrollBehavior: getArtifactScrollBehavior(),
+
+  /**
+   * When true, show the part type (e.g. "text", "tool-xyz") beside each step in the Reasoning block.
+   * Default false. Set via NEXT_PUBLIC_SHOW_REASONING_PART_TYPE=true.
+   */
+  showReasoningPartType: getShowReasoningPartType(),
 };
