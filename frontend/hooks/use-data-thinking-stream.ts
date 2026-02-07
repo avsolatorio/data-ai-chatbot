@@ -9,11 +9,13 @@ import type {
 
 /** Processing stage labels; must match backend data-stage values after mapping. */
 export type ProcessingStage =
+  | "Understanding your question"
   | "Interpreting your question"
   | "Retrieving data"
   | "Generating answer";
 
 const DATA_STAGE_TO_LABEL: Record<string, ProcessingStage> = {
+  routing: "Understanding your question",
   interpreting: "Interpreting your question",
   retrieving: "Retrieving data",
   generating: "Generating answer",

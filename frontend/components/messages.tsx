@@ -370,6 +370,11 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
     return false;
   }
 
+  // While streaming, always re-render so streamed message.parts (no data-thinking) are shown incrementally
+  if (nextProps.status === "streaming") {
+    return false;
+  }
+
   if (prevProps.chatId !== nextProps.chatId) {
     return false;
   }

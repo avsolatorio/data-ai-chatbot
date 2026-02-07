@@ -13,17 +13,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.client import get_ai_client, get_async_ai_client, get_model_name
 from app.ai.observability.token_usage import DataUsageData
 from app.ai.prompts import get_system_prompt, get_thinking_system_prompt
-from app.ai.protocols.stream import MessageStartPart
+from app.ai.protocols.stream import (
+    DataPart,
+    DataThinkingPart,
+    MessageStartPart,
+    TextDeltaPart,
+    TextEndPart,
+    TextStartPart,
+)
 from app.ai.routing import check_intent
 from app.api.deps import get_current_user, get_optional_user
-from app.config import IntentType, ModelType
 from app.api.v1.utils.background_tasks import (
     create_save_messages_task,
     create_update_context_task,
 )
 from app.api.v1.utils.continue_stream import _continue_stream_in_background
 from app.api.v1.utils.tool_setup import prepare_tools
-from app.config import ModelType
+from app.config import IntentType, ModelType
 from app.core.database import get_db
 from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import (
@@ -308,14 +314,7 @@ async def create_chat(
     tool_set = await prepare_tools(user_id, db)
     # logger.info("tool_set: %s", json.dumps(tool_set, indent=4))
 
-    # Determine intent (Fast-Path vs Research Path)
-    intent = await check_intent(openai_messages)
-    use_thinking = intent == IntentType.RESEARCH
-
-    if not use_thinking:
-        logger.info("Fast-path: Skipping Research Planner for DIRECT intent.")
-
-    # Create stream processor
+    # Create stream processor (intent is determined inside stream after emitting routing stage)
     thinking_processor = StreamEventProcessor(request.id, mode="thinking")
     chat_processor = StreamEventProcessor(request.id, mode="chat")
 
@@ -327,8 +326,61 @@ async def create_chat(
         sequence = 0  # Sequence counter for ordering chunks
         try:
             message_id = f"msg-{uuid4().hex}"
+            use_thinking = False  # Set after routing; ensures finally block can reference it
+            reasoning = ""  # Set after check_intent; used when saving direct-path message
             yield MessageStartPart(messageId=message_id).to_sse().encode("utf-8")
             await asyncio.sleep(0)  # Flush immediately
+
+            # Routing as first "thinking" stage: show "Understanding your question" and stream data-thinking
+            sse_bytes = (
+                DataPart(type="data-stage", data={"stage": "routing"}).to_sse().encode("utf-8")
+            )
+            current_sequence = sequence
+            sequence += 1
+            asyncio.create_task(store_stream_chunk(stream_id, sse_bytes, current_sequence))
+            yield sse_bytes
+            await asyncio.sleep(0)
+            routing_part_id = f"routing-{message_id}"
+            for part in (
+                TextStartPart(id=routing_part_id),
+                TextDeltaPart(id=routing_part_id, delta="Understanding your question…"),
+                TextEndPart(id=routing_part_id),
+            ):
+                sse_bytes = (
+                    DataThinkingPart(id=message_id, data=part.model_dump(exclude_none=True))
+                    .to_sse()
+                    .encode("utf-8")
+                )
+                current_sequence = sequence
+                sequence += 1
+                asyncio.create_task(store_stream_chunk(stream_id, sse_bytes, current_sequence))
+                yield sse_bytes
+                await asyncio.sleep(0)
+
+            intent, reasoning = await check_intent(openai_messages)
+            use_thinking = intent == IntentType.RESEARCH
+            if not use_thinking:
+                logger.info(
+                    "Fast-path: DIRECT intent. Chat phase streams text-start/text-delta; frontend shows them via useChat."
+                )
+            # Stream routing reasoning to the frontend so the Reasoning block shows why we chose this path
+            if reasoning:
+                reason_part_id = f"routing-reason-{message_id}"
+                for part in (
+                    TextStartPart(id=reason_part_id),
+                    TextDeltaPart(id=reason_part_id, delta=reasoning),
+                    TextEndPart(id=reason_part_id),
+                ):
+                    sse_bytes = (
+                        DataThinkingPart(id=message_id, data=part.model_dump(exclude_none=True))
+                        .to_sse()
+                        .encode("utf-8")
+                    )
+                    current_sequence = sequence
+                    sequence += 1
+                    asyncio.create_task(store_stream_chunk(stream_id, sse_bytes, current_sequence))
+                    yield sse_bytes
+                    await asyncio.sleep(0)
 
             # TODO: If thinking stage is completed, store the thinking messages in the database and support resuming the stream from the thinking stage.
             thinking_messages = [
@@ -394,7 +446,6 @@ async def create_chat(
                 tools=tool_set["local"]["tools"],
                 tool_definitions=tool_set["local"]["tool_definitions"],
             ):
-                # Store chunk in Redis asynchronously with sequence number
                 current_sequence = sequence
                 sequence += 1
                 asyncio.create_task(store_stream_chunk(stream_id, event_bytes, current_sequence))
@@ -445,11 +496,29 @@ async def create_chat(
                     % len(chat_processor.assistant_messages)
                 )
 
+                # Build routing data-thinking parts for both paths (shown in Reasoning on reload)
+                routing_parts = [
+                    {
+                        "type": "data-thinking",
+                        "id": message_id,
+                        "data": {"type": "text", "text": "Understanding your question…"},
+                    },
+                ]
+                if reasoning:
+                    routing_parts.append(
+                        {
+                            "type": "data-thinking",
+                            "id": message_id,
+                            "data": {"type": "text", "text": reasoning},
+                        }
+                    )
                 if use_thinking:
                     assistant_message = thinking_processor.assistant_messages[0].copy()
+                    assistant_message["parts"] = routing_parts + assistant_message["parts"]
                     assistant_message["parts"].extend(chat_processor.assistant_messages[0]["parts"])
                 else:
                     assistant_message = chat_processor.assistant_messages[0].copy()
+                    assistant_message["parts"] = routing_parts + assistant_message["parts"]
 
                 logger.info("Assistant message: %s", assistant_message)
 
