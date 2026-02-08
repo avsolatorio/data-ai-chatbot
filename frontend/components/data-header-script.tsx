@@ -29,12 +29,8 @@ function syncHeaderHeight(): void {
   const wrapper = document.querySelector(".data-header-wrapper");
   if (!wrapper) return;
   const height = wrapper.getBoundingClientRect().height;
-  if (height > 0) {
-    document.documentElement.style.setProperty(
-      "--header-height",
-      `${height}px`,
-    );
-  }
+  // Always update so ResizeObserver can correct from 0 to real height when header injects content
+  document.documentElement.style.setProperty("--header-height", `${height}px`);
 }
 
 /**
@@ -118,11 +114,25 @@ export function DataHeaderScript() {
       });
   }, []);
 
+  // Keep --header-height in sync with .data-header-wrapper height (resize, font load, async header inject).
+  useEffect(() => {
+    const wrapper = document.querySelector(".data-header-wrapper");
+    if (!wrapper) return;
+
+    syncHeaderHeight();
+    const observer = new ResizeObserver(() => {
+      syncHeaderHeight();
+    });
+    observer.observe(wrapper);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <Script
       src={getDataHeaderScriptUrl()}
       strategy="afterInteractive"
       onLoad={() => {
+        syncHeaderHeight();
         const dataHeaderOptions = {
           languagecode: "en",
           selector: ".data-header",
@@ -145,13 +155,12 @@ export function DataHeaderScript() {
                 // App continues without the external header.
               });
             }
-            // Sync sidebar offset after header is populated (DOM may update async).
-            setTimeout(syncHeaderHeight, 500);
+            // Backup sync in case ResizeObserver misses the first layout (e.g. async inject).
+            setTimeout(syncHeaderHeight, 300);
+            setTimeout(syncHeaderHeight, 1000);
           } catch {
             // Sync error (e.g. CORS, localhost, network).
           }
-        } else {
-          syncHeaderHeight();
         }
       }}
     />
