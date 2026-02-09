@@ -1,6 +1,8 @@
 import logging
+import os
 import sys
 from contextlib import asynccontextmanager
+from logging.handlers import RotatingFileHandler
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,18 +26,40 @@ from app.api.v1 import (
 from app.config import settings
 from app.core.redis import close_redis_client
 
+# Resolve log level from config (DEBUG, INFO, WARNING, ERROR)
+_log_level_name = (settings.LOG_LEVEL or "INFO").strip().upper()
+_log_level = getattr(logging, _log_level_name, logging.INFO)
+
+# Build handlers: always stdout; optionally a rotating file
+_log_handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
+if settings.LOG_FILE and settings.LOG_FILE.strip():
+    _log_path = settings.LOG_FILE.strip()
+    _log_dir = os.path.dirname(_log_path)
+    if _log_dir:
+        os.makedirs(_log_dir, exist_ok=True)
+    _file_handler = RotatingFileHandler(
+        _log_path,
+        maxBytes=settings.LOG_MAX_BYTES,
+        backupCount=settings.LOG_BACKUP_COUNT,
+        encoding="utf-8",
+    )
+    _file_handler.setFormatter(
+        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    )
+    _log_handlers.append(_file_handler)
+
 # Configure logging BEFORE importing other modules
 # This ensures all loggers use this configuration
 logging.basicConfig(
-    level=logging.INFO,
+    level=_log_level,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
+    handlers=_log_handlers,
     force=True,  # Override any existing configuration
 )
 
 # Get root logger and ensure it's configured
 root_logger = logging.getLogger()
-root_logger.setLevel(logging.INFO)
+root_logger.setLevel(_log_level)
 
 # Configure SQLAlchemy logging BEFORE database imports
 # Set to WARNING to suppress INFO level SQL query logs
@@ -43,13 +67,15 @@ logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
 logging.getLogger("sqlalchemy.dialects").setLevel(logging.WARNING)
 
-# Ensure uvicorn loggers also use INFO level
-logging.getLogger("uvicorn").setLevel(logging.INFO)
-logging.getLogger("uvicorn.access").setLevel(logging.INFO)
+# Ensure uvicorn loggers use the configured level
+logging.getLogger("uvicorn").setLevel(_log_level)
+logging.getLogger("uvicorn.access").setLevel(_log_level)
 
 # Test logging
 logger = logging.getLogger(__name__)
 logger.info("=== FastAPI app starting, logging configured ===")
+if settings.LOG_FILE and settings.LOG_FILE.strip():
+    logger.info("Logs are also being written to: %s", settings.LOG_FILE.strip())
 
 
 @asynccontextmanager
@@ -112,7 +138,11 @@ async def test_log():
     logger.info("=== TEST LOG ENDPOINT CALLED ===")
     logger.warning("This is a WARNING log")
     logger.error("This is an ERROR log")
-    return {"status": "ok", "message": "Check terminal for logs"}
+    return {
+        "status": "ok",
+        "message": "Check terminal and log file for logs",
+        "log_file": settings.LOG_FILE or None,
+    }
 
 
 if __name__ == "__main__":

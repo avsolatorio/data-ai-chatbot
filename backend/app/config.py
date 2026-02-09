@@ -100,6 +100,13 @@ class Settings(BaseSettings):
     # App
     ENVIRONMENT: str = "development"
     CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3001"
+
+    # Logging - optional file logging
+    # If LOG_FILE is set, logs are written to both stdout and this file (with rotation)
+    LOG_FILE: str = ""
+    LOG_LEVEL: str = "INFO"  # DEBUG, INFO, WARNING, ERROR
+    LOG_MAX_BYTES: int = 10 * 1024 * 1024  # 10 MB per file
+    LOG_BACKUP_COUNT: int = 5  # Number of rotated backup files to keep
     NEXTJS_URL: str = "http://localhost:3001"  # Next.js server URL for proxy requests
     # Cookie Domain - Optional: Set explicit domain for cookies (e.g., ".example.com" for subdomain sharing)
     # If not set, cookies will use the default domain (current domain only)
