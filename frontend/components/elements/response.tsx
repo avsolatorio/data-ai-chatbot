@@ -94,10 +94,28 @@ function ResponseParagraph({
   );
 }
 
+/** Props passed by react-markdown for raw HTML <claim> (must match @pcn-js/ui ClaimNodeProps). */
+type ClaimComponentProps = {
+  id?: string;
+  policy?: string;
+  children?: ReactNode;
+};
+
+/** Wrapper that logs when the claim component is invoked (diagnostic: if we see this but 0 DOM nodes, ClaimMark is throwing). */
+function ClaimComponentWithLog(props: ClaimComponentProps) {
+  if (typeof console !== "undefined" && console.info) {
+    console.info(`${PCN_LOG_PREFIX} claim component invoked`, {
+      id: props.id ?? "—",
+      policy: props.policy ?? "—",
+    });
+  }
+  return <ClaimMarkStreamdown {...props} />;
+}
+
 /** Streamdown uses react-markdown + rehype-raw; custom `claim` is supported at runtime but not in Components type. */
 const responseComponents = {
   ...streamdownClaimComponents,
-  claim: ClaimMarkStreamdown,
+  claim: ClaimComponentWithLog,
   p: ResponseParagraph,
 } as Partial<Components>;
 
