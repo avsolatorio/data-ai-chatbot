@@ -1,5 +1,45 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+/**
+ * Derive the client-facing origin so redirects and redirectUrl param use the host the user sees,
+ * not the internal host (e.g. in Azure/Docker, request.url can be https://container-id:8080).
+ */
+function getRequestOrigin(request: NextRequest): string {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedHost && forwardedProto) {
+    const host = forwardedHost.split(",")[0]?.trim() ?? "";
+    const proto = forwardedProto.split(",")[0]?.trim() ?? "https";
+    if (host) return `${proto}://${host}`;
+  }
+
+  const referer = request.headers.get("referer");
+  if (referer) {
+    try {
+      const refUrl = new URL(referer);
+      if (refUrl.origin && (refUrl.protocol === "http:" || refUrl.protocol === "https:")) {
+        return refUrl.origin;
+      }
+    } catch {
+      // Ignore invalid Referer
+    }
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (appUrl) {
+    try {
+      const appOrigin = new URL(appUrl).origin;
+      if (appOrigin) return appOrigin;
+    } catch {
+      // Ignore invalid URL
+    }
+  }
+
+  const host = request.headers.get("host") ?? request.nextUrl.host;
+  const proto = request.nextUrl.protocol === "https:" ? "https" : "http";
+  return `${proto}://${host}`;
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -39,14 +79,17 @@ export function proxy(request: NextRequest) {
   const guestSessionId = request.cookies.get("guest_session_id")?.value;
   const userSessionId = request.cookies.get("user_session_id")?.value;
 
-  // If no auth cookies at all, redirect to guest creation
-  // The layout will handle the actual user validation
+  // If no auth cookies at all, redirect to guest creation.
+  // Use client-facing origin for both the redirect target and redirectUrl so the user
+  // is not sent to an internal host (e.g. container hostname in Azure/Docker).
   if (!authToken && !guestSessionId && !userSessionId) {
-    const redirectUrl = encodeURIComponent(request.url);
-
-    return NextResponse.redirect(
-      new URL(`/api/auth/guest?redirectUrl=${redirectUrl}`, request.url)
+    const baseOrigin = getRequestOrigin(request);
+    const redirectTarget = `${baseOrigin}/`;
+    const guestUrl = new URL(
+      `/api/auth/guest?redirectUrl=${encodeURIComponent(redirectTarget)}`,
+      baseOrigin
     );
+    return NextResponse.redirect(guestUrl);
   }
 
   return NextResponse.next();

@@ -46,10 +46,55 @@ function getRequestOrigin(request: Request): string {
   return `${proto}://${host}`;
 }
 
+/** Hostnames that indicate an internal/container URL; never redirect the user there. */
+const INTERNAL_HOST_PATTERN = /^(localhost|127\.0\.0\.1|\[::1\]|[a-f0-9]{8,})$/i;
+
+function isInternalOrigin(origin: string): boolean {
+  try {
+    const u = new URL(origin);
+    const host = u.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "[::1]") return true;
+    if (INTERNAL_HOST_PATTERN.test(host)) return true;
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Return a safe redirect target. If the client sent an absolute redirectUrl with an internal
+ * origin (e.g. container hostname), use baseOrigin + path instead so we never send the user there.
+ */
+function safeRedirectTarget(
+  redirectUrl: string,
+  baseOrigin: string,
+): string {
+  if (!redirectUrl || redirectUrl.startsWith("/")) {
+    return new URL(redirectUrl || "/", baseOrigin).toString();
+  }
+  try {
+    const parsed = new URL(redirectUrl);
+    if (parsed.origin && isInternalOrigin(parsed.origin)) {
+      return new URL(parsed.pathname + parsed.search, baseOrigin).toString();
+    }
+    const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    if (appOrigin) {
+      const allowed = new URL(appOrigin).origin;
+      if (parsed.origin !== allowed) {
+        return new URL(parsed.pathname + parsed.search, baseOrigin).toString();
+      }
+    }
+    return redirectUrl;
+  } catch {
+    return new URL("/", baseOrigin).toString();
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const redirectUrl = searchParams.get("redirectUrl") || "/";
+  const redirectUrlParam = searchParams.get("redirectUrl") || "/";
   const baseOrigin = getRequestOrigin(request);
+  const redirectTarget = safeRedirectTarget(redirectUrlParam, baseOrigin);
 
   // Get cookies to forward to FastAPI
   // FastAPI will validate them and create a new guest user if they're invalid/stale
@@ -119,10 +164,8 @@ export async function GET(request: Request) {
     // Get the user data from response
     const data = await response.json();
 
-    // Create redirect response using client-facing origin so user is not sent to internal host
-    const redirectResponse = NextResponse.redirect(
-      new URL(redirectUrl, baseOrigin)
-    );
+    // Create redirect response; redirectTarget is already safe (no internal host)
+    const redirectResponse = NextResponse.redirect(redirectTarget);
 
     // Forward Set-Cookie headers from FastAPI to client
     // FastAPI sets cookies via Set-Cookie headers in the response
