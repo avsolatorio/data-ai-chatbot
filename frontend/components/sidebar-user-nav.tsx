@@ -1,7 +1,6 @@
 "use client";
 
 import { ChevronUp } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useSWRConfig } from "swr";
@@ -21,6 +20,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getChatHistoryPaginationKey } from "./sidebar-history";
 import { LoaderIcon } from "./icons";
 import { toast } from "./toast";
@@ -60,13 +60,16 @@ export function SidebarUserNav({
                 className="h-10 bg-background data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 data-testid="user-nav-button"
               >
-                <Image
-                  alt={user.email ?? "Guest User"}
-                  className="rounded-full"
-                  height={24}
-                  src={`https://avatar.vercel.sh/${user.email || "guest"}`}
-                  width={24}
-                />
+                <Avatar className="size-6">
+                  <AvatarFallback
+                    className="text-xs"
+                    title={isGuest ? "Guest User" : (user.email ?? "User")}
+                  >
+                    {isGuest
+                      ? "G"
+                      : (user.email ?? "U").charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 <span className="truncate" data-testid="user-email">
                   {isGuest ? "Guest" : user?.email || "User"}
                 </span>
