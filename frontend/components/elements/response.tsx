@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 type ResponseProps = ComponentProps<typeof Streamdown>;
 
 const streamdownClassName =
-  "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:whitespace-pre-wrap [&_code]:break-words [&_pre]:max-w-full [&_pre]:overflow-x-auto";
+  "response-markdown size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:whitespace-pre-wrap [&_code]:break-words [&_pre]:max-w-full [&_pre]:overflow-x-auto";
 
 const DATA_LABELS = ["Data", "Analysis", "Note"] as const;
 type DataLabel = (typeof DATA_LABELS)[number];

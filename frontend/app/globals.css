@@ -1,8 +1,27 @@
 @import "tailwindcss";
 @import "katex/dist/katex.min.css";
 
-/* include utility classes in streamdown */
+/* include utility classes in streamdown (relative path rewritten to absolute by postcss-source-resolve.mjs at build time) */
 @source '../node_modules/streamdown/dist/index.js';
+
+/* Fallback list styles when @source above does not resolve in deployment (see docs/deployment-rendering.md). */
+.response-markdown ul,
+.response-markdown ol {
+  margin-left: 1rem;
+  list-style-position: outside;
+}
+.response-markdown ul {
+  list-style-type: disc;
+}
+.response-markdown ol {
+  list-style-type: decimal;
+}
+.response-markdown ul ul,
+.response-markdown ol ol,
+.response-markdown ul ol,
+.response-markdown ol ul {
+  margin-left: 1rem;
+}
 
 /* custom variant for setting dark mode programmatically */
 @custom-variant dark (&:is(.dark, .dark *));
