@@ -4,7 +4,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   cacheComponents: true,
-  transpilePackages: ["@pcn-js/core", "@pcn-js/ui", "@pcn-js/data360"],
+  transpilePackages: [
+    "@pcn-js/core",
+    "@pcn-js/ui",
+    "@pcn-js/data360",
+    "streamdown",
+  ],
   // Avoid embedding absolute build paths in client source maps (standalone output)
   productionBrowserSourceMaps: false,
   // Prevent path segments (e.g. WBG from /Users/.../WBG/...) from becoming folders in .next/standalone.
