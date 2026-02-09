@@ -6,11 +6,46 @@ import {
   Children,
   isValidElement,
   memo,
+  useEffect,
+  useRef,
 } from "react";
 import type { Components } from "react-markdown";
 import { ClaimMarkStreamdown, streamdownClaimComponents } from "@pcn-js/ui";
 import { Streamdown } from "streamdown";
 import { cn } from "@/lib/utils";
+
+const PCN_LOG_PREFIX = "[PCN claim]";
+
+/** Log text that contains <claim> before and after Streamdown/PCN processing (frontend-only diagnostic). */
+function useClaimDiagnosticLog(children: string) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const hadClaimInInput = children.includes("<claim");
+
+  useEffect(() => {
+    if (!hadClaimInInput) return;
+    const logAfter = () => {
+      const el = containerRef.current;
+      if (!el) return;
+      const after = el.querySelectorAll("[data-pcn-claim-id], .pcn-claim");
+      const count = after.length;
+      const firstId =
+        after.length > 0
+          ? (after[0].getAttribute("data-pcn-claim-id") ?? after[0].id ?? "—")
+          : null;
+      if (typeof console !== "undefined" && console.info) {
+        console.info(
+          `${PCN_LOG_PREFIX} after: DOM has ${count} claim node(s)`,
+          firstId != null ? { firstClaimId: firstId } : {}
+        );
+      }
+    };
+    logAfter();
+    const t = setTimeout(logAfter, 150);
+    return () => clearTimeout(t);
+  }, [hadClaimInInput]);
+
+  return containerRef;
+}
 
 type ResponseProps = ComponentProps<typeof Streamdown>;
 
@@ -70,13 +105,29 @@ export const Response = memo(
   ({ className, ...props }: ResponseProps) => {
     const children =
       typeof props.children === "string" ? props.children : "";
+    const containerRef = useClaimDiagnosticLog(children);
+
+    if (children.includes("<claim") && typeof console !== "undefined" && console.info) {
+      const snippet = children.length > 400 ? `${children.slice(0, 400)}…` : children;
+      console.info(
+        `${PCN_LOG_PREFIX} before: length=${children.length}, snippet=`,
+        snippet
+      );
+    }
+
     return (
-      <Streamdown
-        className={cn(streamdownClassName, className)}
-        components={responseComponents}
+      <div
+        ref={containerRef}
+        className="response-markdown-wrapper"
+        style={{ display: "contents" }}
       >
-        {children}
-      </Streamdown>
+        <Streamdown
+          className={cn(streamdownClassName, className)}
+          components={responseComponents}
+        >
+          {children}
+        </Streamdown>
+      </div>
     );
   },
   (prevProps, nextProps) => prevProps.children === nextProps.children
