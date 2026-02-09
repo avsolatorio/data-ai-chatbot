@@ -1,9 +1,55 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+/**
+ * Derive the client-facing origin from the request.
+ * When behind a reverse proxy, request.url may be the internal host. We use, in order:
+ * 1. X-Forwarded-Host + X-Forwarded-Proto (when the proxy sets them)
+ * 2. Referer header (the browser sends the page URL, so we get the client's origin)
+ * 3. NEXT_PUBLIC_APP_URL (configured public URL)
+ * 4. Request host + protocol (last resort)
+ */
+function getRequestOrigin(request: Request): string {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedHost && forwardedProto) {
+    const host = forwardedHost.split(",")[0]?.trim() ?? "";
+    const proto = forwardedProto.split(",")[0]?.trim() ?? "https";
+    if (host) return `${proto}://${host}`;
+  }
+
+  const referer = request.headers.get("referer");
+  if (referer) {
+    try {
+      const refUrl = new URL(referer);
+      if (refUrl.origin && (refUrl.protocol === "http:" || refUrl.protocol === "https:")) {
+        return refUrl.origin;
+      }
+    } catch {
+      // Ignore invalid Referer
+    }
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (appUrl) {
+    try {
+      const appOrigin = new URL(appUrl).origin;
+      if (appOrigin) return appOrigin;
+    } catch {
+      // Ignore invalid URL
+    }
+  }
+
+  const host = request.headers.get("host") ?? "";
+  const proto =
+    request.url.startsWith("https") ? "https" : "http";
+  return `${proto}://${host}`;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const redirectUrl = searchParams.get("redirectUrl") || "/";
+  const baseOrigin = getRequestOrigin(request);
 
   // Get cookies to forward to FastAPI
   // FastAPI will validate them and create a new guest user if they're invalid/stale
@@ -54,7 +100,7 @@ export async function GET(request: Request) {
 
       // Handle rate limiting (429) - redirect to login page with error message
       if (response.status === 429) {
-        const loginUrl = new URL("/login", request.url);
+        const loginUrl = new URL("/login", baseOrigin);
         loginUrl.searchParams.set("error", "rate_limit");
         loginUrl.searchParams.set(
           "message",
@@ -65,7 +111,7 @@ export async function GET(request: Request) {
 
       // For other errors, redirect to login page instead of home to break the redirect loop
       // Home page would trigger proxy middleware again, causing infinite loop
-      const loginUrl = new URL("/login", request.url);
+      const loginUrl = new URL("/login", baseOrigin);
       loginUrl.searchParams.set("error", "guest_creation_failed");
       return NextResponse.redirect(loginUrl);
     }
@@ -73,9 +119,9 @@ export async function GET(request: Request) {
     // Get the user data from response
     const data = await response.json();
 
-    // Create redirect response
+    // Create redirect response using client-facing origin so user is not sent to internal host
     const redirectResponse = NextResponse.redirect(
-      new URL(redirectUrl, request.url)
+      new URL(redirectUrl, baseOrigin)
     );
 
     // Forward Set-Cookie headers from FastAPI to client
@@ -105,7 +151,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error creating guest user:", error);
     // Redirect to login page instead of home to break redirect loop
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL("/login", baseOrigin);
     loginUrl.searchParams.set("error", "guest_creation_error");
     return NextResponse.redirect(loginUrl);
   }

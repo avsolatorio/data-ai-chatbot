@@ -15,6 +15,68 @@ const API_URL =
   "http://localhost:8001";
 
 /**
+ * Derive the client-facing origin from the request so redirects stay on the host the user used.
+ * Uses, in order: X-Forwarded-* headers, Referer (browser page URL), NEXT_PUBLIC_APP_URL, then request host.
+ */
+function getRequestOrigin(request: NextRequest): string {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedHost && forwardedProto) {
+    const host = forwardedHost.split(",")[0]?.trim() ?? "";
+    const proto = forwardedProto.split(",")[0]?.trim() ?? "https";
+    if (host) return `${proto}://${host}`;
+  }
+
+  const referer = request.headers.get("referer");
+  if (referer) {
+    try {
+      const refUrl = new URL(referer);
+      if (refUrl.origin && (refUrl.protocol === "http:" || refUrl.protocol === "https:")) {
+        return refUrl.origin;
+      }
+    } catch {
+      // Ignore invalid Referer
+    }
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (appUrl) {
+    try {
+      const appOrigin = new URL(appUrl).origin;
+      if (appOrigin) return appOrigin;
+    } catch {
+      // Ignore invalid URL
+    }
+  }
+
+  const host = request.headers.get("host") ?? request.nextUrl.host;
+  const proto =
+    request.nextUrl.protocol === "https:" ? "https" : "http";
+  return `${proto}://${host}`;
+}
+
+/**
+ * If Location points at the backend host, rewrite it to the request origin so the user is not sent to the internal host.
+ */
+function rewriteRedirectLocation(
+  location: string,
+  request: NextRequest,
+): string {
+  try {
+    const locUrl = new URL(location, API_URL);
+    const apiOrigin = new URL(API_URL).origin;
+    if (locUrl.origin !== apiOrigin) {
+      return location;
+    }
+    const clientOrigin = getRequestOrigin(request);
+    const rewritten = new URL(locUrl.pathname + locUrl.search, clientOrigin);
+    return rewritten.toString();
+  } catch {
+    return location;
+  }
+}
+
+/**
  * Forward request to backend API
  */
 async function proxyRequest(
@@ -125,11 +187,12 @@ async function proxyRequest(
       throw fetchError;
     }
 
-    // Handle redirects (3xx status codes)
+    // Handle redirects (3xx status codes). Rewrite Location if it points at the backend so the user stays on the client-facing host.
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");
       if (location) {
-        return NextResponseValue.redirect(location, response.status);
+        const redirectTo = rewriteRedirectLocation(location, request);
+        return NextResponseValue.redirect(redirectTo, response.status);
       }
     }
 
