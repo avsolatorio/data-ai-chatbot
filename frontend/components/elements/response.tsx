@@ -12,8 +12,19 @@ import {
 } from "react";
 import type { Components } from "react-markdown";
 import { ClaimMarkStreamdown, streamdownClaimComponents } from "@pcn-js/ui";
-import { Streamdown } from "streamdown";
+import { defaultRehypePlugins, Streamdown } from "streamdown";
 import { cn } from "@/lib/utils";
+
+/** Explicit rehype plugin list so raw HTML (e.g. <claim>) is always parsed in deployment (avoids relying on Streamdown’s default being applied). */
+const REHYPE_PLUGINS = [
+  ...(Array.isArray(defaultRehypePlugins)
+    ? defaultRehypePlugins
+    : [
+        defaultRehypePlugins.harden,
+        defaultRehypePlugins.raw,
+        defaultRehypePlugins.katex,
+      ].filter(Boolean)),
+];
 
 const PCN_LOG_PREFIX = "[PCN claim]";
 
@@ -152,6 +163,7 @@ export const Response = memo(
         <Streamdown
           className={cn(streamdownClassName, className)}
           components={responseComponents}
+          rehypePlugins={REHYPE_PLUGINS}
         >
           {children}
         </Streamdown>
