@@ -2,6 +2,7 @@
 
 import {
   type ComponentProps,
+  type ComponentType,
   type ReactNode,
   Children,
   isValidElement,
@@ -113,11 +114,14 @@ function ClaimComponentWithLog(props: ClaimComponentProps) {
 }
 
 /** Streamdown uses react-markdown + rehype-raw; custom `claim` is supported at runtime but not in Components type. */
-const responseComponents = {
+type ResponseComponentsType = Partial<Components> & {
+  claim?: ComponentType<ClaimComponentProps>;
+};
+const responseComponents: ResponseComponentsType = {
   ...streamdownClaimComponents,
   claim: ClaimComponentWithLog,
   p: ResponseParagraph,
-} as Partial<Components>;
+};
 
 export const Response = memo(
   ({ className, ...props }: ResponseProps) => {
