@@ -131,6 +131,12 @@ export const Response = memo(
         `${PCN_LOG_PREFIX} before: length=${children.length}, snippet=`,
         snippet
       );
+      const claimComp = responseComponents.claim;
+      console.info(
+        `${PCN_LOG_PREFIX} components.claim in bundle:`,
+        typeof claimComp === "function" ? "yes" : "no",
+        claimComp != null ? { name: (claimComp as { displayName?: string; name?: string }).displayName ?? (claimComp as { name?: string }).name } : {}
+      );
     }
 
     return (
