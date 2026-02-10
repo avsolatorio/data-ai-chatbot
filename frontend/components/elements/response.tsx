@@ -1,17 +1,17 @@
 "use client";
 
+import { ClaimMarkStreamdown, streamdownClaimComponents } from "@pcn-js/ui";
 import {
+  Children,
   type ComponentProps,
   type ComponentType,
-  type ReactNode,
-  Children,
   isValidElement,
   memo,
+  type ReactNode,
   useEffect,
   useRef,
 } from "react";
 import type { Components } from "react-markdown";
-import { ClaimMarkStreamdown, streamdownClaimComponents } from "@pcn-js/ui";
 import { defaultRehypePlugins, Streamdown } from "streamdown";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +47,7 @@ function useClaimDiagnosticLog(children: string) {
       if (typeof console !== "undefined" && console.info) {
         console.info(
           `${PCN_LOG_PREFIX} after: DOM has ${count} claim node(s)`,
-          firstId != null ? { firstClaimId: firstId } : {}
+          firstId != null ? { firstClaimId: firstId } : {},
         );
       }
     };
@@ -80,10 +80,7 @@ function getResultLabel(children: ReactNode): DataLabel | null {
 }
 
 /** Paragraph component: wrap **Data:**, **Analysis:**, **Note:** blocks with subtle styling. */
-function ResponseParagraph({
-  children,
-  ...props
-}: ComponentProps<"p">) {
+function ResponseParagraph({ children, ...props }: ComponentProps<"p">) {
   const label = getResultLabel(children);
   if (!label) {
     return <p {...props}>{children}</p>;
@@ -95,7 +92,7 @@ function ResponseParagraph({
         "my-1 rounded border-l-2 border-l-border pl-2",
         labelKey === "data" && "border-l-chart-2",
         labelKey === "analysis" && "border-l-chart-4",
-        labelKey === "note" && "border-l-muted-foreground"
+        labelKey === "note" && "border-l-muted-foreground",
       )}
       data-result-label={labelKey}
     >
@@ -136,21 +133,31 @@ const responseComponents: ResponseComponentsType = {
 
 export const Response = memo(
   ({ className, ...props }: ResponseProps) => {
-    const children =
-      typeof props.children === "string" ? props.children : "";
+    const children = typeof props.children === "string" ? props.children : "";
     const containerRef = useClaimDiagnosticLog(children);
 
-    if (children.includes("<claim") && typeof console !== "undefined" && console.info) {
-      const snippet = children.length > 400 ? `${children.slice(0, 400)}…` : children;
+    if (
+      children.includes("<claim") &&
+      typeof console !== "undefined" &&
+      console.info
+    ) {
+      const snippet =
+        children.length > 400 ? `${children.slice(0, 400)}…` : children;
       console.info(
         `${PCN_LOG_PREFIX} before: length=${children.length}, snippet=`,
-        snippet
+        snippet,
       );
       const claimComp = responseComponents.claim;
       console.info(
         `${PCN_LOG_PREFIX} components.claim in bundle:`,
         typeof claimComp === "function" ? "yes" : "no",
-        claimComp != null ? { name: (claimComp as { displayName?: string; name?: string }).displayName ?? (claimComp as { name?: string }).name } : {}
+        claimComp != null
+          ? {
+              name:
+                (claimComp as { displayName?: string; name?: string })
+                  .displayName ?? (claimComp as { name?: string }).name,
+            }
+          : {},
       );
     }
 
@@ -170,7 +177,7 @@ export const Response = memo(
       </div>
     );
   },
-  (prevProps, nextProps) => prevProps.children === nextProps.children
+  (prevProps, nextProps) => prevProps.children === nextProps.children,
 );
 
 Response.displayName = "Response";
