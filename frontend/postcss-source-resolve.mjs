@@ -31,12 +31,27 @@ function getStreamdownPathFromRequire() {
 }
 
 /**
- * Resolve streamdown path: first from process.cwd(), then relative to the CSS file.
- * So build works when cwd has node_modules (e.g. local) or when only the CSS dir does (e.g. some CI).
+ * Resolve streamdown path:
+ * 1. STREAMDOWN_DIST_PATH env (for CI when cwd is not the app root)
+ * 2. require from process.cwd()
+ * 3. path relative to the CSS file
  */
 function getStreamdownPath(cssFilePath) {
   if (resolvedPath !== null) return resolvedPath;
-  let absolute = getStreamdownPathFromRequire();
+  let absolute = null;
+  const envPath = typeof process !== "undefined" && process.env && process.env.STREAMDOWN_DIST_PATH;
+  if (envPath) {
+    const p = path.isAbsolute(envPath) ? envPath : path.resolve(process.cwd(), envPath);
+    if (fs.existsSync(p)) {
+      const stat = fs.statSync(p);
+      if (stat.isFile()) absolute = p;
+      else if (stat.isDirectory()) {
+        const candidate = path.join(p, "dist", "index.js");
+        if (fs.existsSync(candidate)) absolute = candidate;
+      }
+    }
+  }
+  if (!absolute) absolute = getStreamdownPathFromRequire();
   if (!absolute && cssFilePath) {
     const dir = path.dirname(cssFilePath);
     const relativePath = path.join(

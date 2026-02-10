@@ -300,6 +300,9 @@ importers:
       '@types/react-syntax-highlighter':
         specifier: ^15.5.13
         version: 15.5.13
+      baseline-browser-mapping:
+        specifier: ^2.9.19
+        version: 2.9.19
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -2662,6 +2665,10 @@ packages:
 
   bail@2.0.2:
     resolution: {integrity: sha512-0xO6mYd7JB2YesxDKplafRpsiOzPt9V02ddPCLbY1xYGPOX24NTyN50qnUxgCPcSoYMhKpAuBTjQoRZCAkUDRw==}
+
+  baseline-browser-mapping@2.9.19:
+    resolution: {integrity: sha512-ipDqC8FrAl/76p2SSWKSI+H9tFwm7vYqXQrItCuiVPt26Km0jS+NzSsBWAaBusvSbQcfJG+JitdMm+wZAgTYqg==}
+    hasBin: true
 
   bcrypt-ts@5.0.3:
     resolution: {integrity: sha512-2FcgD12xPbwCoe5i9/HK0jJ1xA1m+QfC1e6htG9Bl/hNOnLyaFmQSlqLKcfe3QdnoMPKpKEGFCbESBTg+SJNOw==}
@@ -7085,6 +7092,8 @@ snapshots:
       retry: 0.13.1
 
   bail@2.0.2: {}
+
+  baseline-browser-mapping@2.9.19: {}
 
   bcrypt-ts@5.0.3: {}
 
