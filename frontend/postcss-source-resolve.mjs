@@ -2,28 +2,64 @@
  * PostCSS plugin: rewrite Tailwind @source for streamdown to an absolute path.
  *
  * Tailwind v4's @source in globals.css uses a path relative to the CSS file.
- * In some deployments (different cwd, pnpm layout) that relative path fails.
- * This plugin runs before @tailwindcss/postcss and replaces the streamdown
- * @source with Node's require.resolve result, so the path always resolves.
+ * In some deployments (different cwd, pnpm layout, or when the plugin runs
+ * from .next/) that relative path fails. This plugin runs before
+ * @tailwindcss/postcss and replaces the streamdown @source with an absolute
+ * path so Tailwind can always find streamdown's classes.
+ *
+ * We resolve "streamdown" from process.cwd() (the build root), not from
+ * import.meta.url, so resolution works even when Next/Turbopack runs this
+ * plugin from a copy under .next/ where node_modules is not available.
  */
 
+import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 
-const require = createRequire(import.meta.url);
+const requireFromCwd = createRequire(path.join(process.cwd(), "package.json"));
 
-const STREAMDOWN_RELATIVE = "../node_modules/streamdown/dist/index.js";
 let resolvedPath = null;
 
-function getStreamdownPath() {
-  if (resolvedPath !== null) return resolvedPath;
+function getStreamdownPathFromRequire() {
   try {
-    // resolve package entry (dist/index.cjs or dist/index.js); then use dist/index.js for Tailwind scan
-    const entry = require.resolve("streamdown");
+    const entry = requireFromCwd.resolve("streamdown");
     const dir = path.dirname(entry);
-    const absolute = path.join(dir, "index.js");
-    resolvedPath = path.normalize(absolute).replace(/\\/g, "/");
+    return path.join(dir, "index.js");
   } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve streamdown path: first from process.cwd(), then relative to the CSS file.
+ * So build works when cwd has node_modules (e.g. local) or when only the CSS dir does (e.g. some CI).
+ */
+function getStreamdownPath(cssFilePath) {
+  if (resolvedPath !== null) return resolvedPath;
+  let absolute = getStreamdownPathFromRequire();
+  if (!absolute && cssFilePath) {
+    const dir = path.dirname(cssFilePath);
+    const relativePath = path.join(
+      dir,
+      "..",
+      "node_modules",
+      "streamdown",
+      "dist",
+      "index.js",
+    );
+    absolute = path.resolve(relativePath);
+    if (!fs.existsSync(absolute)) absolute = null;
+  }
+  if (absolute) {
+    resolvedPath = path.normalize(absolute).replace(/\\/g, "/");
+  } else {
+    const warn =
+      "[postcss-source-resolve] streamdown not found (tried process.cwd() and path relative to CSS). List styles from streamdown will be missing; .response-markdown fallback in globals.css will apply.";
+    if (typeof process !== "undefined" && process.emitWarning) {
+      process.emitWarning(warn);
+    } else if (typeof console !== "undefined" && console.warn) {
+      console.warn(warn);
+    }
     resolvedPath = null;
   }
   return resolvedPath;
@@ -33,7 +69,8 @@ export default function postcssSourceResolve() {
   return {
     postcssPlugin: "postcss-source-resolve",
     Once(root, { result }) {
-      const file = getStreamdownPath();
+      const from = result.opts.from ?? "";
+      const file = getStreamdownPath(from);
       if (!file) return;
       root.walkAtRules("source", (atRule) => {
         const params = atRule.params.trim();
