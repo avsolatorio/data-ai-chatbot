@@ -61,12 +61,11 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
       return null;
     }
 
-    // Use Next.js proxy route which forwards Set-Cookie headers to the client
-    // This is important because when FastAPI restores a user from guest_session_id,
-    // it issues new JWT tokens via Set-Cookie headers that need to reach the browser
-    //
-    // Server Components need an absolute URL; base path is applied via buildPath when set.
-    const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3001").replace(/\/+$/, "");
+    // Server Components need an absolute URL to call this app's /api/auth/me.
+    // Prefer NEXT_PUBLIC_BASE_URL; otherwise use same host/port the app listens on (e.g. PORT=3201).
+    const baseUrl =
+      (process.env.NEXT_PUBLIC_BASE_URL ?? "").trim().replace(/\/+$/, "") ||
+      `http://127.0.0.1:${process.env.PORT ?? "3000"}`;
     const url = `${baseUrl}${buildPath("/api/auth/me")}`;
 
     // Call Next.js proxy which forwards cookies to FastAPI and Set-Cookie headers back to client
