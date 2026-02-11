@@ -31,7 +31,7 @@ def main():
         "pydantic",
         "pydantic_settings",
         "jose",
-        "passlib",
+        "bcrypt",
         "httpx",
     ]
 

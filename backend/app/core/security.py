@@ -2,16 +2,17 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(
+        plain_password.encode("utf-8"),
+        hashed_password.encode("utf-8"),
+    )
 
 
 def get_password_hash(password: str) -> str:
@@ -26,7 +27,8 @@ def get_password_hash(password: str) -> str:
         )
 
     try:
-        return pwd_context.hash(password)
+        hashed = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
+        return hashed.decode("utf-8")
     except ValueError as e:
         # Catch bcrypt's own 72-byte limit error and provide a clearer message
         error_msg = str(e)
@@ -35,7 +37,6 @@ def get_password_hash(password: str) -> str:
                 f"Password cannot exceed 72 bytes (got {password_byte_length} bytes). "
                 "Please use a shorter password or avoid special characters that use multiple bytes."
             ) from e
-        # Re-raise other ValueError exceptions
         raise
 
 
