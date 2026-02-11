@@ -1,7 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import {
+  buildFullUrl,
+  buildPath,
+  getBasePath,
+  stripBasePath,
+} from "@/lib/base-path";
+
 /**
- * Derive the client-facing origin so redirects and redirectUrl param use the host the user sees,
+ * Derive the client-facing origin so redirects use the host the user sees,
  * not the internal host (e.g. in Azure/Docker, request.url can be https://container-id:8080).
  */
 function getRequestOrigin(request: NextRequest): string {
@@ -43,28 +50,18 @@ function getRequestOrigin(request: NextRequest): string {
   return `${proto}://${host}`;
 }
 
-const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
-
-/** Strip basePath from pathname so app/backend see paths without it. */
-function pathnameWithoutBasePath(pathname: string): string {
-  if (!BASE_PATH) return pathname;
-  if (pathname === BASE_PATH) return "/";
-  if (pathname.startsWith(`${BASE_PATH}/`))
-    return pathname.slice(BASE_PATH.length);
-  return pathname;
-}
-
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const basePath = getBasePath();
 
-  // /data360-chat (no trailing slash) -> redirect to /data360-chat/ so Next.js serves the root page
-  if (BASE_PATH && pathname === BASE_PATH) {
+  // Exact base path without trailing slash -> redirect to base path with slash so Next.js serves root
+  if (basePath && pathname === basePath) {
     const url = request.nextUrl.clone();
-    url.pathname = `${BASE_PATH}/`;
+    url.pathname = `${basePath}/`;
     return NextResponse.redirect(url, 301);
   }
 
-  const path = pathnameWithoutBasePath(pathname);
+  const path = stripBasePath(pathname);
 
   /*
    * Playwright starts the dev server and requires a 200 status to
@@ -101,10 +98,10 @@ export function proxy(request: NextRequest) {
 
   if (!authToken && !guestSessionId && !userSessionId) {
     const baseOrigin = getRequestOrigin(request);
-    const pathPrefix = BASE_PATH ? `${BASE_PATH}` : "";
-    const redirectTarget = `${baseOrigin}${pathPrefix}/`;
+    const redirectTarget = buildFullUrl(baseOrigin, "/");
+    const guestPath = buildPath("/api/auth/guest");
     const guestUrl = new URL(
-      `${pathPrefix}/api/auth/guest?redirectUrl=${encodeURIComponent(redirectTarget)}`,
+      `${guestPath}?redirectUrl=${encodeURIComponent(redirectTarget)}`,
       baseOrigin,
     );
     return NextResponse.redirect(guestUrl);
@@ -114,16 +111,16 @@ export function proxy(request: NextRequest) {
 }
 
 /**
- * Rewrite only for API and static paths so the backend/route handlers see paths without basePath.
- * Do NOT rewrite page routes (/, /chat/*, /login, /register) so the browser URL stays
- * under basePath (e.g. /mcp-chat/chat/123) and Next.js router/basePath behavior is preserved.
+ * Rewrite only for API/static paths so route handlers see paths without base path.
+ * Page routes are not rewritten so the browser URL stays under base path.
  */
 function rewriteIfBasePath(
   request: NextRequest,
   pathname: string,
   pathWithoutBase: string,
 ): NextResponse {
-  if (!BASE_PATH || pathname === pathWithoutBase) return NextResponse.next();
+  if (!getBasePath() || pathname === pathWithoutBase)
+    return NextResponse.next();
   const isApiOrStatic =
     pathWithoutBase.startsWith("/api/") ||
     pathWithoutBase.startsWith("/json/") ||

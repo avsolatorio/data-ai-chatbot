@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
+// Must match NEXT_PUBLIC_BASE_PATH; runtime helpers live in lib/base-path.ts
 const basePath = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
 
 const nextConfig: NextConfig = {

@@ -8,6 +8,7 @@
 
 import { cookies } from "next/headers";
 import { cache } from "react";
+import { buildPath } from "@/lib/base-path";
 import { serverApiFetch } from "./server-api-client";
 
 // Re-export types for convenience (these are safe to use in client components)
@@ -64,12 +65,9 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
     // This is important because when FastAPI restores a user from guest_session_id,
     // it issues new JWT tokens via Set-Cookie headers that need to reach the browser
     //
-    // Note: In Server Components, we need to construct an absolute URL for fetch()
-    // When the app is mounted under a base path (e.g. /mcp-chat), include it so the request hits the correct route.
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3001";
-    const basePath = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
-    const pathPrefix = basePath ? `${basePath}` : "";
-    const url = `${baseUrl}${pathPrefix}/api/auth/me`;
+    // Server Components need an absolute URL; base path is applied via buildPath when set.
+    const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3001").replace(/\/+$/, "");
+    const url = `${baseUrl}${buildPath("/api/auth/me")}`;
 
     // Call Next.js proxy which forwards cookies to FastAPI and Set-Cookie headers back to client
     // The proxy at app/api/auth/me/route.ts handles cookie forwarding properly

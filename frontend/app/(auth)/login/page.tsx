@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 
 import { AuthForm } from "@/components/auth-form";
-import { getApiUrl } from "@/lib/api-client";
-import { appConfig } from "@/lib/config";
 import { LoaderIcon } from "@/components/icons";
 import { SubmitButton } from "@/components/submit-button";
 import { toast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
+import { getApiUrl } from "@/lib/api-client";
+import { getAppUrl } from "@/lib/config";
 import { type LoginActionState, login } from "../actions";
 
 export default function Page() {
@@ -63,10 +63,8 @@ export default function Page() {
     setIsCreatingGuest(true);
 
     try {
-      // Use window.location.href to navigate to the guest endpoint
-      // This allows the server-side route handler to set cookies and redirect properly.
-      // redirectUrl must include base path so the user lands on e.g. /mcp-chat/ not /
-      const homeUrl = `${window.location.origin}${appConfig.basePath || ""}/`;
+      // Navigate to guest endpoint so the route handler can set cookies and redirect.
+      const homeUrl = getAppUrl(window.location.origin, "/");
       const guestPath = getApiUrl("/api/auth/guest");
       window.location.href = `${window.location.origin}${guestPath}?redirectUrl=${encodeURIComponent(homeUrl)}`;
     } catch (error) {

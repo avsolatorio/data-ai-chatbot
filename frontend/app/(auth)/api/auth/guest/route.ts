@@ -141,11 +141,15 @@ function getRequestOrigin(request: Request): string {
   return `${proto}://${host}`;
 }
 
+import {
+  buildFullUrl,
+  rewriteSetCookiePath,
+  stripBasePath,
+} from "@/lib/base-path";
+
 /** Hostnames that indicate an internal/container URL; never redirect the user there. */
 const INTERNAL_HOST_PATTERN =
   /^(localhost|127\.0\.0\.1|\[::1\]|[a-f0-9]{8,})$/i;
-
-const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
 
 function isInternalOrigin(origin: string): boolean {
   try {
@@ -160,60 +164,38 @@ function isInternalOrigin(origin: string): boolean {
   }
 }
 
-/** Build full URL for a path, including basePath when the app is mounted under one. */
-function urlWithBasePath(baseOrigin: string, path: string): string {
-  const p = path === "/" ? "/" : path.startsWith("/") ? path : `/${path}`;
-  if (!BASE_PATH) return `${baseOrigin}${p}`;
-  return `${baseOrigin}${BASE_PATH}${p}`;
-}
-
-/** Strip basePath from pathname so we don't double it when building redirect URLs. */
-function pathWithoutBasePath(pathname: string): string {
-  if (!BASE_PATH) return pathname;
-  if (pathname === BASE_PATH) return "/";
-  if (pathname.startsWith(`${BASE_PATH}/`))
-    return pathname.slice(BASE_PATH.length) || "/";
-  return pathname;
-}
-
 /**
  * Return a safe redirect target to prevent open redirects.
- * - Relative paths: resolved against baseOrigin and basePath (safe).
- * - Absolute URLs to internal hosts: rewritten to baseOrigin + path so we never send the user to internal hosts.
- * - Absolute URLs to other origins: allowed only when NEXT_PUBLIC_APP_URL is set and matches that origin; otherwise rewritten to baseOrigin + path.
- *   When NEXT_PUBLIC_APP_URL is unset, we do not trust client-supplied absolute URLs and force same-origin redirect.
+ * - Relative paths: resolved via buildFullUrl (safe).
+ * - Absolute URLs to internal hosts: rewritten to same origin + path.
+ * - Absolute URLs to other origins: allowed only when NEXT_PUBLIC_APP_URL matches; else same-origin.
  */
 function safeRedirectTarget(redirectUrl: string, baseOrigin: string): string {
   if (!redirectUrl || redirectUrl.startsWith("/")) {
-    return urlWithBasePath(baseOrigin, redirectUrl || "/");
+    return buildFullUrl(baseOrigin, redirectUrl || "/");
   }
   try {
     const parsed = new URL(redirectUrl);
-    // Path may already include basePath (e.g. /data360-chat/); strip it so urlWithBasePath adds it once
-    const pathOnly = parsed.pathname === "/" ? "/" : parsed.pathname;
-    const pathForRedirect = pathWithoutBasePath(pathOnly);
+    const pathForRedirect = stripBasePath(
+      parsed.pathname === "/" ? "/" : parsed.pathname,
+    );
+    const sameOriginUrl =
+      buildFullUrl(baseOrigin, pathForRedirect) + (parsed.search || "");
     if (parsed.origin && isInternalOrigin(parsed.origin)) {
-      return (
-        urlWithBasePath(baseOrigin, pathForRedirect) + (parsed.search || "")
-      );
+      return sameOriginUrl;
     }
-    let allowed: string | null = null;
     const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim();
     if (appOrigin != null && appOrigin !== "") {
       try {
-        allowed = new URL(appOrigin).origin;
+        const allowed = new URL(appOrigin).origin;
+        if (parsed.origin === allowed) return redirectUrl;
       } catch {
-        // Invalid NEXT_PUBLIC_APP_URL; treat as no whitelist
+        // Invalid NEXT_PUBLIC_APP_URL
       }
     }
-    // Only allow redirect to another origin if we have an explicit whitelist and the URL matches it
-    if (allowed != null && parsed.origin === allowed) {
-      return redirectUrl;
-    }
-    // Otherwise force same-origin: use path + search but origin from baseOrigin; avoid doubling basePath
-    return urlWithBasePath(baseOrigin, pathForRedirect) + (parsed.search || "");
+    return sameOriginUrl;
   } catch {
-    return urlWithBasePath(baseOrigin, "/");
+    return buildFullUrl(baseOrigin, "/");
   }
 }
 
@@ -273,7 +255,7 @@ export async function GET(request: Request) {
 
       // Handle rate limiting (429) - redirect to login page with error message
       if (response.status === 429) {
-        const loginUrl = new URL(urlWithBasePath(baseOrigin, "/login"));
+        const loginUrl = new URL(buildFullUrl(baseOrigin, "/login"));
         loginUrl.searchParams.set("error", "rate_limit");
         loginUrl.searchParams.set(
           "message",
@@ -283,8 +265,7 @@ export async function GET(request: Request) {
       }
 
       // For other errors, redirect to login page instead of home to break the redirect loop
-      // Home page would trigger proxy middleware again, causing infinite loop
-      const loginUrl = new URL(urlWithBasePath(baseOrigin, "/login"));
+      const loginUrl = new URL(buildFullUrl(baseOrigin, "/login"));
       loginUrl.searchParams.set("error", "guest_creation_failed");
       return NextResponse.redirect(loginUrl);
     }
@@ -309,12 +290,18 @@ export async function GET(request: Request) {
           ? setCookieHeader
           : setCookieHeader.split(", ");
         for (const cookie of cookies) {
-          redirectResponse.headers.append("Set-Cookie", cookie.trim());
+          redirectResponse.headers.append(
+            "Set-Cookie",
+            rewriteSetCookiePath(cookie.trim()),
+          );
         }
       }
     } else {
       for (const cookie of setCookieHeaders) {
-        redirectResponse.headers.append("Set-Cookie", cookie);
+        redirectResponse.headers.append(
+          "Set-Cookie",
+          rewriteSetCookiePath(cookie),
+        );
       }
     }
 
@@ -322,7 +309,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error creating guest user:", error);
     // Redirect to login page instead of home to break redirect loop
-    const loginUrl = new URL(urlWithBasePath(baseOrigin, "/login"));
+    const loginUrl = new URL(buildFullUrl(baseOrigin, "/login"));
     loginUrl.searchParams.set("error", "guest_creation_error");
     return NextResponse.redirect(loginUrl);
   }
