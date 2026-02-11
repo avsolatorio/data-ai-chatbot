@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
     "@pcn-js/data360",
     "streamdown",
   ],
+  // Allow cross-origin requests to _next/* from these origins in development (e.g. when dev server is iframed or accessed from another host).
+  // Set NEXT_PUBLIC_ALLOWED_DEV_ORIGINS as comma-separated list: "https://w1lxscirender02.worldbank.org"
+  allowedDevOrigins:
+    process.env.NEXT_PUBLIC_ALLOWED_DEV_ORIGINS?.split(",")
+      .map((o) => o.trim())
+      .filter(Boolean) ?? [],
   // Avoid embedding absolute build paths in client source maps (standalone output)
   productionBrowserSourceMaps: false,
   // Prevent path segments (e.g. WBG from /Users/.../WBG/...) from becoming folders in .next/standalone.

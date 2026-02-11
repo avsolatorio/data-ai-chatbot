@@ -1,5 +1,98 @@
+import https from "node:https";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+
+/** When set (e.g. "true", "1"), allow HTTPS requests to the backend with self-signed certs (e.g. internal TLS). */
+const BACKEND_TLS_INSECURE =
+  process.env.BACKEND_TLS_INSECURE === "true" ||
+  process.env.BACKEND_TLS_INSECURE === "1";
+
+/**
+ * Fetch that can skip TLS verification for backend when BACKEND_TLS_INSECURE is set.
+ * Node's fetch() rejects self-signed certs; this uses https.request with rejectUnauthorized: false.
+ */
+async function backendFetch(
+  url: string,
+  options: { method: string; headers: HeadersInit },
+): Promise<{
+  ok: boolean;
+  status: number;
+  statusText: string;
+  headers: { get: (n: string) => string | null; getSetCookie: () => string[] };
+  json: () => Promise<unknown>;
+}> {
+  const parsed = new URL(url);
+  if (parsed.protocol !== "https:" || !BACKEND_TLS_INSECURE) {
+    const res = await fetch(url, options);
+    return {
+      ok: res.ok,
+      status: res.status,
+      statusText: res.statusText,
+      headers: {
+        get: (n) => res.headers.get(n),
+        getSetCookie: () => res.headers.getSetCookie?.() ?? [],
+      },
+      json: () => res.json(),
+    };
+  }
+
+  return new Promise((resolve, reject) => {
+    const headers: Record<string, string> = {};
+    if (
+      options.headers &&
+      typeof options.headers === "object" &&
+      !(options.headers instanceof Headers)
+    ) {
+      for (const [k, v] of Object.entries(options.headers)) {
+        if (v != null) headers[k] = String(v);
+      }
+    } else if (options.headers instanceof Headers) {
+      options.headers.forEach((v, k) => {
+        headers[k] = v;
+      });
+    }
+
+    const req = https.request(
+      url,
+      {
+        method: options.method,
+        headers,
+        rejectUnauthorized: false,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => {
+          const setCookie = res.headers["set-cookie"];
+          const cookieList = Array.isArray(setCookie)
+            ? setCookie
+            : setCookie
+              ? [setCookie]
+              : [];
+          resolve({
+            ok:
+              res.statusCode !== undefined &&
+              res.statusCode >= 200 &&
+              res.statusCode < 300,
+            status: res.statusCode ?? 0,
+            statusText: res.statusMessage ?? "",
+            headers: {
+              get: (n) => {
+                const v = res.headers[n.toLowerCase()];
+                return Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
+              },
+              getSetCookie: () => cookieList,
+            },
+            json: async () =>
+              JSON.parse(Buffer.concat(chunks).toString("utf8")),
+          });
+        });
+      },
+    );
+    req.on("error", reject);
+    req.end();
+  });
+}
 
 /**
  * Derive the client-facing origin from the request.
@@ -75,9 +168,11 @@ function urlWithBasePath(baseOrigin: string, path: string): string {
 }
 
 /**
- * Return a safe redirect target. If the client sent an absolute redirectUrl with an internal
- * origin (e.g. container hostname), use baseOrigin + path instead so we never send the user there.
- * When NEXT_PUBLIC_BASE_PATH is set, redirect targets include it so the user stays under the base path.
+ * Return a safe redirect target to prevent open redirects.
+ * - Relative paths: resolved against baseOrigin and basePath (safe).
+ * - Absolute URLs to internal hosts: rewritten to baseOrigin + path so we never send the user to internal hosts.
+ * - Absolute URLs to other origins: allowed only when NEXT_PUBLIC_APP_URL is set and matches that origin; otherwise rewritten to baseOrigin + path.
+ *   When NEXT_PUBLIC_APP_URL is unset, we do not trust client-supplied absolute URLs and force same-origin redirect.
  */
 function safeRedirectTarget(redirectUrl: string, baseOrigin: string): string {
   if (!redirectUrl || redirectUrl.startsWith("/")) {
@@ -89,15 +184,22 @@ function safeRedirectTarget(redirectUrl: string, baseOrigin: string): string {
       const pathOnly = parsed.pathname === "/" ? "/" : parsed.pathname;
       return urlWithBasePath(baseOrigin, pathOnly) + (parsed.search || "");
     }
+    let allowed: string | null = null;
     const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim();
-    if (appOrigin) {
-      const allowed = new URL(appOrigin).origin;
-      if (parsed.origin !== allowed) {
-        const pathOnly = parsed.pathname === "/" ? "/" : parsed.pathname;
-        return urlWithBasePath(baseOrigin, pathOnly) + (parsed.search || "");
+    if (appOrigin != null && appOrigin !== "") {
+      try {
+        allowed = new URL(appOrigin).origin;
+      } catch {
+        // Invalid NEXT_PUBLIC_APP_URL; treat as no whitelist
       }
     }
-    return redirectUrl;
+    // Only allow redirect to another origin if we have an explicit whitelist and the URL matches it
+    if (allowed != null && parsed.origin === allowed) {
+      return redirectUrl;
+    }
+    // Otherwise force same-origin: use path + search from the URL but origin from baseOrigin
+    const pathOnly = parsed.pathname === "/" ? "/" : parsed.pathname;
+    return urlWithBasePath(baseOrigin, pathOnly) + (parsed.search || "");
   } catch {
     return urlWithBasePath(baseOrigin, "/");
   }
@@ -143,8 +245,9 @@ export async function GET(request: Request) {
     };
 
     // Call FastAPI to create/restore guest user
-    // FastAPI will validate cookies and create new user if they're stale/invalid
-    const response = await fetch(fastApiUrl, {
+    // FastAPI will validate cookies and create new user if they're stale/invalid.
+    // Use backendFetch so BACKEND_TLS_INSECURE can allow self-signed backend certs.
+    const response = await backendFetch(fastApiUrl, {
       method: "POST",
       headers,
     });
