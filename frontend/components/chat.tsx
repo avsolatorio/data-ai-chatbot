@@ -24,6 +24,7 @@ import { useChatVisibility } from "@/hooks/use-chat-visibility";
 import { useDataThinkingStream } from "@/hooks/use-data-thinking-stream";
 import { useHomeConfig } from "@/hooks/use-home-config";
 import { getApiUrl } from "@/lib/api-client";
+import { getAppPath } from "@/lib/config";
 import type { DBMessage, Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
 import type { Attachment, ChatMessage } from "@/lib/types";
@@ -425,12 +426,12 @@ export function Chat({
       });
 
       setHasAppendedQuery(true);
-      window.history.replaceState({}, "", `/chat/${id}`);
+      window.history.replaceState({}, "", getAppPath(`/chat/${id}`));
     }
   }, [query, sendMessage, hasAppendedQuery, id]);
 
   const { data: votes } = useSWR<Vote[]>(
-    messages.length >= 2 ? `/api/vote?chatId=${id}` : null,
+    messages.length >= 2 ? getApiUrl(`/api/vote?chatId=${id}`) : null,
     fetcher,
   );
 

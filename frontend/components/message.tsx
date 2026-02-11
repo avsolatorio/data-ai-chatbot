@@ -7,6 +7,7 @@ import equal from "fast-deep-equal";
 import { type Dispatch, memo, type SetStateAction, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
 import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
+import { getAppPath } from "@/lib/config";
 import {
   type Data360SourceEntry,
   getData360SourcesFromParts,
@@ -1062,7 +1063,11 @@ const PurePreviewMessage = ({
                           key={suggestion}
                           className="h-auto whitespace-normal px-3 py-1.5 text-left text-sm"
                           onClick={() => {
-                            window.history.pushState({}, "", `/chat/${chatId}`);
+                            window.history.pushState(
+                              {},
+                              "",
+                              getAppPath(`/chat/${chatId}`),
+                            );
                             if (
                               followUpSuggestionsPopulateInput &&
                               onFollowUpPopulateInput

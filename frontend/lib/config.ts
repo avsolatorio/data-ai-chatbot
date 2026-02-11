@@ -64,7 +64,30 @@ function getWdr2026AssetsBase(): string {
   return v != null && v.trim().length > 0 ? v.trim().replace(/\/+$/, "") : "";
 }
 
+/**
+ * Base path for the app (e.g. "/mcp-chat"). No trailing slash.
+ * When set, the app is served under this path; all client-side fetch paths must be prefixed.
+ * Set via NEXT_PUBLIC_BASE_PATH. Must match next.config basePath (same env is used at build).
+ */
+function getBasePath(): string {
+  const v = process.env.NEXT_PUBLIC_BASE_PATH;
+  return v != null && v.trim().length > 0 ? v.trim().replace(/\/+$/, "") : "";
+}
+
+/** Return a path under the app base (e.g. getAppPath("/chat/1") => "/mcp-chat/chat/1"). Use for history.replaceState/pushState. */
+export function getAppPath(path: string): string {
+  const base = getBasePath();
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return base ? `${base}${p}` : p;
+}
+
 export const appConfig = {
+  /**
+   * Base path for the application (e.g. "/mcp-chat"). Empty string when app is at root.
+   * Use when building absolute paths for fetch(), redirects, or asset URLs.
+   */
+  basePath: getBasePath(),
+
   /**
    * When set (e.g. "alpha", "beta"), a status badge is shown so users know the app is not stable.
    * Set via NEXT_PUBLIC_APPLICATION_STATUS.

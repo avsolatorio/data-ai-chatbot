@@ -1,5 +1,3 @@
-"use strict";
-
 const fs = require("node:fs");
 const path = require("node:path");
 const { execSync } = require("node:child_process");
@@ -25,13 +23,13 @@ if (missing.length === 0) {
   process.exit(0);
 }
 
-console.error(
-  "Missing @pcn-js packages in node_modules:",
-  missing.join(", "),
-);
+console.error("Missing @pcn-js packages in node_modules:", missing.join(", "));
 console.log("Reinstalling @pcn-js/core, @pcn-js/ui, @pcn-js/data360...");
-execSync("pnpm add @pcn-js/core@^0.1.1 @pcn-js/ui@^0.1.1 @pcn-js/data360@^0.1.1", {
-  cwd: frontendDir,
-  stdio: "inherit",
-});
+execSync(
+  "pnpm add @pcn-js/core@^0.1.1 @pcn-js/ui@^0.1.1 @pcn-js/data360@^0.1.1",
+  {
+    cwd: frontendDir,
+    stdio: "inherit",
+  },
+);
 console.log("Done. Run 'pnpm dev' from the frontend directory.");

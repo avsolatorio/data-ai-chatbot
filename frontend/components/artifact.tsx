@@ -22,7 +22,7 @@ import { sheetArtifact } from "@/artifacts/sheet/client";
 import { textArtifact } from "@/artifacts/text/client";
 import { wdr2026FigureArtifact } from "@/artifacts/wdr2026-figure/client";
 import { useArtifact } from "@/hooks/use-artifact";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, getApiUrl } from "@/lib/api-client";
 import type { Document, Vote } from "@/lib/db/schema";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn, fetcher } from "@/lib/utils";
@@ -117,7 +117,7 @@ function PureArtifact({
     mutate: mutateDocuments,
   } = useSWR<Document[]>(
     artifact.documentId !== "init" && artifact.status !== "streaming"
-      ? `/api/document?id=${artifact.documentId}`
+      ? getApiUrl(`/api/document?id=${artifact.documentId}`)
       : null,
     fetcher,
   );
@@ -231,7 +231,7 @@ function PureArtifact({
       }
 
       mutate<Document[]>(
-        `/api/document?id=${artifact.documentId}`,
+        getApiUrl(`/api/document?id=${artifact.documentId}`),
         async (currentDocuments) => {
           if (!currentDocuments) {
             return [];

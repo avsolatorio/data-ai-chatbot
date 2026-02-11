@@ -65,9 +65,11 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
     // it issues new JWT tokens via Set-Cookie headers that need to reach the browser
     //
     // Note: In Server Components, we need to construct an absolute URL for fetch()
-    // The proxy route will forward cookies to FastAPI and Set-Cookie headers back to client
+    // When the app is mounted under a base path (e.g. /mcp-chat), include it so the request hits the correct route.
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3001";
-    const url = `${baseUrl}/api/auth/me`;
+    const basePath = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
+    const pathPrefix = basePath ? `${basePath}` : "";
+    const url = `${baseUrl}${pathPrefix}/api/auth/me`;
 
     // Call Next.js proxy which forwards cookies to FastAPI and Set-Cookie headers back to client
     // The proxy at app/api/auth/me/route.ts handles cookie forwarding properly

@@ -1,5 +1,6 @@
 "use client";
 
+import { appConfig } from "@/lib/config";
 import { useEffect, useState } from "react";
 
 export type HomeConfig = {
@@ -33,7 +34,7 @@ export function useHomeConfig(): HomeConfig {
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/json/home-config.json")
+    fetch(`${appConfig.basePath || ""}/json/home-config.json`)
       .then((res) => {
         if (!res.ok) {
           throw new Error("Home config not found");

@@ -17,7 +17,10 @@ function getRequestOrigin(request: NextRequest): string {
   if (referer) {
     try {
       const refUrl = new URL(referer);
-      if (refUrl.origin && (refUrl.protocol === "http:" || refUrl.protocol === "https:")) {
+      if (
+        refUrl.origin &&
+        (refUrl.protocol === "http:" || refUrl.protocol === "https:")
+      ) {
         return refUrl.origin;
       }
     } catch {
@@ -40,19 +43,31 @@ function getRequestOrigin(request: NextRequest): string {
   return `${proto}://${host}`;
 }
 
+const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
+
+/** Strip basePath from pathname so app/backend see paths without it. */
+function pathnameWithoutBasePath(pathname: string): string {
+  if (!BASE_PATH) return pathname;
+  if (pathname === BASE_PATH) return "/";
+  if (pathname.startsWith(`${BASE_PATH}/`))
+    return pathname.slice(BASE_PATH.length);
+  return pathname;
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const path = pathnameWithoutBasePath(pathname);
 
   /*
    * Playwright starts the dev server and requires a 200 status to
    * begin the tests, so this ensures that the tests can start
    */
-  if (pathname.startsWith("/ping")) {
+  if (path.startsWith("/ping")) {
     return new Response("pong", { status: 200 });
   }
 
-  if (pathname.startsWith("/api/auth")) {
-    return NextResponse.next();
+  if (path.startsWith("/api/auth")) {
+    return rewriteIfBasePath(request, pathname, path);
   }
 
   // Check for internal API secret (from FastAPI backend)
@@ -61,38 +76,54 @@ export function proxy(request: NextRequest) {
   const expectedSecret = process.env.INTERNAL_API_SECRET;
 
   if (internalSecret && expectedSecret && internalSecret === expectedSecret) {
-    // Internal request from FastAPI - allow through without auth check
-    return NextResponse.next();
+    return rewriteIfBasePath(request, pathname, path);
   }
 
   // Allow login/register pages to be accessed without authentication
   // This prevents redirect loops when users try to login after logout
   // IMPORTANT: Return early to prevent any user lookup or guest creation
-  if (["/login", "/register"].includes(pathname)) {
-    return NextResponse.next();
+  if (["/login", "/register"].includes(path)) {
+    return rewriteIfBasePath(request, pathname, path);
   }
 
   // Check for auth cookies to determine if user is authenticated
-  // This avoids calling getCurrentUser() which would duplicate the layout's call
-  // We only need to check if cookies exist, not validate them (layout will do that)
   const authToken = request.cookies.get("auth_token")?.value;
   const guestSessionId = request.cookies.get("guest_session_id")?.value;
   const userSessionId = request.cookies.get("user_session_id")?.value;
 
-  // If no auth cookies at all, redirect to guest creation.
-  // Use client-facing origin for both the redirect target and redirectUrl so the user
-  // is not sent to an internal host (e.g. container hostname in Azure/Docker).
   if (!authToken && !guestSessionId && !userSessionId) {
     const baseOrigin = getRequestOrigin(request);
-    const redirectTarget = `${baseOrigin}/`;
+    const pathPrefix = BASE_PATH ? `${BASE_PATH}` : "";
+    const redirectTarget = `${baseOrigin}${pathPrefix}/`;
     const guestUrl = new URL(
-      `/api/auth/guest?redirectUrl=${encodeURIComponent(redirectTarget)}`,
-      baseOrigin
+      `${pathPrefix}/api/auth/guest?redirectUrl=${encodeURIComponent(redirectTarget)}`,
+      baseOrigin,
     );
     return NextResponse.redirect(guestUrl);
   }
 
-  return NextResponse.next();
+  return rewriteIfBasePath(request, pathname, path);
+}
+
+/**
+ * Rewrite only for API and static paths so the backend/route handlers see paths without basePath.
+ * Do NOT rewrite page routes (/, /chat/*, /login, /register) so the browser URL stays
+ * under basePath (e.g. /mcp-chat/chat/123) and Next.js router/basePath behavior is preserved.
+ */
+function rewriteIfBasePath(
+  request: NextRequest,
+  pathname: string,
+  pathWithoutBase: string,
+): NextResponse {
+  if (!BASE_PATH || pathname === pathWithoutBase) return NextResponse.next();
+  const isApiOrStatic =
+    pathWithoutBase.startsWith("/api/") ||
+    pathWithoutBase.startsWith("/json/") ||
+    pathWithoutBase.startsWith("/ping");
+  if (!isApiOrStatic) return NextResponse.next();
+  const url = request.nextUrl.clone();
+  url.pathname = pathWithoutBase;
+  return NextResponse.rewrite(url);
 }
 
 export const config = {
