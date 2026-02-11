@@ -167,6 +167,15 @@ function urlWithBasePath(baseOrigin: string, path: string): string {
   return `${baseOrigin}${BASE_PATH}${p}`;
 }
 
+/** Strip basePath from pathname so we don't double it when building redirect URLs. */
+function pathWithoutBasePath(pathname: string): string {
+  if (!BASE_PATH) return pathname;
+  if (pathname === BASE_PATH) return "/";
+  if (pathname.startsWith(`${BASE_PATH}/`))
+    return pathname.slice(BASE_PATH.length) || "/";
+  return pathname;
+}
+
 /**
  * Return a safe redirect target to prevent open redirects.
  * - Relative paths: resolved against baseOrigin and basePath (safe).
@@ -180,9 +189,13 @@ function safeRedirectTarget(redirectUrl: string, baseOrigin: string): string {
   }
   try {
     const parsed = new URL(redirectUrl);
+    // Path may already include basePath (e.g. /data360-chat/); strip it so urlWithBasePath adds it once
+    const pathOnly = parsed.pathname === "/" ? "/" : parsed.pathname;
+    const pathForRedirect = pathWithoutBasePath(pathOnly);
     if (parsed.origin && isInternalOrigin(parsed.origin)) {
-      const pathOnly = parsed.pathname === "/" ? "/" : parsed.pathname;
-      return urlWithBasePath(baseOrigin, pathOnly) + (parsed.search || "");
+      return (
+        urlWithBasePath(baseOrigin, pathForRedirect) + (parsed.search || "")
+      );
     }
     let allowed: string | null = null;
     const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim();
@@ -197,9 +210,8 @@ function safeRedirectTarget(redirectUrl: string, baseOrigin: string): string {
     if (allowed != null && parsed.origin === allowed) {
       return redirectUrl;
     }
-    // Otherwise force same-origin: use path + search from the URL but origin from baseOrigin
-    const pathOnly = parsed.pathname === "/" ? "/" : parsed.pathname;
-    return urlWithBasePath(baseOrigin, pathOnly) + (parsed.search || "");
+    // Otherwise force same-origin: use path + search but origin from baseOrigin; avoid doubling basePath
+    return urlWithBasePath(baseOrigin, pathForRedirect) + (parsed.search || "");
   } catch {
     return urlWithBasePath(baseOrigin, "/");
   }

@@ -56,6 +56,14 @@ function pathnameWithoutBasePath(pathname: string): string {
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // /data360-chat (no trailing slash) -> redirect to /data360-chat/ so Next.js serves the root page
+  if (BASE_PATH && pathname === BASE_PATH) {
+    const url = request.nextUrl.clone();
+    url.pathname = `${BASE_PATH}/`;
+    return NextResponse.redirect(url, 301);
+  }
+
   const path = pathnameWithoutBasePath(pathname);
 
   /*
