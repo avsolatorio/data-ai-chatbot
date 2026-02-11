@@ -22,7 +22,10 @@ function getRequestOrigin(request: Request): string {
   if (referer) {
     try {
       const refUrl = new URL(referer);
-      if (refUrl.origin && (refUrl.protocol === "http:" || refUrl.protocol === "https:")) {
+      if (
+        refUrl.origin &&
+        (refUrl.protocol === "http:" || refUrl.protocol === "https:")
+      ) {
         return refUrl.origin;
       }
     } catch {
@@ -41,19 +44,22 @@ function getRequestOrigin(request: Request): string {
   }
 
   const host = request.headers.get("host") ?? "";
-  const proto =
-    request.url.startsWith("https") ? "https" : "http";
+  const proto = request.url.startsWith("https") ? "https" : "http";
   return `${proto}://${host}`;
 }
 
 /** Hostnames that indicate an internal/container URL; never redirect the user there. */
-const INTERNAL_HOST_PATTERN = /^(localhost|127\.0\.0\.1|\[::1\]|[a-f0-9]{8,})$/i;
+const INTERNAL_HOST_PATTERN =
+  /^(localhost|127\.0\.0\.1|\[::1\]|[a-f0-9]{8,})$/i;
+
+const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
 
 function isInternalOrigin(origin: string): boolean {
   try {
     const u = new URL(origin);
     const host = u.hostname.toLowerCase();
-    if (host === "localhost" || host === "127.0.0.1" || host === "[::1]") return true;
+    if (host === "localhost" || host === "127.0.0.1" || host === "[::1]")
+      return true;
     if (INTERNAL_HOST_PATTERN.test(host)) return true;
     return false;
   } catch {
@@ -61,32 +67,39 @@ function isInternalOrigin(origin: string): boolean {
   }
 }
 
+/** Build full URL for a path, including basePath when the app is mounted under one. */
+function urlWithBasePath(baseOrigin: string, path: string): string {
+  const p = path === "/" ? "/" : path.startsWith("/") ? path : `/${path}`;
+  if (!BASE_PATH) return `${baseOrigin}${p}`;
+  return `${baseOrigin}${BASE_PATH}${p}`;
+}
+
 /**
  * Return a safe redirect target. If the client sent an absolute redirectUrl with an internal
  * origin (e.g. container hostname), use baseOrigin + path instead so we never send the user there.
+ * When NEXT_PUBLIC_BASE_PATH is set, redirect targets include it so the user stays under the base path.
  */
-function safeRedirectTarget(
-  redirectUrl: string,
-  baseOrigin: string,
-): string {
+function safeRedirectTarget(redirectUrl: string, baseOrigin: string): string {
   if (!redirectUrl || redirectUrl.startsWith("/")) {
-    return new URL(redirectUrl || "/", baseOrigin).toString();
+    return urlWithBasePath(baseOrigin, redirectUrl || "/");
   }
   try {
     const parsed = new URL(redirectUrl);
     if (parsed.origin && isInternalOrigin(parsed.origin)) {
-      return new URL(parsed.pathname + parsed.search, baseOrigin).toString();
+      const pathOnly = parsed.pathname === "/" ? "/" : parsed.pathname;
+      return urlWithBasePath(baseOrigin, pathOnly) + (parsed.search || "");
     }
     const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim();
     if (appOrigin) {
       const allowed = new URL(appOrigin).origin;
       if (parsed.origin !== allowed) {
-        return new URL(parsed.pathname + parsed.search, baseOrigin).toString();
+        const pathOnly = parsed.pathname === "/" ? "/" : parsed.pathname;
+        return urlWithBasePath(baseOrigin, pathOnly) + (parsed.search || "");
       }
     }
     return redirectUrl;
   } catch {
-    return new URL("/", baseOrigin).toString();
+    return urlWithBasePath(baseOrigin, "/");
   }
 }
 
@@ -140,29 +153,29 @@ export async function GET(request: Request) {
       console.error(
         "Failed to create guest user:",
         response.status,
-        response.statusText
+        response.statusText,
       );
 
       // Handle rate limiting (429) - redirect to login page with error message
       if (response.status === 429) {
-        const loginUrl = new URL("/login", baseOrigin);
+        const loginUrl = new URL(urlWithBasePath(baseOrigin, "/login"));
         loginUrl.searchParams.set("error", "rate_limit");
         loginUrl.searchParams.set(
           "message",
-          "Too many guest user creation attempts. Please wait a minute or sign in."
+          "Too many guest user creation attempts. Please wait a minute or sign in.",
         );
         return NextResponse.redirect(loginUrl);
       }
 
       // For other errors, redirect to login page instead of home to break the redirect loop
       // Home page would trigger proxy middleware again, causing infinite loop
-      const loginUrl = new URL("/login", baseOrigin);
+      const loginUrl = new URL(urlWithBasePath(baseOrigin, "/login"));
       loginUrl.searchParams.set("error", "guest_creation_failed");
       return NextResponse.redirect(loginUrl);
     }
 
-    // Get the user data from response
-    const data = await response.json();
+    // Consume response body (FastAPI returns user data; we only need the response to be successful)
+    await response.json();
 
     // Create redirect response; redirectTarget is already safe (no internal host)
     const redirectResponse = NextResponse.redirect(redirectTarget);
@@ -194,7 +207,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error creating guest user:", error);
     // Redirect to login page instead of home to break redirect loop
-    const loginUrl = new URL("/login", baseOrigin);
+    const loginUrl = new URL(urlWithBasePath(baseOrigin, "/login"));
     loginUrl.searchParams.set("error", "guest_creation_error");
     return NextResponse.redirect(loginUrl);
   }
