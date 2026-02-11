@@ -53,6 +53,17 @@ function getShowReasoningPartType(): boolean {
   return false;
 }
 
+/**
+ * Base URL for WDR2026 MCP static assets (figures, etc.).
+ * When set, figure_image_path from wdr2026_search is resolved as: base + path.
+ * Omit trailing slash. Example: "http://localhost:8202" or "https://wdr2026.example.com".
+ * Set via NEXT_PUBLIC_WDR2026_ASSETS_BASE. When unset, paths are used as-is (same-origin).
+ */
+function getWdr2026AssetsBase(): string {
+  const v = process.env.NEXT_PUBLIC_WDR2026_ASSETS_BASE;
+  return v != null && v.trim().length > 0 ? v.trim().replace(/\/+$/, "") : "";
+}
+
 export const appConfig = {
   /**
    * When set (e.g. "alpha", "beta"), a status badge is shown so users know the app is not stable.
@@ -120,4 +131,10 @@ export const appConfig = {
    * Default false. Set via NEXT_PUBLIC_SHOW_REASONING_PART_TYPE=true.
    */
   showReasoningPartType: getShowReasoningPartType(),
+
+  /**
+   * Base URL for WDR2026 figure/static assets. When set, frontend builds full URLs as base + path.
+   * Set via NEXT_PUBLIC_WDR2026_ASSETS_BASE. When unset, paths are used as-is.
+   */
+  wdr2026AssetsBase: getWdr2026AssetsBase(),
 };

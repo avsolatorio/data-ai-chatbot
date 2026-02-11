@@ -20,6 +20,7 @@ import { embedArtifact } from "@/artifacts/embed/client";
 import { imageArtifact } from "@/artifacts/image/client";
 import { sheetArtifact } from "@/artifacts/sheet/client";
 import { textArtifact } from "@/artifacts/text/client";
+import { wdr2026FigureArtifact } from "@/artifacts/wdr2026-figure/client";
 import { useArtifact } from "@/hooks/use-artifact";
 import { apiFetch } from "@/lib/api-client";
 import type { Document, Vote } from "@/lib/db/schema";
@@ -42,6 +43,7 @@ export const artifactDefinitions = [
   sheetArtifact,
   chartArtifact,
   embedArtifact,
+  wdr2026FigureArtifact,
 ];
 export type ArtifactKind = (typeof artifactDefinitions)[number]["kind"];
 
@@ -533,7 +535,7 @@ function PureArtifact({
                   }
             }
             className={cn(
-              "fixed z-40 flex flex-col overflow-y-scroll border-zinc-200 bg-background md:border-l dark:border-zinc-700 dark:bg-muted",
+              "fixed z-40 flex min-h-0 flex-col overflow-hidden border-zinc-200 bg-background md:border-l dark:border-zinc-700 dark:bg-muted",
               ARTIFACT_BELOW_HEADER,
             )}
             exit={{
@@ -595,6 +597,10 @@ function PureArtifact({
                     <div className="text-muted-foreground text-sm">
                       Embedded page
                     </div>
+                  ) : artifact.kind === "wdr2026-figure" ? (
+                    <div className="text-muted-foreground text-sm">
+                      WDR2026 figure
+                    </div>
                   ) : (
                     <div className="mt-2 h-3 w-32 animate-pulse rounded-md bg-muted-foreground/20" />
                   )}
@@ -612,9 +618,9 @@ function PureArtifact({
               />
             </div>
 
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col w-full max-w-full! overflow-y-scroll bg-background dark:bg-muted">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col w-full max-w-full! overflow-hidden bg-background dark:bg-muted">
               <div
-                className={`flex min-h-0 min-w-0 flex-1 flex-col ${artifact.kind === "chart" || artifact.kind === "embed" ? "overflow-hidden" : "min-h-0 overflow-y-auto"}`}
+                className={`flex min-h-0 min-w-0 flex-1 flex-col ${artifact.kind === "chart" || artifact.kind === "embed" ? "overflow-hidden" : "min-h-0 overflow-y-auto overflow-x-hidden"}`}
               >
                 {(() => {
                   const ContentComponent =
@@ -623,7 +629,9 @@ function PureArtifact({
                     >;
                   const contentProps: ArtifactContent<unknown> = {
                     content:
-                      artifact.kind === "chart" || artifact.kind === "embed"
+                      artifact.kind === "chart" ||
+                      artifact.kind === "embed" ||
+                      artifact.kind === "wdr2026-figure"
                         ? artifact.content
                         : isCurrentVersion
                           ? artifact.content
@@ -633,9 +641,10 @@ function PureArtifact({
                     isCurrentVersion,
                     isInline: false,
                     isLoading:
-                    artifact.kind === "embed"
-                      ? false
-                      : isDocumentsFetching && !artifact.content,
+                      artifact.kind === "embed" ||
+                      artifact.kind === "wdr2026-figure"
+                        ? false
+                        : isDocumentsFetching && !artifact.content,
                     metadata,
                     mode,
                     onSaveContent: saveContent,

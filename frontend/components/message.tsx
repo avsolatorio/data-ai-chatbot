@@ -54,6 +54,11 @@ import {
   QuotedContextBlock,
   scrollToAndHighlightMessage,
 } from "./quoted-context-block";
+import {
+  Wdr2026SearchResults,
+  Wdr2026Toc,
+  type Wdr2026TocOutput,
+} from "./wdr2026";
 import { Weather } from "./weather";
 
 /** Bare chart URL (path or full URL). */
@@ -564,6 +569,108 @@ function renderMessagePart(
               errorText={undefined}
               useDefaultFormat={false}
               output={<SearchIndicators output={toolPart.output} />}
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  // WDR2026 MCP: wdr2026_search
+  if ((type as string) === "tool-wdr2026_wdr2026_search") {
+    const toolPart = part as {
+      toolCallId: string;
+      state:
+        | "input-available"
+        | "output-available"
+        | "input-streaming"
+        | "output-error";
+      input: unknown;
+      output: {
+        result: Array<{
+          segment_type: "text" | "figure";
+          path: string[];
+          segment_index: number;
+          text: string;
+          token_count: number;
+          page_start: number;
+          page_end: number;
+          page: number;
+          figure_image_path: string | null;
+        }>;
+      };
+    };
+    return (
+      <Tool defaultOpen={true} key={toolPart.toolCallId}>
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        <ToolContent>
+          {toolPart.state === "input-available" && (
+            <ToolInput input={toolPart.input} />
+          )}
+          {toolPart.state === "output-available" && toolPart.output && (
+            <ToolOutput
+              errorText={undefined}
+              useDefaultFormat={false}
+              output={
+                <Wdr2026SearchResults
+                  messageId={message.id}
+                  output={toolPart.output}
+                />
+              }
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  // WDR2026 MCP: wdr2026_get_toc
+  if ((type as string) === "tool-wdr2026_wdr2026_get_toc") {
+    const toolPart = part as {
+      toolCallId: string;
+      state:
+        | "input-available"
+        | "output-available"
+        | "input-streaming"
+        | "output-error";
+      input: unknown;
+      output: string | Wdr2026TocOutput;
+    };
+    let tocOutput: Wdr2026TocOutput | null = null;
+    if (toolPart.state === "output-available" && toolPart.output != null) {
+      if (typeof toolPart.output === "string") {
+        try {
+          tocOutput = JSON.parse(toolPart.output) as Wdr2026TocOutput;
+        } catch {
+          tocOutput = null;
+        }
+      } else if (
+        typeof toolPart.output === "object" &&
+        "sections" in toolPart.output
+      ) {
+        tocOutput = toolPart.output as Wdr2026TocOutput;
+      }
+    }
+    return (
+      <Tool defaultOpen={true} key={toolPart.toolCallId}>
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        <ToolContent>
+          {toolPart.state === "input-available" && (
+            <ToolInput input={toolPart.input} />
+          )}
+          {toolPart.state === "output-available" && (
+            <ToolOutput
+              errorText={undefined}
+              useDefaultFormat={false}
+              output={
+                tocOutput ? (
+                  <Wdr2026Toc output={tocOutput} />
+                ) : (
+                  <div className="text-muted-foreground text-sm">
+                    Could not load table of contents.
+                  </div>
+                )
+              }
             />
           )}
         </ToolContent>
