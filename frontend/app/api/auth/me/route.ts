@@ -1,11 +1,12 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
+import { backendFetch } from "@/lib/backend-fetch";
 
 /**
  * Proxy endpoint for /api/auth/me
  * Forwards requests to FastAPI backend and returns user info
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Get cookies from the request
     // During prerendering, `cookies()` can reject once prerender is complete,
@@ -59,11 +60,11 @@ export async function GET(request: NextRequest) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    let response: Response;
+    let response: Awaited<ReturnType<typeof backendFetch>>;
     try {
-      response = await fetch(fastApiUrl, {
+      response = await backendFetch(fastApiUrl, {
+        method: "GET",
         headers,
-        credentials: "include",
         cache: "no-store",
         signal: controller.signal,
       });
@@ -81,14 +82,11 @@ export async function GET(request: NextRequest) {
       clearTimeout(timeoutId);
     }
 
-    // Get response data
-    // Check if response is JSON before parsing
     const contentType = response.headers.get("content-type");
-    let data;
+    let data: unknown;
     if (contentType?.includes("application/json")) {
       data = await response.json();
     } else {
-      // If not JSON (e.g., HTML error page), create error response
       const text = await response.text();
       console.error(
         "Non-JSON response from /api/auth/me:",

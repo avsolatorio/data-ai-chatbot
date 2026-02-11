@@ -1,98 +1,6 @@
-import https from "node:https";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-
-/** When set (e.g. "true", "1"), allow HTTPS requests to the backend with self-signed certs (e.g. internal TLS). */
-const BACKEND_TLS_INSECURE =
-  process.env.BACKEND_TLS_INSECURE === "true" ||
-  process.env.BACKEND_TLS_INSECURE === "1";
-
-/**
- * Fetch that can skip TLS verification for backend when BACKEND_TLS_INSECURE is set.
- * Node's fetch() rejects self-signed certs; this uses https.request with rejectUnauthorized: false.
- */
-async function backendFetch(
-  url: string,
-  options: { method: string; headers: HeadersInit },
-): Promise<{
-  ok: boolean;
-  status: number;
-  statusText: string;
-  headers: { get: (n: string) => string | null; getSetCookie: () => string[] };
-  json: () => Promise<unknown>;
-}> {
-  const parsed = new URL(url);
-  if (parsed.protocol !== "https:" || !BACKEND_TLS_INSECURE) {
-    const res = await fetch(url, options);
-    return {
-      ok: res.ok,
-      status: res.status,
-      statusText: res.statusText,
-      headers: {
-        get: (n) => res.headers.get(n),
-        getSetCookie: () => res.headers.getSetCookie?.() ?? [],
-      },
-      json: () => res.json(),
-    };
-  }
-
-  return new Promise((resolve, reject) => {
-    const headers: Record<string, string> = {};
-    if (
-      options.headers &&
-      typeof options.headers === "object" &&
-      !(options.headers instanceof Headers)
-    ) {
-      for (const [k, v] of Object.entries(options.headers)) {
-        if (v != null) headers[k] = String(v);
-      }
-    } else if (options.headers instanceof Headers) {
-      options.headers.forEach((v, k) => {
-        headers[k] = v;
-      });
-    }
-
-    const req = https.request(
-      url,
-      {
-        method: options.method,
-        headers,
-        rejectUnauthorized: false,
-      },
-      (res) => {
-        const chunks: Buffer[] = [];
-        res.on("data", (chunk) => chunks.push(chunk));
-        res.on("end", () => {
-          const setCookie = res.headers["set-cookie"];
-          const cookieList = Array.isArray(setCookie)
-            ? setCookie
-            : setCookie
-              ? [setCookie]
-              : [];
-          resolve({
-            ok:
-              res.statusCode !== undefined &&
-              res.statusCode >= 200 &&
-              res.statusCode < 300,
-            status: res.statusCode ?? 0,
-            statusText: res.statusMessage ?? "",
-            headers: {
-              get: (n) => {
-                const v = res.headers[n.toLowerCase()];
-                return Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
-              },
-              getSetCookie: () => cookieList,
-            },
-            json: async () =>
-              JSON.parse(Buffer.concat(chunks).toString("utf8")),
-          });
-        });
-      },
-    );
-    req.on("error", reject);
-    req.end();
-  });
-}
+import { backendFetch } from "@/lib/backend-fetch";
 
 /**
  * Derive the client-facing origin from the request.
@@ -240,7 +148,6 @@ export async function GET(request: Request) {
 
     // Call FastAPI to create/restore guest user
     // FastAPI will validate cookies and create new user if they're stale/invalid.
-    // Use backendFetch so BACKEND_TLS_INSECURE can allow self-signed backend certs.
     const response = await backendFetch(fastApiUrl, {
       method: "POST",
       headers,
