@@ -1,3 +1,4 @@
+import json
 from enum import Enum
 from typing import List, Union
 
@@ -146,6 +147,12 @@ class MCPSettings(BaseSettings):
     ssl_verify: bool = True  # Set to False for dev environments with proxy/self-signed certs
     timeout: float = 30.0  # HTTP timeout in seconds
 
+    # Optional: full JSON object for mcpServers (overrides built-in config when set).
+    # Example: {"wdr2026":{"url":"http://localhost:8202/mcp","transport":"streamable-http",...},"data360":{...}}
+    servers_json: str = ""
+    # Optional: when set and servers_json is empty, wdr2026 server is added with this URL.
+    wdr2026_url: str = ""
+
     model_config = ConfigDict(
         extra="forbid",
         env_prefix="MCP_",
@@ -163,6 +170,40 @@ def get_mcp_settings() -> MCPSettings:
     """Load environment variables and return MCPSettings instance."""
     dotenv.load_dotenv()
     return MCPSettings()
+
+
+def get_mcp_servers_config() -> dict:
+    """
+    Build the mcpServers config dict for the FastMCP Client.
+
+    - If MCP_SERVERS_JSON is set (non-empty), parse and return it.
+    - Otherwise build from MCP_SERVER_URL (data360) and optional MCP_WDR2026_URL (wdr2026).
+    """
+    settings = get_mcp_settings()
+    if settings.servers_json and settings.servers_json.strip():
+        try:
+            parsed = json.loads(settings.servers_json)
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            pass
+    # Build default: data360 from server_url, wdr2026 if URL set
+    servers = {
+        "data360": {
+            "url": settings.server_url,
+            "transport": "streamable-http",
+            "name": "Data360 MCP Server",
+            "description": "MCP Server for the Data360 API",
+        },
+    }
+    if settings.wdr2026_url and settings.wdr2026_url.strip():
+        servers["wdr2026"] = {
+            "url": settings.wdr2026_url.strip(),
+            "transport": "streamable-http",
+            "name": "WDR2026 MCP Server",
+            "description": "MCP Server for the WDR2026 document",
+        }
+    return servers
 
 
 # Initialize settings after loading dotenv
