@@ -26,6 +26,7 @@ async def _continue_stream_in_background(
     background_tasks: Any,  # BackgroundTasks
     processor: StreamEventProcessor,
     current_sequence: int,
+    thinking_to_answer_token: Optional[str] = None,
 ) -> None:
     """
     Continue stream generation in background after client disconnect.
@@ -41,23 +42,24 @@ async def _continue_stream_in_background(
         current_sequence,
     )
 
-    # Create a new processor for background continuation
-    # (The original processor's generator is closed)
-    background_processor = StreamEventProcessor(chat_id)
+    # Create a new processor for background continuation (original generator is closed)
+    background_processor = StreamEventProcessor(chat_id, mode=processor.mode)
     sequence = current_sequence
+    stream_mode = "thinking" if processor.mode == "unified" else processor.mode
 
     try:
         # Restart stream generation from the same messages
-        # This will generate the full response (may be slightly different but complete)
         async for event in stream_text(
             client=client,
             model=model,
             messages=messages,
             system=system,
+            mode=stream_mode,
             tools=tools,
             tool_definitions=tool_definitions,
             temperature=0.7,
             max_tool_turns=5,
+            thinking_to_answer_token=thinking_to_answer_token,
         ):
             # Convert to bytes
             if isinstance(event, str):

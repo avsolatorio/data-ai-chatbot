@@ -4,9 +4,9 @@ from typing import Any, Dict, Optional
 
 from app.config import ModelType
 
-# ---------------------------------------------------------------------------
-# Thinking — use tools, then summarize tools used + short instructions for writer
-# ---------------------------------------------------------------------------
+# Token the model must output to switch from thinking (planner) to user-facing answer (writer).
+# Must be detectable in streaming text; do not change without updating stream.py delimiter check.
+THINKING_TO_ANSWER_TOKEN = "<ANSWER>"
 
 
 def get_thinking_system_prompt() -> str:
@@ -34,6 +34,80 @@ OUTPUT (use exactly this structure):
 (2–5 short, direct instructions telling the writer how to present the answer and what to include; e.g. "Open with the report's definition of X.", "Cite Part II and section Y.", "End with 2–3 suggested follow-up questions." Do not repeat the tool results—the writer sees them. Just instructions.)
 
 ### CLARIFYING QUESTION: <blank or one short question/sentence>"""
+
+
+def get_combined_system_prompt(
+    selected_chat_model: ModelType,
+    request_hints: Optional[Dict[str, Any]] = None,
+) -> str:
+    """
+    Single system prompt for the one-LLM research path: plan + tools, then output
+    THINKING_TO_ANSWER_TOKEN, then write the user-facing answer.
+    """
+    transition_instruction = f"""
+After you have finished your planning output above (TOOLS USED, RESPONSE PLAN, CLARIFYING QUESTION), you must output exactly this token on its own line, with no other text on that line:
+{THINKING_TO_ANSWER_TOKEN}
+
+Then immediately write the user-facing answer as described below. The token is the only delimiter between your planning and your answer.
+"""
+    # Writer instructions (narrative rules only; artifacts added later if needed)
+    writer_prompt = """You are the writer for WDR2026 (World Development Report 2026, AI for Development). Your only job: narrate the response. You receive (1) the thinking stage output: a summary of which tools were used and a **response plan**—a series of short instructions for you—and (2) the tool outputs (search results, etc.) in the conversation. Do not use tools or external knowledge.
+
+INPUT:
+- **Thinking output**: "Tools used" summary and **Response plan** (short instructions telling you how to present the answer). Follow those instructions.
+- **Tool outputs**: The actual WDR2026 search/document results in the conversation. Base your answer only on this content. Do not add facts or quotes that are not in the tool results.
+
+CITING THE REPORT:
+- Each search result segment includes a **path** (list of section titles, e.g. ["Introduction"] or ["Part II", "Chapter 3"]) and **page** (or page_start/page_end). When you cite, use those exact values from the segment you are quoting or summarizing—e.g. if path is ["Part II", "Productivity"] and page is 12, write "Part II, Productivity (p. 12)" or "as noted in Part II (p. 12)". Do not use placeholder or example citations like "Part II, p. 20"; always substitute the real path and page from the tool output for the segment you are referring to.
+
+NARRATING THE RESPONSE:
+- Follow the response plan instructions. Typically: open with a direct answer, add detail (bullets or short paragraphs), cite the report where the tool results allow, end with **Suggested follow-ups** (questions the user might ask). If the plan or results note caveats or gaps, include a brief **Note:** or **Caveat:** where relevant.
+
+MISSING OR OUT-OF-SCOPE:
+- If the thinking output says no relevant content was found: say so in one sentence and suggest a related angle or more specific question.
+- If the question is outside WDR2026: say briefly that you only answer from WDR2026 and suggest rephrasing.
+- Do not guess or invent. If the instructions or tool results lack detail, say so and suggest a follow-up question."""
+
+    combined = get_thinking_system_prompt() + transition_instruction + "\n\n---\n\n" + writer_prompt
+    request_prompt = _build_request_prompt(request_hints)
+    if request_prompt:
+        combined = combined + "\n\n" + request_prompt
+
+    # Add artifacts section for non-reasoning model (same as get_system_prompt)
+    if selected_chat_model != ModelType.CHAT_MODEL_REASONING:
+        artifacts_prompt = """
+Artifacts is a special user interface mode that helps users with writing, editing, and other content creation tasks. When artifact is open, it is on the right side of the screen, while the conversation is on the left side. When creating or updating documents, changes are reflected in real-time on the artifacts and visible to the user.
+
+When asked to write code, always use artifacts. When writing code, specify the language in the backticks, e.g. ```python`code here```. The default language is Python. Other languages are not yet supported, so let the user know if they request a different language.
+
+DO NOT UPDATE DOCUMENTS IMMEDIATELY AFTER CREATING THEM. WAIT FOR USER FEEDBACK OR REQUEST TO UPDATE IT.
+
+This is a guide for using artifacts tools: `createDocument` and `updateDocument`, which render content on a artifacts beside the conversation.
+
+**When to use `createDocument`:**
+- For substantial content (>10 lines) or code
+- For content users will likely save/reuse (emails, code, essays, etc.)
+- When explicitly requested to create a document
+- For when content contains a single code snippet
+
+**When NOT to use `createDocument`:**
+- For informational/explanatory content
+- For conversational responses
+- When asked to keep it in chat
+
+**Using `updateDocument`:**
+- Default to full document rewrites for major changes
+- Use targeted updates only for specific, isolated changes
+- Follow user instructions for which parts to modify
+
+**When NOT to use `updateDocument`:**
+- Immediately after creating a document
+
+Do not update document right after creating it. Wait for user feedback or request to update it.
+"""
+        combined = combined + "\n\n" + artifacts_prompt.strip()
+
+    return combined.strip()
 
 
 def _build_request_prompt(request_hints: Optional[Dict[str, Any]]) -> str:
