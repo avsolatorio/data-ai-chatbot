@@ -1,5 +1,13 @@
+export {
+  buildTextWithCitationPlaceholders,
+  splitTextByWdrCitations,
+  WdrCitationButton,
+  WdrCitationContext,
+  WdrCiteSpan,
+} from "./citation";
 export { Wdr2026SearchResults } from "./search-results";
 export { Wdr2026Toc } from "./toc";
+export type { WdrCitationSegment } from "./citation";
 export type {
   Wdr2026SearchResponse,
   Wdr2026SearchSegment,

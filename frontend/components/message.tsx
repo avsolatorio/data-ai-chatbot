@@ -56,9 +56,14 @@ import {
   scrollToAndHighlightMessage,
 } from "./quoted-context-block";
 import {
+  buildTextWithCitationPlaceholders,
+  splitTextByWdrCitations,
   Wdr2026SearchResults,
+  type Wdr2026SearchSegment,
   Wdr2026Toc,
   type Wdr2026TocOutput,
+  WdrCitationContext,
+  WdrCiteSpan,
 } from "./wdr2026";
 import { Weather } from "./weather";
 
@@ -70,6 +75,91 @@ const CHART_URL_REGEX =
 const CHART_MARKDOWN_LINK_REGEX = new RegExp(
   `\\[[^\\]]*\\]\\s*\\(\\s*(${CHART_URL_REGEX.source})\\s*\\)`,
 );
+
+/** Returns segments from a part that looks like a wdr2026_search tool (top-level or inside data-thinking). */
+function getSegmentsFromPart(part: {
+  type?: string;
+  state?: string;
+  output?: unknown;
+}): Wdr2026SearchSegment[] {
+  const type = part.type;
+  if (typeof type !== "string") return [];
+  const isWdrSearch =
+    type === "tool-wdr2026_wdr2026_search" ||
+    (type.startsWith("tool-") &&
+      type.toLowerCase().includes("wdr2026") &&
+      type.toLowerCase().includes("search"));
+  if (!isWdrSearch || part.state !== "output-available" || part.output == null)
+    return [];
+  const raw = part.output;
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw) as { result?: Wdr2026SearchSegment[] };
+      return Array.isArray(parsed.result) ? parsed.result : [];
+    } catch {
+      return [];
+    }
+  }
+  if (raw && typeof raw === "object" && "result" in raw) {
+    const obj = raw as { result?: unknown };
+    return Array.isArray(obj.result) ? obj.result : [];
+  }
+  return [];
+}
+
+/** Collects all segments from wdr2026_search tool outputs in this message (in order) for citation tooltips. Handles both top-level tool parts and tools nested inside data-thinking (unified mode). */
+function getWdr2026SegmentsFromMessage(
+  message: ChatMessage,
+): Wdr2026SearchSegment[] {
+  const out: Wdr2026SearchSegment[] = [];
+  const parts = message.parts ?? [];
+  for (const p of parts) {
+    const part = p as {
+      type?: string;
+      state?: string;
+      output?: unknown;
+      data?: { type?: string; state?: string; output?: unknown };
+    };
+    // Top-level tool part
+    const fromPart = getSegmentsFromPart(part);
+    if (fromPart.length > 0) {
+      out.push(...fromPart);
+      continue;
+    }
+    // Unified mode: tool part wrapped inside data-thinking
+    if (
+      part.type === "data-thinking" &&
+      part.data &&
+      typeof part.data === "object"
+    ) {
+      const fromData = getSegmentsFromPart(
+        part.data as { type?: string; state?: string; output?: unknown },
+      );
+      if (fromData.length > 0) out.push(...fromData);
+    }
+  }
+  return out;
+}
+
+/** Renders assistant text with WDR-style citations as inline icon links (same paragraph) that open the PDF at that page. */
+function renderAssistantTextWithCitations(
+  text: string,
+  messageId: string | undefined,
+  wdrSegments?: Wdr2026SearchSegment[],
+): React.ReactNode {
+  const segments = splitTextByWdrCitations(text);
+  if (segments.length === 1 && segments[0].kind === "text") {
+    return <Response>{sanitizeText(segments[0].value)}</Response>;
+  }
+  const content = buildTextWithCitationPlaceholders(segments);
+  return (
+    <WdrCitationContext.Provider value={{ messageId, segments: wdrSegments }}>
+      <Response components={{ span: WdrCiteSpan }}>
+        {sanitizeText(content)}
+      </Response>
+    </WdrCitationContext.Provider>
+  );
+}
 
 /** Splits text at the first chart URL (or markdown link with chart URL) so it can be replaced by ChartPreview inline. */
 function splitTextAtChartUrl(text: string): {
@@ -182,24 +272,37 @@ function renderMessagePart(
                 </Response>
               ) : message.role === "assistant" ? (
                 (() => {
+                  const wdrSegments = getWdr2026SegmentsFromMessage(message);
                   const split = splitTextAtChartUrl(part.text);
                   if (!split) {
-                    return <Response>{sanitizeText(part.text)}</Response>;
+                    return renderAssistantTextWithCitations(
+                      part.text,
+                      message.id,
+                      wdrSegments,
+                    );
                   }
                   const { before, chartUrl, after } = split;
                   return (
                     <>
-                      {before.trim().length > 0 ? (
-                        <Response>{sanitizeText(before)}</Response>
-                      ) : null}
+                      {before.trim().length > 0
+                        ? renderAssistantTextWithCitations(
+                            before,
+                            message.id,
+                            wdrSegments,
+                          )
+                        : null}
                       <ChartPreview
                         chartUrl={chartUrl}
                         isReadonly={isReadonly}
                         messageId={message.id}
                       />
-                      {after.trim().length > 0 ? (
-                        <Response>{sanitizeText(after)}</Response>
-                      ) : null}
+                      {after.trim().length > 0
+                        ? renderAssistantTextWithCitations(
+                            after,
+                            message.id,
+                            wdrSegments,
+                          )
+                        : null}
                     </>
                   );
                 })()

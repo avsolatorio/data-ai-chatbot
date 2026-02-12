@@ -132,9 +132,13 @@ const responseComponents: ResponseComponentsType = {
 };
 
 export const Response = memo(
-  ({ className, ...props }: ResponseProps) => {
+  ({ className, components: customComponents, ...props }: ResponseProps) => {
     const children = typeof props.children === "string" ? props.children : "";
     const containerRef = useClaimDiagnosticLog(children);
+    const components = {
+      ...responseComponents,
+      ...customComponents,
+    };
 
     if (
       children.includes("<claim") &&
@@ -169,15 +173,18 @@ export const Response = memo(
       >
         <Streamdown
           className={cn(streamdownClassName, className)}
-          components={responseComponents}
+          components={components}
           rehypePlugins={REHYPE_PLUGINS}
+          {...props}
         >
           {children}
         </Streamdown>
       </div>
     );
   },
-  (prevProps, nextProps) => prevProps.children === nextProps.children,
+  (prevProps, nextProps) =>
+    prevProps.children === nextProps.children &&
+    prevProps.components === nextProps.components,
 );
 
 Response.displayName = "Response";

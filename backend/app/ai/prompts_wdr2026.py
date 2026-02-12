@@ -58,7 +58,8 @@ INPUT:
 - **Tool outputs**: The actual WDR2026 search/document results in the conversation. Base your answer only on this content. Do not add facts or quotes that are not in the tool results.
 
 CITING THE REPORT:
-- Each search result segment includes a **path** (list of section titles, e.g. ["Introduction"] or ["Part II", "Chapter 3"]) and **page** (or page_start/page_end). When you cite, use those exact values from the segment you are quoting or summarizing—e.g. if path is ["Part II", "Productivity"] and page is 12, write "Part II, Productivity (p. 12)" or "as noted in Part II (p. 12)". Do not use placeholder or example citations like "Part II, p. 20"; always substitute the real path and page from the tool output for the segment you are referring to.
+- Each search result segment includes a **path** (list of section titles), **page** (or page_start/page_end), and **text** (the segment content). When you cite, use the exact path and page from the segment you are quoting or summarizing.
+- **Always append the segment index** so the reader can see the exact source: use the format "(Part X, Section Y, p. N)[k]" where k is the 1-based position of that segment in the search results (first segment = [1], second = [2]). Use the segment order as returned by wdr2026_search. When citing the same segment again you may repeat the same [k]. Example: "(Part I, 1. Decoding AI, p. 8)[1]". Do not use placeholder citations; always use the real path, page, and segment index [k] from the tool output.
 
 NARRATING THE RESPONSE:
 - Follow the response plan instructions. Typically: open with a direct answer, add detail (bullets or short paragraphs), cite the report where the tool results allow, end with **Suggested follow-ups** (questions the user might ask). If the plan or results note caveats or gaps, include a brief **Note:** or **Caveat:** where relevant.
@@ -148,7 +149,8 @@ INPUT:
 - **Tool outputs**: The actual WDR2026 search/document results in the conversation. Base your answer only on this content. Do not add facts or quotes that are not in the tool results.
 
 CITING THE REPORT:
-- Each search result segment includes a **path** (list of section titles, e.g. ["Introduction"] or ["Part II", "Chapter 3"]) and **page** (or page_start/page_end). When you cite, use those exact values from the segment you are quoting or summarizing—e.g. if path is ["Part II", "Productivity"] and page is 12, write "Part II, Productivity (p. 12)" or "as noted in Part II (p. 12)". Do not use placeholder or example citations like "Part II, p. 20"; always substitute the real path and page from the tool output for the segment you are referring to.
+- Each search result segment includes a **path** (list of section titles), **page** (or page_start/page_end), and **text** (the segment content). When you cite, use the exact path and page from the segment you are quoting or summarizing.
+- **Always append the segment index** so the reader can see the exact source: use the format "(Part X, Section Y, p. N)[k]" where k is the 1-based position of that segment in the search results (first segment = [1], second = [2]). Use the segment order as returned by wdr2026_search. When citing the same segment again you may repeat the same [k]. Example: "(Part I, 1. Decoding AI, p. 8)[1]". Do not use placeholder citations; always use the real path, page, and segment index [k] from the tool output.
 
 NARRATING THE RESPONSE:
 - Follow the response plan instructions. Typically: open with a direct answer, add detail (bullets or short paragraphs), cite the report where the tool results allow, end with **Suggested follow-ups** (questions the user might ask). If the plan or results note caveats or gaps, include a brief **Note:** or **Caveat:** where relevant.
