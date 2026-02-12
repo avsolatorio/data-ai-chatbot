@@ -64,6 +64,25 @@ function getWdr2026AssetsBase(): string {
   return v != null && v.trim().length > 0 ? v.trim().replace(/\/+$/, "") : "";
 }
 
+/** Default PDF filename when using assets base for documents. */
+const WDR2026_DEFAULT_PDF_FILENAME =
+  "WDR2026_Concept_Note_-_WBG-Wide_Review_Oct-20-2025.pdf";
+
+/**
+ * Full URL for the WDR2026 source PDF (for "View page in PDF" in artifact panel).
+ * Set via NEXT_PUBLIC_WDR2026_PDF_URL. When unset, falls back to
+ * wdr2026AssetsBase + "/documents/" + default filename when assets base is set.
+ */
+function getWdr2026PdfUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_WDR2026_PDF_URL;
+  if (explicit != null && explicit.trim().length > 0) {
+    return explicit.trim();
+  }
+  const base = getWdr2026AssetsBase();
+  if (!base) return "";
+  return `${base}/documents/${WDR2026_DEFAULT_PDF_FILENAME}`;
+}
+
 import { buildFullUrl, buildPath, getBasePath } from "@/lib/base-path";
 
 /** Return a path under the app base (e.g. getAppPath("/chat/1") => "/mcp-chat/chat/1"). Use for history.replaceState/pushState. */
@@ -155,4 +174,11 @@ export const appConfig = {
    * Set via NEXT_PUBLIC_WDR2026_ASSETS_BASE. When unset, paths are used as-is.
    */
   wdr2026AssetsBase: getWdr2026AssetsBase(),
+
+  /**
+   * Full URL for the WDR2026 source PDF. When set, text search results show "View page in PDF"
+   * and the artifact panel can open the PDF at the segment's page. Set via NEXT_PUBLIC_WDR2026_PDF_URL,
+   * or derived from wdr2026AssetsBase + /documents/ when that is set.
+   */
+  wdr2026PdfUrl: getWdr2026PdfUrl(),
 };

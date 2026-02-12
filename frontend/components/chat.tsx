@@ -159,7 +159,7 @@ export function Chat({
   } = useChat<ChatMessage>({
     id,
     messages: initialMessages,
-    experimental_throttle: 100,
+    experimental_throttle: 10,
     generateId: generateUUID,
     transport: new DefaultChatTransport({
       api: getApiUrl("/api/chat"),

@@ -20,6 +20,7 @@ import { embedArtifact } from "@/artifacts/embed/client";
 import { imageArtifact } from "@/artifacts/image/client";
 import { sheetArtifact } from "@/artifacts/sheet/client";
 import { textArtifact } from "@/artifacts/text/client";
+import { wdr2026PdfPageArtifact } from "@/artifacts/wdr2026-pdf-page/client";
 import { wdr2026FigureArtifact } from "@/artifacts/wdr2026-figure/client";
 import { useArtifact } from "@/hooks/use-artifact";
 import { apiFetch, getApiUrl } from "@/lib/api-client";
@@ -44,6 +45,7 @@ export const artifactDefinitions = [
   chartArtifact,
   embedArtifact,
   wdr2026FigureArtifact,
+  wdr2026PdfPageArtifact,
 ];
 export type ArtifactKind = (typeof artifactDefinitions)[number]["kind"];
 
@@ -601,6 +603,10 @@ function PureArtifact({
                     <div className="text-muted-foreground text-sm">
                       WDR2026 figure
                     </div>
+                  ) : artifact.kind === "wdr2026-pdf-page" ? (
+                    <div className="text-muted-foreground text-sm">
+                      WDR2026 PDF page
+                    </div>
                   ) : (
                     <div className="mt-2 h-3 w-32 animate-pulse rounded-md bg-muted-foreground/20" />
                   )}
@@ -620,7 +626,7 @@ function PureArtifact({
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col w-full max-w-full! overflow-hidden bg-background dark:bg-muted">
               <div
-                className={`flex min-h-0 min-w-0 flex-1 flex-col ${artifact.kind === "chart" || artifact.kind === "embed" ? "overflow-hidden" : "min-h-0 overflow-y-auto overflow-x-hidden"}`}
+                className={`flex min-h-0 min-w-0 flex-1 flex-col ${artifact.kind === "chart" || artifact.kind === "embed" || artifact.kind === "wdr2026-pdf-page" ? "overflow-hidden" : "min-h-0 overflow-y-auto overflow-x-hidden"}`}
               >
                 {(() => {
                   const ContentComponent =
@@ -631,7 +637,8 @@ function PureArtifact({
                     content:
                       artifact.kind === "chart" ||
                       artifact.kind === "embed" ||
-                      artifact.kind === "wdr2026-figure"
+                      artifact.kind === "wdr2026-figure" ||
+                      artifact.kind === "wdr2026-pdf-page"
                         ? artifact.content
                         : isCurrentVersion
                           ? artifact.content
@@ -642,7 +649,8 @@ function PureArtifact({
                     isInline: false,
                     isLoading:
                       artifact.kind === "embed" ||
-                      artifact.kind === "wdr2026-figure"
+                      artifact.kind === "wdr2026-figure" ||
+                      artifact.kind === "wdr2026-pdf-page"
                         ? false
                         : isDocumentsFetching && !artifact.content,
                     metadata,

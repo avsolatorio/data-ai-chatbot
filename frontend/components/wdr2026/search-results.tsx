@@ -11,6 +11,12 @@ import { appConfig } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import type { Wdr2026SearchResponse, Wdr2026SearchSegment } from "./types";
 
+/** Page number for PDF (1-based); use segment page or page_start when available. */
+function getSegmentPdfPage(segment: Wdr2026SearchSegment): number {
+  const p = segment.page ?? segment.page_start ?? 0;
+  return p > 0 ? p : 1;
+}
+
 /** Resolve figure image URL: use assets base when set, otherwise path as-is. */
 function resolveFigureImageUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;
@@ -23,9 +29,13 @@ function resolveFigureImageUrl(path: string): string {
 function SegmentCard({
   segment,
   onOpenInPanel,
+  onOpenPdfPage,
+  pdfUrl,
 }: {
   segment: Wdr2026SearchSegment;
   onOpenInPanel?: (segment: Wdr2026SearchSegment) => void;
+  onOpenPdfPage?: (segment: Wdr2026SearchSegment) => void;
+  pdfUrl?: string;
 }) {
   const isFigure = segment.segment_type === "figure";
   const pathLabel = segment.path.length > 0 ? segment.path.join(" › ") : "—";
@@ -33,6 +43,8 @@ function SegmentCard({
     isFigure && segment.figure_image_path
       ? resolveFigureImageUrl(segment.figure_image_path)
       : null;
+  const canOpenPdf =
+    !isFigure && pdfUrl && onOpenPdfPage && getSegmentPdfPage(segment) >= 1;
 
   return (
     <Card className="w-full border-border transition-colors hover:border-primary/30">
@@ -68,6 +80,18 @@ function SegmentCard({
             >
               <ExpandIcon className="size-3.5" />
               Open in panel
+            </Button>
+          )}
+          {canOpenPdf && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 text-xs"
+              onClick={() => onOpenPdfPage(segment)}
+            >
+              <ExpandIcon className="size-3.5" />
+              View page in PDF
             </Button>
           )}
         </div>
@@ -106,6 +130,7 @@ export function Wdr2026SearchResults({
 }) {
   const { setArtifact } = useArtifact();
   const segments = output.result ?? [];
+  const pdfUrl = appConfig.wdr2026PdfUrl;
 
   const handleOpenInPanel = (segment: Wdr2026SearchSegment) => {
     const pathLabel =
@@ -117,6 +142,28 @@ export function Wdr2026SearchResults({
       documentId: "init",
       isVisible: true,
       kind: "wdr2026-figure",
+      status: "idle",
+      title,
+      ...(messageId ? { triggerMessageId: messageId } : {}),
+    });
+  };
+
+  const handleOpenPdfPage = (segment: Wdr2026SearchSegment) => {
+    if (!pdfUrl) return;
+    const pathLabel =
+      segment.path.length > 0 ? segment.path.join(" › ") : "WDR2026";
+    const page = getSegmentPdfPage(segment);
+    const title = `${pathLabel} — Page ${page}`;
+    setArtifact({
+      boundingBox: { height: 400, left: 0, top: 0, width: 480 },
+      content: JSON.stringify({
+        pdfUrl,
+        page,
+        pathLabel,
+      }),
+      documentId: "init",
+      isVisible: true,
+      kind: "wdr2026-pdf-page",
       status: "idle",
       title,
       ...(messageId ? { triggerMessageId: messageId } : {}),
@@ -145,6 +192,8 @@ export function Wdr2026SearchResults({
             key={`${segment.path.join("-")}-${index}`}
             segment={segment}
             onOpenInPanel={handleOpenInPanel}
+            onOpenPdfPage={pdfUrl ? handleOpenPdfPage : undefined}
+            pdfUrl={pdfUrl || undefined}
           />
         ))}
       </div>
