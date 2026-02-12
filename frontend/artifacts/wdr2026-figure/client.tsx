@@ -91,7 +91,7 @@ export const wdr2026FigureArtifact = new Artifact({
           </div>
         )}
 
-        <div className="min-w-0 shrink-0 text-muted-foreground text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-2.5 prose-headings:mt-4 prose-headings:mb-1.5 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
+        <div className="min-w-0 shrink-0 text-muted-foreground text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-4 prose-headings:mt-4 prose-headings:mb-1.5 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
           <Markdown>{segment.text}</Markdown>
         </div>
       </div>

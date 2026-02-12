@@ -88,11 +88,13 @@ export function DocumentPreview({
     return <LoadingSkeleton artifactKind={result.kind ?? args.kind} />;
   }
 
+  // Document type only has kind "code" | "text" | "image" | "sheet"; chart, embed, wdr2026-figure are UI-only
   const document: Document | null = previewDocument
     ? previewDocument
     : artifact.status === "streaming" &&
         artifact.kind !== "chart" &&
-        artifact.kind !== "embed"
+        artifact.kind !== "embed" &&
+        artifact.kind !== "wdr2026-figure"
       ? {
           title: artifact.title,
           kind: artifact.kind,

@@ -1,16 +1,11 @@
 "use client";
 
 import { ExpandIcon, FileTextIcon, ImageIcon } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Markdown } from "@/components/ui/markdown";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useArtifact } from "@/hooks/use-artifact";
 import { appConfig } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -84,21 +79,17 @@ function SegmentCard({
         {isFigure && figureSrc && (
           <div className="relative aspect-video w-full overflow-hidden rounded-md border border-border bg-muted">
             {/* biome-ignore lint/performance/noImgElement: figure URL from WDR2026 MCP may be external */}
-            <img
-              src={figureSrc}
-              alt=""
-              className="size-full object-contain"
-            />
+            <img src={figureSrc} alt="" className="size-full object-contain" />
           </div>
         )}
         <ScrollArea
           className={cn(
             "w-full rounded-md border border-border",
-            isFigure ? "h-48" : "h-64"
+            isFigure ? "h-48" : "h-64",
           )}
         >
-          <div className="p-4 pr-5 text-muted-foreground text-xs leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-2.5 prose-p:first:mt-0 prose-p:last:mb-0 prose-headings:mt-4 prose-headings:mb-1.5 prose-headings:first:mt-0 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-ul:first:mt-0 prose-ol:first:mt-0">
-            <Markdown>{segment.text}</Markdown>
+          <div className="min-w-0 shrink-0 p-4 pr-5 text-muted-foreground text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-0 prose-headings:mt-4 prose-headings:mb-1.5 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
+            <Markdown className="space-y-4">{segment.text}</Markdown>
           </div>
         </ScrollArea>
       </CardContent>
