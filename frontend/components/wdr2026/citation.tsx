@@ -43,9 +43,11 @@ export function buildTextWithCitationPlaceholders(
     } else {
       const path = escapeAttr(seg.pathLabel);
       const citationValue = escapeAttr(seg.value);
-      const segmentIndexAttr =
-        seg.segmentIndex != null ? ` data-segment-index="${seg.segmentIndex}"` : "";
-      out += `<span data-wdr-cite data-page="${seg.page}" data-path-label="${path}" data-citation-value="${citationValue}" data-citation-index="${seg.citationIndex}"${segmentIndexAttr}></span>`;
+      const segmentIndicesAttr =
+        seg.segmentIndices.length > 0
+          ? ` data-segment-indices="${seg.segmentIndices.join(",")}"`
+          : "";
+      out += `<span data-wdr-cite data-page="${seg.page}" data-path-label="${path}" data-citation-value="${citationValue}" data-citation-index="${seg.citationIndex}"${segmentIndicesAttr}></span>`;
     }
   }
   return out;
@@ -56,7 +58,7 @@ type WdrCiteSpanProps = ComponentProps<"span"> & {
   "data-page"?: string;
   "data-path-label"?: string;
   "data-citation-value"?: string;
-  "data-segment-index"?: string;
+  "data-segment-indices"?: string;
 };
 
 /**
@@ -72,11 +74,14 @@ export function WdrCiteSpan(props: WdrCiteSpanProps) {
   const page = Number.parseInt(props["data-page"] ?? "1", 10);
   const pathLabel = props["data-path-label"] ?? "WDR2026";
   const citationValue = props["data-citation-value"] ?? "";
-  const segmentIndexRaw = props["data-segment-index"];
-  const segmentIndex =
-    segmentIndexRaw != null && segmentIndexRaw !== ""
-      ? Number.parseInt(segmentIndexRaw, 10)
-      : undefined;
+  const segmentIndicesRaw = props["data-segment-indices"];
+  const segmentIndices =
+    segmentIndicesRaw != null && segmentIndicesRaw !== ""
+      ? segmentIndicesRaw
+          .split(",")
+          .map((s) => Number.parseInt(s.trim(), 10))
+          .filter((n) => Number.isFinite(n) && n >= 1)
+      : [];
 
   if (!hasCite) {
     return <span {...props} />;
@@ -89,7 +94,7 @@ export function WdrCiteSpan(props: WdrCiteSpanProps) {
         messageId={messageId}
         page={Number.isFinite(page) ? Math.max(1, page) : 1}
         pathLabel={pathLabel}
-        segmentIndex={Number.isFinite(segmentIndex) && segmentIndex >= 1 ? segmentIndex : undefined}
+        segmentIndices={segmentIndices}
         segments={segments}
         value={`(p. ${page})`}
       />
@@ -98,13 +103,27 @@ export function WdrCiteSpan(props: WdrCiteSpanProps) {
 }
 
 /**
- * Matches WDR-style inline citations: ( ... p. N ) or ( ... p. N–M ), with optional [k] segment index.
+ * Matches WDR-style inline citations: ( ... p. N ) or ( ... p. N–M ), with optional [k] or [k][j]... segment indices.
  * Group 1: content before "p. N" (path/section label).
  * Group 2: page number.
  * Group 3: optional end page (for ranges).
- * Group 4: optional [k] segment index (1-based).
+ * Group 4: optional one or more [k] segment indices (1-based), e.g. [1] or [1][5].
  */
-const WDR_CITATION_REGEX = /\(([^)]*?p\.\s*(\d+)(?:–(\d+))?\s*)\)(\[\d+\])?/g;
+const WDR_CITATION_REGEX = /\(([^)]*?p\.\s*(\d+)(?:–(\d+))?\s*)\)((?:\[\d+\])+)?/g;
+
+/** Parse "[1][5][2]" into [1, 5, 2] (1-based indices). */
+function parseSegmentIndices(bracketGroup: string | undefined): number[] {
+  if (bracketGroup == null || bracketGroup.length === 0) return [];
+  const out: number[] = [];
+  const re = /\[(\d+)\]/g;
+  let m = re.exec(bracketGroup);
+  while (m) {
+    const num = Number.parseInt(m[1] ?? "0", 10);
+    if (Number.isFinite(num) && num >= 1) out.push(num);
+    m = re.exec(bracketGroup);
+  }
+  return out;
+}
 
 export type WdrCitationSegment =
   | { kind: "text"; value: string }
@@ -113,8 +132,8 @@ export type WdrCitationSegment =
       citationIndex: number;
       page: number;
       pathLabel: string;
-      /** 1-based segment index from model citation [k]; used to look up segment text for tooltip. */
-      segmentIndex?: number;
+      /** 1-based segment indices from model citation [k][j]...; used to look up segment text for tooltip. */
+      segmentIndices: number[];
       value: string;
     };
 
@@ -137,11 +156,7 @@ export function splitTextByWdrCitations(text: string): WdrCitationSegment[] {
     const page = Number.parseInt(match[2] ?? "1", 10);
     const pathLabel = inner.trim().length > 0 ? inner.trim() : "WDR2026";
     const bracketGroup = match[4];
-    let segmentIndex: number | undefined;
-    if (bracketGroup) {
-      const num = Number.parseInt(bracketGroup.replace(/\D/g, ""), 10);
-      if (Number.isFinite(num) && num >= 1) segmentIndex = num;
-    }
+    const segmentIndices = parseSegmentIndices(bracketGroup);
 
     if (start > lastEnd) {
       segments.push({ kind: "text", value: text.slice(lastEnd, start) });
@@ -152,7 +167,7 @@ export function splitTextByWdrCitations(text: string): WdrCitationSegment[] {
       value: fullMatch,
       page: Number.isFinite(page) ? Math.max(1, page) : 1,
       pathLabel,
-      ...(segmentIndex !== undefined ? { segmentIndex } : {}),
+      segmentIndices,
     });
     lastEnd = end;
     match = re.exec(text);
@@ -174,9 +189,9 @@ type WdrCitationButtonProps = {
   messageId?: string;
   /** Full citation text for tooltip when segment content is not available. */
   citationValue?: string;
-  /** 1-based segment index to look up segment text from context segments. */
-  segmentIndex?: number;
-  /** Segments from wdr2026_search in this message; segmentIndex refers to this list. */
+  /** 1-based segment indices to look up segment text from context segments (e.g. [1, 5]). */
+  segmentIndices?: number[];
+  /** Segments from wdr2026_search in this message; segmentIndices refer to this list. */
   segments?: Wdr2026SearchSegment[];
 };
 
@@ -186,42 +201,76 @@ export function WdrCitationButton({
   page,
   pathLabel,
   messageId,
-  segmentIndex,
+  segmentIndices = [],
   segments,
 }: WdrCitationButtonProps) {
   const { setArtifact } = useArtifact();
   const pdfUrl = appConfig.wdr2026PdfUrl;
 
-  const segmentByIndex =
-    segments &&
-    segmentIndex != null &&
-    segmentIndex >= 1 &&
-    segmentIndex <= segments.length
-      ? segments[segmentIndex - 1]
-      : undefined;
+  const segmentsByIndices =
+    segments && segmentIndices.length > 0
+      ? segmentIndices
+          .filter((i) => i >= 1 && i <= segments.length)
+          .map((i) => segments[i - 1])
+      : [];
   const segmentByPage =
-    !segmentByIndex &&
+    segmentsByIndices.length === 0 &&
     segments &&
     segments.length > 0
       ? segments.find((s) => s.page === page)
       : undefined;
-  const segment = segmentByIndex ?? segmentByPage;
-  const segmentText = segment?.text?.trim();
-  const tooltipContent =
-    segmentText && segmentText.length > 0 ? (
-      <span className="block">
-        <span className="block border-b border-border pb-1.5 font-medium text-muted-foreground text-xs">
-          {pathLabel} — p. {page}
+  const hasMultiple = segmentsByIndices.length > 1;
+  const tooltipContent = (() => {
+    if (segmentsByIndices.length > 0) {
+      const parts = segmentsByIndices.map((seg, idx) => {
+        const t = seg?.text?.trim();
+        if (!t || t.length === 0) return null;
+        const truncated =
+          t.length > MAX_TOOLTIP_SEGMENT_CHARS
+            ? `${t.slice(0, MAX_TOOLTIP_SEGMENT_CHARS)}…`
+            : t;
+        return (
+          <span
+            key={`seg-${segmentIndices[idx]}`}
+            className={cn("block", hasMultiple && idx > 0 && "mt-2 border-t border-border pt-1.5")}
+          >
+            {hasMultiple && (
+              <span className="text-muted-foreground text-xs font-medium">
+                [{segmentIndices[idx]}]
+              </span>
+            )}
+            <span className={hasMultiple ? "mt-0.5 block" : ""}>{truncated}</span>
+          </span>
+        );
+      }).filter(Boolean);
+      if (parts.length > 0) {
+        return (
+          <span className="block">
+            <span className="block border-b border-border pb-1.5 font-medium text-muted-foreground text-xs">
+              {pathLabel} — p. {page}
+            </span>
+            <span className="mt-1.5 block leading-relaxed">{parts}</span>
+          </span>
+        );
+      }
+    }
+    if (segmentByPage?.text?.trim()) {
+      const t = segmentByPage.text.trim();
+      const truncated =
+        t.length > MAX_TOOLTIP_SEGMENT_CHARS
+          ? `${t.slice(0, MAX_TOOLTIP_SEGMENT_CHARS)}…`
+          : t;
+      return (
+        <span className="block">
+          <span className="block border-b border-border pb-1.5 font-medium text-muted-foreground text-xs">
+            {pathLabel} — p. {page}
+          </span>
+          <span className="mt-1.5 block leading-relaxed">{truncated}</span>
         </span>
-        <span className="mt-1.5 block leading-relaxed">
-          {segmentText.length > MAX_TOOLTIP_SEGMENT_CHARS
-            ? `${segmentText.slice(0, MAX_TOOLTIP_SEGMENT_CHARS)}…`
-            : segmentText}
-        </span>
-      </span>
-    ) : (
-      citationValue && citationValue.trim().length > 0 ? citationValue : value
-    );
+      );
+    }
+    return citationValue?.trim() ? citationValue : value;
+  })();
 
   if (!pdfUrl) {
     return <span className="text-muted-foreground">{value}</span>;
