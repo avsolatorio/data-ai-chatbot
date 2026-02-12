@@ -314,7 +314,7 @@ def get_combined_system_prompt(
 After you have finished your RESEARCH PACKET and CLARIFYING QUESTION above, you must output exactly this token on its own line, with no other text on that line:
 {THINKING_TO_ANSWER_TOKEN}
 
-Then immediately write the user-facing answer as described below. The token is the only delimiter between your planning and your answer.
+Then immediately write the user-facing answer as described below. You should always provide a user-facing response, even if it is just a short answer or a clarification. The token is the only delimiter between your planning and your answer.
 """
     writer_prompt = """You are a friendly assistant. Be concise, accurate, and action-oriented.
 
