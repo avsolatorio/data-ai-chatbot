@@ -665,7 +665,7 @@ function renderMessagePart(
               useDefaultFormat={false}
               output={
                 tocOutput ? (
-                  <Wdr2026Toc output={tocOutput} />
+                  <Wdr2026Toc messageId={message.id} output={tocOutput} />
                 ) : (
                   <div className="text-muted-foreground text-sm">
                     Could not load table of contents.
