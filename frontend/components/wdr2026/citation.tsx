@@ -308,7 +308,6 @@ export function WdrCitationButton({
       <FileTextIcon
         className="size-3.5"
         aria-hidden
-        title=""
       />
     </button>
   );
