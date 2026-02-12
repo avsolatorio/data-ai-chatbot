@@ -17,13 +17,15 @@ from app.ai.protocols.stream import (
 )
 from app.utils.stream import stream_text
 
+StreamProcessorMode = Literal["thinking", "chat", "unified"]
+
 logger = logging.getLogger(__name__)
 
 
 class StreamEventProcessor:
     """Processes stream events and builds assistant messages."""
 
-    def __init__(self, chat_id: UUID, mode: Literal["thinking", "chat"]):
+    def __init__(self, chat_id: UUID, mode: StreamProcessorMode):
         self.chat_id = chat_id
         self.mode = mode
         self.current_part: Dict[str, Any] = {}  # current text part only
@@ -34,13 +36,19 @@ class StreamEventProcessor:
         self.assistant_messages: List[Dict[str, Any]] = []
         self.final_usage: Optional[Dict[str, Any]] = None
         self.current_message_id = str(uuid4())
+        # For mode "unified": True while processing a data-thinking envelope
+        self._current_event_is_thinking: bool = False
 
     def _append_to_message_parts_buffer(self, part: Dict[str, Any]) -> None:
         """Append a part to the message parts buffer.
 
-        If mode is "thinking", the part is converted to a "data-thinking" part, which reverses the conversion made in the `_process_event_data` method for the "data-thinking" event.
+        In "thinking" mode (or "unified" when the event was data-thinking), the part
+        is wrapped as "data-thinking". In "chat" or plain "unified" events, append as-is.
         """
-        if self.mode == "thinking":
+        wrap = (
+            self._current_event_is_thinking if self.mode == "unified" else (self.mode == "thinking")
+        )
+        if wrap:
             part = {"type": "data-thinking", "id": self.current_message_id, "data": part}
         self.message_parts_buffer.append(part)
 
@@ -189,11 +197,24 @@ class StreamEventProcessor:
         """Process a parsed event data dictionary."""
         event_type = data.get("type")
 
+        if self.mode == "unified" and event_type == "data-thinking":
+            self._current_event_is_thinking = True
+            try:
+                data = data.get("data", {}) or {}
+                event_type = data.get("type", "")
+                self._dispatch_event(event_type, data)
+            finally:
+                self._current_event_is_thinking = False
+            return
+
         if self.mode == "thinking":
-            # Remove "thinking-" prefix from event type
             event_type = data.get("data", {}).get("type", "")
             data = data.get("data", {})
 
+        self._dispatch_event(event_type, data)
+
+    def _dispatch_event(self, event_type: str, data: Dict[str, Any]) -> None:
+        """Dispatch to the handler for the given event type."""
         event_handlers = {
             "start": self._handle_start_event,
             "start-step": self._handle_start_step_event,
@@ -221,12 +242,17 @@ class StreamEventProcessor:
         system: Optional[str],
         tools: Dict[str, Any],
         tool_definitions: List[Dict[str, Any]],
+        thinking_to_answer_token: Optional[str] = None,
     ) -> AsyncIterator[bytes]:
         """
         Process stream events and yield bytes for StreamingResponse.
         Returns assistant messages and usage via instance attributes.
+        When mode is "unified", pass thinking_to_answer_token so stream_text can switch
+        from thinking to chat when the token is seen.
         """
         logger.info("=== STREAM GENERATOR STARTED ===")
+        # For unified mode, stream_text expects mode="thinking" and will switch to chat on token
+        stream_mode: StreamProcessorMode = "thinking" if self.mode == "unified" else self.mode
 
         try:
             logger.info("Starting stream_text iteration...")
@@ -235,11 +261,12 @@ class StreamEventProcessor:
                 model=model,
                 messages=messages,
                 system=system,
-                mode=self.mode,
+                mode=stream_mode,
                 tools=tools,
                 tool_definitions=tool_definitions,
                 temperature=0.7,
                 max_tool_turns=5,
+                thinking_to_answer_token=thinking_to_answer_token,
             ):
                 # Convert string to bytes for FastAPI StreamingResponse
                 if isinstance(event, str):

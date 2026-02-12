@@ -366,6 +366,7 @@ async def stream_text(
     max_tool_turns: int = 5,
     sse_event_callback: Optional[Callable[[str], None]] = None,
     stream_yield_delay: float = 0.01,
+    thinking_to_answer_token: Optional[str] = None,
 ):
     """
     Stream text using aisuite and format as Vercel AI SDK SSE events.
@@ -412,6 +413,11 @@ async def stream_text(
             usage_data = None
             tool_calls_state: Dict[int, Dict[str, Any]] = {}
             stage_retrieving_emitted = False
+            # When thinking_to_answer_token is set, we start as thinking and switch to chat when token is seen
+            effective_mode = mode
+            text_buffer = ""
+            yielded_len = 0  # chars already yielded (so we never stream a prefix of the token)
+            switched_to_chat = False
 
             # Call LiteLLM with async streaming
 
@@ -434,8 +440,8 @@ async def stream_text(
                 raise
             logger.debug("Successfully created stream, type: %s", type(stream))
 
-            yield part_to_sse(StartStepPart(), mode=mode, thinking_id=thinking_id)
-            if mode == "thinking":
+            yield part_to_sse(StartStepPart(), mode=effective_mode, thinking_id=thinking_id)
+            if effective_mode == "thinking":
                 yield DataPart(type="data-stage", data={"stage": "interpreting"}).to_sse()
 
             # Process stream chunks
@@ -472,24 +478,97 @@ async def stream_text(
                                     # Yield text-start event immediately (only once)
                                     yield part_to_sse(
                                         TextStartPart(id=text_stream_id),
-                                        mode=mode,
+                                        mode=effective_mode,
                                         thinking_id=thinking_id,
                                     )
                                     text_started = True
                                 # Chunk content word-by-word for smoother streaming
-                                # This mimics Vercel AI SDK's smoothStream({ chunking: "word" })
                                 word_chunks = chunk_text_by_words(content)
                                 for word_chunk in word_chunks:
-                                    # Yield each word chunk as a separate text-delta event
+                                    if (
+                                        thinking_to_answer_token
+                                        and mode == "thinking"
+                                        and not switched_to_chat
+                                    ):
+                                        text_buffer += word_chunk
+                                        if thinking_to_answer_token not in text_buffer:
+                                            # Don't yield a suffix that could be a prefix of the token (e.g. "<ANSWER" before we see ">")
+                                            holdback_n = 0
+                                            for n in range(
+                                                len(thinking_to_answer_token) - 1, 0, -1
+                                            ):
+                                                if text_buffer.endswith(
+                                                    thinking_to_answer_token[:n]
+                                                ):
+                                                    holdback_n = n
+                                                    break
+                                            safe_end = len(text_buffer) - holdback_n
+                                            if safe_end > yielded_len:
+                                                to_yield = text_buffer[yielded_len:safe_end]
+                                                yield part_to_sse(
+                                                    TextDeltaPart(
+                                                        id=text_stream_id,
+                                                        delta=to_yield,
+                                                    ),
+                                                    mode=effective_mode,
+                                                    thinking_id=thinking_id,
+                                                )
+                                                await asyncio.sleep(stream_yield_delay)
+                                                yielded_len = safe_end
+                                            continue
+                                        # Token found: split and switch to chat (token never sent to user)
+                                        pos = text_buffer.index(thinking_to_answer_token)
+                                        chunk_before = text_buffer[yielded_len:pos]
+                                        chunk_after = text_buffer[
+                                            pos + len(thinking_to_answer_token) :
+                                        ]
+                                        if chunk_before:
+                                            yield part_to_sse(
+                                                TextDeltaPart(
+                                                    id=text_stream_id,
+                                                    delta=chunk_before,
+                                                ),
+                                                mode=effective_mode,
+                                                thinking_id=thinking_id,
+                                            )
+                                            await asyncio.sleep(stream_yield_delay)
+                                        # End thinking text part and start answer part so saved message has distinct thinking vs answer parts
+                                        yield part_to_sse(
+                                            TextEndPart(id=text_stream_id),
+                                            mode=effective_mode,
+                                            thinking_id=thinking_id,
+                                        )
+                                        yield DataPart(
+                                            type="data-stage",
+                                            data={"stage": "generating"},
+                                        ).to_sse()
+                                        effective_mode = "chat"
+                                        switched_to_chat = True
+                                        yield part_to_sse(
+                                            TextStartPart(id=text_stream_id),
+                                            mode=effective_mode,
+                                            thinking_id=thinking_id,
+                                        )
+                                        if chunk_after:
+                                            yield part_to_sse(
+                                                TextDeltaPart(
+                                                    id=text_stream_id,
+                                                    delta=chunk_after,
+                                                ),
+                                                mode=effective_mode,
+                                                thinking_id=thinking_id,
+                                            )
+                                            await asyncio.sleep(stream_yield_delay)
+                                        continue
+                                    # Normal path or already switched to chat
                                     yield part_to_sse(
                                         TextDeltaPart(
                                             id=text_stream_id,
                                             delta=word_chunk,
                                         ),
-                                        mode=mode,
+                                        mode=effective_mode,
                                         thinking_id=thinking_id,
                                     )
-                                    # Give event loop a chance to flush immediately
                                     await asyncio.sleep(stream_yield_delay)
 
                             # Handle tool calls
@@ -515,7 +594,10 @@ async def stream_text(
                                             and state["name"] is not None
                                             and not state["started"]
                                         ):
-                                            if mode == "thinking" and not stage_retrieving_emitted:
+                                            if (
+                                                effective_mode == "thinking"
+                                                and not stage_retrieving_emitted
+                                            ):
                                                 yield DataPart(
                                                     type="data-stage",
                                                     data={"stage": "retrieving"},
@@ -527,7 +609,7 @@ async def stream_text(
                                                     toolCallId=state["id"],
                                                     toolName=state["name"],
                                                 ),
-                                                mode=mode,
+                                                mode=effective_mode,
                                                 thinking_id=thinking_id,
                                             )
                                             state["started"] = True
@@ -627,7 +709,7 @@ async def stream_text(
             if finish_reason == "stop" and text_started and not text_finished:
                 yield part_to_sse(
                     TextEndPart(id=text_stream_id),
-                    mode=mode,
+                    mode=effective_mode,
                     thinking_id=thinking_id,
                 )
                 text_finished = True
@@ -673,7 +755,7 @@ async def stream_text(
                         continue
 
                     if not state["started"]:
-                        if mode == "thinking" and not stage_retrieving_emitted:
+                        if effective_mode == "thinking" and not stage_retrieving_emitted:
                             yield DataPart(
                                 type="data-stage",
                                 data={"stage": "retrieving"},
@@ -684,7 +766,7 @@ async def stream_text(
                                 toolCallId=tool_call_id,
                                 toolName=tool_name,
                             ),
-                            mode=mode,
+                            mode=effective_mode,
                             thinking_id=thinking_id,
                         )
                         state["started"] = True
@@ -700,7 +782,7 @@ async def stream_text(
                                 input=raw_arguments,
                                 errorText=str(error),
                             ),
-                            mode=mode,
+                            mode=effective_mode,
                             thinking_id=thinking_id,
                         )
                         # Add error as tool message
@@ -719,7 +801,7 @@ async def stream_text(
                             toolName=tool_name,
                             input=parsed_arguments,
                         ),
-                        mode=mode,
+                        mode=effective_mode,
                         thinking_id=thinking_id,
                     )
 
@@ -732,7 +814,7 @@ async def stream_text(
                                 toolCallId=tool_call_id,
                                 errorText=error_msg,
                             ),
-                            mode=mode,
+                            mode=effective_mode,
                             thinking_id=thinking_id,
                         )
                         tool_messages.append(
@@ -769,7 +851,7 @@ async def stream_text(
                                         toolName=error_info.get("toolName", tool_name),
                                         errorText=error_info.get("errorText", "Unknown error"),
                                     ),
-                                    mode=mode,
+                                    mode=effective_mode,
                                     thinking_id=thinking_id,
                                 )
                                 tool_messages.append(
@@ -793,7 +875,7 @@ async def stream_text(
                                     toolCallId=tool_call_id,
                                     output=tool_result,
                                 ),
-                                mode=mode,
+                                mode=effective_mode,
                                 thinking_id=thinking_id,
                             )
 
@@ -820,7 +902,7 @@ async def stream_text(
                                 toolName=tool_name,
                                 errorText=error_msg,
                             ),
-                            mode=mode,
+                            mode=effective_mode,
                             thinking_id=thinking_id,
                         )
                         tool_messages.append(
@@ -845,7 +927,7 @@ async def stream_text(
                 if text_started and not text_finished:
                     yield part_to_sse(
                         TextEndPart(id=text_stream_id),
-                        mode=mode,
+                        mode=effective_mode,
                         thinking_id=thinking_id,
                     )
                     text_finished = True
@@ -862,25 +944,23 @@ async def stream_text(
         elif usage_data is not None:
             finish_metadata["usage"] = usage_data.model_dump()
 
-        # Do not send standalone UsagePart: the AI SDK uiMessageChunkSchema has no "usage" type.
-        # Sending it causes schema validation to fail, the stream to throw, and status to stay "error" instead of "ready".
-        # Usage is already included in the "finish" event's messageMetadata below.
-        if mode == "thinking":
+        # Emit "generating" stage only if we're still in thinking (didn't switch via token)
+        if effective_mode == "thinking":
             yield DataPart(type="data-stage", data={"stage": "generating"}).to_sse()
         if finish_metadata:
             yield part_to_sse(
                 FinishMessagePart(messageMetadata=finish_metadata),
-                mode=mode,
-                thinking_id=thinking_id if mode == "thinking" else None,
+                mode=effective_mode,
+                thinking_id=thinking_id if effective_mode == "thinking" else None,
             )
         else:
             yield part_to_sse(
                 FinishMessagePart(),
-                mode=mode,
-                thinking_id=thinking_id if mode == "thinking" else None,
+                mode=effective_mode,
+                thinking_id=thinking_id if effective_mode == "thinking" else None,
             )
 
-        if mode == "chat":
+        if effective_mode == "chat":
             yield DoneMarker().to_sse()
     except Exception:
         logger.error("Error in stream_text", exc_info=True)
