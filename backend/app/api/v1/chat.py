@@ -12,7 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.client import get_ai_client, get_async_ai_client, get_model_name
 from app.ai.observability.token_usage import DataUsageData
-from app.ai.prompts import get_system_prompt, get_thinking_system_prompt
+from app.ai.prompts import (
+    get_direct_system_prompt,
+    get_system_prompt,
+    get_thinking_system_prompt,
+)
 from app.ai.protocols.stream import (
     DataPart,
     DataThinkingPart,
@@ -70,6 +74,7 @@ async def _emit_routing_phase(
     openai_messages: list,
     state: dict,
     out: dict,
+    query: str = "",
 ):
     """Async generator: emit routing stage + 'Understanding your question' + check_intent + reasoning. Sets out['use_thinking'] and out['reasoning']."""
     # Stage and static text
@@ -96,6 +101,16 @@ async def _emit_routing_phase(
     intent, reasoning = await check_intent(openai_messages)
     out["use_thinking"] = intent == IntentType.RESEARCH
     out["reasoning"] = reasoning or ""
+
+    # Force WDR research path when the query contains @wdr
+    if "@wdr" in query.lower():
+        out["use_thinking"] = True
+        out["reasoning"] = (
+            "WDR research triggered by @wdr."
+            if not out["reasoning"]
+            else out["reasoning"] + " (WDR forced by @wdr.)"
+        )
+
     if not out["use_thinking"]:
         logger.info(
             "Fast-path: DIRECT intent. Chat phase streams text-start/text-delta; frontend shows them via useChat."
@@ -412,9 +427,13 @@ async def create_chat(
     # Convert messages to OpenAI format (fetches file data from database)
     openai_messages = await convert_messages_to_openai_format(all_messages, db)
 
-    # Get system prompt
+    # Current query text (for @wdr token detection)
+    query_text = get_text_from_message(request.message)
+
+    # Get system prompts (writer for RESEARCH path; direct for DIRECT path)
     request_hints = None  # Will be implemented later
-    system = get_system_prompt(request.selectedChatModel, request_hints)
+    system_writer = get_system_prompt(request.selectedChatModel, request_hints)
+    system_direct = get_direct_system_prompt()
     thinking_system = get_thinking_system_prompt()
 
     # Get async AI client for streaming and model name
@@ -445,11 +464,12 @@ async def create_chat(
 
             out = {}
             async for chunk in _emit_routing_phase(
-                message_id, stream_id, openai_messages, state, out
+                message_id, stream_id, openai_messages, state, out, query=query_text
             ):
                 yield chunk
             use_thinking = out["use_thinking"]
             reasoning = out["reasoning"]
+            chat_system = system_direct if not use_thinking else system_writer
 
             thinking_messages = [
                 convert_message_data_to_message_model(msg).model_dump()
@@ -491,7 +511,7 @@ async def create_chat(
                     client=client,
                     model=model,
                     messages=thinking_messages,
-                    system=system,
+                    system=chat_system,
                     tools=tool_set["local"]["tools"],
                     tool_definitions=tool_set["local"]["tool_definitions"],
                 ),
@@ -514,7 +534,7 @@ async def create_chat(
                     client=client,
                     model=model,
                     messages=openai_messages,
-                    system=system,
+                    system=chat_system,
                     tools=tool_set["local"]["tools"],
                     tool_definitions=tool_set["local"]["tool_definitions"],
                     background_tasks=background_tasks,

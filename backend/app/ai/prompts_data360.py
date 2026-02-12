@@ -293,8 +293,14 @@ CATEGORIES:
    - Asking a general follow-up that DOES NOT need new data (e.g. "Explain that last point," "What do you mean by X?").
    - Complimenting or thanking you.
    - **OUT OF SCOPE**: Asking for something unrelated to the assistant's purpose (e.g., cooking recipes, poems, generic advice). These should be routed to DIRECT so the Writer can politely refuse.
+   When you return DIRECT, the query is not analytical; the assistant is instructed to respond very concisely.
 
 OUTPUT FORMAT:
 Return ONLY a JSON object:
 {"intent": "RESEARCH" | "DIRECT", "reasoning": "brief explanation"}
 """
+
+
+def get_direct_system_prompt() -> str:
+    """System prompt when the router returned DIRECT (no specialized research). Response must be very concise."""
+    return """The user's message was classified as direct chat (no specialized research needed). It is not analytical—e.g. a greeting, thanks, or a simple follow-up. Keep your response very concise: one or two short sentences at most. Do not elaborate or add unsolicited detail."""
