@@ -24,11 +24,10 @@ class IntentType(str, Enum):
 
 class ModelSettings(BaseSettings):
     MODEL_PROVIDER: str = "azure/"
-    # CHAT_MODEL: str = "gpt-4o-mini"
     CHAT_MODEL: str = "gpt-5.1"
     CHAT_MODEL_REASONING: str = "o1-mini"
-    TITLE_MODEL: str = "gpt-5.1"
-    ARTIFACT_MODEL: str = "gpt-5.1"
+    TITLE_MODEL: str = "gpt-4o-mini"
+    ARTIFACT_MODEL: str = "gpt-4o-mini"
 
     model_config = ConfigDict(
         extra="allow",
@@ -142,8 +141,8 @@ class Settings(BaseSettings):
 class MCPSettings(BaseSettings):
     """Settings for MCP (Model Context Protocol) server connections."""
 
-    # server_url: str = "https://ai4data-ai4data-mcp.hf.space/gradio_api/mcp/sse"
-    server_url: str = "http://host.docker.internal:8022/sse"
+    server_url: str = "https://ai4data-ai4data-mcp.hf.space/gradio_api/mcp/sse"
+    # server_url: str = "http://host.docker.internal:8022/mcp"
     ssl_verify: bool = True  # Set to False for dev environments with proxy/self-signed certs
     timeout: float = 30.0  # HTTP timeout in seconds
 
