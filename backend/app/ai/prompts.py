@@ -342,7 +342,7 @@ def get_combined_system_prompt(
                    ⚠️  CRITICAL: OUTPUT FORMAT  ⚠️
 ═══════════════════════════════════════════════════════════════════
 
-After completing your RESEARCH PACKET and CLARIFYING QUESTION, you MUST:
+After completing your RESEARCH PACKET and CLARIFYING QUESTION, you MUST **ALWAYS**:
 
 1. Output EXACTLY this token on its own line (no other text on that line):
 
@@ -350,8 +350,9 @@ After completing your RESEARCH PACKET and CLARIFYING QUESTION, you MUST:
 
 2. Then IMMEDIATELY write the user-facing answer (as described in the Writer section below).
 
-⛔ NEVER write the user-facing answer BEFORE outputting the token above.
-⛔ NEVER skip the token — it is REQUIRED to switch from research to answer mode.
+**NEVER** write the user-facing answer BEFORE outputting the token above.
+**NEVER** skip the token — it is **ALWAYS REQUIRED** to switch from research to answer mode.
+You **MUST** emit this token in **EVERY** RESEARCH response — no exceptions.
 
 Example format:
 ```
@@ -369,7 +370,7 @@ There is currently no published value available for the Philippines for 2023...
 ```
 
 The token {THINKING_TO_ANSWER_TOKEN} is the ONLY delimiter between your research and your answer.
-You MUST always provide a user-facing response after the token, even if brief.
+You MUST **ALWAYS** provide a user-facing response after the token, even if brief.
 
 ═══════════════════════════════════════════════════════════════════
 """
@@ -483,6 +484,13 @@ def get_direct_system_prompt() -> str:
     """System prompt for DIRECT intent (no specialized research needed)."""
     return """The user's message was classified as direct chat (no specialized research needed).
 It is not analytical — e.g., a greeting, thanks, or a simple follow-up.
+
+**CRITICAL**: You are in DIRECT chat mode. Answer immediately and concisely.
+
+**NEVER** use extended thinking blocks, reasoning tags, or any `<antThinking>` format.
+**NEVER** put your response inside any thinking/reasoning structure.
+
+Simply provide your answer directly in plain text.
 
 If the user asked something unrelated to development, economics, or Data360, politely explain that this is outside your scope and suggest they try a development-related question.
 

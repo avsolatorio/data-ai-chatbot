@@ -707,6 +707,48 @@ async def stream_text(
 
             # Handle text end - emit if text was started and stream finished
             if finish_reason == "stop" and text_started and not text_finished:
+                # CRITICAL FALLBACK: If we expected an <ANSWER> token but never
+                # received it, the entire response is stuck in thinking mode.
+                # Switch to chat mode and re-emit the content as a regular text
+                # part so the UI can display it.
+                if (
+                    thinking_to_answer_token
+                    and not switched_to_chat
+                    and text_buffer
+                ):
+                    logger.warning(
+                        "Stream ended without <ANSWER> token. "
+                        "Falling back: re-emitting %d chars as chat text.",
+                        len(text_buffer),
+                    )
+                    # Close the thinking text part
+                    yield part_to_sse(
+                        TextEndPart(id=text_stream_id),
+                        mode=effective_mode,
+                        thinking_id=thinking_id,
+                    )
+                    # Switch to chat mode
+                    effective_mode = "chat"
+                    switched_to_chat = True
+                    yield DataPart(
+                        type="data-stage",
+                        data={"stage": "generating"},
+                    ).to_sse()
+                    # Re-emit the entire buffered text as a chat text part
+                    yield part_to_sse(
+                        TextStartPart(id=text_stream_id),
+                        mode=effective_mode,
+                        thinking_id=thinking_id,
+                    )
+                    yield part_to_sse(
+                        TextDeltaPart(
+                            id=text_stream_id,
+                            delta=text_buffer,
+                        ),
+                        mode=effective_mode,
+                        thinking_id=thinking_id,
+                    )
+
                 yield part_to_sse(
                     TextEndPart(id=text_stream_id),
                     mode=effective_mode,
