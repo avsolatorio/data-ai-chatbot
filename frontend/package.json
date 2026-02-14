@@ -14,10 +14,10 @@
     "verify-pcn": "node scripts/verify-pcn.js",
     "dev": "next dev --turbo",
     "dev:local-pcn": "node scripts/dev-local-pcn.js",
-    "prebuild": "node scripts/ensure-streamdown-for-tailwind.js",
+    "prebuild": "node scripts/ensure-streamdown-for-tailwind.js && node scripts/copy-pdf-worker.js",
     "build": "next build",
-    "build:dev": "node scripts/ensure-streamdown-for-tailwind.js && cross-env PHASE=dev next build && node scripts/postbuild.js",
-    "build:qa": "node scripts/ensure-streamdown-for-tailwind.js && cross-env PHASE=qa next build && node scripts/postbuild.js",
+    "build:dev": "node scripts/ensure-streamdown-for-tailwind.js && node scripts/copy-pdf-worker.js && cross-env PHASE=dev next build && node scripts/postbuild.js",
+    "build:qa": "node scripts/ensure-streamdown-for-tailwind.js && node scripts/copy-pdf-worker.js && cross-env PHASE=qa next build && node scripts/postbuild.js",
     "start": "next start",
     "start:dev": "cross-env PHASE=dev next dev -p 4200",
     "lint": "npx ultracite@latest check",
@@ -28,7 +28,8 @@
     "db:pull": "drizzle-kit pull",
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
-    "test": "export PLAYWRIGHT=True && pnpm exec playwright test"
+    "test": "export PLAYWRIGHT=True && pnpm exec playwright test",
+    "postinstall": "node scripts/copy-pdf-worker.js"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^1.0.15",
@@ -80,6 +81,7 @@
     "next-themes": "^0.3.0",
     "orderedmap": "^2.1.1",
     "papaparse": "^5.5.2",
+    "pdfjs-dist": "^5.4.624",
     "postgres": "^3.4.4",
     "prosemirror-example-setup": "^1.2.3",
     "prosemirror-inputrules": "^1.4.0",

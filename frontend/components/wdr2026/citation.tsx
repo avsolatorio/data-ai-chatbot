@@ -278,12 +278,19 @@ export function WdrCitationButton({
 
   const handleClick = () => {
     const title = `${pathLabel} — Page ${page}`;
+    const segmentForHighlight =
+      segmentsByIndices.length > 0
+        ? segmentsByIndices[0]
+        : segmentByPage;
+    const highlightText =
+      segmentForHighlight?.text?.trim().slice(0, 400) ?? undefined;
     setArtifact({
       boundingBox: { height: 400, left: 0, top: 0, width: 480 },
       content: JSON.stringify({
         page,
         pathLabel,
         pdfUrl,
+        ...(highlightText ? { highlightText } : {}),
       }),
       documentId: "init",
       isVisible: true,

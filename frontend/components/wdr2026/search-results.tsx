@@ -154,12 +154,14 @@ export function Wdr2026SearchResults({
       segment.path.length > 0 ? segment.path.join(" › ") : "WDR2026";
     const page = getSegmentPdfPage(segment);
     const title = `${pathLabel} — Page ${page}`;
+    const highlightText = segment.text?.trim().slice(0, 400) ?? undefined;
     setArtifact({
       boundingBox: { height: 400, left: 0, top: 0, width: 480 },
       content: JSON.stringify({
         pdfUrl,
         page,
         pathLabel,
+        ...(highlightText ? { highlightText } : {}),
       }),
       documentId: "init",
       isVisible: true,
