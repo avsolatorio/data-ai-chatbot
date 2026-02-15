@@ -711,11 +711,7 @@ async def stream_text(
                 # received it, the entire response is stuck in thinking mode.
                 # Switch to chat mode and re-emit the content as a regular text
                 # part so the UI can display it.
-                if (
-                    thinking_to_answer_token
-                    and not switched_to_chat
-                    and text_buffer
-                ):
+                if thinking_to_answer_token and not switched_to_chat and text_buffer:
                     logger.warning(
                         "Stream ended without <ANSWER> token. "
                         "Falling back: re-emitting %d chars as chat text.",

@@ -89,10 +89,18 @@ async def check_intent(messages: List[Dict[str, Any]]) -> Tuple[IntentType, str]
         logger.debug(
             "Routing with %d messages: %s",
             len(routing_messages),
-            json.dumps([
-                {"role": m["role"], "content": m["content"][:120] + "..." if len(m["content"]) > 120 else m["content"]}
-                for m in routing_messages
-            ], ensure_ascii=False),
+            json.dumps(
+                [
+                    {
+                        "role": m["role"],
+                        "content": m["content"][:120] + "..."
+                        if len(m["content"]) > 120
+                        else m["content"],
+                    }
+                    for m in routing_messages
+                ],
+                ensure_ascii=False,
+            ),
         )
 
         response = await client.chat.completions.create(
