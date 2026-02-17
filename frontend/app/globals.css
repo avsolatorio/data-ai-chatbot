@@ -420,3 +420,76 @@ button.home-suggestion-chip:hover {
   --sidebar: hsl(240 5.9% 12%);
 }
 */
+
+/* Maintenance page: AI/data theme animations (disabled when user prefers reduced motion) */
+@keyframes maintenance-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes maintenance-pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes maintenance-shimmer {
+  0% {
+    background-position: 200% 50%;
+  }
+  100% {
+    background-position: -200% 50%;
+  }
+}
+
+@keyframes maintenance-dot {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+.maintenance-float {
+  animation: maintenance-float 3s ease-in-out infinite;
+}
+
+.maintenance-pulse-soft {
+  animation: maintenance-pulse-soft 2s ease-in-out infinite;
+}
+
+.maintenance-dot {
+  animation: maintenance-dot 1.4s ease-in-out infinite both;
+}
+
+.maintenance-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+.maintenance-dot:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.maintenance-dot:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maintenance-float,
+  .maintenance-pulse-soft,
+  .maintenance-dot {
+    animation: none;
+  }
+}

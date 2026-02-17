@@ -10,13 +10,14 @@
  * - NEXT_PUBLIC_MAINTENANCE_ESTIMATED_END: e.g. "2:00 PM UTC".
  * Contact link uses NEXT_PUBLIC_FEEDBACK_CONTACT_URL when set.
  */
-import { Construction } from "lucide-react";
+import { Bot, Database, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import { appConfig } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: `Maintenance | ${appConfig.metadata.title}`,
-  description: "Data360 Chat is currently under maintenance. Please check back later.",
+  description:
+    "Data360 Chat is currently under maintenance. Please check back later.",
   robots: "noindex, nofollow",
 };
 
@@ -40,24 +41,77 @@ export default function MaintenancePage() {
   const contact = appConfig.feedbackContact;
 
   return (
-    <main className="flex min-h-dvh w-full flex-col items-center justify-center bg-background px-4 py-12">
-      <div className="flex w-full max-w-lg flex-col items-center gap-8 text-center">
+    <main className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden bg-background px-4 py-12">
+      {/* Subtle grid background (data vibe) */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.06]"
+        aria-hidden
+      >
         <div
-          className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-[var(--home-accent)] bg-[var(--home-accent)]/10 text-[var(--home-accent)]"
-          aria-hidden
-        >
-          <Construction
-            size={40}
-            strokeWidth={1.5}
+          className="h-full w-full"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, var(--foreground) 1px, transparent 1px),
+              linear-gradient(to bottom, var(--foreground) 1px, transparent 1px)
+            `,
+            backgroundSize: "32px 32px",
+          }}
+        />
+      </div>
+
+      <div className="relative flex w-full max-w-lg flex-col items-center gap-10 text-center">
+        {/* Animated hero: bot + data sparkles */}
+        <div className="flex flex-col items-center gap-6">
+          <div
+            className="maintenance-float relative flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border-2 border-[var(--home-accent)] bg-gradient-to-br from-[var(--home-accent)]/15 to-[var(--home-accent)]/5 text-[var(--home-accent)] shadow-lg"
             aria-hidden
-            className="shrink-0"
-          />
+          >
+            <Bot size={44} strokeWidth={1.5} aria-hidden className="shrink-0" />
+            <span
+              className="maintenance-pulse-soft absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--home-accent)]/20"
+              aria-hidden
+            >
+              <Sparkles
+                size={14}
+                className="text-[var(--home-accent)]"
+                aria-hidden
+              />
+            </span>
+            <span
+              className="maintenance-pulse-soft absolute -bottom-0.5 -left-1 flex h-5 w-5 items-center justify-center rounded bg-[var(--home-accent)]/10"
+              aria-hidden
+            >
+              <Database
+                size={12}
+                className="text-[var(--home-accent)]"
+                aria-hidden
+              />
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <h1 className="font-semibold text-2xl tracking-tight text-foreground sm:text-3xl">
+              Recharging my data brain
+            </h1>
+            <p className="flex items-center justify-center gap-1 text-muted-foreground text-base">
+              <span className="sr-only">Loading</span>
+              <span
+                className="maintenance-dot h-2 w-2 rounded-full bg-[var(--home-accent)]"
+                aria-hidden
+              />
+              <span
+                className="maintenance-dot h-2 w-2 rounded-full bg-[var(--home-accent)]"
+                aria-hidden
+              />
+              <span
+                className="maintenance-dot h-2 w-2 rounded-full bg-[var(--home-accent)]"
+                aria-hidden
+              />
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-col gap-3">
-          <h1 className="font-semibold text-2xl tracking-tight text-foreground sm:text-3xl">
-            Under maintenance
-          </h1>
           <p className="text-muted-foreground text-base leading-relaxed">
             {message}
           </p>
@@ -69,7 +123,8 @@ export default function MaintenancePage() {
         </div>
 
         <p className="text-muted-foreground text-sm">
-          Thank you for your patience.
+          Thank you for your patience. I’ll be back with better data answers
+          soon.
         </p>
 
         {contact ? (
