@@ -17,7 +17,10 @@ function getRequestOrigin(request: NextRequest): string {
   if (referer) {
     try {
       const refUrl = new URL(referer);
-      if (refUrl.origin && (refUrl.protocol === "http:" || refUrl.protocol === "https:")) {
+      if (
+        refUrl.origin &&
+        (refUrl.protocol === "http:" || refUrl.protocol === "https:")
+      ) {
         return refUrl.origin;
       }
     } catch {
@@ -49,11 +52,22 @@ function isMaintenanceMode(): boolean {
   return v === "true" || v === "1";
 }
 
+/** Bypass maintenance redirect when this query param is present (e.g. ?nomaintenance=true). */
+function isMaintenanceBypass(request: NextRequest): boolean {
+  const v = request.nextUrl.searchParams.get("nomaintenance");
+  return v === "true" || v === "1";
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (isMaintenanceMode()) {
-    if (pathname !== "/maintenance" && !pathname.startsWith("/_next") && !pathname.startsWith("/api") && !pathname.includes(".")) {
+  if (isMaintenanceMode() && !isMaintenanceBypass(request)) {
+    if (
+      pathname !== "/maintenance" &&
+      !pathname.startsWith("/_next") &&
+      !pathname.startsWith("/api") &&
+      !pathname.includes(".")
+    ) {
       return NextResponse.redirect(new URL("/maintenance", request.url));
     }
     if (pathname === "/maintenance") {
@@ -105,7 +119,7 @@ export function proxy(request: NextRequest) {
     const redirectTarget = `${baseOrigin}/`;
     const guestUrl = new URL(
       `/api/auth/guest?redirectUrl=${encodeURIComponent(redirectTarget)}`,
-      baseOrigin
+      baseOrigin,
     );
     return NextResponse.redirect(guestUrl);
   }
