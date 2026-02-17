@@ -40,8 +40,26 @@ function getRequestOrigin(request: NextRequest): string {
   return `${proto}://${host}`;
 }
 
+/**
+ * When MAINTENANCE_MODE is "true" or "1" (set in App Service / runtime env),
+ * redirect to /maintenance except for that page and static/API assets.
+ */
+function isMaintenanceMode(): boolean {
+  const v = process.env.MAINTENANCE_MODE;
+  return v === "true" || v === "1";
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (isMaintenanceMode()) {
+    if (pathname !== "/maintenance" && !pathname.startsWith("/_next") && !pathname.startsWith("/api") && !pathname.includes(".")) {
+      return NextResponse.redirect(new URL("/maintenance", request.url));
+    }
+    if (pathname === "/maintenance") {
+      return NextResponse.next();
+    }
+  }
 
   /*
    * Playwright starts the dev server and requires a 200 status to
