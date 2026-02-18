@@ -57,9 +57,9 @@ async def check_intent(messages: List[Dict[str, Any]]) -> Tuple[IntentType, str]
     Returns:
         (intent, reasoning): intent and a brief explanation for the frontend.
     """
+    logger.info("[routing] check_intent start messages_count=%d", len(messages))
 
     client = get_async_ai_client()
-
     system_prompt = get_routing_system_prompt()
 
     try:
@@ -86,6 +86,11 @@ async def check_intent(messages: List[Dict[str, Any]]) -> Tuple[IntentType, str]
             # Only include role and content - no tool_calls, no other keys
             routing_messages.append({"role": role, "content": content})
 
+        logger.info(
+            "[routing] calling routing LLM model=%s routing_messages=%d",
+            settings.ROUTING_MODEL,
+            len(routing_messages),
+        )
         logger.debug(
             "Routing with %d messages: %s",
             len(routing_messages),
@@ -114,13 +119,16 @@ async def check_intent(messages: List[Dict[str, Any]]) -> Tuple[IntentType, str]
 
         raw_content = response.choices[0].message.content
         finish_reason = response.choices[0].finish_reason
+        logger.info("[routing] routing LLM response received finish_reason=%s", finish_reason)
         logger.debug("Routing raw response (finish_reason=%s): %r", finish_reason, raw_content)
 
         result = json.loads(raw_content)
         intent = IntentType(result.get("intent", IntentType.RESEARCH))
         reasoning = result.get("reasoning", "").strip()
 
-        logger.info("Intent Routing: %s (Reason: %s)", intent, reasoning)
+        logger.info(
+            "[routing] check_intent done intent=%s reasoning_len=%d", intent, len(reasoning)
+        )
         return (intent, reasoning)
 
     except json.JSONDecodeError as json_err:

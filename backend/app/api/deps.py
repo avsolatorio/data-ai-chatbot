@@ -36,6 +36,7 @@ async def get_current_user(
     import logging
 
     logger = logging.getLogger(__name__)
+    logger.info("[deps] get_current_user start")
 
     all_cookies = list(request.cookies.keys())
     logger.debug("get_current_user: cookies received: %s", all_cookies)
@@ -71,6 +72,7 @@ async def get_current_user(
                     user = await get_or_create_user_from_azure_claims(
                         db, azure_oid=oid, email=email, name=name
                     )
+                    logger.info("[deps] get_current_user done (azure) user_id=%s", user.id)
                     return {"id": str(user.id), "type": user.type or "regular"}
                 logger.warning("Azure AD token missing oid or email claim")
             else:
@@ -151,6 +153,7 @@ async def get_current_user(
                 pass
 
             if payload is not None:
+                logger.info("[deps] get_current_user done (jwt) user_id=%s", user_id)
                 return {"id": user_id, "type": payload.get("type", "regular")}
         # Token expired or invalid - fall through to guest session check
 
@@ -191,11 +194,7 @@ async def get_current_user(
 
                 if is_guest:
                     user_type = user.type if hasattr(user, "type") and user.type else "guest"
-                    logger.debug(
-                        "Restoring guest user: id=%s, type=%s",
-                        str(user.id),
-                        user_type,
-                    )
+                    logger.info("[deps] get_current_user done (guest_session) user_id=%s", user.id)
                     return {"id": str(user.id), "type": user_type, "_restore_guest": True}
                 else:
                     # User doesn't exist or is not a guest user
@@ -250,11 +249,7 @@ async def get_current_user(
 
                 if is_regular:
                     user_type = user.type if hasattr(user, "type") and user.type else "regular"
-                    logger.debug(
-                        "Restoring regular user: id=%s, type=%s",
-                        str(user.id),
-                        user_type,
-                    )
+                    logger.info("[deps] get_current_user done (user_session) user_id=%s", user.id)
                     return {"id": str(user.id), "type": user_type, "_restore_user": True}
                 else:
                     logger.warning(
@@ -289,9 +284,8 @@ async def get_current_user(
                         user.email.startswith("guest-") and user.email.endswith("@anonymous.local")
                     )
                 ):
-                    logger.debug(
-                        "Restoring regular user from raw UUID (backward compatibility): id=%s, type=regular",
-                        str(user.id),
+                    logger.info(
+                        "[deps] get_current_user done (user_session raw) user_id=%s", user.id
                     )
                     return {"id": str(user.id), "type": "regular", "_restore_user": True}
                 else:
@@ -306,6 +300,7 @@ async def get_current_user(
                 pass
 
     # No valid token and no valid session cookies
+    logger.info("[deps] get_current_user done (unauthorized)")
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
 

@@ -53,7 +53,6 @@ from app.utils.stream_processor import StreamEventProcessor
 from app.utils.user_id import get_user_id_uuid, user_ids_match
 
 logger = logging.getLogger(__name__)
-logger.info("=== CHAT ENDPOINT CALLED ===")
 
 
 # ---- Stream generator helpers (keep stream_generator readable) ----
@@ -283,13 +282,12 @@ async def create_chat(
     # No need to check or create users here
 
     # 1. Rate limiting check
+    logger.info("[chat] rate_limit check start")
     message_count = await get_message_count_by_user_id(db, user_id, hours=24)
     max_messages = ENTITLEMENTS.get(user_type, ENTITLEMENTS["regular"])["maxMessagesPerDay"]
-
     logger.info(
-        "Rate limit check: user_id=%s, user_type=%s, message_count=%d, max_messages=%d",
+        "[chat] rate_limit check done: user_id=%s, message_count=%d, max_messages=%d",
         user_id,
-        user_type,
         message_count,
         max_messages,
     )
@@ -309,7 +307,9 @@ async def create_chat(
         )
 
     # 2. Get or create chat
+    logger.info("[chat] get_chat_by_id start chat_id=%s", request.id)
     chat = await get_chat_by_id(db, request.id)
+    logger.info("[chat] get_chat_by_id done found=%s", chat is not None)
     messages_from_db = []  # messagesFromDb
 
     if chat:
@@ -358,8 +358,9 @@ async def create_chat(
             request.selectedVisibilityType,
         )
         # Generate title from user message
+        logger.info("[chat] generate_title_from_user_message start (new chat)")
         title = await generate_title_from_user_message(request.message)
-        logger.info("Generated title: %s", title)
+        logger.info("[chat] generate_title_from_user_message done title=%s", (title or "")[:50])
         chat = await save_chat(
             db,
             request.id,
@@ -374,6 +375,7 @@ async def create_chat(
         )
 
     # 3. Save user message
+    logger.info("[chat] save_messages start (user message)")
     await save_messages(
         db,
         [
@@ -387,10 +389,13 @@ async def create_chat(
             }
         ],
     )
+    logger.info("[chat] save_messages done")
 
     # 4. Create stream ID
+    logger.info("[chat] create_stream_id start")
     stream_id = uuid4()
     await create_stream_id(db, stream_id, request.id)
+    logger.info("[chat] create_stream_id done stream_id=%s", stream_id)
 
     # 5. Prepare for AI streaming (direct call, no HTTP proxy)
     # Combine existing messages with the new user message for AI context
@@ -417,10 +422,12 @@ async def create_chat(
         }
     )
 
-    logger.info("All messages: %s", json.dumps(all_messages, indent=4))
+    logger.info("[chat] all_messages built count=%d", len(all_messages))
 
     # Convert messages to OpenAI format (fetches file data from database)
+    logger.info("[chat] convert_messages_to_openai_format start")
     openai_messages = await convert_messages_to_openai_format(all_messages, db)
+    logger.info("[chat] convert_messages_to_openai_format done count=%d", len(openai_messages))
 
     # Current query text (for @wdr token detection)
     query_text = get_text_from_message(request.message)
@@ -433,10 +440,12 @@ async def create_chat(
     # Get async AI client for streaming and model name
     client = get_async_ai_client()
     model = get_model_name(request.selectedChatModel)
+    logger.info("[chat] AI client ready model=%s", model)
 
     # Prepare tools
+    logger.info("[chat] prepare_tools start")
     tool_set = await prepare_tools(user_id, db)
-    # logger.info("tool_set: %s", json.dumps(tool_set, indent=4))
+    logger.info("[chat] prepare_tools done")
 
     # Processor is created inside stream_generator after use_thinking is known
 
@@ -445,6 +454,7 @@ async def create_chat(
 
     async def stream_generator():
         nonlocal stream_interrupted
+        logger.info("[chat] stream_generator started stream_id=%s", stream_id)
         state = {"sequence": 0}
         message_id = f"msg-{uuid4().hex}"
         use_thinking = False
@@ -458,11 +468,13 @@ async def create_chat(
             yield MessageStartPart(messageId=message_id).to_sse().encode("utf-8")
             await asyncio.sleep(0)
 
+            logger.info("[chat] _emit_routing_phase start (check_intent + routing LLM)")
             out = {}
             async for chunk in _emit_routing_phase(
                 message_id, stream_id, openai_messages, state, out, query=query_text
             ):
                 yield chunk
+            logger.info("[chat] _emit_routing_phase done use_thinking=%s", out.get("use_thinking"))
             use_thinking = out["use_thinking"]
             reasoning = out["reasoning"]
             chat_system = system_combined if use_thinking else system_direct
@@ -478,6 +490,7 @@ async def create_chat(
             stream_processor = StreamEventProcessor(
                 request.id, mode="unified" if use_thinking else "chat"
             )
+            logger.info("[chat] main stream start mode=%s", "unified" if use_thinking else "chat")
             if use_thinking:
                 # Single LLM call: combined prompt, merged MCP + local tools, transition token
                 async for chunk in _stream_with_store(
