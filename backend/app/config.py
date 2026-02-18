@@ -122,7 +122,12 @@ class Settings(BaseSettings):
     AZURE_AD_TENANT_ID: str = (
         ""  # Tenant ID (or "common" for multi-tenant). Required for MSAL to validate tokens.
     )
-    AZURE_AD_CLIENT_ID: str = ""  # Optional: app client ID for audience (aud) validation
+    AZURE_AD_CLIENT_ID: str = ""  # App client ID for audience (aud) validation (SPA or API)
+    # Comma-separated list of valid audiences. Use when token aud differs from AZURE_AD_CLIENT_ID
+    # (e.g. user-impersonation token has aud = API app ID). Example: "api-guid-1,spa-guid-2"
+    AZURE_AD_VALID_AUDIENCES: str = ""
+    # Only for dev / when v1 token signature verification fails. Validates iss, aud, exp only.
+    AZURE_AD_SKIP_SIGNATURE_VERIFY: bool = False
 
     # Redis - Optional: Only needed for resumable streams
     REDIS_URL: str = ""
