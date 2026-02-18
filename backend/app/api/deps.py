@@ -6,11 +6,16 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
+from app.core.azure_ad import get_azure_claims_for_user, validate_azure_access_token
 from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.core.session_token import validate_session_token
 from app.db.queries.revoked_token_queries import is_token_revoked
-from app.db.queries.user_queries import get_user_by_id
+from app.db.queries.user_queries import (
+    get_or_create_user_from_azure_claims,
+    get_user_by_id,
+)
 
 security = HTTPBearer(auto_error=False)  # Don't auto-raise error, we'll check cookies first
 
@@ -37,17 +42,33 @@ async def get_current_user(
     )
     token = None
 
-    # First, try to get token from httpOnly cookie (preferred method)
+    # Get token: auth_token (guest/regular) or MSAL cookie when AUTH_PROVIDER=msal
     cookie_token = request.cookies.get("auth_token")
     if cookie_token:
         token = cookie_token
     # Fallback to Authorization header (for backward compatibility)
-    elif credentials:
+    if not token and getattr(settings, "AUTH_PROVIDER", "guest") == "msal":
+        msal_cookie = request.cookies.get(getattr(settings, "MSAL_AUTH_COOKIE_NAME", "UIT"))
+        if msal_cookie:
+            token = msal_cookie
+    if not token and credentials:
         token = credentials.credentials
 
-    # If we have a token, try to decode it
+    # If we have a token, try to decode it (own JWT first, then Azure AD when msal)
     if token:
         payload = decode_access_token(token)
+
+        # When MSAL is enabled and our JWT decode failed, try Azure AD token
+        if payload is None and getattr(settings, "AUTH_PROVIDER", "guest") == "msal":
+            azure_payload = validate_azure_access_token(token)
+            if azure_payload:
+                oid, email, name = get_azure_claims_for_user(azure_payload)
+                if oid and email:
+                    user = await get_or_create_user_from_azure_claims(
+                        db, azure_oid=oid, email=email, name=name
+                    )
+                    return {"id": str(user.id), "type": user.type or "regular"}
+                logger.warning("Azure AD token missing oid or email claim")
 
         if payload is not None:
             # Valid token - check if password was changed after token was issued (session invalidation)

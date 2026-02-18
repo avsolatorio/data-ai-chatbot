@@ -14,6 +14,10 @@ class User(Base):
     email = Column(String(64), nullable=False, unique=True)
     password = Column(String(64), nullable=True)
     type = Column(String(10), nullable=False, default="regular")  # "guest" or "regular"
+    name = Column(String(255), nullable=True)  # Display name (e.g. from MSAL/Azure AD)
+    azure_oid = Column(
+        String(64), nullable=True, unique=True
+    )  # Azure AD object id (oid claim) for MSAL users
     password_changed_at = Column(
         DateTime, nullable=True
     )  # Timestamp when password was last changed (for session invalidation)

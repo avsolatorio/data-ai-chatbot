@@ -545,6 +545,8 @@ async def logout(http_request: Request, db: AsyncSession = Depends(get_db)):
     delete_auth_cookie(response=response, key="auth_token")
     delete_auth_cookie(response=response, key="guest_session_id")
     delete_auth_cookie(response=response, key="user_session_id")
+    if getattr(settings, "AUTH_PROVIDER", "guest") == "msal":
+        delete_auth_cookie(response=response, key=settings.MSAL_AUTH_COOKIE_NAME)
     return response
 
 
@@ -595,6 +597,8 @@ async def get_current_user_info(
         "email": user.email,
         "type": user_type,
     }
+    if hasattr(user, "name") and user.name:
+        response_data["name"] = user.name
 
     # If this was a user restoration (guest or regular), issue new JWT token
     is_restoration = current_user.get("_restore_guest") or current_user.get("_restore_user")

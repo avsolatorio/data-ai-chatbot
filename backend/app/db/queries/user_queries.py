@@ -28,6 +28,12 @@ async def get_user_by_email(session: AsyncSession, email: str) -> Optional[User]
     return result.scalar_one_or_none()
 
 
+async def get_user_by_azure_oid(session: AsyncSession, azure_oid: str) -> Optional[User]:
+    """Get a user by Azure AD object id (oid claim)."""
+    result = await session.execute(select(User).where(User.azure_oid == azure_oid))
+    return result.scalar_one_or_none()
+
+
 async def create_user(session: AsyncSession, email: str, hashed_password: str) -> User:
     """
     Create a new user with email and hashed password.
@@ -112,4 +118,58 @@ async def get_or_create_user_for_session(session: AsyncSession, user_id: UUID) -
         if user:
             return user
         # If still not found, re-raise the error
+        raise
+
+
+async def get_or_create_user_from_azure_claims(
+    session: AsyncSession,
+    azure_oid: str,
+    email: str,
+    name: Optional[str] = None,
+) -> User:
+    """
+    Find or create a user from Azure AD token claims (MSAL).
+    Looks up by azure_oid first, then by email. Creates with password=None, type=regular.
+    """
+    user = await get_user_by_azure_oid(session, azure_oid)
+    if user:
+        # Optionally update name if it changed in Azure AD
+        if name is not None and (user.name or "") != (name or ""):
+            user.name = name or None
+            await session.commit()
+            await session.refresh(user)
+        return user
+
+    user = await get_user_by_email(session, email)
+    if user:
+        # Link existing user to Azure (e.g. first time signing in with MSAL)
+        user.azure_oid = azure_oid
+        if name is not None:
+            user.name = name or None
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+    # Create new user (no password; MSAL-only)
+    new_user = User(
+        email=email,
+        password=None,
+        type="regular",
+        azure_oid=azure_oid,
+        name=name or None,
+    )
+    session.add(new_user)
+    try:
+        await session.commit()
+        await session.refresh(new_user)
+        return new_user
+    except IntegrityError:
+        await session.rollback()
+        # Race: another request created the user; fetch by azure_oid or email
+        user = await get_user_by_azure_oid(session, azure_oid)
+        if user:
+            return user
+        user = await get_user_by_email(session, email)
+        if user:
+            return user
         raise

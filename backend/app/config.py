@@ -116,6 +116,14 @@ class Settings(BaseSettings):
     # Authentication
     # Note: Authentication is always enabled. Guest users provide anonymous access.
 
+    # MSAL / Azure AD (optional). When AUTH_PROVIDER=msal, backend accepts Azure AD tokens.
+    AUTH_PROVIDER: str = "guest"  # "guest" | "msal"
+    MSAL_AUTH_COOKIE_NAME: str = "UIT"  # Cookie name for Azure AD token (must match frontend)
+    AZURE_AD_TENANT_ID: str = (
+        ""  # Tenant ID (or "common" for multi-tenant). Required for MSAL to validate tokens.
+    )
+    AZURE_AD_CLIENT_ID: str = ""  # Optional: app client ID for audience (aud) validation
+
     # Redis - Optional: Only needed for resumable streams
     REDIS_URL: str = ""
 
