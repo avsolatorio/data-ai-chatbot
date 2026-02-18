@@ -30,8 +30,20 @@ from app.core.redis import close_redis_client
 _log_level_name = (settings.LOG_LEVEL or "INFO").strip().upper()
 _log_level = getattr(logging, _log_level_name, logging.INFO)
 
-# Build handlers: always stdout; optionally a rotating file
-_log_handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
+# Root logger: stdout only (Azure / platform logs stay here, not in LOG_FILE)
+_log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+logging.basicConfig(
+    level=_log_level,
+    format=_log_format,
+    handlers=[logging.StreamHandler(sys.stdout)],
+    force=True,  # Override any existing configuration
+)
+root_logger = logging.getLogger()
+root_logger.setLevel(_log_level)
+
+# LOG_FILE: attach file handler only to the "app" logger so only application
+# logs are written to the file. Azure platform logs, uvicorn.access, and other
+# third-party loggers are not sent to LOG_FILE (they still go to stdout).
 if settings.LOG_FILE and settings.LOG_FILE.strip():
     _log_path = settings.LOG_FILE.strip()
     _log_dir = os.path.dirname(_log_path)
@@ -43,23 +55,10 @@ if settings.LOG_FILE and settings.LOG_FILE.strip():
         backupCount=settings.LOG_BACKUP_COUNT,
         encoding="utf-8",
     )
-    _file_handler.setFormatter(
-        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    )
-    _log_handlers.append(_file_handler)
-
-# Configure logging BEFORE importing other modules
-# This ensures all loggers use this configuration
-logging.basicConfig(
-    level=_log_level,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=_log_handlers,
-    force=True,  # Override any existing configuration
-)
-
-# Get root logger and ensure it's configured
-root_logger = logging.getLogger()
-root_logger.setLevel(_log_level)
+    _file_handler.setFormatter(logging.Formatter(_log_format))
+    _app_logger = logging.getLogger("app")
+    _app_logger.setLevel(_log_level)
+    _app_logger.addHandler(_file_handler)
 
 # Configure SQLAlchemy logging BEFORE database imports
 # Set to WARNING to suppress INFO level SQL query logs

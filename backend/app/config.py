@@ -102,7 +102,9 @@ class Settings(BaseSettings):
     CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3001"
 
     # Logging - optional file logging
-    # If LOG_FILE is set, logs are written to both stdout and this file (with rotation)
+    # If set, only application logs (logger names under "app.*") are written to this file.
+    # Platform/third-party logs (e.g. Azure, uvicorn.access) go to stdout only, so LOG_FILE
+    # stays clean when deployed to Azure App Service or similar.
     LOG_FILE: str = ""
     LOG_LEVEL: str = "INFO"  # DEBUG, INFO, WARNING, ERROR
     LOG_MAX_BYTES: int = 10 * 1024 * 1024  # 10 MB per file
