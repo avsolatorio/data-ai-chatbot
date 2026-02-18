@@ -12,6 +12,21 @@ import type {
 import { LogLevel } from "@azure/msal-browser";
 import { cookiesKey, sessionStorageKeys } from "@/lib/constants";
 
+const GUEST_COOKIE_NAMES = [
+  cookiesKey.authToken,
+  "guest_session_id",
+  "user_session_id",
+] as const;
+
+/** Clear guest auth cookies so MSAL is the single identity (avoids chat 403 from stale guest owner). */
+function clearGuestCookies(): void {
+  if (typeof document === "undefined") return;
+  const past = new Date(0).toUTCString();
+  for (const name of GUEST_COOKIE_NAMES) {
+    document.cookie = `${name}=; expires=${past}; path=/;`;
+  }
+}
+
 export const loginRequest = {
   scopes: ["User.Read", "openid", "profile"],
 };
@@ -79,6 +94,7 @@ export async function fetchUserImpersonationToken(
 
     if (typeof document !== "undefined") {
       document.cookie = `${cookiesKey.userImpersonationToken}=${accessToken}; expires=${expiryTime.toUTCString()}; SameSite=Lax; path=/;`;
+      clearGuestCookies();
       console.info("[MSAL] cookie set:", cookiesKey.userImpersonationToken, "length:", hasToken ? accessToken.length : 0);
     }
 

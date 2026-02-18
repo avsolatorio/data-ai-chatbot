@@ -1,10 +1,11 @@
 /**
  * Server-side API client for Next.js server components.
  * Handles authentication for server-side requests to FastAPI backend.
- * Now uses cookie-based authentication (auth_token cookie).
+ * Forwards auth cookies: auth_token (guest) and UIT (MSAL) so backend can resolve the user.
  */
 
 import { cookies } from "next/headers";
+import { cookiesKey } from "@/lib/constants";
 
 // For server-side, prefer SERVER_API_URL (for Docker internal networking)
 // Falls back to NEXT_PUBLIC_API_URL (browser-accessible URL)
@@ -44,27 +45,29 @@ export async function serverApiFetch(
   } catch {
     cookieStore = null;
   }
-  const token = cookieStore?.get("auth_token")?.value;
+  const authToken = cookieStore?.get("auth_token")?.value;
+  const msalToken = cookieStore?.get(cookiesKey.userImpersonationToken)?.value;
   const guestSessionId = cookieStore?.get("guest_session_id")?.value;
   const userSessionId = cookieStore?.get("user_session_id")?.value;
 
-  // Build cookie header with all session cookies
-  // Backend will use session IDs to restore users if JWT expired or key is lost
+  // Build cookie header with all auth/session cookies (guest + MSAL)
+  // Backend uses UIT for MSAL, auth_token/guest_session_id for guest
   const cookieHeader = [
-    token && `auth_token=${token}`,
+    authToken && `auth_token=${authToken}`,
+    msalToken && `${cookiesKey.userImpersonationToken}=${msalToken}`,
     guestSessionId && `guest_session_id=${guestSessionId}`,
     userSessionId && `user_session_id=${userSessionId}`,
   ]
     .filter(Boolean)
     .join("; ");
 
-  // Forward cookies to FastAPI (allows backend to restore user if JWT expired)
   if (cookieHeader) {
     headers.set("Cookie", cookieHeader);
   }
-  // Also send token as Authorization header (for backward compatibility)
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
+  // Prefer MSAL token for Authorization when present (backend prefers UIT when AUTH_PROVIDER=msal)
+  const bearerToken = msalToken ?? authToken;
+  if (bearerToken) {
+    headers.set("Authorization", `Bearer ${bearerToken}`);
   }
 
   // Ensure Content-Type is set for FastAPI (but not for FormData)
