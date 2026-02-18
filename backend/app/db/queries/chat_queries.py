@@ -89,18 +89,27 @@ async def save_messages(
 ) -> List[Message]:
     """
     Save multiple messages to the database.
+    Idempotent: skips messages that already exist (avoids UniqueViolationError on retries).
     messages: List of dicts with keys: id, chatId, role, parts, attachments, createdAt
-    Returns: List of saved Message objects
+    Returns: List of newly saved Message objects (existing messages are skipped, not returned).
     """
     logger.info("=== save_messages called ===")
     logger.info("Saving %d message(s)", len(messages))
     message_objects = []
     for msg_data in messages:
         # Convert id and chatId to UUIDs if they are strings
-        msg_data["id"] = UUID(msg_data["id"]) if isinstance(msg_data["id"], str) else msg_data["id"]
-        msg_data["chatId"] = (
+        msg_id = UUID(msg_data["id"]) if isinstance(msg_data["id"], str) else msg_data["id"]
+        chat_id = (
             UUID(msg_data["chatId"]) if isinstance(msg_data["chatId"], str) else msg_data["chatId"]
         )
+        msg_data["id"] = msg_id
+        msg_data["chatId"] = chat_id
+
+        # Skip if message already exists (idempotent: safe for duplicate requests / retries)
+        existing = await session.execute(select(Message).where(Message.id == msg_id))
+        if existing.scalar_one_or_none() is not None:
+            logger.debug("Message %s already exists, skipping insert", msg_id)
+            continue
 
         # Add default values if they are not present
         msg_data["createdAt"] = msg_data.get("createdAt", datetime.utcnow())
@@ -109,9 +118,13 @@ async def save_messages(
         message_objects.append(message_obj)
         session.add(message_obj)
 
+    if not message_objects:
+        logger.info("No new messages to commit (all already existed)")
+        return message_objects
+
     await session.commit()
     logger.info("Messages committed to database")
-    # Refresh all messages
+    # Refresh all newly saved messages
     for msg in message_objects:
         await session.refresh(msg)
 

@@ -36,8 +36,15 @@ def create_save_messages_task(
     messages_copy = messages.copy()
 
     async def save_messages_task():
-        async with AsyncSessionLocal() as session:
-            await save_messages(session, messages_copy)
+        try:
+            async with AsyncSessionLocal() as session:
+                await save_messages(session, messages_copy)
+        except Exception as e:
+            logger.exception(
+                "Background save_messages failed for chat %s: %s",
+                chat_id,
+                e,
+            )
 
     background_tasks.add_task(save_messages_task)
 
