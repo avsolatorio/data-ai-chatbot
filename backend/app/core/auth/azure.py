@@ -180,7 +180,7 @@ def validate_azure_access_token(token: str) -> Optional[dict[str, Any]]:
                 if not aud_list or not any(a in valid_audiences for a in aud_list):
                     logger.warning("Azure AD (skip_verify): audience not in allowed list")
                     return None
-            logger.warning(
+            logger.debug(
                 "Azure AD token accepted with AZURE_AD_SKIP_SIGNATURE_VERIFY=true. "
                 "Use only for development or when v1 token verification is not possible."
             )

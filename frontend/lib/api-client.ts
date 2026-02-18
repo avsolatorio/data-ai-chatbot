@@ -70,16 +70,12 @@ export function apiFetch(
   }
 
   const fullUrl = getApiUrl(requestUrl);
-  const usesNextJSProxy = shouldUseNextJSProxy(requestUrl);
 
   // Prepare request headers
   const requestHeaders = new Headers(init?.headers);
 
-  // For FastAPI requests (not Next.js proxies), ensure Content-Type is set
-  // Note: Cookies are sent automatically with credentials: "include"
-  // Server-side might need manual cookie forwarding (handled in server-api-client.ts)
+  // Set Content-Type for JSON bodies when not already set (proxy forwards to backend)
   if (
-    !usesNextJSProxy &&
     !requestHeaders.has("Content-Type") &&
     init?.body &&
     !(init.body instanceof FormData)

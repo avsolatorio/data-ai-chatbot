@@ -37,12 +37,8 @@ async def get_current_user(
 
     logger = logging.getLogger(__name__)
 
-    # Log all cookies received for debugging
     all_cookies = list(request.cookies.keys())
-    logger.info(
-        "get_current_user: cookies received: %s",
-        all_cookies,
-    )
+    logger.debug("get_current_user: cookies received: %s", all_cookies)
     token = None
     auth_provider = getattr(settings, "AUTH_PROVIDER", "guest")
     msal_cookie_name = getattr(settings, "MSAL_AUTH_COOKIE_NAME", "UIT")
@@ -65,7 +61,7 @@ async def get_current_user(
 
         # When MSAL is enabled and our JWT decode failed, try Azure AD token
         if payload is None and auth_provider == "msal":
-            logger.info(
+            logger.debug(
                 "JWT decode failed, attempting Azure AD token validation (AUTH_PROVIDER=msal)"
             )
             azure_payload = validate_azure_access_token(token)
@@ -83,7 +79,7 @@ async def get_current_user(
                     "AZURE_AD_TENANT_ID, AZURE_AD_CLIENT_ID, and token validity/expiry."
                 )
         elif payload is None and token and auth_provider != "msal":
-            logger.info(
+            logger.debug(
                 "Token present but not our JWT; Azure AD not tried (AUTH_PROVIDER=%s). "
                 "Set AUTH_PROVIDER=msal to use MSAL.",
                 auth_provider,
@@ -159,16 +155,15 @@ async def get_current_user(
         # Token expired or invalid - fall through to guest session check
 
     # No valid token - check for session ID cookies (fallback for JWT key loss)
-    # Try guest_session_id first (for guest users)
     guest_session_id = request.cookies.get("guest_session_id")
-    logger.info(
+    logger.debug(
         "JWT expired/invalid, checking guest_session_id cookie: present=%s",
         guest_session_id is not None,
     )
     if guest_session_id:
         # guest_session_id is an HMAC-signed token, validate it first
         validated_user_id = validate_session_token(guest_session_id)
-        logger.info(
+        logger.debug(
             "guest_session_id validation: token=%s, validated_user_id=%s",
             guest_session_id[:20] + "..." if len(guest_session_id) > 20 else guest_session_id,
             validated_user_id,
@@ -178,7 +173,7 @@ async def get_current_user(
             try:
                 user_id = UUID(validated_user_id)
                 user = await get_user_by_id(db, user_id)
-                logger.info(
+                logger.debug(
                     "Guest user lookup: user_id=%s, found=%s, email=%s",
                     user_id,
                     user is not None,
@@ -195,10 +190,8 @@ async def get_current_user(
                 )
 
                 if is_guest:
-                    # Valid guest user - return it (caller should issue new JWT)
-                    # Use type from database if available, otherwise infer from email
                     user_type = user.type if hasattr(user, "type") and user.type else "guest"
-                    logger.info(
+                    logger.debug(
                         "Restoring guest user: id=%s, type=%s",
                         str(user.id),
                         user_type,
@@ -222,16 +215,15 @@ async def get_current_user(
                 logger.warning("Invalid UUID format from guest_session_id: %s", e)
                 pass
 
-    # Try user_session_id (for regular users - fallback if JWT key is lost)
     user_session_id = request.cookies.get("user_session_id")
-    logger.info(
+    logger.debug(
         "Checking user_session_id cookie: present=%s",
         user_session_id is not None,
     )
     if user_session_id:
         # Validate session token (HMAC-signed user ID)
         validated_user_id = validate_session_token(user_session_id)
-        logger.info(
+        logger.debug(
             "user_session_id validation: token=%s, validated_user_id=%s",
             user_session_id[:20] + "..." if len(user_session_id) > 20 else user_session_id,
             validated_user_id,
@@ -257,11 +249,8 @@ async def get_current_user(
                 )
 
                 if is_regular:
-                    # Valid regular user - return it (caller should issue new JWT)
-                    # This is a fallback mechanism for JWT key loss scenarios
-                    # Use type from database if available, otherwise infer from email
                     user_type = user.type if hasattr(user, "type") and user.type else "regular"
-                    logger.info(
+                    logger.debug(
                         "Restoring regular user: id=%s, type=%s",
                         str(user.id),
                         user_type,
@@ -280,14 +269,13 @@ async def get_current_user(
         else:
             # Validation failed - might be an old raw UUID cookie (backward compatibility)
             # Try to parse it as a UUID directly
-            logger.warning(
+            logger.debug(
                 "user_session_id validation failed, trying as raw UUID (backward compatibility)"
             )
             try:
-                # Try to parse as UUID (might be old raw UUID cookie)
                 user_id = UUID(user_session_id)
                 user = await get_user_by_id(db, user_id)
-                logger.info(
+                logger.debug(
                     "Regular user lookup (raw UUID fallback): user_id=%s, found=%s, email=%s",
                     user_id,
                     user is not None,
@@ -301,8 +289,7 @@ async def get_current_user(
                         user.email.startswith("guest-") and user.email.endswith("@anonymous.local")
                     )
                 ):
-                    # Valid regular user - return it (caller should issue new HMAC-signed token)
-                    logger.info(
+                    logger.debug(
                         "Restoring regular user from raw UUID (backward compatibility): id=%s, type=regular",
                         str(user.id),
                     )
@@ -336,14 +323,14 @@ async def get_optional_user(
     logger = logging.getLogger(__name__)
     try:
         user = await get_current_user(request, credentials, db)
-        logger.info(
+        logger.debug(
             "get_optional_user: restored user=%s, type=%s",
             user.get("id") if user else None,
             user.get("type") if user else None,
         )
         return user
     except HTTPException as e:
-        logger.info(
+        logger.debug(
             "get_optional_user: no valid authentication (status=%s, detail=%s)",
             e.status_code,
             e.detail,

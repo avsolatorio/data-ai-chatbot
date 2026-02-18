@@ -12,6 +12,19 @@ import type {
 import { LogLevel } from "@azure/msal-browser";
 import { cookiesKey, sessionStorageKeys } from "@/lib/constants";
 
+const isDev =
+  typeof process !== "undefined" && process.env.NODE_ENV === "development";
+
+/** Log only in development to avoid noisy console in production. Exported for use in provider. */
+export function devLog(level: "info" | "warn", ...args: unknown[]): void {
+  if (!isDev) return;
+  if (level === "info") {
+    console.info(...args);
+  } else {
+    console.warn(...args);
+  }
+}
+
 const GUEST_COOKIE_NAMES = [
   cookiesKey.authToken,
   "guest_session_id",
@@ -68,14 +81,14 @@ export async function fetchUserImpersonationToken(
 ): Promise<boolean> {
   const activeAccount = account ?? msalInstance.getActiveAccount();
   if (!activeAccount) {
-    console.warn("[MSAL] fetchUserImpersonationToken: no active account");
+    devLog("warn", "[MSAL] fetchUserImpersonationToken: no active account");
     throw new Error(
       "No active account. Verify a user has been signed in and setActiveAccount has been called.",
     );
   }
 
   const scopes = userImpersonationScope ? [userImpersonationScope] : loginRequest.scopes;
-  console.info("[MSAL] acquireTokenSilent for account:", activeAccount.username, "scopes:", scopes);
+  devLog("info", "[MSAL] acquireTokenSilent for account:", activeAccount.username, "scopes:", scopes);
 
   try {
     const response = await msalInstance.acquireTokenSilent({
@@ -83,11 +96,11 @@ export async function fetchUserImpersonationToken(
       scopes,
       account: activeAccount,
     });
-    console.info("[MSAL] User impersonation token response:", response);
+    devLog("info", "[MSAL] User impersonation token response:", response);
 
     const accessToken = response?.accessToken ?? "";
     const hasToken = accessToken.length > 0;
-    console.info("[MSAL] acquireTokenSilent success; token length:", accessToken.length, "expiresOn:", response?.expiresOn ?? null);
+    devLog("info", "[MSAL] acquireTokenSilent success; token length:", accessToken.length, "expiresOn:", response?.expiresOn ?? null);
 
     const expiryTime = new Date();
     expiryTime.setTime(expiryTime.getTime() + 24 * 60 * 60 * 1000); // 1 day
@@ -95,7 +108,7 @@ export async function fetchUserImpersonationToken(
     if (typeof document !== "undefined") {
       document.cookie = `${cookiesKey.userImpersonationToken}=${accessToken}; expires=${expiryTime.toUTCString()}; SameSite=Lax; path=/;`;
       clearGuestCookies();
-      console.info("[MSAL] cookie set:", cookiesKey.userImpersonationToken, "length:", hasToken ? accessToken.length : 0);
+      devLog("info", "[MSAL] cookie set:", cookiesKey.userImpersonationToken, "length:", hasToken ? accessToken.length : 0);
     }
 
     if (typeof sessionStorage !== "undefined") {
@@ -104,12 +117,12 @@ export async function fetchUserImpersonationToken(
         email: response.account?.username ?? "",
       };
       sessionStorage.setItem(sessionStorageKeys.userData, JSON.stringify(userData));
-      console.info("[MSAL] sessionStorage userData:", userData);
+      devLog("info", "[MSAL] sessionStorage userData:", userData);
     }
 
     return true;
   } catch (e) {
-    console.warn("[MSAL] acquireTokenSilent failed:", e instanceof Error ? e.message : String(e), "; triggering loginRedirect");
+    devLog("warn", "[MSAL] acquireTokenSilent failed:", e instanceof Error ? e.message : String(e), "; triggering loginRedirect");
     msalInstance.loginRedirect(loginRequest);
     return false;
   }
