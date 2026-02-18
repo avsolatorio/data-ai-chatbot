@@ -57,9 +57,21 @@ async def save_chat(
     visibility: str,
 ) -> Chat:
     """
-    Create a new chat.
-    Returns: The created Chat object
+    Create a new chat, or return the existing one if it already exists (idempotent).
+
+    Chat id is client-provided (e.g. request.id). On retries or concurrent requests
+    with the same id, this avoids UniqueViolationError by returning the existing
+    chat instead of inserting again.
+
+    Returns: The created or existing Chat object
     """
+    existing = await get_chat_by_id(session, chat_id)
+    if existing is not None:
+        logger.warning(
+            "Chat %s already exists, skipping insert (idempotent)",
+            chat_id,
+        )
+        return existing
     new_chat = Chat(
         id=chat_id,
         userId=user_id,
@@ -89,9 +101,27 @@ async def save_messages(
 ) -> List[Message]:
     """
     Save multiple messages to the database.
-    Idempotent: skips messages that already exist (avoids UniqueViolationError on retries).
-    messages: List of dicts with keys: id, chatId, role, parts, attachments, createdAt
-    Returns: List of newly saved Message objects (existing messages are skipped, not returned).
+
+    Idempotency
+    -----------
+    This function is idempotent with respect to message id: if a message with the same
+    primary key (id) already exists, it is skipped and no insert is performed. This
+    avoids UniqueViolationError on:
+    - Client or proxy retries (same request sent twice)
+    - Duplicate submissions (e.g. double-click or two in-flight requests)
+    - Background continuation after disconnect re-saving the same assistant message
+
+    Callers can safely call save_messages multiple times with the same message ids;
+    only the first insert for each id is persisted, subsequent calls log a warning
+    and skip.
+
+    Parameters
+    ----------
+    messages : List of dicts with keys: id, chatId, role, parts, attachments, createdAt
+
+    Returns
+    -------
+    List of newly saved Message objects (existing messages are skipped, not returned).
     """
     logger.info("=== save_messages called ===")
     logger.info("Saving %d message(s)", len(messages))
@@ -108,7 +138,10 @@ async def save_messages(
         # Skip if message already exists (idempotent: safe for duplicate requests / retries)
         existing = await session.execute(select(Message).where(Message.id == msg_id))
         if existing.scalar_one_or_none() is not None:
-            logger.debug("Message %s already exists, skipping insert", msg_id)
+            logger.warning(
+                "Message %s already exists, skipping insert (idempotent)",
+                msg_id,
+            )
             continue
 
         # Add default values if they are not present
