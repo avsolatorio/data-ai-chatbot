@@ -1,8 +1,11 @@
+import logging
 import traceback
 
 import json5
 
 from ._client import get_mcp_client
+
+logger = logging.getLogger(__name__)
 
 # NOTE: Implement outputSchema for MCP tools. https://github.com/modelcontextprotocol/modelcontextprotocol/pull/371
 
@@ -45,9 +48,15 @@ async def get_mcp_tools():
     #  'annotations': None,
     #  'meta': None}
 
+    from app.config import get_mcp_settings
+
+    mcp_url = get_mcp_settings().server_url
+    logger.info("[mcp] get_mcp_tools start url=%s", mcp_url)
     client = get_mcp_client()
     async with client:
+        logger.info("[mcp] client connected, list_tools start")
         tools = await client.list_tools()
+        logger.info("[mcp] list_tools done count=%d", len(tools))
 
         tool_definitions = []
 

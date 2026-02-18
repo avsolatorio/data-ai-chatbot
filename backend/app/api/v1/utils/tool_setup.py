@@ -1,5 +1,6 @@
 """Tool setup utilities for chat streaming."""
 
+import asyncio
 import logging
 from typing import Any, Dict
 from uuid import UUID
@@ -13,6 +14,7 @@ from app.ai.tools import (
     create_document_tool,
     update_document_tool,
 )
+from app.config import get_mcp_settings
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +64,7 @@ async def prepare_tools(
     Prepare tools and tool definitions for OpenAI streaming.
     Returns (tools_dict, tool_definitions_list).
     """
+    logger.info("[tool_setup] create_tool_wrappers (local tools) start")
     tool_set = {
         "local": {
             "tool_definitions": [
@@ -75,10 +78,17 @@ async def prepare_tools(
             "tools": {},
         },
     }
+    logger.info("[tool_setup] create_tool_wrappers done")
 
-    # Add MCP tools (gracefully handle connection failures)
+    # Add MCP tools (gracefully handle connection failures and timeouts)
+    mcp_load_timeout = get_mcp_settings().load_timeout
+    logger.info("[tool_setup] get_mcp_tools start (timeout=%ss)", mcp_load_timeout)
     try:
-        mcp_tools = await get_mcp_tools()
+        mcp_tools = await asyncio.wait_for(
+            get_mcp_tools(),
+            timeout=mcp_load_timeout,
+        )
+        logger.info("[tool_setup] get_mcp_tools done count=%d", len(mcp_tools))
         for tool in mcp_tools:
             tool_set["mcp"]["tools"][tool["function"]["name"]] = {
                 "function": None,
@@ -87,6 +97,12 @@ async def prepare_tools(
             tool_set["mcp"]["tool_definitions"].append(tool)
         tool_names = [t["function"]["name"] for t in mcp_tools]
         logger.info("Successfully loaded %d MCP tools: %s", len(mcp_tools), tool_names)
+    except asyncio.TimeoutError:
+        logger.warning(
+            "[tool_setup] get_mcp_tools timed out after %ss (MCP server unreachable or slow). "
+            "Continuing without MCP tools.",
+            mcp_load_timeout,
+        )
     except Exception as e:
         logger.warning(
             "Failed to load MCP tools (continuing without them): %s",
