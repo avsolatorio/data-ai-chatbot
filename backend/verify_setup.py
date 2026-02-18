@@ -49,7 +49,7 @@ def main():
         "app.config",
         "app.main",
         "app.core.database",
-        "app.core.security",
+        "app.core.auth",
         "app.api.v1.auth",
         "app.api.v1.chat",
     ]

@@ -67,7 +67,7 @@ async def create_guest_user(session: AsyncSession) -> User:
     # Generate a random password hash (guest users don't need to login)
     from uuid import uuid4
 
-    from app.core.security import get_password_hash
+    from app.core.auth import get_password_hash
 
     hashed_password = get_password_hash(str(uuid4()))
     new_user = User(email=email, password=hashed_password, type="guest")

@@ -7,10 +7,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.azure_ad import get_azure_claims_for_user, validate_azure_access_token
+from app.core.auth import (
+    decode_access_token,
+    get_azure_claims_for_user,
+    validate_azure_access_token,
+    validate_session_token,
+)
 from app.core.database import get_db
-from app.core.security import decode_access_token
-from app.core.session_token import validate_session_token
 from app.db.queries.revoked_token_queries import is_token_revoked
 from app.db.queries.user_queries import (
     get_or_create_user_from_azure_claims,

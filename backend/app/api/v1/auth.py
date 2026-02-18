@@ -9,6 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.config import settings
+from app.core.auth import (
+    create_access_token,
+    decode_access_token,
+    generate_session_token,
+    get_password_hash,
+    validate_session_token,
+    verify_password,
+)
 from app.core.cookie_utils import delete_auth_cookie, set_auth_cookie
 from app.core.csrf import validate_csrf
 from app.core.database import get_db
@@ -16,13 +24,6 @@ from app.core.errors import ChatSDKError
 from app.core.logging_utils import hash_email, hash_user_id
 from app.core.password_validation import is_password_breached, validate_password_strength
 from app.core.rate_limit import check_rate_limit
-from app.core.security import (
-    create_access_token,
-    decode_access_token,
-    get_password_hash,
-    verify_password,
-)
-from app.core.session_token import generate_session_token
 from app.db.queries.chat_queries import migrate_chats_from_guest_to_user
 from app.db.queries.login_attempt_queries import (
     clear_failed_attempts,
@@ -304,8 +305,6 @@ async def register(
         guest_user_id = None
         if guest_session_id:
             # Validate session token (HMAC-signed user ID)
-            from app.core.session_token import validate_session_token
-
             validated_user_id = validate_session_token(guest_session_id)
             if validated_user_id:
                 try:
@@ -394,8 +393,6 @@ async def register(
 
         # Set user_session_id cookie for regular users (fallback if JWT key is lost)
         # Use HMAC-signed token instead of raw user ID for security
-        from app.core.session_token import generate_session_token
-
         session_token = generate_session_token(str(user.id))
         set_auth_cookie(
             response=response,
@@ -434,8 +431,6 @@ async def create_guest(http_request: Request, db: AsyncSession = Depends(get_db)
 
     if guest_session_id:
         # Validate session token (HMAC-signed user ID)
-        from app.core.session_token import validate_session_token
-
         validated_user_id = validate_session_token(guest_session_id)
         if validated_user_id:
             # Try to restore existing guest user
@@ -518,8 +513,6 @@ async def logout(http_request: Request, db: AsyncSession = Depends(get_db)):
     token = http_request.cookies.get("auth_token")
     if token:
         from datetime import datetime
-
-        from app.core.security import decode_access_token
 
         payload = decode_access_token(token)
         if payload:
@@ -622,8 +615,6 @@ async def get_current_user_info(
         # Refresh session ID cookie (sliding expiry - 400 days)
         if user_type == "guest":
             # Refresh guest_session_id cookie (must be HMAC-signed token, not raw user ID)
-            from app.core.session_token import generate_session_token
-
             guest_session_token = generate_session_token(str(user.id))
             set_auth_cookie(
                 response=response,
@@ -633,8 +624,6 @@ async def get_current_user_info(
             )
         else:
             # Refresh user_session_id cookie for regular users (must be HMAC-signed token)
-            from app.core.session_token import generate_session_token
-
             user_session_token = generate_session_token(str(user.id))
             set_auth_cookie(
                 response=response,
