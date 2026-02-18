@@ -14,3 +14,15 @@ export const guestRegex = /^guest-.*@anonymous\.local$/;
 export const DUMMY_PASSWORD = generateDummyPassword();
 
 // Note: Authentication is always enabled. Guest users provide anonymous access.
+
+/** Cookie names used by auth (guest JWT vs MSAL user impersonation token). */
+export const cookiesKey = {
+  authToken: "auth_token",
+  userImpersonationToken: "UIT",
+} as const;
+
+/** SessionStorage keys used by MSAL (user data for display). */
+export const sessionStorageKeys = {
+  userData: "USER_DATA",
+  msal: "MSAL_DATA",
+} as const;

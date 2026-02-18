@@ -20,6 +20,12 @@ importers:
       '@ai-sdk/xai':
         specifier: 2.0.13
         version: 2.0.13(zod@3.25.76)
+      '@azure/msal-browser':
+        specifier: 5.1.0
+        version: 5.1.0
+      '@azure/msal-react':
+        specifier: 5.0.3
+        version: 5.0.3(@azure/msal-browser@5.1.0)(react@19.0.0-rc-45804af1-20241021)
       '@codemirror/lang-javascript':
         specifier: ^6.2.2
         version: 6.2.3
@@ -403,6 +409,21 @@ packages:
         optional: true
       nodemailer:
         optional: true
+
+  '@azure/msal-browser@5.1.0':
+    resolution: {integrity: sha512-5tZcp1zcALSLJvnxkmJ8MYxLtZzEyq28wX2jSV4Kz2QaHty4eYIb/Pc44DARLfgHD+G9F82k9nD7J89MbFRQxA==}
+    engines: {node: '>=0.8.0'}
+
+  '@azure/msal-common@16.0.3':
+    resolution: {integrity: sha512-3aedNnM0CHVuVZ+BqembdZWgovqe96BJ4YxGoIK0+qhoBZQsAhfwXdhjen72K94pkSQHtzlJ7fAq6w7knFZsng==}
+    engines: {node: '>=0.8.0'}
+
+  '@azure/msal-react@5.0.3':
+    resolution: {integrity: sha512-zz8USqfunXrZKFFG1tcfSlr+84NFMbePASj8NHB9oL0MIXdoWzADRUXkx+gKdB9dP/yDtfpGPOUgUAYGmpjTuw==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@azure/msal-browser': ^5.1.0
+      react: ^19.2.1
 
   '@babel/runtime@7.28.4':
     resolution: {integrity: sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ==}
@@ -5059,6 +5080,17 @@ snapshots:
       oauth4webapi: 3.3.1
       preact: 10.11.3
       preact-render-to-string: 5.2.3(preact@10.11.3)
+
+  '@azure/msal-browser@5.1.0':
+    dependencies:
+      '@azure/msal-common': 16.0.3
+
+  '@azure/msal-common@16.0.3': {}
+
+  '@azure/msal-react@5.0.3(@azure/msal-browser@5.1.0)(react@19.0.0-rc-45804af1-20241021)':
+    dependencies:
+      '@azure/msal-browser': 5.1.0
+      react: 19.0.0-rc-45804af1-20241021
 
   '@babel/runtime@7.28.4': {}
 

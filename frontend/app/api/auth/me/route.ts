@@ -1,58 +1,54 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
+import { cookiesKey } from "@/lib/constants";
 
 /**
  * Proxy endpoint for /api/auth/me
- * Forwards requests to FastAPI backend and returns user info
+ * Forwards requests to FastAPI backend and returns user info.
+ * Forwards auth_token (guest) or UIT (MSAL) from cookies so backend can validate.
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    // Get cookies from the request
-    // During prerendering, `cookies()` can reject once prerender is complete,
-    // so we handle that explicitly and treat it as "not authenticated".
     let cookieStore: Awaited<ReturnType<typeof cookies>>;
     try {
       cookieStore = await cookies();
     } catch {
       return NextResponse.json(
         { detail: "Not authenticated" },
-        { status: 401 }
+        { status: 401 },
       );
     }
-    const token = cookieStore.get("auth_token")?.value;
+    const authToken = cookieStore.get("auth_token")?.value;
+    const msalToken = cookieStore.get(cookiesKey.userImpersonationToken)?.value;
     const guestSessionId = cookieStore.get("guest_session_id")?.value;
     const userSessionId = cookieStore.get("user_session_id")?.value;
 
-    // Build cookie header with all session cookies
     const cookieHeader = [
-      token && `auth_token=${token}`,
+      authToken && `auth_token=${authToken}`,
+      msalToken && `${cookiesKey.userImpersonationToken}=${msalToken}`,
       guestSessionId && `guest_session_id=${guestSessionId}`,
       userSessionId && `user_session_id=${userSessionId}`,
     ]
       .filter(Boolean)
       .join("; ");
 
-    // If no cookies at all, return 401
     if (!cookieHeader) {
       return NextResponse.json(
         { detail: "Not authenticated" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // Call FastAPI backend
-    // Use SERVER_API_URL for Docker internal networking, fallback to NEXT_PUBLIC_API_URL
     const API_URL =
       process.env.SERVER_API_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
       "http://localhost:8001";
     const fastApiUrl = `${API_URL}/api/auth/me`;
 
-    // Build headers
+    const bearerToken = authToken ?? msalToken;
     const headers: HeadersInit = {
       Cookie: cookieHeader,
-      // Also send as Authorization header
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(bearerToken && { Authorization: `Bearer ${bearerToken}` }),
     };
 
     // Add timeout to prevent hanging requests (5 seconds)
@@ -73,7 +69,7 @@ export async function GET(request: NextRequest) {
         console.error("Timeout fetching /api/auth/me from FastAPI");
         return NextResponse.json(
           { detail: "Request timeout" },
-          { status: 504 }
+          { status: 504 },
         );
       }
       throw error;
@@ -84,7 +80,7 @@ export async function GET(request: NextRequest) {
     // Get response data
     // Check if response is JSON before parsing
     const contentType = response.headers.get("content-type");
-    let data;
+    let data: unknown;
     if (contentType?.includes("application/json")) {
       data = await response.json();
     } else {
@@ -92,11 +88,11 @@ export async function GET(request: NextRequest) {
       const text = await response.text();
       console.error(
         "Non-JSON response from /api/auth/me:",
-        text.substring(0, 200)
+        text.substring(0, 200),
       );
       return NextResponse.json(
         { detail: `Backend error: ${response.status} ${response.statusText}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -131,7 +127,7 @@ export async function GET(request: NextRequest) {
     console.error("Error proxying /api/auth/me:", error);
     return NextResponse.json(
       { detail: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

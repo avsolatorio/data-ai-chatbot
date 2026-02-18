@@ -11,6 +11,8 @@ export type User = {
   id: string;
   email: string | null;
   type: UserType;
+  /** Display name (e.g. from MSAL/Azure AD). Present when backend returns it. */
+  name?: string | null;
 };
 
 /**

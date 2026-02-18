@@ -1,4 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { authProvider } from "@/lib/auth/config";
+import { hasAuthCookies } from "@/lib/auth/cookies";
 
 /**
  * Derive the client-facing origin so redirects and redirectUrl param use the host the user sees,
@@ -104,17 +106,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for auth cookies to determine if user is authenticated
-  // This avoids calling getCurrentUser() which would duplicate the layout's call
-  // We only need to check if cookies exist, not validate them (layout will do that)
-  const authToken = request.cookies.get("auth_token")?.value;
-  const guestSessionId = request.cookies.get("guest_session_id")?.value;
-  const userSessionId = request.cookies.get("user_session_id")?.value;
+  // Check for auth cookies (guest: auth_token/session ids; msal: UIT)
+  const authenticated = hasAuthCookies(request);
 
-  // If no auth cookies at all, redirect to guest creation.
-  // Use client-facing origin for both the redirect target and redirectUrl so the user
-  // is not sent to an internal host (e.g. container hostname in Azure/Docker).
-  if (!authToken && !guestSessionId && !userSessionId) {
+  // When guest provider: redirect to guest creation if not authenticated.
+  // When msal provider: do not redirect; client-side MSAL handles unauthenticated users.
+  if (authProvider === "guest" && !authenticated) {
     const baseOrigin = getRequestOrigin(request);
     const redirectTarget = `${baseOrigin}/`;
     const guestUrl = new URL(

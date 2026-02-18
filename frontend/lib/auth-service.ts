@@ -8,6 +8,7 @@
 
 import { cookies } from "next/headers";
 import { cache } from "react";
+import { getBearerTokenCookieName } from "./auth/config";
 import { serverApiFetch } from "./server-api-client";
 
 // Re-export types for convenience (these are safe to use in client components)
@@ -51,7 +52,8 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
       throw error;
     }
 
-    const token = cookieStore?.get("auth_token")?.value;
+    const bearerCookieName = getBearerTokenCookieName();
+    const token = cookieStore?.get(bearerCookieName)?.value;
     const guestSessionId = cookieStore?.get("guest_session_id")?.value;
     const userSessionId = cookieStore?.get("user_session_id")?.value;
 
@@ -79,7 +81,7 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
       // Include cookies in the request
       headers: {
         Cookie: [
-          token && `auth_token=${token}`,
+          token && `${bearerCookieName}=${token}`,
           guestSessionId && `guest_session_id=${guestSessionId}`,
           userSessionId && `user_session_id=${userSessionId}`,
         ]

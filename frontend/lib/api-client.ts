@@ -10,13 +10,15 @@
  * over the catch-all proxy.
  */
 
+import { getAuthTokenFromDocument } from "@/lib/auth/cookies";
+
 /**
  * Check if endpoint should use Next.js proxy (all endpoints now use proxy)
  *
  * This function is kept for backward compatibility and always returns true
  * since we now proxy all requests through Next.js.
  */
-export function shouldUseNextJSProxy(endpoint: string): boolean {
+export function shouldUseNextJSProxy(_endpoint: string): boolean {
   // All endpoints now go through Next.js proxy
   return true;
 }
@@ -85,15 +87,9 @@ export function apiFetch(
     requestHeaders.set("Content-Type", "application/json");
   }
 
-  // Get auth_token from cookie (client-side only) and send as Bearer for FastAPI
-  let cookieToken: string | null = null;
-  if (typeof document !== "undefined") {
-    const cookies = document.cookie.split(";");
-    const authCookie = cookies.find((c) => c.trim().startsWith("auth_token="));
-    if (authCookie) {
-      cookieToken = authCookie.split("=")[1] ?? null;
-    }
-  }
+  // Get Bearer token from cookie (auth_token or UIT per auth config)
+  const cookieToken =
+    typeof document !== "undefined" ? getAuthTokenFromDocument() : null;
   if (cookieToken) {
     requestHeaders.set("Authorization", `Bearer ${cookieToken}`);
   }
