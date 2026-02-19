@@ -521,7 +521,7 @@ export function Chat({
         />
 
         {isEmpty ? (
-          <div className="flex flex-1 flex-col px-4 py-10 sm:px-6 md:py-14">
+          <div className="flex flex-1 flex-col px-4 pt-16 pb-10 sm:px-6 md:pt-20 md:pb-14">
             <div className="flex min-h-0 flex-[0.42] flex-col justify-end pb-24 md:pb-32">
               <div className="mx-auto w-full max-w-2xl">
                 <Greeting
