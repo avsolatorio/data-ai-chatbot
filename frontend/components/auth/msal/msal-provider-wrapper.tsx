@@ -11,6 +11,10 @@
  * 4. Use MsalAuthenticationTemplate for unauthenticated users so the library
  *    triggers loginRedirect when inProgress is None (avoids interaction_in_progress).
  *
+ * After setting the UIT cookie (e.g. on return from redirect), we trigger router.refresh()
+ * so the Server Component layout re-runs and getCurrentUser() sees the cookie; otherwise
+ * the sidebar would show "Loading auth status" until a full page reload.
+ *
  * @see https://learn.microsoft.com/en-us/entra/msal/javascript/browser/initialization
  * @see https://learn.microsoft.com/en-us/entra/msal/javascript/browser/errors
  */
@@ -26,6 +30,7 @@ import {
   MsalProvider,
   UnauthenticatedTemplate,
 } from "@azure/msal-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   devLog,
@@ -37,6 +42,7 @@ import {
 export function MsalProviderWrapper({ children }: { children: React.ReactNode }) {
   const [initialized, setInitialized] = useState(false);
   const initStartedRef = useRef(false);
+  const router = useRouter();
 
   const msalInstance: IPublicClientApplication = useMemo(
     () => new PublicClientApplication(msalConfig),
@@ -47,7 +53,12 @@ export function MsalProviderWrapper({ children }: { children: React.ReactNode })
     if (initStartedRef.current) return;
     initStartedRef.current = true;
 
-    async function runInit() {
+    /**
+     * Returns true if we just processed a redirect and set the UIT cookie.
+     * In that case the layout was server-rendered without the cookie, so we
+     * need to refresh to re-run getCurrentUser() and update the sidebar.
+     */
+    async function runInit(): Promise<boolean> {
       await msalInstance.initialize();
       devLog("info", "[MSAL] initialize() completed");
 
@@ -60,12 +71,15 @@ export function MsalProviderWrapper({ children }: { children: React.ReactNode })
         devLog("info", "[MSAL] handleRedirectPromise threw:", e instanceof Error ? e.message : String(e));
       }
 
+      let hadRedirectAndSetCookie = false;
+
       if (redirectResult?.account) {
         msalInstance.setActiveAccount(redirectResult.account);
         devLog("info", "[MSAL] set active account from redirect:", redirectResult.account.username);
         try {
           await fetchUserImpersonationToken(msalInstance, redirectResult.account);
           devLog("info", "[MSAL] fetchUserImpersonationToken (redirect path) succeeded");
+          hadRedirectAndSetCookie = true;
         } catch (e) {
           devLog("warn", "[MSAL] fetchUserImpersonationToken (redirect path) failed:", e instanceof Error ? e.message : String(e));
           // Token fetch failure: still set initialized so user is shown and can retry
@@ -87,10 +101,15 @@ export function MsalProviderWrapper({ children }: { children: React.ReactNode })
       const active = msalInstance.getActiveAccount();
       devLog("info", "[MSAL] init done; activeAccount:", active ? { username: active.username, name: active.name, environment: active.environment } : null);
       setInitialized(true);
+      return hadRedirectAndSetCookie;
     }
 
-    runInit();
-  }, [msalInstance]);
+    runInit().then((shouldRefresh) => {
+      if (shouldRefresh) {
+        router.refresh();
+      }
+    });
+  }, [msalInstance, router]);
 
   if (!initialized) {
     return (
