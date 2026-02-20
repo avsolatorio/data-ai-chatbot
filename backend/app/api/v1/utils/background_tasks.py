@@ -53,8 +53,11 @@ def create_update_context_task(
     background_tasks: BackgroundTasks,
     chat_id: UUID,
     usage: Dict[str, Any] | DataUsageData,
+    message_id: str | None = None,
 ) -> None:
-    """Schedule a background task to update chat context with usage."""
+    """Schedule a background task to update chat context with usage.
+    If message_id is set, usage is stored per-message so each response has its own usage.
+    """
     if not usage:
         return
 
@@ -63,6 +66,6 @@ def create_update_context_task(
 
     async def update_context_task():
         async with AsyncSessionLocal() as session:
-            await update_chat_last_context_by_id(session, chat_id, usage)
+            await update_chat_last_context_by_id(session, chat_id, usage, message_id=message_id)
 
     background_tasks.add_task(update_context_task)

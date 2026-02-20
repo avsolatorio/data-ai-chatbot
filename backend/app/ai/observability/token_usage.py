@@ -1,11 +1,14 @@
 # ruff: noqa: N815
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, Optional
 
 from litellm import get_model_info
 from pydantic import BaseModel, ConfigDict, NonNegativeFloat, NonNegativeInt
+
+logger = logging.getLogger(__name__)
 
 
 class CostUSD(BaseModel):
@@ -164,15 +167,37 @@ class Prices:
     cache_read_per_token: float  # may fallback to input_per_token
 
 
+def _int_or_zero(val: Any) -> int:
+    """Coerce to int; use 0 for None or invalid."""
+    if val is None:
+        return 0
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return 0
+
+
 def extract_usage(resp: Any) -> Usage:
+    """
+    Extract token usage from a completion response (full chunk or usage object).
+    Supports both OpenAI-style (prompt_tokens, completion_tokens) and Azure-style
+    (input_tokens, output_tokens) field names for compatibility with LiteLLM + Azure.
+    """
     usage = at(resp, "usage", default={})
+    if usage is None:
+        usage = {}
 
-    prompt = int(at(usage, "prompt_tokens", default=0))
-    completion = int(at(usage, "completion_tokens", default=0))
-    total = int(at(usage, "total_tokens", default=prompt + completion))
+    # Prefer OpenAI names; fall back to Azure/OpenAI Responses API names
+    prompt = _int_or_zero(
+        at(usage, "prompt_tokens", default=None) or at(usage, "input_tokens", default=0)
+    )
+    completion = _int_or_zero(
+        at(usage, "completion_tokens", default=None) or at(usage, "output_tokens", default=0)
+    )
+    total = _int_or_zero(at(usage, "total_tokens", default=prompt + completion))
 
-    cached = int(at(usage, "prompt_tokens_details", "cached_tokens", default=0))
-    reasoning = int(at(usage, "completion_tokens_details", "reasoning_tokens", default=0))
+    cached = _int_or_zero(at(usage, "prompt_tokens_details", "cached_tokens", default=0))
+    reasoning = _int_or_zero(at(usage, "completion_tokens_details", "reasoning_tokens", default=0))
 
     return Usage(
         prompt_tokens=prompt,
@@ -213,6 +238,52 @@ def normalize_model_id(model: str, resp: Any) -> str:
     return str(at(resp, "model", default=model) or model)
 
 
+def _safe_get_model_info(model_id: str, provider_prefix: str = "azure/") -> Dict[str, Any]:
+    """
+    Get LiteLLM model info; try with and without provider prefix (Azure deployment names
+    often don't include the prefix). Never raises; returns {} on failure.
+    """
+    candidates = [model_id]
+    if provider_prefix and "/" not in model_id:
+        candidates.append(f"{provider_prefix}{model_id}")
+    for candidate in candidates:
+        if not candidate:
+            continue
+        try:
+            info = get_model_info(model=candidate)
+            if info:
+                return info
+        except Exception as e:
+            logger.debug("get_model_info(%r) failed: %s", candidate, e)
+    return {}
+
+
+def build_data_usage_event_from_usage_only(
+    *,
+    model: str,
+    completion_response: Any,
+) -> DataUsageEvent:
+    """
+    Build a minimal DataUsageEvent from token counts only (no cost/context).
+    Use when build_data_usage_event fails (e.g. get_model_info unavailable for Azure).
+    """
+    u = extract_usage(completion_response)
+    model_id = normalize_model_id(model, completion_response)
+    return DataUsageEvent(
+        type="data-usage",
+        data=DataUsageData(
+            inputTokens=u.prompt_tokens,
+            outputTokens=u.completion_tokens,
+            totalTokens=u.total_tokens,
+            reasoningTokens=u.reasoning_tokens,
+            cachedInputTokens=u.cached_tokens,
+            context=ContextLimits(),
+            costUSD=CostUSD(),
+            modelId=model_id,
+        ),
+    )
+
+
 # --- main API ----------------------------------------------------------------
 
 
@@ -221,11 +292,15 @@ def build_data_usage_event(
     model: str,
     completion_response: Any,
     model_info: Optional[Dict[str, Any]] = None,
+    provider_prefix: str = "azure/",
 ) -> DataUsageEvent:
     u = extract_usage(completion_response)
     model_id = normalize_model_id(model, completion_response)
 
-    mi = model_info or get_model_info(model=model_id)
+    if model_info is not None:
+        mi = model_info
+    else:
+        mi = _safe_get_model_info(model_id, provider_prefix=provider_prefix)
     ctx = extract_context(mi)
     p = extract_prices(mi)
 

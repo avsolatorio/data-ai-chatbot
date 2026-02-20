@@ -184,13 +184,32 @@ async def create_stream_id(
     return new_stream
 
 
+def _merge_usage_by_message_id(current: Optional[dict], usage: dict, message_id: str) -> dict:
+    """
+    Merge usage for a message into lastContext.
+    lastContext can be legacy (plain usage dict) or { "latest": usage, "byMessageId": { id: usage } }.
+    Returns the new context dict to store.
+    """
+    if not current or not isinstance(current, dict):
+        return {"latest": usage, "byMessageId": {message_id: usage}}
+    # Legacy: current is the usage object itself (has e.g. inputTokens, totalTokens)
+    if "inputTokens" in current or "totalTokens" in current:
+        return {"latest": current, "byMessageId": {message_id: usage}}
+    # New shape
+    by_id = dict(current.get("byMessageId") or {})
+    by_id[message_id] = usage
+    return {"latest": usage, "byMessageId": by_id}
+
+
 async def update_chat_last_context_by_id(
     session: AsyncSession,
     chat_id: UUID,
     context: dict,
+    message_id: Optional[str] = None,
 ) -> Optional[Chat]:
     """
     Update chat's lastContext field with usage/context data.
+    If message_id is provided, merges usage into byMessageId so each response has its own usage.
     Returns: Updated Chat object or None if not found
     """
     logger.info("=== update_chat_last_context_by_id called ===")
@@ -200,7 +219,12 @@ async def update_chat_last_context_by_id(
         logger.warning("Chat not found: %s", chat_id)
         return None
 
-    chat.lastContext = context
+    if message_id:
+        new_context = _merge_usage_by_message_id(chat.lastContext, context, message_id)
+    else:
+        new_context = context
+
+    chat.lastContext = new_context
     await session.commit()
     logger.info("Chat context updated successfully")
     await session.refresh(chat)

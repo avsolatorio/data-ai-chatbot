@@ -101,11 +101,23 @@ async def _continue_stream_in_background(
             async with AsyncSessionLocal() as session:
                 await save_messages(session, background_processor.assistant_messages)
 
-        # Update chat context
+        # Update chat context (per-message usage so each response has its own)
         if background_processor.final_usage:
+            usage_dict = (
+                background_processor.final_usage
+                if isinstance(background_processor.final_usage, dict)
+                else background_processor.final_usage.model_dump()
+            )
             async with AsyncSessionLocal() as session:
                 await update_chat_last_context_by_id(
-                    session, chat_id, background_processor.final_usage
+                    session,
+                    chat_id,
+                    usage_dict,
+                    message_id=(
+                        str(background_processor.current_message_id)
+                        if background_processor.current_message_id
+                        else None
+                    ),
                 )
 
     except Exception as e:
