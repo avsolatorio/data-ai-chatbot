@@ -236,9 +236,19 @@ def validate_azure_access_token(token: str) -> Optional[dict[str, Any]]:
             return None
         except jwt.InvalidTokenError as e:
             last_error = e
+            logger.debug(
+                "Azure AD token validation failed for JWKS endpoint %s: %s",
+                label,
+                e,
+            )
             continue
         except Exception as e:
             last_error = e
+            logger.warning(
+                "Azure AD token validation raised unexpected error for JWKS endpoint %s: %s",
+                label,
+                e,
+            )
             continue
 
     _log_token_claims_for_debug(token)
