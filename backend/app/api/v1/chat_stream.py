@@ -170,7 +170,10 @@ async def stream_chat(
                     )
                     if processor.final_usage:
                         create_update_context_task(
-                            background_tasks, request.id, processor.final_usage
+                            background_tasks,
+                            request.id,
+                            processor.final_usage,
+                            message_id=processor.current_message_id,
                         )
 
         response = StreamingResponse(

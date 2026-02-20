@@ -166,14 +166,30 @@ class StreamEventProcessor:
             self.current_tool_parts.pop(tool_call_id, None)
 
     def _handle_data_usage_event(self, data: Dict[str, Any]) -> None:
-        """Handle 'data-usage' event."""
-        self._append_to_message_parts_buffer(data)
+        """Handle 'data-usage' event. Extract inner usage and track like finish."""
+        # Payload may be full envelope {"type": "data-usage", "data": {...}} or just {...}
+        inner = data.get("data") if isinstance(data.get("data"), dict) else None
+        usage_data = inner if inner is not None else data
+        if usage_data:
+            self.final_usage = usage_data
+        part = {"type": "data-usage", "data": usage_data} if usage_data else data
+        self._append_to_message_parts_buffer(part)
 
     def _handle_finish_event(self, data: Dict[str, Any]) -> None:
         """Handle 'finish' event - finalize message and track usage."""
         # Finalize any pending text part before saving the message
         # This handles cases where text-end event wasn't emitted (e.g., when finish_reason is tool_calls)
         self._finalize_pending_text_part()
+
+        # Extract usage from finish messageMetadata and add as a part so the frontend
+        # can show response-level token usage (MessageActions looks for type "data-usage")
+        metadata = data.get("messageMetadata", {})
+        usage = metadata.get("usage")
+        if usage:
+            usage_data = usage.get("data") if isinstance(usage.get("data"), dict) else usage
+            self.final_usage = usage_data
+            if usage_data:
+                self._append_to_message_parts_buffer({"type": "data-usage", "data": usage_data})
 
         if self.message_parts_buffer and self.current_message_id:
             self.assistant_messages.append(
@@ -186,12 +202,6 @@ class StreamEventProcessor:
                     "chatId": str(self.chat_id),
                 }
             )
-
-        # Track usage
-        metadata = data.get("messageMetadata", {})
-        usage = metadata.get("usage")
-        if usage:
-            self.final_usage = usage["data"]
 
     def _process_event_data(self, data: Dict[str, Any]) -> None:
         """Process a parsed event data dictionary."""

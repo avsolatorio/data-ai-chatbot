@@ -17,7 +17,10 @@ from openai.types.chat.chat_completion_message_param import ChatCompletionMessag
 
 from app.ai.client import AsyncOpenAIChatClientProtocol
 from app.ai.mcp_tools.data360_mcp import call_mcp_tool
-from app.ai.observability.token_usage import build_data_usage_event
+from app.ai.observability.token_usage import (
+    build_data_usage_event,
+    build_data_usage_event_from_usage_only,
+)
 from app.ai.protocols.stream import (
     DataPart,
     DoneMarker,
@@ -685,20 +688,28 @@ async def stream_text(
                                                     thinking_id=thinking_id,
                                                 )
 
-                    # Check for usage data
+                    # Check for usage data (LiteLLM sends a final chunk with usage when
+                    # stream_options={"include_usage": True}; Azure uses same format)
                     if hasattr(chunk, "usage") and chunk.usage is not None:
                         usage_data = chunk.usage
-                        # Accumulate usage across turns
-                        if total_usage_data is None:
-                            # Initialize with first usage data
-                            total_usage_data = build_data_usage_event(
+                        try:
+                            event = build_data_usage_event(model=model, completion_response=chunk)
+                            if total_usage_data is None:
+                                total_usage_data = event
+                            else:
+                                total_usage_data += event
+                        except Exception as e:
+                            logger.warning(
+                                "build_data_usage_event failed (%s), using usage-only fallback",
+                                e,
+                            )
+                            fallback = build_data_usage_event_from_usage_only(
                                 model=model, completion_response=chunk
                             )
-
-                        else:
-                            total_usage_data += build_data_usage_event(
-                                model=model, completion_response=chunk
-                            )
+                            if total_usage_data is None:
+                                total_usage_data = fallback
+                            else:
+                                total_usage_data += fallback
 
             except Exception as stream_error:
                 # If stream iteration fails, log and continue to finish events
@@ -976,11 +987,21 @@ async def stream_text(
         if finish_reason is not None:
             finish_metadata["finishReason"] = finish_reason.replace("_", "-")
 
-        # Use accumulated usage data
+        # Use accumulated usage data (total_usage_data is DataUsageEvent; usage_data is raw)
         if total_usage_data is not None:
             finish_metadata["usage"] = total_usage_data.model_dump()
         elif usage_data is not None:
-            finish_metadata["usage"] = usage_data.model_dump()
+            try:
+                fallback_event = build_data_usage_event_from_usage_only(
+                    model=model,
+                    completion_response={"usage": usage_data},
+                )
+                finish_metadata["usage"] = fallback_event.model_dump()
+            except Exception as e:
+                logger.warning(
+                    "Could not build usage event from raw usage: %s",
+                    e,
+                )
 
         # Emit "generating" stage only if we're still in thinking (didn't switch via token)
         if effective_mode == "thinking":
