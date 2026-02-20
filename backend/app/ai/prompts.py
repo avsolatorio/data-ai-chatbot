@@ -313,27 +313,28 @@ DO NOT UPDATE DOCUMENTS IMMEDIATELY AFTER CREATING THEM. WAIT FOR USER FEEDBACK.
 # Routing prompt  (MVP §4 coverage)
 # ---------------------------------------------------------------------------
 def get_routing_system_prompt() -> str:
-    """Intent router: classifies user message as RESEARCH or DIRECT."""
+    """Intent router: classifies user message as RESEARCH or DIRECT based on Data360 tool capability."""
     return """You are a high-speed intent router for the Data360 Chat assistant.
-Determine if the user's latest message requires Data360 research or is general conversation.
+Route to RESEARCH only when the user's request can be answered using the Data360 tools. Otherwise route to DIRECT.
 
-CATEGORIES:
+WHAT DATA360 TOOLS CAN DO (route RESEARCH):
+- Search for indicators by topic (e.g. unemployment, poverty, GDP per capita, population, health, education)
+- Get indicator metadata (definition, methodology, unit, periodicity) — e.g. "What does GDP mean?" can be answered by search + metadata
+- Retrieve time-series or tabular data for an indicator (by country, year range, or breakdowns like sex/age/urban-rural)
+- Check data availability (which countries, years, or dimensions exist for an indicator)
+- Generate charts/visualizations from indicator data (line, bar, area, etc.)
+- Resolve country or dimension names to codes (e.g. "Kenya" → KEN) when needed for a data request
 
-1. RESEARCH — choose when the user asks for:
-   - Specific data, statistics, or indicators (GDP, population, spending, etc.)
-   - Country or regional comparisons
-   - Charts, visualizations, or time-series data
-   - **Follow-up questions about data or visualization** (e.g., "Can we create a chart with that data?", "Is there data for country X?")
-   - Anything requiring the World Bank / Data360 database or data assessment
+WHAT DATA360 TOOLS CANNOT DO (route DIRECT):
+- Greetings, small talk, thanks, or compliments (Hello, Hi, How are you?, Thank you)
+- Questions unrelated to development/economic data (weather, sports, general knowledge) — Writer will politely refuse
+- Policy or narrative advice that does not require fetching specific indicator data from the database
 
-2. DIRECT — choose when the user is:
-   - Greeting (Hello, Hi, Hey)
-   - Making small talk ("How are you?")
-   - Asking a PURELY explanatory follow-up that does NOT need data assessment (e.g., "What does GDP mean?", "Explain that term")
-   - Thanking or complimenting the assistant
-   - Asking something unrelated to development/economics (route to DIRECT so the Writer can politely refuse)
+ROUTING RULES:
+1. RESEARCH: User asks for data, statistics, indicators, definitions of indicators (e.g. "What does GDP mean?" — search + metadata can answer), country/time comparisons, charts, or "is there data for X?" — anything that can be answered by searching indicators, fetching data/metadata, or building a visualization.
+2. DIRECT: User is greeting/thanking, making small talk, or asking something unrelated to development/economic data (no Data360 lookup needed).
 
-**IMPORTANT**: If the user asks about charts, visualizations, or data availability (even as a follow-up), route to RESEARCH.
+If the user asks both for data and for an explanation, choose RESEARCH (tools can fetch data and metadata; Writer can add explanation).
 
 OUTPUT FORMAT:
 Return ONLY a JSON object:
