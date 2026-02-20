@@ -331,3 +331,56 @@ async def get_optional_user(
             e.detail,
         )
         return None
+
+
+async def require_feedback_reviewer(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Require authenticated user whose email is in FEEDBACK_REVIEWER_EMAILS.
+    Use for feedback review/list endpoints. Raises 403 if not allowed.
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+    allowed_raw = getattr(settings, "FEEDBACK_REVIEWER_EMAILS", "") or ""
+    allowed = [e.strip().lower() for e in allowed_raw.split(",") if e.strip()]
+    if not allowed:
+        logger.warning("require_feedback_reviewer: FEEDBACK_REVIEWER_EMAILS is empty")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Feedback review is not configured or access is disabled",
+        )
+    user_id_str = current_user.get("id")
+    if not user_id_str:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User ID not found",
+        )
+    try:
+        user_uuid = UUID(user_id_str)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid user ID",
+        )
+    user = await get_user_by_id(db, user_uuid)
+    if not user or not getattr(user, "email", None):
+        logger.warning(
+            "require_feedback_reviewer: user not found or no email, user_id=%s", user_id_str
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view feedback",
+        )
+    if user.email.strip().lower() not in allowed:
+        logger.info(
+            "require_feedback_reviewer: email not in allowlist, user_id=%s",
+            user_id_str,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view feedback",
+        )
+    return current_user
