@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 import { apiFetch } from "@/lib/api-client";
@@ -139,7 +139,7 @@ export function MessageFeedback({
 
       toast.success("Thank you! Your feedback has been submitted.");
       onOpenChange(false);
-    } catch (error) {
+    } catch {
       toast.error("Failed to submit feedback. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -156,55 +156,59 @@ export function MessageFeedback({
   const characterCount = feedback.length;
   const isNearLimit = characterCount > MAX_FEEDBACK_LENGTH * 0.9;
   const hasFeedback = feedback.trim().length > 0;
+  const feedbackTextareaId = useId();
 
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent
-        className="left-1/2 top-1/2 max-h-[85vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border sm:max-h-[80vh] data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+        className="left-1/2 top-1/2 flex max-h-[85vh] w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border p-4 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:max-h-[80vh] sm:p-6"
         side="bottom"
       >
-        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col overflow-hidden">
-          <SheetHeader className="pb-4 text-left">
-            <SheetTitle className="text-xl">Feedback on AI Response</SheetTitle>
-            <SheetDescription className="text-base">
+        <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col overflow-hidden">
+          <SheetHeader className="shrink-0 pb-4 text-left">
+            <SheetTitle className="text-lg sm:text-xl">Feedback on AI Response</SheetTitle>
+            <SheetDescription className="text-sm sm:text-base">
               Help us improve by sharing your thoughts about this AI response.
               What did you find helpful? What could be better? Your feedback
               helps us enhance future responses.
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex flex-1 flex-col gap-3 overflow-hidden">
-            <div className="flex flex-col gap-2">
-              <Label
-                className="text-sm font-medium text-foreground"
-                htmlFor="feedback-textarea"
-              >
-                Your Feedback
-              </Label>
-              <div className="relative flex-1">
-                <Textarea
-                  autoFocus
-                  className="min-h-[180px] resize-none text-base leading-relaxed sm:min-h-[200px]"
-                  id="feedback-textarea"
-                  onChange={handleFeedbackChange}
-                  placeholder="For example:&#10;&#10;• What did you find helpful about this response?&#10;• What could be improved or clarified?&#10;• Any specific suggestions for better responses?"
-                  value={feedback}
-                />
-                <div
-                  className={`mt-2 flex items-center justify-end text-xs ${
-                    isNearLimit ? "text-destructive" : "text-muted-foreground"
-                  }`}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
+                <Label
+                  className="text-sm font-medium text-foreground"
+                  htmlFor={feedbackTextareaId}
                 >
-                  <span>
-                    {characterCount} / {MAX_FEEDBACK_LENGTH}
-                  </span>
+                  Your Feedback
+                </Label>
+                <div className="relative">
+                  <Textarea
+                    autoFocus
+                    className="min-h-[120px] resize-none text-base leading-relaxed sm:min-h-[180px]"
+                    id={feedbackTextareaId}
+                    onChange={handleFeedbackChange}
+                    placeholder="For example:&#10;&#10;• What did you find helpful about this response?&#10;• What could be improved or clarified?&#10;• Any specific suggestions for better responses?"
+                    value={feedback}
+                  />
+                  <div
+                    className={`mt-2 flex items-center justify-end text-xs ${
+                      isNearLimit ? "text-destructive" : "text-muted-foreground"
+                    }`}
+                  >
+                    <span>
+                      {characterCount} / {MAX_FEEDBACK_LENGTH}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <SheetFooter className="gap-2 border-t pt-4 sm:gap-3">
+          <SheetFooter className="mt-4 shrink-0 flex-wrap gap-2 border-t pt-4 sm:gap-3">
             <Button
+              className="w-full sm:w-auto"
               disabled={isSubmitting}
               onClick={() => onOpenChange(false)}
               type="button"
@@ -213,6 +217,7 @@ export function MessageFeedback({
               Cancel
             </Button>
             <Button
+              className="w-full sm:w-auto"
               disabled={isSubmitting || !hasFeedback}
               onClick={handleSubmit}
               type="button"
