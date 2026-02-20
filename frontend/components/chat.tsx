@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { IngestSessionData360 } from "@pcn-js/data360";
 import { DefaultChatTransport } from "ai";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
 import { ChatHeader } from "@/components/chat-header";
@@ -27,7 +27,13 @@ import { getApiUrl } from "@/lib/api-client";
 import type { DBMessage, Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
 import type { Attachment, ChatMessage } from "@/lib/types";
-import type { AppUsage } from "@/lib/usage";
+import {
+  aggregateUsage,
+  getLatestUsage,
+  getUsageByMessageId,
+  type AppUsage,
+  type LastContext,
+} from "@/lib/usage";
 import {
   cn,
   convertToUIMessages,
@@ -56,7 +62,7 @@ export function Chat({
   initialVisibilityType,
   isReadonly,
   autoResume,
-  initialLastContext,
+  lastContext,
 }: {
   id: string;
   initialMessages: ChatMessage[];
@@ -64,7 +70,8 @@ export function Chat({
   initialVisibilityType: VisibilityType;
   isReadonly: boolean;
   autoResume: boolean;
-  initialLastContext?: AppUsage;
+  /** From API: { latest, byMessageId } or legacy plain usage */
+  lastContext?: LastContext | null;
 }) {
   const router = useRouter();
 
@@ -88,7 +95,10 @@ export function Chat({
   const { setDataStream } = useDataStream();
 
   const [input, setInput] = useState<string>("");
-  const [usage, setUsage] = useState<AppUsage | undefined>(initialLastContext);
+  const [usage, setUsage] = useState<AppUsage | undefined>(() =>
+    getLatestUsage(lastContext),
+  );
+  const latestUsageRef = useRef<AppUsage | undefined>(undefined);
   const [showCreditCardAlert, setShowCreditCardAlert] = useState(false);
   const [currentModelId, setCurrentModelId] = useState(initialChatModel);
   const currentModelIdRef = useRef(currentModelId);
@@ -98,9 +108,23 @@ export function Chat({
   const isWaitingForSavedPartsRef = useRef(false);
   const [isWaitingForSavedParts, setIsWaitingForSavedParts] = useState(false);
 
+  // lastContext is the canonical usage source (latest + byMessageId). We keep it in state so we can
+  // update it after refetch when a stream completes; otherwise we only have the initial load value.
+  const [lastContextState, setLastContextState] = useState<LastContext | null | undefined>(
+    () => lastContext ?? undefined,
+  );
+
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
   }, [currentModelId]);
+
+  // When navigating to a different chat (lastContext from server changes), sync state and reset usage
+  useEffect(() => {
+    setLastContextState(lastContext ?? undefined);
+    const latest = getLatestUsage(lastContext);
+    setUsage(latest);
+    latestUsageRef.current = undefined;
+  }, [lastContext]);
 
   // Hook to handle streaming data-thinking events
   const dataThinkingStream = useDataThinkingStream();
@@ -214,8 +238,39 @@ export function Chat({
       // Add non-data-thinking events to dataStream for artifact handling
       setDataStream((ds) => (ds ? [...ds, dataPart] : [dataPart]));
 
-      if (dataPart.type === "data-usage") {
-        setUsage(dataPart.data);
+      // Usage from stream (data-usage part or finish.messageMetadata)
+      const partWithFinish = dataPart as {
+        type?: string;
+        data?: unknown;
+        messageMetadata?: { usage?: unknown };
+        "data-finish"?: { messageMetadata?: { usage?: unknown } };
+      };
+      if (partWithFinish.type === "data-usage" && "data" in dataPart) {
+        const payload = (dataPart as { data: AppUsage }).data;
+        latestUsageRef.current = payload;
+        setUsage(payload);
+      } else {
+        const finishPayload =
+          partWithFinish["data-finish"] ??
+          (partWithFinish.type === "finish" ? partWithFinish : null);
+        const meta = finishPayload?.messageMetadata;
+        if (
+          meta &&
+          typeof meta === "object" &&
+          "usage" in meta &&
+          meta.usage != null
+        ) {
+          const raw = meta.usage as
+            | AppUsage
+            | { type?: string; data?: AppUsage };
+          const usagePayload =
+            typeof raw === "object" && "data" in raw && raw.data != null
+              ? raw.data
+              : raw;
+          const payload = usagePayload as AppUsage;
+          latestUsageRef.current = payload;
+          setUsage(payload);
+        }
       }
     },
     onFinish: () => {
@@ -330,6 +385,19 @@ export function Chat({
             }
             return updated;
           });
+          // Refetch chat so lastContext (latest + byMessageId) is up to date; use it as primary usage source
+          try {
+            const chatRes = await fetchWithErrorHandlers(getApiUrl(`/api/chat/${id}`));
+            if (chatRes.ok) {
+              const chatData = (await chatRes.json()) as {
+                chat?: { lastContext?: LastContext | null };
+              };
+              const next = chatData.chat?.lastContext ?? undefined;
+              setLastContextState(next);
+            }
+          } catch {
+            // Non-fatal: we still have lastContextState from before; stream usage is already in state
+          }
         } catch {
           isWaitingForSavedPartsRef.current = false;
           setIsWaitingForSavedParts(false);
@@ -470,6 +538,29 @@ export function Chat({
 
   const isEmpty = messages.length === 0;
   const homeConfig = useHomeConfig();
+
+  const usageByMessageId = useMemo(
+    () => getUsageByMessageId(lastContextState) ?? {},
+    [lastContextState],
+  );
+
+  // Full-chat usage: lastContext (byMessageId); stream for last message until refetch.
+  const fullChatUsage = useMemo(() => {
+    const assistantMessages = messages.filter((m) => m.role === "assistant");
+    const usages: AppUsage[] = [];
+    const lastMessageUsage = usage ?? latestUsageRef.current;
+    for (let i = 0; i < assistantMessages.length; i++) {
+      const msg = assistantMessages[i];
+      const isLast = i === assistantMessages.length - 1;
+      const fromByMsg = usageByMessageId[msg.id];
+      const fromStream = isLast ? lastMessageUsage : undefined;
+      const u = fromByMsg ?? fromStream;
+      if (u != null) usages.push(u);
+    }
+    if (usages.length === 0) return undefined;
+    return aggregateUsage(usages);
+  }, [usageByMessageId, messages, usage]);
+
   const inputComponent = !isReadonly ? (
     <MultimodalInput
       ref={inputFocusRef}
@@ -495,7 +586,7 @@ export function Chat({
       status={status}
       stop={stop}
       suggestions={isEmpty ? homeConfig.suggestions : undefined}
-      usage={usage}
+      usage={fullChatUsage}
     />
   ) : null;
 
@@ -560,7 +651,9 @@ export function Chat({
               isWaitingForSavedParts={
                 isWaitingForSavedParts || isWaitingForSavedPartsRef.current
               }
+              lastMessageUsage={usage}
               messages={messages}
+              usageByMessageId={usageByMessageId}
               onFollowUpPopulateInput={onFollowUpPopulateInput}
               regenerate={regenerate}
               selectedModelId={initialChatModel}

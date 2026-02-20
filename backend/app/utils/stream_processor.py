@@ -1,4 +1,11 @@
-"""Stream event processing for chat streaming."""
+"""Stream event processing for chat streaming.
+
+Usage tracking: Token usage is not emitted to the frontend as a "data-usage" event
+or message part. The processor only sets final_usage from finish/data-usage events;
+the API then updates chat.lastContext (byMessageId) in a background task. The frontend
+relies on lastContext for per-message and full-chat usage (with stream usage for the
+current response until refetch).
+"""
 
 import asyncio
 import json
@@ -166,30 +173,25 @@ class StreamEventProcessor:
             self.current_tool_parts.pop(tool_call_id, None)
 
     def _handle_data_usage_event(self, data: Dict[str, Any]) -> None:
-        """Handle 'data-usage' event. Extract inner usage and track like finish."""
+        """Handle 'data-usage' event. Usage is stored in final_usage for lastContext only (not emitted as a message part)."""
         # Payload may be full envelope {"type": "data-usage", "data": {...}} or just {...}
         inner = data.get("data") if isinstance(data.get("data"), dict) else None
         usage_data = inner if inner is not None else data
         if usage_data:
             self.final_usage = usage_data
-        part = {"type": "data-usage", "data": usage_data} if usage_data else data
-        self._append_to_message_parts_buffer(part)
 
     def _handle_finish_event(self, data: Dict[str, Any]) -> None:
-        """Handle 'finish' event - finalize message and track usage."""
+        """Handle 'finish' event - finalize message and track usage for lastContext (not emitted as a message part)."""
         # Finalize any pending text part before saving the message
         # This handles cases where text-end event wasn't emitted (e.g., when finish_reason is tool_calls)
         self._finalize_pending_text_part()
 
-        # Extract usage from finish messageMetadata and add as a part so the frontend
-        # can show response-level token usage (MessageActions looks for type "data-usage")
+        # Extract usage from finish messageMetadata for lastContext only (see module docstring).
         metadata = data.get("messageMetadata", {})
         usage = metadata.get("usage")
         if usage:
             usage_data = usage.get("data") if isinstance(usage.get("data"), dict) else usage
             self.final_usage = usage_data
-            if usage_data:
-                self._append_to_message_parts_buffer({"type": "data-usage", "data": usage_data})
 
         if self.message_parts_buffer and self.current_message_id:
             self.assistant_messages.append(

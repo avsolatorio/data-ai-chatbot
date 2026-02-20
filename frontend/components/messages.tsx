@@ -8,6 +8,7 @@ import { useMessages } from "@/hooks/use-messages";
 import type { Vote } from "@/lib/db/schema";
 import { appConfig } from "@/lib/config";
 import type { ChatMessage } from "@/lib/types";
+import type { AppUsage } from "@/lib/usage";
 import { useArtifactSelector } from "@/hooks/use-artifact";
 import { useDataStream } from "./data-stream-provider";
 import { PreviewMessage, ThinkingMessage } from "./message";
@@ -37,6 +38,10 @@ type MessagesProps = {
     id: string;
     data: ChatMessage["parts"][number];
   }>;
+  /** Stream usage for the last assistant message until lastContext refetch */
+  lastMessageUsage?: AppUsage;
+  /** Per-message usage from lastContext.byMessageId */
+  usageByMessageId?: Record<string, AppUsage>;
 };
 
 function PureMessages({
@@ -55,6 +60,8 @@ function PureMessages({
   selectedModelId: _selectedModelId,
   streamingThinkingStage = null,
   streamingThinkingParts = [],
+  lastMessageUsage,
+  usageByMessageId,
 }: MessagesProps) {
   const artifactScrollBehavior = appConfig.artifactScrollBehavior;
   const artifactTriggerMessageId = useArtifactSelector(
@@ -285,6 +292,8 @@ function PureMessages({
             const isLoading =
               status === "streaming" && messages.length - 1 === index;
             const isLastMessage = index === messages.length - 1;
+            const isLastAssistantMessage =
+              isLastMessage && message.role === "assistant";
             const hasSavedThinkingParts =
               message.parts?.some(
                 (part) =>
@@ -333,6 +342,12 @@ function PureMessages({
                   }
                   streamingThinkingParts={
                     shouldUseStreamingParts ? streamingThinkingParts : []
+                  }
+                  usageOverride={
+                    message.role === "assistant"
+                      ? usageByMessageId?.[message.id] ??
+                        (isLastAssistantMessage ? lastMessageUsage : undefined)
+                      : undefined
                   }
                   vote={
                     votes
@@ -394,6 +409,12 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
     return false;
   }
   if (!equal(prevProps.messages, nextProps.messages)) {
+    return false;
+  }
+  if (!equal(prevProps.lastMessageUsage, nextProps.lastMessageUsage)) {
+    return false;
+  }
+  if (!equal(prevProps.usageByMessageId, nextProps.usageByMessageId)) {
     return false;
   }
   if (!equal(prevProps.votes, nextProps.votes)) {

@@ -108,10 +108,10 @@ async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
           autoResume={true}
           id={chat.id}
           initialChatModel={DEFAULT_CHAT_MODEL}
-          initialLastContext={chat.lastContext ?? undefined}
           initialMessages={uiMessages}
           initialVisibilityType={chat.visibility}
           isReadonly={!isOwner}
+          lastContext={chat.lastContext ?? undefined}
         />
         <DataStreamHandler />
       </>
@@ -124,10 +124,10 @@ async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
         autoResume={true}
         id={chat.id}
         initialChatModel={chatModelFromCookie.value}
-        initialLastContext={chat.lastContext ?? undefined}
         initialMessages={uiMessages}
         initialVisibilityType={chat.visibility}
         isReadonly={!isOwner}
+        lastContext={chat.lastContext ?? undefined}
       />
       <DataStreamHandler />
     </>
