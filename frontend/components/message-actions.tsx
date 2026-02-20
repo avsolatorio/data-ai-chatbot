@@ -18,12 +18,15 @@ export function PureMessageActions({
   vote,
   isLoading,
   setMode,
+  usageOverride,
 }: {
   chatId: string;
   message: ChatMessage;
   vote: Vote | undefined;
   isLoading: boolean;
   setMode?: (mode: "view" | "edit") => void;
+  /** Per-message usage from lastContext.byMessageId or stream for last message until refetch */
+  usageOverride?: AppUsage;
 }) {
   const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();
@@ -39,14 +42,7 @@ export function PureMessageActions({
     .join("\n")
     .trim();
 
-  // Extract usage data from message parts
-  // The data-usage event is stored in parts with structure: { type: "data-usage", data: {...} }
-  const usagePart = message.parts?.find(
-    (part) => part.type === "data-usage"
-  );
-  const usageData: AppUsage | undefined = usagePart
-    ? (usagePart as { type: string; data?: AppUsage }).data
-    : undefined;
+  const usageData: AppUsage | undefined = usageOverride;
 
   const handleCopy = async () => {
     if (!textFromParts) {
@@ -303,6 +299,9 @@ export const MessageActions = memo(
       return false;
     }
     if (prevProps.isLoading !== nextProps.isLoading) {
+      return false;
+    }
+    if (!equal(prevProps.usageOverride, nextProps.usageOverride)) {
       return false;
     }
 

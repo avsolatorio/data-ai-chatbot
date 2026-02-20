@@ -15,6 +15,7 @@ import {
 import type { Vote } from "@/lib/db/schema";
 import { parseFollowUps } from "@/lib/parse-follow-ups";
 import type { ChatMessage, StreamingThinkingPart } from "@/lib/types";
+import type { AppUsage } from "@/lib/usage";
 import { isNonRenderableStreamEvent } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
 import { ASK_ABOUT_SELECTION_CONTEXT_ATTR } from "./ask-about-selection-toolbar";
@@ -638,6 +639,7 @@ const PurePreviewMessage = ({
   followUpSuggestionsPopulateInput = true,
   onFollowUpPopulateInput,
   onScrollToMessageId,
+  usageOverride,
 }: {
   chatId: string;
   message: ChatMessage;
@@ -658,6 +660,8 @@ const PurePreviewMessage = ({
   followUpSuggestionsPopulateInput?: boolean;
   onFollowUpPopulateInput?: (text: string) => void;
   onScrollToMessageId?: (messageId: string) => void;
+  /** Per-message usage from lastContext.byMessageId or stream for last message until refetch */
+  usageOverride?: AppUsage;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const { setArtifact } = useArtifact();
@@ -986,6 +990,7 @@ const PurePreviewMessage = ({
               key={`action-${message.id}`}
               message={message}
               setMode={setMode}
+              usageOverride={usageOverride}
               vote={vote}
             />
           )}
@@ -1022,6 +1027,9 @@ export const PreviewMessage = memo(
       return false;
     }
     if (prevProps.sendMessage !== nextProps.sendMessage) {
+      return false;
+    }
+    if (!equal(prevProps.usageOverride, nextProps.usageOverride)) {
       return false;
     }
     if (

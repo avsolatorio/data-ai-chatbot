@@ -104,8 +104,8 @@ async def stream_chat(
             stream_id = uuid4()
             await create_stream_id(db, stream_id, request.id)
 
-        # 7. Create stream processor
-        processor = StreamEventProcessor(request.id)
+        # 7. Create stream processor (mode "chat": no thinking, plain tool/text stream)
+        processor = StreamEventProcessor(request.id, mode="chat")
 
         # 8. Create stream generator with non-blocking Redis storage
         # Track if stream was interrupted (client disconnect) vs completed normally

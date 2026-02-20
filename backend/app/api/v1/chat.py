@@ -165,9 +165,12 @@ def _build_assistant_message(
     """Build the assistant message dict with routing parts for saving.
     When mode was unified, stream_processor.assistant_messages[0] already has
     both thinking and chat parts. When mode was chat, it has only chat parts.
+    Use message_id (sent to frontend in MessageStartPart) as the saved message id
+    so lastContext.byMessageId and the DB message id match.
     """
     routing_parts = _build_routing_parts(message_id, reasoning)
     assistant_message = stream_processor.assistant_messages[0].copy()
+    assistant_message["id"] = message_id
     assistant_message["parts"] = routing_parts + assistant_message["parts"]
     return assistant_message
 
@@ -456,7 +459,12 @@ async def create_chat(
         nonlocal stream_interrupted
         logger.info("[chat] stream_generator started stream_id=%s", stream_id)
         state = {"sequence": 0}
-        message_id = f"msg-{uuid4().hex}"
+
+        # This is the part message id
+        part_message_id = f"msg-{uuid4().hex}"
+
+        # This is the response message id
+        message_id = str(uuid4())
         use_thinking = False
         reasoning = ""
         stream_processor = None
@@ -465,13 +473,13 @@ async def create_chat(
         tool_defs_for_stream = tool_set["local"]["tool_definitions"]
 
         try:
-            yield MessageStartPart(messageId=message_id).to_sse().encode("utf-8")
+            yield MessageStartPart(messageId=part_message_id).to_sse().encode("utf-8")
             await asyncio.sleep(0)
 
             logger.info("[chat] _emit_routing_phase start (check_intent + routing LLM)")
             out = {}
             async for chunk in _emit_routing_phase(
-                message_id, stream_id, openai_messages, state, out, query=query_text
+                part_message_id, stream_id, openai_messages, state, out, query=query_text
             ):
                 yield chunk
             logger.info("[chat] _emit_routing_phase done use_thinking=%s", out.get("use_thinking"))
@@ -579,6 +587,7 @@ async def create_chat(
                         background_tasks,
                         request.id,
                         DataUsageData.model_validate(stream_processor.final_usage),
+                        message_id=message_id,
                     )
 
     response = StreamingResponse(
