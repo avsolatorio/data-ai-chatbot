@@ -40,6 +40,14 @@ export type SearchIndicatorItem = {
   dimensions: string[] | null;
 };
 
+/** Tool input for data360_search_indicators (from tool call arguments). */
+export type SearchIndicatorsInput = {
+  query?: string | null;
+  required_country?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+};
+
 export type SearchIndicatorsOutput = {
   count: number;
   total_count: number;
@@ -49,6 +57,8 @@ export type SearchIndicatorsOutput = {
   indicators: SearchIndicatorItem[];
   required_country: string | null;
   error: string | null;
+  /** Query used for the search (may come from tool input when not in API response). */
+  query?: string | null;
 };
 
 export type GetDataDataPoint = {
@@ -78,6 +88,17 @@ export type GetDataDataPoint = {
   UNIT_MEASURE: string;
   UNIT_TYPE: string | null;
   claim_id: string;
+};
+
+/** Tool input for data360_get_data (from tool call arguments). */
+export type GetDataInput = {
+  database_id?: string;
+  indicator_id?: string;
+  disaggregation_filters?: Record<string, string | null>;
+  start_year?: number | null;
+  end_year?: number | null;
+  limit?: number | null;
+  offset?: number | null;
 };
 
 export type GetDataOutput = {
