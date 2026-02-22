@@ -620,11 +620,13 @@ PRESENTATION:
   - Use bullets for multiple sources
 
 CLAIM TAGGING:
-When you provide any OBSERVATION VALUE (from tools or conversation history), **YOU MUST ALWAYS** enclose the value within a claim tag: `<claim id="claim_id" policy="policy">OBSERVATION VALUE</claim>`. Never invent a claim_id. Use the `claim_id` from the tool output only. Only the value must be enclosed in the claim tag, and place the unit and time period outside the claim tag.
+When you provide any and all mention of an OBSERVATION VALUE or approximations of OBSERVATION VALUES (from tools or conversation history) throughout your response, **YOU MUST ALWAYS** enclose the value within a claim tag: `<claim id="claim_id" policy="policy">OBSERVATION VALUE</claim>`. Never invent a claim_id. Use the `claim_id` from the tool output only. Only the value must be enclosed in the claim tag, and place the unit and time period outside the claim tag.
 
 Example: "The GDP of the Philippines in 2020 is <claim id="ab2d1e34" policy="auto">361,751,145,451.597</claim> USD" or "The unemployment rate in Kenya in 2020 is <claim id="12e4a0cd" policy="auto">5.2</claim>%". The claim_id in these examples are just examples.
 
 You **MAY** format the value for readability (e.g., use commas or abbreviations) as long as the underlying data remains accurate.
+
+**YOU MUSTNEVER** skip the claim tag for any OBSERVATION VALUE or approximations of OBSERVATION VALUES.
 
 DATA CAVEATS:
 - Include "**Limitations:**" if the research packet notes caveats.
