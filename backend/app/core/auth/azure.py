@@ -6,15 +6,17 @@ Accepts both v1 (sts.windows.net) and v2 (login.microsoftonline.com/.../v2.0) is
 Fetches jwks_uri from OpenID metadata first, then falls back to known URLs.
 For Graph tokens (User.Read) set AZURE_AD_VALID_AUDIENCES to include the Graph GUID below.
 User-impersonation tokens have aud = the API (resource) app ID; add that to AZURE_AD_VALID_AUDIENCES.
+
+Uses async httpx for metadata and JWKS fetches so the event loop is not blocked.
 """
 
-import json
+import asyncio
 import logging
-import urllib.request
 from typing import Any, Optional
 
+import httpx
 import jwt
-from jwt import PyJWKClient
+from jwt.api_jwk import PyJWK
 
 from app.config import settings
 
@@ -23,42 +25,58 @@ logger = logging.getLogger(__name__)
 # Microsoft Graph API well-known audience (User.Read, openid, profile tokens)
 MSGRAPH_AUDIENCE = "00000003-0000-0000-c000-000000000000"
 
-# Cache: (label -> PyJWKClient)
-_jwks_clients: dict[str, PyJWKClient] = {}
+# Timeout for metadata and JWKS HTTP fetches
+_AZURE_HTTP_TIMEOUT = 5.0
+
 # Cache: tenant_id -> (jwks_v2, jwks_v1, jwks_v1_0)
 _metadata_jwks_cache: dict[str, tuple[Optional[str], Optional[str], Optional[str]]] = {}
+_metadata_jwks_cache_lock = asyncio.Lock()
+
+# Cache JWKS JSON by URI to avoid re-fetching
+_jwks_json_cache: dict[str, dict[str, Any]] = {}
+_jwks_json_cache_lock = asyncio.Lock()
 
 
-def _fetch_jwks_uri_from_metadata(metadata_url: str) -> Optional[str]:
-    """Fetch OpenID metadata and return jwks_uri. Returns None on error."""
+async def _fetch_json_async(url: str) -> Optional[dict[str, Any]]:
+    """Fetch URL and return JSON as dict. Non-blocking (async). Returns None on error."""
     try:
-        req = urllib.request.Request(metadata_url)
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read().decode())
-            return data.get("jwks_uri") or None
+        async with httpx.AsyncClient(timeout=_AZURE_HTTP_TIMEOUT) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            return resp.json()
     except Exception as e:
-        logger.debug("Failed to fetch metadata %s: %s", metadata_url, e)
+        logger.debug("Failed to fetch %s: %s", url, e)
         return None
 
 
-def _jwks_uris_for_tenant(tenant_id: str) -> list[tuple[str, str]]:
-    """Build list of (label, jwks_uri) to try. Uses metadata first, then fallbacks."""
+async def _fetch_jwks_uri_from_metadata_async(metadata_url: str) -> Optional[str]:
+    """Fetch OpenID metadata and return jwks_uri. Non-blocking (async). Returns None on error."""
+    data = await _fetch_json_async(metadata_url)
+    if data is None:
+        return None
+    return data.get("jwks_uri") or None
+
+
+async def _jwks_uris_for_tenant_async(tenant_id: str) -> list[tuple[str, str]]:
+    """Build list of (label, jwks_uri) using async metadata fetches. Populates _metadata_jwks_cache."""
     result: list[tuple[str, str]] = []
 
-    # Prefer jwks_uri from OpenID metadata (v2.0, v1.0, and legacy v1 paths)
-    if tenant_id not in _metadata_jwks_cache:
-        v2_meta = (
-            f"https://login.microsoftonline.com/{tenant_id}/v2.0/.well-known/openid-configuration"
-        )
-        v1_meta = f"https://login.microsoftonline.com/{tenant_id}/.well-known/openid-configuration"
-        v1_0_meta = (
-            f"https://login.microsoftonline.com/{tenant_id}/v1.0/.well-known/openid-configuration"
-        )
-        jwks_v2 = _fetch_jwks_uri_from_metadata(v2_meta)
-        jwks_v1 = _fetch_jwks_uri_from_metadata(v1_meta)
-        jwks_v1_0 = _fetch_jwks_uri_from_metadata(v1_0_meta)
-        _metadata_jwks_cache[tenant_id] = (jwks_v2, jwks_v1, jwks_v1_0)
-    jwks_v2, jwks_v1, jwks_v1_0 = _metadata_jwks_cache[tenant_id]
+    async with _metadata_jwks_cache_lock:
+        if tenant_id not in _metadata_jwks_cache:
+            v2_meta = f"https://login.microsoftonline.com/{tenant_id}/v2.0/.well-known/openid-configuration"
+            v1_meta = (
+                f"https://login.microsoftonline.com/{tenant_id}/.well-known/openid-configuration"
+            )
+            v1_0_meta = f"https://login.microsoftonline.com/{tenant_id}/v1.0/.well-known/openid-configuration"
+            jwks_v2, jwks_v1, jwks_v1_0 = await asyncio.gather(
+                _fetch_jwks_uri_from_metadata_async(v2_meta),
+                _fetch_jwks_uri_from_metadata_async(v1_meta),
+                _fetch_jwks_uri_from_metadata_async(v1_0_meta),
+            )
+            _metadata_jwks_cache[tenant_id] = (jwks_v2, jwks_v1, jwks_v1_0)
+
+        jwks_v2, jwks_v1, jwks_v1_0 = _metadata_jwks_cache[tenant_id]
+
     for label, uri in [
         ("metadata_v2", jwks_v2),
         ("metadata_v1.0", jwks_v1_0),
@@ -67,7 +85,6 @@ def _jwks_uris_for_tenant(tenant_id: str) -> list[tuple[str, str]]:
         if uri and uri not in (r[1] for r in result):
             result.append((label, uri))
 
-    # Fallbacks
     for label, uri in [
         ("v2.0", f"https://login.microsoftonline.com/{tenant_id}/discovery/v2.0/keys"),
         ("v1", f"https://login.microsoftonline.com/{tenant_id}/discovery/keys"),
@@ -79,10 +96,30 @@ def _jwks_uris_for_tenant(tenant_id: str) -> list[tuple[str, str]]:
     return result
 
 
-def _get_jwks_client(uri_key: str, jwks_uri: str) -> PyJWKClient:
-    if uri_key not in _jwks_clients:
-        _jwks_clients[uri_key] = PyJWKClient(jwks_uri)
-    return _jwks_clients[uri_key]
+async def _fetch_jwks_json_async(jwks_uri: str) -> Optional[dict[str, Any]]:
+    """Fetch JWKS document (async). Cached by URI."""
+    async with _jwks_json_cache_lock:
+        if jwks_uri in _jwks_json_cache:
+            return _jwks_json_cache[jwks_uri]
+
+    data = await _fetch_json_async(jwks_uri)
+    if data is not None:
+        async with _jwks_json_cache_lock:
+            _jwks_json_cache[jwks_uri] = data
+    return data
+
+
+def _get_signing_key_from_jwks(jwks_data: dict[str, Any], kid: str) -> Any:
+    """Find key by kid in JWKS and return the key object for jwt.decode. Returns None if not found."""
+    for key_dict in jwks_data.get("keys", []):
+        if key_dict.get("kid") == kid:
+            try:
+                pyjwk = PyJWK.from_dict(key_dict)
+                return pyjwk.key
+            except Exception as e:
+                logger.debug("Failed to load key from JWKS for kid=%s: %s", kid, e)
+                return None
+    return None
 
 
 def _valid_issuers(tenant_id: str) -> list[str]:
@@ -127,10 +164,10 @@ def _log_token_claims_for_debug(token: str) -> None:
         logger.warning("Could not decode token for debug logging: %s", e)
 
 
-def validate_azure_access_token(token: str) -> Optional[dict[str, Any]]:
+async def validate_azure_access_token_async(token: str) -> Optional[dict[str, Any]]:
     """
     Validate an Azure AD access token (v1 or v2) and return claims.
-    Fetches jwks_uri from OpenID metadata, then tries multiple JWKS endpoints.
+    Uses async httpx for metadata and JWKS fetches so the event loop is not blocked.
     """
     parts = token.split(".")
     if len(parts) != 3:
@@ -192,14 +229,17 @@ def validate_azure_access_token(token: str) -> Optional[dict[str, Any]]:
             logger.warning("Azure AD (skip_verify) decode failed: %s", e)
             return None
 
-    uris_to_try = _jwks_uris_for_tenant(tenant_id)
+    uris_to_try = await _jwks_uris_for_tenant_async(tenant_id)
     last_error: Optional[Exception] = None
 
     for label, jwks_uri in uris_to_try:
         try:
-            client = _get_jwks_client(label, jwks_uri)
-            signing_key = client.get_signing_key(kid)
-            key = signing_key.key
+            jwks_data = await _fetch_jwks_json_async(jwks_uri)
+            if jwks_data is None:
+                continue
+            key = _get_signing_key_from_jwks(jwks_data, kid)
+            if key is None:
+                continue
             payload = jwt.decode(
                 token,
                 key,

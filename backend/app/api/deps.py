@@ -13,7 +13,7 @@ from app.config import settings
 from app.core.auth import (
     decode_access_token,
     get_azure_claims_for_user,
-    validate_azure_access_token,
+    validate_azure_access_token_async,
     validate_session_token,
 )
 from app.core.database import get_db
@@ -73,15 +73,31 @@ async def get_current_user(
             logger.debug(
                 "JWT decode failed, attempting Azure AD token validation (AUTH_PROVIDER=msal)"
             )
-            azure_payload = validate_azure_access_token(token)
+            azure_payload = await validate_azure_access_token_async(token)
             if azure_payload:
                 oid, email, name = get_azure_claims_for_user(azure_payload)
                 if oid and email:
+                    # Optional: serve from cache to avoid get_or_create_user_from_azure_claims on every request
+                    msal_cache_key = f"azure:{oid}"
+                    async with _user_cache_lock:
+                        now = time.monotonic()
+                        entry = _user_cache.get(msal_cache_key)
+                        if entry and (now - entry[0]) < settings.USER_CACHE_TTL_SECONDS:
+                            logger.debug("[deps] get_current_user cache hit (azure) oid=%s", oid)
+                            logger.info(
+                                "[deps] get_current_user done (azure cached) user_id=%s",
+                                entry[1].get("id"),
+                            )
+                            return entry[1]
+
                     user = await get_or_create_user_from_azure_claims(
                         db, azure_oid=oid, email=email, name=name
                     )
+                    user_dict = {"id": str(user.id), "type": user.type or "regular"}
+                    async with _user_cache_lock:
+                        _user_cache[msal_cache_key] = (time.monotonic(), user_dict)
                     logger.info("[deps] get_current_user done (azure) user_id=%s", user.id)
-                    return {"id": str(user.id), "type": user.type or "regular"}
+                    return user_dict
                 logger.warning("Azure AD token missing oid or email claim")
             else:
                 logger.warning(
