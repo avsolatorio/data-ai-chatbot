@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TimeSeriesChart } from "./charts";
-import type { GetDataOutput } from "./types";
+import type { GetDataInput, GetDataOutput } from "./types";
 
 const ChartIcon = ({ size = 24 }: { size?: number }) => (
   <svg fill="none" height={size} viewBox="0 0 24 24" width={size}>
@@ -31,7 +31,126 @@ const ChartIcon = ({ size = 24 }: { size?: number }) => (
   </svg>
 );
 
-export function GetData({ output }: { output: GetDataOutput }) {
+/** Human-readable dimension names for disaggregation filters */
+const DIMENSION_LABELS: Record<string, string> = {
+  REF_AREA: "Countries/areas",
+  SEX: "Sex",
+  AGE: "Age",
+  URBANISATION: "Urbanisation",
+  UNIT_MEASURE: "Unit",
+};
+
+export function GetDataRequestSummary({
+  input,
+  indicatorName,
+}: {
+  input: GetDataInput;
+  indicatorName?: string | null;
+}) {
+  const hasDatabase = input.database_id != null && String(input.database_id).trim() !== "";
+  const hasIndicator = input.indicator_id != null && String(input.indicator_id).trim() !== "";
+  const hasIndicatorName =
+    indicatorName != null && String(indicatorName).trim() !== "";
+  const filters = input.disaggregation_filters
+    ? Object.entries(input.disaggregation_filters).filter(
+        ([, v]) => v != null && String(v).trim() !== "",
+      )
+    : [];
+  const hasYears =
+    (input.start_year != null && Number.isFinite(Number(input.start_year))) ||
+    (input.end_year != null && Number.isFinite(Number(input.end_year)));
+  const hasPagination =
+    (input.limit != null && Number.isFinite(Number(input.limit))) ||
+    (input.offset != null && Number.isFinite(Number(input.offset)));
+
+  if (
+    !hasDatabase &&
+    !hasIndicator &&
+    !hasIndicatorName &&
+    filters.length === 0 &&
+    !hasYears &&
+    !hasPagination
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-3">
+      <div className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+        Request
+      </div>
+      <dl className="grid grid-cols-1 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-2">
+        {hasDatabase && (
+          <>
+            <dt className="font-medium text-muted-foreground">Database</dt>
+            <dd className="font-mono text-foreground">{input.database_id}</dd>
+          </>
+        )}
+        {hasIndicatorName && (
+          <>
+            <dt className="font-medium text-muted-foreground">Indicator name</dt>
+            <dd className="text-foreground">{indicatorName}</dd>
+          </>
+        )}
+        {hasIndicator && (
+          <>
+            <dt className="font-medium text-muted-foreground">Indicator ID</dt>
+            <dd className="break-all font-mono text-foreground">
+              {input.indicator_id}
+            </dd>
+          </>
+        )}
+        {hasYears && (
+          <>
+            <dt className="font-medium text-muted-foreground">Years</dt>
+            <dd className="text-foreground">
+              {input.start_year != null && input.end_year != null
+                ? `${input.start_year} – ${input.end_year}`
+                : input.start_year != null
+                  ? `From ${input.start_year}`
+                  : input.end_year != null
+                    ? `Through ${input.end_year}`
+                    : ""}
+            </dd>
+          </>
+        )}
+        {filters.length > 0 && (
+          <>
+            <dt className="font-medium text-muted-foreground">Filters</dt>
+            <dd className="text-foreground">
+              <span className="flex flex-wrap gap-x-2 gap-y-1">
+                {filters.map(([dim, val]) => (
+                  <span key={dim} className="rounded bg-muted px-1.5 py-0.5">
+                    <span className="text-muted-foreground">
+                      {DIMENSION_LABELS[dim] ?? dim}:
+                    </span>{" "}
+                    {val}
+                  </span>
+                ))}
+              </span>
+            </dd>
+          </>
+        )}
+        {hasPagination && (
+          <>
+            <dt className="font-medium text-muted-foreground">Page</dt>
+            <dd className="text-foreground">
+              Limit {input.limit ?? "—"}, offset {input.offset ?? 0}
+            </dd>
+          </>
+        )}
+      </dl>
+    </div>
+  );
+}
+
+export function GetData({
+  input,
+  output,
+}: {
+  input?: GetDataInput | null;
+  output: GetDataOutput;
+}) {
   // Group data by indicator
   const groupedByIndicator = useMemo(() => {
     if (!output.data || output.data.length === 0) {
@@ -50,6 +169,23 @@ export function GetData({ output }: { output: GetDataOutput }) {
 
   // Get unique indicators
   const indicators = Array.from(groupedByIndicator.keys());
+
+  // Indicator name(s) from data (for Request summary and header)
+  const indicatorNamesFromData = useMemo(() => {
+    if (!output.data || output.data.length === 0) {
+      return [];
+    }
+    const nameByIndicator = new Map<string, string>();
+    for (const point of output.data) {
+      const name = point.INDICATOR_NAME?.trim();
+      if (name && !nameByIndicator.has(point.INDICATOR)) {
+        nameByIndicator.set(point.INDICATOR, name);
+      }
+    }
+    return Array.from(nameByIndicator.values());
+  }, [output.data]);
+  const firstIndicatorName =
+    indicatorNamesFromData.length > 0 ? indicatorNamesFromData[0] : null;
 
   // Get all unique countries/areas
   const areas = useMemo(() => {
@@ -107,9 +243,17 @@ export function GetData({ output }: { output: GetDataOutput }) {
   // Handle error case
   if (output.error) {
     return (
-      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
-        <div className="font-medium">Error</div>
-        <div className="mt-1">{output.error}</div>
+      <div className="flex flex-col gap-3">
+        {input != null && (
+          <GetDataRequestSummary
+            input={input}
+            indicatorName={firstIndicatorName}
+          />
+        )}
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
+          <div className="font-medium">Error</div>
+          <div className="mt-1">{output.error}</div>
+        </div>
       </div>
     );
   }
@@ -117,8 +261,16 @@ export function GetData({ output }: { output: GetDataOutput }) {
   // Handle empty results
   if (!output.data || output.data.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-background p-4 text-muted-foreground text-sm">
-        No data available
+      <div className="flex flex-col gap-3">
+        {input != null && (
+          <GetDataRequestSummary
+            input={input}
+            indicatorName={firstIndicatorName}
+          />
+        )}
+        <div className="rounded-lg border border-border bg-background p-4 text-muted-foreground text-sm">
+          No data available
+        </div>
       </div>
     );
   }
@@ -140,10 +292,17 @@ export function GetData({ output }: { output: GetDataOutput }) {
   if (output.data.length === 1) {
     const point = output.data[0];
     return (
-      <Card className="w-full border-border shadow-sm">
-        <CardHeader className="border-border border-b pb-4">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3">
+        {input != null && (
+          <GetDataRequestSummary
+            input={input}
+            indicatorName={point.INDICATOR_NAME ?? firstIndicatorName}
+          />
+        )}
+        <Card className="w-full border-border shadow-sm">
+          <CardHeader className="border-border border-b pb-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
               <ChartIcon size={18} />
               <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
                 Indicator Data
@@ -261,19 +420,38 @@ export function GetData({ output }: { output: GetDataOutput }) {
           </div>
         </CardContent>
       </Card>
+      </div>
     );
   }
 
   // Multiple data points view
   return (
     <div className="flex w-full flex-col gap-4 overflow-hidden rounded-sm bg-background px-4 pb-4">
+      {input != null && (
+        <GetDataRequestSummary
+          input={input}
+          indicatorName={firstIndicatorName}
+        />
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="text-muted-foreground">
-            <ChartIcon size={20} />
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <div className="text-muted-foreground">
+              <ChartIcon size={20} />
+            </div>
+            <div className="font-semibold text-sm">Indicator Data</div>
           </div>
-          <div className="font-semibold text-sm">Indicator Data</div>
+          {indicatorNamesFromData.length > 0 && (
+            <div className="text-muted-foreground text-xs">
+              {indicatorNamesFromData.length === 1
+                ? indicatorNamesFromData[0]
+                : indicatorNamesFromData.slice(0, 3).join(" · ") +
+                  (indicatorNamesFromData.length > 3
+                    ? ` · +${indicatorNamesFromData.length - 3} more`
+                    : "")}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <div className="text-muted-foreground text-xs">

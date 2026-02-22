@@ -21,9 +21,12 @@ import { cn, sanitizeText } from "@/lib/utils";
 import { ASK_ABOUT_SELECTION_CONTEXT_ATTR } from "./ask-about-selection-toolbar";
 import { useDataStream } from "./data-stream-provider";
 import { ChartPreview } from "./data360/chart-preview";
-import { GetData } from "./data360/get-data";
+import { GetData, GetDataRequestSummary } from "./data360/get-data";
+import {
+  SearchIndicators,
+  SearchIndicatorsRequestSummary,
+} from "./data360/search-indicators";
 import { GetWdiData } from "./data360/get-wdi-data";
-import { SearchIndicators } from "./data360/search-indicators";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
@@ -462,7 +465,7 @@ function renderMessagePart(
     const toolPart = part as {
       toolCallId: string;
       state: "input-available" | "output-available";
-      input: unknown;
+      input: Record<string, unknown> | unknown;
       output: {
         count: number;
         total_count: number | null;
@@ -500,13 +503,52 @@ function renderMessagePart(
         error: string | null;
       };
     };
+    const getDataInput =
+      typeof toolPart.input === "object" && toolPart.input !== null
+        ? (() => {
+            const raw = toolPart.input as Record<string, unknown>;
+            const disaggregation_filters = raw.disaggregation_filters as
+              | Record<string, string | null>
+              | undefined;
+            return {
+              database_id:
+                typeof raw.database_id === "string" ? raw.database_id : undefined,
+              indicator_id:
+                typeof raw.indicator_id === "string" ? raw.indicator_id : undefined,
+              disaggregation_filters:
+                disaggregation_filters &&
+                typeof disaggregation_filters === "object"
+                  ? disaggregation_filters
+                  : undefined,
+              start_year:
+                typeof raw.start_year === "number" && Number.isFinite(raw.start_year)
+                  ? raw.start_year
+                  : undefined,
+              end_year:
+                typeof raw.end_year === "number" && Number.isFinite(raw.end_year)
+                  ? raw.end_year
+                  : undefined,
+              limit:
+                typeof raw.limit === "number" && Number.isFinite(raw.limit)
+                  ? raw.limit
+                  : undefined,
+              offset:
+                typeof raw.offset === "number" && Number.isFinite(raw.offset)
+                  ? raw.offset
+                  : undefined,
+            };
+          })()
+        : undefined;
     return (
       <Tool defaultOpen={true} key={toolPart.toolCallId}>
         <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
         <ToolContent>
-          {toolPart.state === "input-available" && (
-            <ToolInput input={toolPart.input} />
-          )}
+          {toolPart.state === "input-available" &&
+            (getDataInput != null ? (
+              <GetDataRequestSummary input={getDataInput} />
+            ) : (
+              <ToolInput input={toolPart.input} />
+            ))}
           {toolPart.state === "output-available" && (
             <ToolOutput
               errorText={undefined}
@@ -516,7 +558,7 @@ function renderMessagePart(
                   toolName={DATA360_GET_DATA_TOOL}
                   output={toolPart.output}
                 >
-                  <GetData output={toolPart.output} />
+                  <GetData input={getDataInput} output={toolPart.output} />
                 </IngestToolOutput>
               }
             />
@@ -531,7 +573,7 @@ function renderMessagePart(
     const toolPart = part as {
       toolCallId: string;
       state: "input-available" | "output-available";
-      input: unknown;
+      input: Record<string, unknown> | unknown;
       output: {
         count: number;
         total_count: number;
@@ -553,18 +595,53 @@ function renderMessagePart(
         error: string | null;
       };
     };
+    const searchIndicatorsInput =
+      typeof toolPart.input === "object" && toolPart.input !== null
+        ? (() => {
+            const raw = toolPart.input as Record<string, unknown>;
+            return {
+              query:
+                typeof raw.query === "string" ? raw.query : undefined,
+              required_country:
+                typeof raw.required_country === "string"
+                  ? raw.required_country
+                  : undefined,
+              limit:
+                typeof raw.limit === "number" && Number.isFinite(raw.limit)
+                  ? raw.limit
+                  : undefined,
+              offset:
+                typeof raw.offset === "number" && Number.isFinite(raw.offset)
+                  ? raw.offset
+                  : undefined,
+            };
+          })()
+        : undefined;
     return (
       <Tool defaultOpen={true} key={toolPart.toolCallId}>
         <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
         <ToolContent>
-          {toolPart.state === "input-available" && (
-            <ToolInput input={toolPart.input} />
-          )}
+          {toolPart.state === "input-available" &&
+            (searchIndicatorsInput != null ? (
+              <SearchIndicatorsRequestSummary
+                input={searchIndicatorsInput}
+              />
+            ) : (
+              <ToolInput input={toolPart.input} />
+            ))}
           {toolPart.state === "output-available" && (
             <ToolOutput
               errorText={undefined}
               useDefaultFormat={false}
-              output={<SearchIndicators output={toolPart.output} />}
+              output={
+                <SearchIndicators
+                  input={searchIndicatorsInput}
+                  output={{
+                    ...toolPart.output,
+                    query: searchIndicatorsInput?.query,
+                  }}
+                />
+              }
             />
           )}
         </ToolContent>

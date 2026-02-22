@@ -9,23 +9,88 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { SearchIndicatorsOutput } from "./types";
+import type { SearchIndicatorsInput, SearchIndicatorsOutput } from "./types";
 
 const SearchIconComponent = () => (
   <SearchIcon className="size-5 text-muted-foreground" />
 );
 
+export function SearchIndicatorsRequestSummary({
+  input,
+}: {
+  input: SearchIndicatorsInput;
+}) {
+  const hasQuery = input.query != null && String(input.query).trim() !== "";
+  const hasCountry =
+    input.required_country != null &&
+    String(input.required_country).trim() !== "";
+  const hasLimit =
+    input.limit != null && Number.isFinite(Number(input.limit));
+  const hasOffset =
+    input.offset != null && Number.isFinite(Number(input.offset));
+
+  if (!hasQuery && !hasCountry && !hasLimit && !hasOffset) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-3">
+      <div className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+        Request
+      </div>
+      <dl className="grid grid-cols-1 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-2">
+        {hasQuery && (
+          <>
+            <dt className="font-medium text-muted-foreground">Query</dt>
+            <dd className="text-foreground">&ldquo;{input.query}&rdquo;</dd>
+          </>
+        )}
+        {hasCountry && (
+          <>
+            <dt className="font-medium text-muted-foreground">
+              Required country
+            </dt>
+            <dd className="font-mono text-foreground">
+              {input.required_country}
+            </dd>
+          </>
+        )}
+        {hasLimit && (
+          <>
+            <dt className="font-medium text-muted-foreground">Limit</dt>
+            <dd className="text-foreground">{input.limit}</dd>
+          </>
+        )}
+        {hasOffset && (
+          <>
+            <dt className="font-medium text-muted-foreground">Offset</dt>
+            <dd className="text-foreground">{input.offset}</dd>
+          </>
+        )}
+      </dl>
+    </div>
+  );
+}
+
 export function SearchIndicators({
+  input,
   output,
 }: {
+  input?: SearchIndicatorsInput | null;
   output: SearchIndicatorsOutput;
 }) {
+  const requestSummary =
+    input != null ? <SearchIndicatorsRequestSummary input={input} /> : null;
+
   // Handle error case
   if (output.error) {
     return (
-      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
-        <div className="font-medium">Error</div>
-        <div className="mt-1">{output.error}</div>
+      <div className="flex flex-col gap-3">
+        {requestSummary}
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
+          <div className="font-medium">Error</div>
+          <div className="mt-1">{output.error}</div>
+        </div>
       </div>
     );
   }
@@ -33,8 +98,11 @@ export function SearchIndicators({
   // Handle empty results
   if (!output.indicators || output.indicators.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-background p-4 text-muted-foreground text-sm">
-        No indicators found
+      <div className="flex flex-col gap-3">
+        {requestSummary}
+        <div className="rounded-lg border border-border bg-background p-4 text-muted-foreground text-sm">
+          No indicators found
+        </div>
       </div>
     );
   }
@@ -42,11 +110,14 @@ export function SearchIndicators({
   return (
     <TooltipProvider>
       <div className="flex w-full flex-col gap-4 overflow-hidden rounded-sm bg-background px-4 pb-4">
+        {requestSummary}
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <SearchIconComponent />
-            <div className="font-semibold text-sm">Search Results</div>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <SearchIconComponent />
+              <div className="font-semibold text-sm">Search Results</div>
+            </div>
           </div>
           <div className="flex flex-col items-end gap-1">
             <div className="text-muted-foreground text-xs">
