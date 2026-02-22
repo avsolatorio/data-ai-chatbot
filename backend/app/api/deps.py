@@ -1,3 +1,6 @@
+import asyncio
+import logging
+import time
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
@@ -22,6 +25,13 @@ from app.db.queries.user_queries import (
 
 security = HTTPBearer(auto_error=False)  # Don't auto-raise error, we'll check cookies first
 
+# Short-TTL cache for resolved user (reduces DB round-trips on repeated requests).
+# Key: user_id (str), Value: (cached_at_monotonic, {"id", "type"}).
+_user_cache: dict[str, tuple[float, dict]] = {}
+_user_cache_lock = asyncio.Lock()
+
+logger = logging.getLogger(__name__)
+
 
 async def get_current_user(
     request: Request,
@@ -32,10 +42,8 @@ async def get_current_user(
     Get current user from JWT token or session cookies.
     Checks cookies first (httpOnly cookie), then Authorization header (backward compatibility).
     If JWT expires but guest_session_id or user_session_id exists, restores the user.
+    Resolved user is cached for 2 minutes to reduce DB round-trips on repeated requests.
     """
-    import logging
-
-    logger = logging.getLogger(__name__)
     logger.info("[deps] get_current_user start")
 
     all_cookies = list(request.cookies.keys())
@@ -88,73 +96,63 @@ async def get_current_user(
             )
 
         if payload is not None:
-            # Valid token - check if password was changed after token was issued (session invalidation)
             user_id: str = payload.get("sub")
             if user_id is None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload"
                 )
 
-            # Check if token is revoked (by JWT ID)
+            # Check if token is revoked (by JWT ID) – always hit DB for security
             jti = payload.get("jti")
-            if jti:
-                if await is_token_revoked(db, jti):
-                    logger.warning("Token revoked: jti=%s, user_id=%s", jti, user_id)
-                    # Token is revoked - fall through to session cookie check
+            if jti and await is_token_revoked(db, jti):
+                logger.warning("Token revoked: jti=%s, user_id=%s", jti, user_id)
+                payload = None
+            else:
+                # Optional: serve from cache to avoid get_user_by_id on every request
+                async with _user_cache_lock:
+                    now = time.monotonic()
+                    entry = _user_cache.get(user_id)
+                    if entry and (now - entry[0]) < settings.USER_CACHE_TTL_SECONDS:
+                        logger.debug("[deps] get_current_user cache hit user_id=%s", user_id)
+                        logger.info("[deps] get_current_user done (jwt cached) user_id=%s", user_id)
+                        return entry[1]
+
+                # Single DB call: fetch user for both password_changed_at and existence check
+                user = None
+                try:
+                    user_uuid = UUID(user_id)
+                    user = await get_user_by_id(db, user_uuid)
+                except (ValueError, TypeError) as e:
+                    logger.debug("Invalid user_id for get_user_by_id: %s", e)
+                except Exception as e:
+                    logger.error("Error verifying user existence: %s", e)
                     payload = None
-                else:
-                    # Check if password was changed after token was issued
-                    # This invalidates all sessions when password is changed
-                    # Note: Requires password_changed_at column in User table (migration needed)
-                    try:
-                        user_uuid = UUID(user_id)
-                        user = await get_user_by_id(db, user_uuid)
 
-                        if (
-                            user
-                            and hasattr(user, "password_changed_at")
-                            and user.password_changed_at
-                        ):
-                            # Get token issued at time (iat claim)
-                            token_issued_at = payload.get("iat")
-                            if token_issued_at:
-                                # Convert iat (Unix timestamp) to datetime
-                                token_issued_datetime = datetime.utcfromtimestamp(token_issued_at)
-
-                                # If password was changed after token was issued, token is invalid
-                                if user.password_changed_at > token_issued_datetime:
-                                    logger.warning(
-                                        "Token invalidated: password changed after token issuance. "
-                                        "user_id=%s, token_issued=%s, password_changed=%s",
-                                        user_id,
-                                        token_issued_datetime,
-                                        user.password_changed_at,
-                                    )
-                                    # Token is invalid - fall through to session cookie check
-                                    payload = None
-                    except (ValueError, TypeError, AttributeError) as e:
-                        # If password_changed_at doesn't exist or other error, continue (backward compatible)
-                        logger.debug("Could not check password_changed_at: %s", e)
-                        pass
-
-            # Verify user actually exists in the database (crucial for dev envs where DB is reset)
-            try:
-                user_uuid = UUID(user_id)
-                user = await get_user_by_id(db, user_uuid)
                 if not user:
                     logger.warning(
                         "Token valid but user not found in DB (DB reset?): user_id=%s", user_id
                     )
-                    payload = None  # Invalidate token
-            except Exception as e:
-                logger.error("Error verifying user existence: %s", e)
-                # Fail safe? Or continue?
-                # safer to invalidate if we can't check
-                pass
+                    payload = None
+                else:
+                    # Check if password was changed after token was issued (session invalidation)
+                    if jti and hasattr(user, "password_changed_at") and user.password_changed_at:
+                        token_issued_at = payload.get("iat")
+                        if token_issued_at:
+                            token_issued_datetime = datetime.utcfromtimestamp(token_issued_at)
+                            if user.password_changed_at > token_issued_datetime:
+                                logger.warning(
+                                    "Token invalidated: password changed after token issuance. "
+                                    "user_id=%s",
+                                    user_id,
+                                )
+                                payload = None
 
-            if payload is not None:
-                logger.info("[deps] get_current_user done (jwt) user_id=%s", user_id)
-                return {"id": user_id, "type": payload.get("type", "regular")}
+                    if payload is not None:
+                        user_dict = {"id": user_id, "type": payload.get("type", "regular")}
+                        async with _user_cache_lock:
+                            _user_cache[user_id] = (time.monotonic(), user_dict)
+                        logger.info("[deps] get_current_user done (jwt) user_id=%s", user_id)
+                        return user_dict
         # Token expired or invalid - fall through to guest session check
 
     # No valid token - check for session ID cookies (fallback for JWT key loss)
@@ -172,6 +170,22 @@ async def get_current_user(
             validated_user_id,
         )
         if validated_user_id:
+            # Optional: serve from cache
+            async with _user_cache_lock:
+                entry = _user_cache.get(validated_user_id)
+                if entry and (time.monotonic() - entry[0]) < settings.USER_CACHE_TTL_SECONDS:
+                    cached = entry[1]
+                    if cached.get("type") == "guest":
+                        logger.debug(
+                            "[deps] get_current_user cache hit (guest) user_id=%s",
+                            validated_user_id,
+                        )
+                        logger.info(
+                            "[deps] get_current_user done (guest_session cached) user_id=%s",
+                            validated_user_id,
+                        )
+                        return {**cached, "_restore_guest": True}
+
             # Try to restore guest user from validated session token
             try:
                 user_id = UUID(validated_user_id)
@@ -194,8 +208,11 @@ async def get_current_user(
 
                 if is_guest:
                     user_type = user.type if hasattr(user, "type") and user.type else "guest"
+                    user_dict = {"id": str(user.id), "type": user_type}
+                    async with _user_cache_lock:
+                        _user_cache[validated_user_id] = (time.monotonic(), user_dict)
                     logger.info("[deps] get_current_user done (guest_session) user_id=%s", user.id)
-                    return {"id": str(user.id), "type": user_type, "_restore_guest": True}
+                    return {**user_dict, "_restore_guest": True}
                 else:
                     # User doesn't exist or is not a guest user
                     if user is None:
@@ -228,6 +245,22 @@ async def get_current_user(
             validated_user_id,
         )
         if validated_user_id:
+            # Optional: serve from cache
+            async with _user_cache_lock:
+                entry = _user_cache.get(validated_user_id)
+                if entry and (time.monotonic() - entry[0]) < settings.USER_CACHE_TTL_SECONDS:
+                    cached = entry[1]
+                    if cached.get("type") == "regular":
+                        logger.debug(
+                            "[deps] get_current_user cache hit (user_session) user_id=%s",
+                            validated_user_id,
+                        )
+                        logger.info(
+                            "[deps] get_current_user done (user_session cached) user_id=%s",
+                            validated_user_id,
+                        )
+                        return {**cached, "_restore_user": True}
+
             # Try to restore regular user from validated session token
             try:
                 user_id = UUID(validated_user_id)
@@ -249,8 +282,11 @@ async def get_current_user(
 
                 if is_regular:
                     user_type = user.type if hasattr(user, "type") and user.type else "regular"
+                    user_dict = {"id": str(user.id), "type": user_type}
+                    async with _user_cache_lock:
+                        _user_cache[validated_user_id] = (time.monotonic(), user_dict)
                     logger.info("[deps] get_current_user done (user_session) user_id=%s", user.id)
-                    return {"id": str(user.id), "type": user_type, "_restore_user": True}
+                    return {**user_dict, "_restore_user": True}
                 else:
                     logger.warning(
                         "user_session_id points to guest user: user_id=%s, email=%s",
@@ -269,6 +305,18 @@ async def get_current_user(
             )
             try:
                 user_id = UUID(user_session_id)
+                uid_str = str(user_id)
+                async with _user_cache_lock:
+                    entry = _user_cache.get(uid_str)
+                    if entry and (time.monotonic() - entry[0]) < settings.USER_CACHE_TTL_SECONDS:
+                        cached = entry[1]
+                        if cached.get("type") == "regular":
+                            logger.debug(
+                                "[deps] get_current_user cache hit (user_session raw) user_id=%s",
+                                uid_str,
+                            )
+                            return {**cached, "_restore_user": True}
+
                 user = await get_user_by_id(db, user_id)
                 logger.debug(
                     "Regular user lookup (raw UUID fallback): user_id=%s, found=%s, email=%s",
@@ -284,10 +332,13 @@ async def get_current_user(
                         user.email.startswith("guest-") and user.email.endswith("@anonymous.local")
                     )
                 ):
+                    user_dict = {"id": str(user.id), "type": "regular"}
+                    async with _user_cache_lock:
+                        _user_cache[uid_str] = (time.monotonic(), user_dict)
                     logger.info(
                         "[deps] get_current_user done (user_session raw) user_id=%s", user.id
                     )
-                    return {"id": str(user.id), "type": "regular", "_restore_user": True}
+                    return {**user_dict, "_restore_user": True}
                 else:
                     logger.warning(
                         "user_session_id (raw UUID) points to guest user: user_id=%s, email=%s",
@@ -313,9 +364,6 @@ async def get_optional_user(
     Optional authentication - returns None if no token provided.
     Still attempts to restore users from session cookies (guest_session_id, user_session_id).
     """
-    import logging
-
-    logger = logging.getLogger(__name__)
     try:
         user = await get_current_user(request, credentials, db)
         logger.debug(
@@ -341,9 +389,6 @@ async def require_feedback_reviewer(
     Require authenticated user whose email is in FEEDBACK_REVIEWER_EMAILS.
     Use for feedback review/list endpoints. Raises 403 if not allowed.
     """
-    import logging
-
-    logger = logging.getLogger(__name__)
     allowed_raw = getattr(settings, "FEEDBACK_REVIEWER_EMAILS", "") or ""
     allowed = [e.strip().lower() for e in allowed_raw.split(",") if e.strip()]
     if not allowed:

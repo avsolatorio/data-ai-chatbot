@@ -117,6 +117,8 @@ class Settings(BaseSettings):
 
     # Authentication
     # Note: Authentication is always enabled. Guest users provide anonymous access.
+    # Resolved user (JWT/session) is cached for this many seconds to reduce DB round-trips.
+    USER_CACHE_TTL_SECONDS: int = 120  # 2 minutes
 
     # MSAL / Azure AD (optional). When AUTH_PROVIDER=msal, backend accepts Azure AD tokens.
     AUTH_PROVIDER: str = "guest"  # "guest" | "msal"
