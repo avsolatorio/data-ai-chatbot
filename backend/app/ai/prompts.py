@@ -552,7 +552,7 @@ Today is {get_date_string()}.
 **EXECUTION ORDER:**
 1. **Search First:** You MUST call `data360_search_indicators` and related tools first to identify valid `indicator_id` and `database_id` values. Get at least the first 10 results.
 2. **Exception:** If the specific IDs are already present in the immediate conversation history from a previous turn, you may skip searching and proceed to fetching.
-3. **Data Retrieval:** Once IDs are confirmed, call `data360_get_data` and `data360_get_metadata`.
+3. **Data Retrieval:** Once IDs are confirmed, call `data360_get_data` and `data360_get_metadata`. Add a 3-5 year time range to the data retrieval in case data is not available for the requested year.
 4. **DO NOT** call `data360_get_viz_spec` in this phase.
 
 ### RESEARCH/PLANNING PACKET (Concise):
