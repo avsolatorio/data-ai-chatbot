@@ -167,6 +167,9 @@ class MCPSettings(BaseSettings):
     ssl_verify: bool = True  # Set to False for dev environments with proxy/self-signed certs
     timeout: float = 30.0  # HTTP timeout in seconds for individual MCP requests
     load_timeout: float = 15.0  # Max seconds to wait when loading MCP tools at chat start; avoids hanging if server unreachable
+    tools_cache_ttl_seconds: float = (
+        300.0  # How long to cache MCP tool list (seconds); 0 = no cache
+    )
 
     model_config = ConfigDict(
         extra="forbid",
