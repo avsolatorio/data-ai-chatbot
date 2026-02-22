@@ -46,7 +46,7 @@ def format_sse(payload: dict, mode: Literal["thinking", "chat"] = "chat") -> str
     return f"data: {json.dumps(payload, separators=(',', ':'))}\n\n"
 
 
-def get_date_string():
+def get_date_string() -> str:
     return datetime.now(timezone.utc).strftime("%A, %B %d, %Y")
 
 
