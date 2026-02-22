@@ -4,10 +4,10 @@
     "subtitle": "Ask a question and explore trends using trusted development data."
   },
   "suggestions": [
-    "What is the child malnutrition rate in South Asia in 2021?",
-    "How has unemployment changed in Southeast Asia since 2010?",
-    "What was the poverty headcount ratio in Kenya in 2019?",
-    "How do health indicators compare across regions in 2020?"
+    "What is the child malnutrition rate for all South Asian countries for 2020?",
+    "How has unemployment changed for Ghana since 2010?",
+    "What was the poverty headcount ratio for the Philippines in 2019?",
+    "What is the latest public default rate for Brazil and Ukraine?"
   ],
   "followUpSuggestionsPopulateInput": true
 }
