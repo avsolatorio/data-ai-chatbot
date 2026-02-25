@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sandbox Proxy</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <script>
+    // Sandbox proxy for MCP Apps (see https://mcpui.dev/guide/client/walkthrough)
+    // Loads app HTML via blob URL instead of document.write so app content
+    // cannot break this script (e.g. unexpected identifier errors).
+
+    window.addEventListener('message', function (event) {
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+
+      if (data.method === 'ui/notifications/sandbox-resource-ready') {
+        const params = data.params || {};
+        const html = params.html;
+        if (html && typeof html === 'string') {
+          try {
+            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            window.location.replace(url);
+          } catch (e) {
+            window.parent.postMessage({
+              method: 'ui/notifications/sandbox-error',
+              params: { message: (e && e.message) || String(e) }
+            }, '*');
+          }
+        }
+      }
+    });
+
+    window.parent.postMessage({
+      method: 'ui/notifications/sandbox-proxy-ready',
+      params: {}
+    }, '*');
+  </script>
+</body>
+</html>

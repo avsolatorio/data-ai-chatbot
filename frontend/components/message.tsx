@@ -59,6 +59,8 @@ import {
   scrollToAndHighlightMessage,
 } from "./quoted-context-block";
 import { Weather } from "./weather";
+import { getMcpAppResourceUri, isMcpAppTool } from "@/lib/mcp-apps";
+import { MCPAppRenderer } from "./mcp-app-renderer";
 
 /** Bare chart URL (path or full URL). */
 const CHART_URL_REGEX =
@@ -361,6 +363,7 @@ function renderMessagePart(
       );
     }
 
+    const chartViewUri = getMcpAppResourceUri("data360_get_viz_spec");
     return (
       <Tool defaultOpen={true} key={toolCallId}>
         <ToolHeader state={state} type="tool-data360_get_viz_spec" />
@@ -368,7 +371,25 @@ function renderMessagePart(
           {state === "input-available" && toolPart.input !== undefined && (
             <ToolInput input={toolPart.input as ToolUIPart["input"]} />
           )}
-          {state === "output-available" && output?.url && (
+          {state === "output-available" && output?.url && chartViewUri && (
+            <ToolOutput
+              errorText={undefined}
+              output={
+                <MCPAppRenderer
+                  toolName="data360_get_viz_spec"
+                  toolResourceUri={chartViewUri}
+                  toolInput={
+                    typeof toolPart.input === "object" && toolPart.input !== null
+                      ? (toolPart.input as Record<string, unknown>)
+                      : undefined
+                  }
+                  toolResult={toolPart.output}
+                />
+              }
+              useDefaultFormat={false}
+            />
+          )}
+          {state === "output-available" && output?.url && !chartViewUri && (
             <ToolOutput
               errorText={undefined}
               output={
@@ -617,6 +638,7 @@ function renderMessagePart(
             };
           })()
         : undefined;
+    const searchViewUri = getMcpAppResourceUri("data360_search_indicators");
     return (
       <Tool defaultOpen={true} key={toolPart.toolCallId}>
         <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
@@ -629,7 +651,25 @@ function renderMessagePart(
             ) : (
               <ToolInput input={toolPart.input} />
             ))}
-          {toolPart.state === "output-available" && (
+          {toolPart.state === "output-available" && searchViewUri && (
+            <ToolOutput
+              errorText={undefined}
+              useDefaultFormat={false}
+              output={
+                <MCPAppRenderer
+                  toolName="data360_search_indicators"
+                  toolResourceUri={searchViewUri}
+                  toolInput={
+                    typeof toolPart.input === "object" && toolPart.input !== null
+                      ? (toolPart.input as Record<string, unknown>)
+                      : undefined
+                  }
+                  toolResult={toolPart.output}
+                />
+              }
+            />
+          )}
+          {toolPart.state === "output-available" && !searchViewUri && (
             <ToolOutput
               errorText={undefined}
               useDefaultFormat={false}
@@ -663,9 +703,31 @@ function renderMessagePart(
       errorText?: string;
     };
 
+    const toolName = type.slice(5);
+    const mcpAppUri =
+      toolPart.state === "output-available"
+        ? getMcpAppResourceUri(toolName)
+        : undefined;
+
     // Render output as ReactNode
     let outputNode: React.ReactNode = null;
-    if (toolPart.output !== null && toolPart.output !== undefined) {
+    if (mcpAppUri && isMcpAppTool(toolName)) {
+      outputNode = (
+        <MCPAppRenderer
+          toolName={toolName}
+          toolResourceUri={mcpAppUri}
+          toolInput={
+            typeof toolPart.input === "object" && toolPart.input !== null
+              ? (toolPart.input as Record<string, unknown>)
+              : undefined
+          }
+          toolResult={toolPart.output}
+        />
+      );
+    } else if (
+      toolPart.output !== null &&
+      toolPart.output !== undefined
+    ) {
       const output: unknown = toolPart.output;
       if (typeof output === "string") {
         outputNode = <div className="whitespace-pre-wrap">{output}</div>;

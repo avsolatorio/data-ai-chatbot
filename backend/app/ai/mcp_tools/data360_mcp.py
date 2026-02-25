@@ -101,3 +101,30 @@ async def call_mcp_tool(tool_name: str, arguments: dict, as_jsonable: bool = Tru
         raise Exception(
             f"Error calling MCP tool {tool_name}, with arguments {arguments}: {str(e)}\n{tbck}"
         )
+
+
+async def read_mcp_app_resource(uri: str) -> list[dict]:
+    """
+    Read an MCP app resource by URI (e.g. ui://data360/chart-view.html).
+    Returns a list of content items in MCP ReadResourceResult shape for use by
+    MCP Apps clients (e.g. @mcp-ui/client AppRenderer onReadResource).
+    """
+    client = get_mcp_client()
+    async with client:
+        contents = await client.read_resource(uri)
+    # Format as MCP contents: list of { uri, mimeType, text?, blob? }
+    out = []
+    for item in contents:
+        if hasattr(item, "model_dump"):
+            d = item.model_dump()
+        else:
+            d = {
+                "uri": getattr(item, "uri", uri),
+                "mimeType": getattr(item, "mimeType", "text/html"),
+            }
+            if hasattr(item, "text") and item.text is not None:
+                d["text"] = item.text
+            if hasattr(item, "blob") and item.blob is not None:
+                d["blob"] = item.blob
+        out.append(d)
+    return out
