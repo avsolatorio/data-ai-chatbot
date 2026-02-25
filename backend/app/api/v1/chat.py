@@ -39,13 +39,17 @@ from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import (
     create_stream_id,
     delete_chat_by_id,
+    delete_messages_by_chat_id_after_timestamp,
     get_chat_by_id,
     get_latest_messages_by_chat_id,
+    get_message_by_id,
     get_message_count_by_user_id,
     get_messages_by_chat_id,
     save_chat,
     save_messages,
+    update_chat_visibility_by_id,
 )
+from app.db.queries.suggestion_queries import get_suggestions_by_document_id
 from app.utils.message_converter import convert_messages_to_openai_format
 from app.utils.resumable_stream import mark_stream_complete, store_stream_chunk
 from app.utils.stream import patch_response_with_headers
@@ -793,3 +797,97 @@ async def delete_chat(
         "userId": str(deleted_chat.userId),
         "lastContext": deleted_chat.lastContext,
     }
+
+
+class DeleteTrailingMessagesRequest(BaseModel):
+    id: str
+
+
+@router.delete("/messages")
+async def delete_trailing_messages(
+    request: DeleteTrailingMessagesRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Delete a message and all subsequent messages in the same chat.
+    Used when editing a user message to remove the old message and its responses.
+    """
+    message_id = UUID(request.id)
+    message = await get_message_by_id(db, message_id)
+
+    if not message:
+        raise ChatSDKError("not_found:message", status_code=status.HTTP_404_NOT_FOUND)
+
+    chat = await get_chat_by_id(db, message.chatId)
+    if not chat:
+        raise ChatSDKError("not_found:chat", status_code=status.HTTP_404_NOT_FOUND)
+
+    if not user_ids_match(current_user["id"], chat.userId):
+        raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
+
+    deleted_count = await delete_messages_by_chat_id_after_timestamp(
+        db, message.chatId, message.createdAt
+    )
+
+    logger.info(
+        "Deleted %d trailing messages for chat_id=%s from message_id=%s",
+        deleted_count, message.chatId, message_id,
+    )
+    return {"deletedCount": deleted_count}
+
+
+class UpdateChatVisibilityRequest(BaseModel):
+    chatId: str
+    visibility: str
+
+
+@router.patch("/visibility")
+async def update_chat_visibility(
+    request: UpdateChatVisibilityRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a chat's visibility (public/private)."""
+    chat_id = UUID(request.chatId)
+    chat = await get_chat_by_id(db, chat_id)
+
+    if not chat:
+        raise ChatSDKError("not_found:chat", status_code=status.HTTP_404_NOT_FOUND)
+
+    if not user_ids_match(current_user["id"], chat.userId):
+        raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
+
+    updated_chat = await update_chat_visibility_by_id(db, chat_id, request.visibility)
+    return {"id": str(updated_chat.id), "visibility": updated_chat.visibility}
+
+
+@router.get("/suggestions")
+async def get_suggestions(
+    documentId: str = Query(...),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get suggestions for a document by document ID."""
+    document_id = UUID(documentId)
+    suggestions = await get_suggestions_by_document_id(db, document_id)
+
+    if not suggestions:
+        return []
+
+    if not user_ids_match(current_user["id"], suggestions[0].user_id):
+        raise ChatSDKError("forbidden:api", status_code=status.HTTP_403_FORBIDDEN)
+
+    return [
+        {
+            "id": str(s.id),
+            "documentId": str(s.document_id),
+            "originalText": s.original_text,
+            "suggestedText": s.suggested_text,
+            "description": s.description,
+            "isResolved": s.is_resolved,
+            "userId": str(s.user_id),
+            "createdAt": s.created_at.isoformat() if s.created_at else None,
+        }
+        for s in suggestions
+    ]

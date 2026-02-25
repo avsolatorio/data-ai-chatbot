@@ -49,6 +49,45 @@ async def get_latest_messages_by_chat_id(
     return list(reversed(messages))
 
 
+async def get_message_by_id(session: AsyncSession, message_id: UUID) -> Optional[Message]:
+    """Get a single message by its ID."""
+    result = await session.execute(select(Message).where(Message.id == message_id))
+    return result.scalar_one_or_none()
+
+
+async def delete_messages_by_chat_id_after_timestamp(
+    session: AsyncSession,
+    chat_id: UUID,
+    timestamp: datetime,
+) -> int:
+    """
+    Delete all messages in a chat at or after the given timestamp.
+    Also deletes associated votes.
+    Returns the count of deleted messages.
+    """
+    messages_to_delete = await session.execute(
+        select(Message.id).where(
+            and_(Message.chatId == chat_id, Message.createdAt >= timestamp)
+        )
+    )
+    message_ids = [row[0] for row in messages_to_delete.all()]
+
+    if not message_ids:
+        return 0
+
+    await session.execute(
+        delete(Vote).where(
+            and_(Vote.chatId == chat_id, Vote.messageId.in_(message_ids))
+        )
+    )
+    await session.execute(
+        delete(Message).where(Message.id.in_(message_ids))
+    )
+
+    await session.commit()
+    return len(message_ids)
+
+
 async def save_chat(
     session: AsyncSession,
     chat_id: UUID,
@@ -199,6 +238,21 @@ def _merge_usage_by_message_id(current: Optional[dict], usage: dict, message_id:
     by_id = dict(current.get("byMessageId") or {})
     by_id[message_id] = usage
     return {"latest": usage, "byMessageId": by_id}
+
+
+async def update_chat_visibility_by_id(
+    session: AsyncSession,
+    chat_id: UUID,
+    visibility: str,
+) -> Optional[Chat]:
+    """Update a chat's visibility (e.g. 'public' or 'private')."""
+    chat = await get_chat_by_id(session, chat_id)
+    if not chat:
+        return None
+    chat.visibility = visibility
+    await session.commit()
+    await session.refresh(chat)
+    return chat
 
 
 async def update_chat_last_context_by_id(

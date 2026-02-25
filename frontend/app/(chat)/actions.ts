@@ -5,11 +5,7 @@ import { cookies } from "next/headers";
 import type { VisibilityType } from "@/components/visibility-selector";
 import { titlePrompt } from "@/lib/ai/prompts";
 import { myProvider } from "@/lib/ai/providers";
-import {
-  deleteMessagesByChatIdAfterTimestamp,
-  getMessageById,
-  updateChatVisibilityById,
-} from "@/lib/db/queries";
+import { serverApiFetch } from "@/lib/server-api-client";
 import { getTextFromMessage } from "@/lib/utils";
 
 export async function saveChatModelAsCookie(model: string) {
@@ -32,12 +28,18 @@ export async function generateTitleFromUserMessage({
 }
 
 export async function deleteTrailingMessages({ id }: { id: string }) {
-  const [message] = await getMessageById({ id });
-
-  await deleteMessagesByChatIdAfterTimestamp({
-    chatId: message.chatId,
-    timestamp: message.createdAt,
+  const response = await serverApiFetch("/api/chat/messages", {
+    method: "DELETE",
+    body: JSON.stringify({ id }),
   });
+
+  if (!response.ok) {
+    console.error(
+      "Failed to delete trailing messages:",
+      response.status,
+      await response.text().catch(() => "")
+    );
+  }
 }
 
 export async function updateChatVisibility({
@@ -47,5 +49,16 @@ export async function updateChatVisibility({
   chatId: string;
   visibility: VisibilityType;
 }) {
-  await updateChatVisibilityById({ chatId, visibility });
+  const response = await serverApiFetch("/api/chat/visibility", {
+    method: "PATCH",
+    body: JSON.stringify({ chatId, visibility }),
+  });
+
+  if (!response.ok) {
+    console.error(
+      "Failed to update chat visibility:",
+      response.status,
+      await response.text().catch(() => "")
+    );
+  }
 }

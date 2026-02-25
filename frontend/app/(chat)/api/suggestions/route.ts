@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/auth-service";
-import { getSuggestionsByDocumentId } from "@/lib/db/queries";
+import { serverApiFetch } from "@/lib/server-api-client";
 import { ChatSDKError } from "@/lib/errors";
 
 export async function GET(request: Request) {
@@ -19,19 +19,14 @@ export async function GET(request: Request) {
     return new ChatSDKError("unauthorized:suggestions").toResponse();
   }
 
-  const suggestions = await getSuggestionsByDocumentId({
-    documentId,
-  });
+  const response = await serverApiFetch(
+    `/api/chat/suggestions?documentId=${documentId}`
+  );
 
-  const [suggestion] = suggestions;
-
-  if (!suggestion) {
+  if (!response.ok) {
     return Response.json([], { status: 200 });
   }
 
-  if (suggestion.userId !== user.id) {
-    return new ChatSDKError("forbidden:api").toResponse();
-  }
-
+  const suggestions = await response.json();
   return Response.json(suggestions, { status: 200 });
 }
