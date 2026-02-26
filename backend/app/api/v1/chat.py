@@ -52,6 +52,13 @@ from app.db.queries.chat_queries import (
 from app.db.queries.suggestion_queries import get_suggestions_by_document_id
 from app.utils.message_converter import convert_messages_to_openai_format
 from app.utils.resumable_stream import mark_stream_complete, store_stream_chunk
+from app.api.v1.schemas.chat_schemas import (
+    DeleteTrailingMessagesRequest,
+    DeleteTrailingMessagesResponse,
+    SuggestionResponse,
+    UpdateChatVisibilityRequest,
+    UpdateChatVisibilityResponse,
+)
 from app.utils.stream import patch_response_with_headers
 from app.utils.stream_processor import StreamEventProcessor
 from app.utils.user_id import get_user_id_uuid, user_ids_match
@@ -799,18 +806,14 @@ async def delete_chat(
     }
 
 
-class DeleteTrailingMessagesRequest(BaseModel):
-    id: str
-
-
-@router.delete("/messages")
+@router.delete("/messages", response_model=DeleteTrailingMessagesResponse)
 async def delete_trailing_messages(
     request: DeleteTrailingMessagesRequest,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Delete a message and all subsequent messages in the same chat.
+    Soft-delete a message and all subsequent messages in the same chat.
     Used when editing a user message to remove the old message and its responses.
     """
     message_id = UUID(request.id)
@@ -831,18 +834,13 @@ async def delete_trailing_messages(
     )
 
     logger.info(
-        "Deleted %d trailing messages for chat_id=%s from message_id=%s",
+        "Soft-deleted %d trailing messages for chat_id=%s from message_id=%s",
         deleted_count, message.chatId, message_id,
     )
-    return {"deletedCount": deleted_count}
+    return DeleteTrailingMessagesResponse(deletedCount=deleted_count)
 
 
-class UpdateChatVisibilityRequest(BaseModel):
-    chatId: str
-    visibility: str
-
-
-@router.patch("/visibility")
+@router.patch("/visibility", response_model=UpdateChatVisibilityResponse)
 async def update_chat_visibility(
     request: UpdateChatVisibilityRequest,
     current_user: dict = Depends(get_current_user),
@@ -859,10 +857,12 @@ async def update_chat_visibility(
         raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
 
     updated_chat = await update_chat_visibility_by_id(db, chat_id, request.visibility)
-    return {"id": str(updated_chat.id), "visibility": updated_chat.visibility}
+    return UpdateChatVisibilityResponse(
+        id=str(updated_chat.id), visibility=updated_chat.visibility
+    )
 
 
-@router.get("/suggestions")
+@router.get("/suggestions", response_model=List[SuggestionResponse])
 async def get_suggestions(
     documentId: str = Query(...),
     current_user: dict = Depends(get_current_user),
@@ -879,15 +879,15 @@ async def get_suggestions(
         raise ChatSDKError("forbidden:api", status_code=status.HTTP_403_FORBIDDEN)
 
     return [
-        {
-            "id": str(s.id),
-            "documentId": str(s.document_id),
-            "originalText": s.original_text,
-            "suggestedText": s.suggested_text,
-            "description": s.description,
-            "isResolved": s.is_resolved,
-            "userId": str(s.user_id),
-            "createdAt": s.created_at.isoformat() if s.created_at else None,
-        }
+        SuggestionResponse(
+            id=str(s.id),
+            documentId=str(s.document_id),
+            originalText=s.original_text,
+            suggestedText=s.suggested_text,
+            description=s.description,
+            isResolved=s.is_resolved,
+            userId=str(s.user_id),
+            createdAt=s.created_at.isoformat() if s.created_at else None,
+        )
         for s in suggestions
     ]

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, String
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -18,7 +18,7 @@ class Message(BaseModel):
     parts = Column(JSON, nullable=False)
     attachments = Column(JSON, nullable=False)
     createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
-    isDeleted = Column(Boolean, nullable=False, default=False, server_default="false")
+    deletedAt = Column(DateTime, nullable=True, default=None)
 
     # Relationships
     chat = relationship("Chat", back_populates="messages")

@@ -27,7 +27,7 @@ async def get_messages_by_chat_id(session: AsyncSession, chat_id: UUID) -> List[
     """
     result = await session.execute(
         select(Message)
-        .where(and_(Message.chatId == chat_id, Message.isDeleted == False))  # noqa: E712
+        .where(and_(Message.chatId == chat_id, Message.deletedAt.is_(None)))
         .order_by(asc(Message.createdAt))
     )
     return list(result.scalars().all())
@@ -42,7 +42,7 @@ async def get_latest_messages_by_chat_id(
     """
     result = await session.execute(
         select(Message)
-        .where(and_(Message.chatId == chat_id, Message.isDeleted == False))  # noqa: E712
+        .where(and_(Message.chatId == chat_id, Message.deletedAt.is_(None)))
         .order_by(desc(Message.createdAt))
         .limit(limit)
     )
@@ -64,7 +64,7 @@ async def soft_delete_messages_by_chat_id_after_timestamp(
 ) -> int:
     """
     Soft-delete all messages in a chat at or after the given timestamp.
-    Sets isDeleted = True instead of removing rows.
+    Sets deletedAt to the current time instead of removing rows.
     Returns the count of soft-deleted messages.
     """
     result = await session.execute(
@@ -73,10 +73,10 @@ async def soft_delete_messages_by_chat_id_after_timestamp(
             and_(
                 Message.chatId == chat_id,
                 Message.createdAt >= timestamp,
-                Message.isDeleted == False,  # noqa: E712
+                Message.deletedAt.is_(None)
             )
         )
-        .values(isDeleted=True)
+        .values(deletedAt=datetime.utcnow())
     )
 
     await session.commit()
