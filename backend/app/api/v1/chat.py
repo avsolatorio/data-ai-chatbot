@@ -39,7 +39,7 @@ from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import (
     create_stream_id,
     delete_chat_by_id,
-    delete_messages_by_chat_id_after_timestamp,
+    soft_delete_messages_by_chat_id_after_timestamp,
     get_chat_by_id,
     get_latest_messages_by_chat_id,
     get_message_by_id,
@@ -826,7 +826,7 @@ async def delete_trailing_messages(
     if not user_ids_match(current_user["id"], chat.userId):
         raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
 
-    deleted_count = await delete_messages_by_chat_id_after_timestamp(
+    deleted_count = await soft_delete_messages_by_chat_id_after_timestamp(
         db, message.chatId, message.createdAt
     )
 

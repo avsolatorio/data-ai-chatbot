@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import and_, asc, delete, desc, func, select
+from sqlalchemy import and_, asc, delete, desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chat import Chat
@@ -26,7 +26,9 @@ async def get_messages_by_chat_id(session: AsyncSession, chat_id: UUID) -> List[
     Returns: List of Message objects
     """
     result = await session.execute(
-        select(Message).where(Message.chatId == chat_id).order_by(asc(Message.createdAt))
+        select(Message)
+        .where(and_(Message.chatId == chat_id, Message.isDeleted == False))  # noqa: E712
+        .order_by(asc(Message.createdAt))
     )
     return list(result.scalars().all())
 
@@ -40,7 +42,7 @@ async def get_latest_messages_by_chat_id(
     """
     result = await session.execute(
         select(Message)
-        .where(Message.chatId == chat_id)
+        .where(and_(Message.chatId == chat_id, Message.isDeleted == False))  # noqa: E712
         .order_by(desc(Message.createdAt))
         .limit(limit)
     )
@@ -55,37 +57,30 @@ async def get_message_by_id(session: AsyncSession, message_id: UUID) -> Optional
     return result.scalar_one_or_none()
 
 
-async def delete_messages_by_chat_id_after_timestamp(
+async def soft_delete_messages_by_chat_id_after_timestamp(
     session: AsyncSession,
     chat_id: UUID,
     timestamp: datetime,
 ) -> int:
     """
-    Delete all messages in a chat at or after the given timestamp.
-    Also deletes associated votes.
-    Returns the count of deleted messages.
+    Soft-delete all messages in a chat at or after the given timestamp.
+    Sets isDeleted = True instead of removing rows.
+    Returns the count of soft-deleted messages.
     """
-    messages_to_delete = await session.execute(
-        select(Message.id).where(
-            and_(Message.chatId == chat_id, Message.createdAt >= timestamp)
+    result = await session.execute(
+        update(Message)
+        .where(
+            and_(
+                Message.chatId == chat_id,
+                Message.createdAt >= timestamp,
+                Message.isDeleted == False,  # noqa: E712
+            )
         )
-    )
-    message_ids = [row[0] for row in messages_to_delete.all()]
-
-    if not message_ids:
-        return 0
-
-    await session.execute(
-        delete(Vote).where(
-            and_(Vote.chatId == chat_id, Vote.messageId.in_(message_ids))
-        )
-    )
-    await session.execute(
-        delete(Message).where(Message.id.in_(message_ids))
+        .values(isDeleted=True)
     )
 
     await session.commit()
-    return len(message_ids)
+    return result.rowcount
 
 
 async def save_chat(
