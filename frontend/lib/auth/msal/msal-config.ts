@@ -106,7 +106,9 @@ export async function fetchUserImpersonationToken(
     expiryTime.setTime(expiryTime.getTime() + 24 * 60 * 60 * 1000); // 1 day
 
     if (typeof document !== "undefined") {
-      document.cookie = `${cookiesKey.userImpersonationToken}=${accessToken}; expires=${expiryTime.toUTCString()}; SameSite=Lax; path=/;`;
+      const secure =
+        typeof window !== "undefined" && window.location.protocol === "https:";
+      document.cookie = `${cookiesKey.userImpersonationToken}=${accessToken}; expires=${expiryTime.toUTCString()}; SameSite=Lax; path=/${secure ? "; Secure" : ""}`;
       clearGuestCookies();
       devLog("info", "[MSAL] cookie set:", cookiesKey.userImpersonationToken, "length:", hasToken ? accessToken.length : 0);
     }

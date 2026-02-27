@@ -10,7 +10,13 @@ import { getTextFromMessage } from "@/lib/utils";
 
 export async function saveChatModelAsCookie(model: string) {
   const cookieStore = await cookies();
-  cookieStore.set("chat-model", model);
+  cookieStore.set("chat-model", model, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365, // 1 year
+  });
 }
 
 export async function generateTitleFromUserMessage({

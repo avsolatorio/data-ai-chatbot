@@ -27,7 +27,7 @@ const SANITIZE_SCHEMA = {
 };
 
 /** Explicit rehype plugin list so raw HTML (e.g. <claim>) is always parsed in deployment (avoids relying on Streamdown’s default being applied). */
-/** Rehype plugin order: raw (parse HTML) → sanitize (XSS) → harden (URLs) → katex (math). */
+/** Pipeline: raw → sanitize (XSS) → harden → katex. */
 const REHYPE_PLUGINS = [
   ...(Array.isArray(defaultRehypePlugins)
     ? defaultRehypePlugins
