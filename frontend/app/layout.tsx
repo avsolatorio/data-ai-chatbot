@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { DataHeaderScript } from "@/components/data-header-script";
 import { DataStreamProvider } from "@/components/data-stream-provider";
+import { McpConsoleFilter } from "@/components/mcp-console-filter";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TokenLensProvider } from "@/components/tokenlens-provider";
 
@@ -115,6 +116,7 @@ export default function RootLayout({
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <Toaster position="top-center" />
                 <DataStreamProvider>
+                  <McpConsoleFilter />
                   <TokenLensProvider>{children}</TokenLensProvider>
                 </DataStreamProvider>
               </div>

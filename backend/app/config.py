@@ -160,10 +160,17 @@ class Settings(BaseSettings):
 
 
 class MCPSettings(BaseSettings):
-    """Settings for MCP (Model Context Protocol) server connections."""
+    """Settings for MCP (Model Context Protocol) server connections.
+
+    The chatbot backend connects to an MCP server (e.g. data360-mcp) via server_url.
+    Set MCP_SERVER_URL in .env to match where your MCP server runs:
+    - data360-mcp default port is 8000 (MCP_PORT in that repo); use http://localhost:8000/mcp
+      unless you start it on another port (e.g. 8022 → http://localhost:8022/mcp).
+    - Path must be /mcp for FastMCP HTTP transport.
+    """
 
     server_url: str = "https://ai4data-ai4data-mcp.hf.space/gradio_api/mcp/sse"
-    # server_url: str = "http://host.docker.internal:8022/mcp"
+    # Examples: http://localhost:8000/mcp  (data360-mcp default) or http://localhost:8022/mcp
     ssl_verify: bool = True  # Set to False for dev environments with proxy/self-signed certs
     timeout: float = 30.0  # HTTP timeout in seconds for individual MCP requests
     load_timeout: float = 15.0  # Max seconds to wait when loading MCP tools at chat start; avoids hanging if server unreachable

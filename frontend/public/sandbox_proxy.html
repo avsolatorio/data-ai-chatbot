@@ -13,6 +13,17 @@
     // Loads app HTML via blob URL instead of document.write so app content
     // cannot break this script (e.g. unexpected identifier errors).
 
+    function sendReady() {
+      try {
+        window.parent.postMessage({
+          method: 'ui/notifications/sandbox-proxy-ready',
+          params: {}
+        }, '*');
+      } catch (e) {
+        // ignore
+      }
+    }
+
     window.addEventListener('message', function (event) {
       const data = event.data;
       if (!data || typeof data !== 'object') return;
@@ -35,10 +46,25 @@
       }
     });
 
-    window.parent.postMessage({
-      method: 'ui/notifications/sandbox-proxy-ready',
-      params: {}
-    }, '*');
+    // Send ready immediately and on load so the parent can proceed as soon as it's listening.
+    sendReady();
+    if (typeof queueMicrotask === 'function') {
+      queueMicrotask(sendReady);
+    } else {
+      setTimeout(sendReady, 0);
+    }
+    if (document.readyState === 'complete') {
+      sendReady();
+    } else {
+      window.addEventListener('load', sendReady);
+    }
+    // Repeat ready every 200ms for 15s so parent always receives it (handles React Strict Mode double-mount and late listener).
+    var readyCount = 0;
+    var readyInterval = setInterval(function () {
+      sendReady();
+      readyCount += 1;
+      if (readyCount >= 75) clearInterval(readyInterval);
+    }, 200);
   </script>
 </body>
 </html>

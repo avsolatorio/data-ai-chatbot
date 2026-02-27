@@ -2,7 +2,6 @@
 
 import { SearchIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
@@ -109,10 +108,10 @@ export function SearchIndicators({
 
   return (
     <TooltipProvider>
-      <div className="flex w-full flex-col gap-4 overflow-hidden rounded-sm bg-background px-4 pb-4">
+      <div className="flex min-w-0 max-w-full w-full flex-col gap-4 overflow-hidden rounded-sm bg-background px-4 pb-4">
         {requestSummary}
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between min-w-0">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <SearchIconComponent />
@@ -132,9 +131,14 @@ export function SearchIndicators({
           </div>
         </div>
 
-        {/* Horizontal Scrollable Cards */}
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex w-max gap-3 pb-4">
+        {/* Horizontal scroll: cards in a row, scroll container fills width and scrolls */}
+        <section
+          className="w-full min-w-0 flex-shrink-0 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth [-webkit-overflow-scrolling:touch]"
+          style={{ scrollbarGutter: "stable" }}
+          data-search-results-cards
+          aria-label="Search results cards"
+        >
+          <div className="flex w-max flex-nowrap gap-3">
             {output.indicators.map((indicator, index) => (
               <Card
                 className="min-w-[360px] max-w-[420px] shrink-0 border-border transition-colors hover:border-primary/50"
@@ -217,8 +221,7 @@ export function SearchIndicators({
               </Card>
             ))}
           </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </section>
 
         {/* Pagination Info
         {output.has_more && (

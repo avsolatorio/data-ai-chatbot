@@ -62,6 +62,16 @@ import { Weather } from "./weather";
 import { getMcpAppResourceUri, isMcpAppTool } from "@/lib/mcp-apps";
 import { MCPAppRenderer } from "./mcp-app-renderer";
 
+/**
+ * Build same-origin proxy URL for the chart so the MCP chart app iframe can
+ * fetch without CORS (iframe may have blob: origin).
+ */
+function getChartProxyUrl(chartUrl: string): string {
+  if (typeof window === "undefined") return chartUrl;
+  const encoded = encodeURIComponent(chartUrl);
+  return `${window.location.origin}/api/v1/mcp/chart-proxy?url=${encoded}`;
+}
+
 /** Bare chart URL (path or full URL). */
 const CHART_URL_REGEX =
   /(?:\/api\/v1\/charts\/[^\s"'<>)\]]+|https?:\/\/[^\s]*\/api\/v1\/charts\/[^\s"'<>)\]]+)/;
@@ -376,6 +386,7 @@ function renderMessagePart(
               errorText={undefined}
               output={
                 <MCPAppRenderer
+                  className="w-full"
                   toolName="data360_get_viz_spec"
                   toolResourceUri={chartViewUri}
                   toolInput={
@@ -383,7 +394,14 @@ function renderMessagePart(
                       ? (toolPart.input as Record<string, unknown>)
                       : undefined
                   }
-                  toolResult={toolPart.output}
+                  toolResult={
+                    toolPart.output?.url
+                      ? {
+                          ...toolPart.output,
+                          url: getChartProxyUrl(toolPart.output.url),
+                        }
+                      : toolPart.output
+                  }
                 />
               }
               useDefaultFormat={false}

@@ -387,6 +387,37 @@ uv run pytest tests/
 - Check migration files are in correct directories
 - Verify database schema matches models
 
+### MCP Server Timeout
+
+- **Symptom**: Backend times out when loading tools or calling MCP (e.g. Data360 search/charts).
+- **Cause**: Backend connects to the MCP server URL from `MCP_SERVER_URL` (in `backend/.env`). If the MCP server is not running, or runs on a different port, the connection times out.
+- **Fix**:
+  1. Start the MCP server (e.g. [data360-mcp](https://github.com/your-org/data360-mcp)) so it is reachable at the URL in `MCP_SERVER_URL`.
+  2. **Port must match**: data360-mcp defaults to **port 8000** (`MCP_PORT` in that repo). Your backend `.env` may have `MCP_SERVER_URL=http://localhost:8022/mcp`. Then either:
+     - Run data360-mcp on port 8022: `MCP_PORT=8022 uvicorn data360.server:app --host 0.0.0.0 --port 8022`, or
+     - Use port 8000 in the chatbot: set `MCP_SERVER_URL=http://localhost:8000/mcp` and run data360-mcp with default port 8000.
+
+### MCP "No handler for method: tools/call" (-32601)
+
+- **Symptom**: Search or tool use fails with: `MCP error -32601: No handler for method: tools/call`.
+- **Cause**: The server the backend is connecting to does not implement the standard MCP `tools/call` method. This usually means:
+  1. **Wrong server URL**: The config default is a HuggingFace Space URL (`.../gradio_api/mcp/sse`), which may use a different protocol or only expose `tools/list`. The backend uses **Streamable HTTP** and needs a full MCP server (e.g. data360-mcp) that supports both `tools/list` and `tools/call`.
+  2. **Stale client cache**: The backend caches the MCP client at first use. If you changed `MCP_SERVER_URL` in `.env` without restarting the backend, the process may still be using the old URL.
+- **Fix**:
+  1. Set `MCP_SERVER_URL` in `backend/.env` to your **local** Data360 MCP server, e.g. `http://localhost:8000/mcp` or `http://localhost:8022/mcp` (path must be `/mcp`; no `/sse`).
+  2. **Restart the backend** after changing `MCP_SERVER_URL` so the cached client is recreated with the new URL.
+  3. Ensure the data360-mcp server is running at that URL (see [MCP Server Timeout](#mcp-server-timeout) for port alignment).
+
+### MCP App iframe / sandbox or cross-origin errors
+
+- **Symptom**: MCP App (e.g. Data360 search UI) does not load or shows "blocked by sandbox", script cannot communicate with iframe, or cross-origin / security errors in the console.
+- **Cause**: Browser sandbox restrictions on the iframe used to render the MCP App UI, or cross-origin policy blocking `postMessage`/parent–iframe communication.
+- **Fix**:
+  1. **Sandbox permissions**: The app uses `@mcp-ui/client` with explicit iframe sandbox permissions (`allow-scripts allow-same-origin allow-forms`). If you see sandbox errors, ensure you are on a recent build and that no middleware or CSP is stripping or overriding the iframe `sandbox` attribute.
+  2. **Same protocol (HTTPS)**: In production, serve the app and the sandbox proxy (e.g. `/sandbox_proxy.html`) over **HTTPS** so the iframe is not mixed-content and same-origin rules apply as expected.
+  3. **Cache / hard refresh**: Try a hard refresh (Ctrl+F5 or Cmd+Shift+R) or an incognito/private window to rule out stale cache or extensions blocking the iframe.
+  4. **CORS**: If the MCP App fetches from another origin, that server must allow your app’s origin in CORS; the iframe sandbox does not change CORS for `fetch` from inside the iframe.
+
 ### Docker Issues
 
 - If you encounter DNS resolution issues, you may try troubleshooting by adding the corporate DNS servers to the Docker Desktop settings.

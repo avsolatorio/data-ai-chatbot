@@ -493,3 +493,38 @@ button.home-suggestion-chip:hover {
     animation: none;
   }
 }
+
+/* MCP chart view: iframe fills container width so Vega chart can use full space */
+[data-mcp-chart-view] iframe {
+  /* Override iframe width set by MCP UI library so chart can use full width */
+  width: 100% !important;
+  min-width: 100%;
+  display: block;
+}
+
+/* MCP search view: iframe full width so horizontal card scroll has room */
+[data-mcp-search-view] iframe {
+  width: 100% !important;
+  min-width: 100%;
+  display: block;
+}
+
+/* Search results: horizontal scroll for cards with visible scrollbar */
+[data-search-results-cards] {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+[data-search-results-cards]::-webkit-scrollbar {
+  height: 8px;
+}
+[data-search-results-cards]::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+[data-search-results-cards]::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.4);
+  border-radius: 4px;
+}
+[data-search-results-cards]::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.6);
+}
