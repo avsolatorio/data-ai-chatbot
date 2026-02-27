@@ -3,7 +3,18 @@
  * Safe to import in client components.
  */
 
+import { sessionStorageKeys } from "@/lib/constants";
 import { getApiUrl } from "./api-client";
+
+/** Clears auth-related sessionStorage (legacy USER_DATA, etc.) so no PII persists after logout. */
+export function clearAuthSessionStorage(): void {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.removeItem(sessionStorageKeys.userData);
+  } catch {
+    // Ignore quota or security errors
+  }
+}
 
 export type UserType = "guest" | "regular";
 
@@ -32,6 +43,7 @@ export async function logoutClient(): Promise<void> {
     throw new Error("Logout failed");
   }
 
-  // Cookies are cleared by the server-side route handler
-  // The response includes Set-Cookie headers to delete cookies
+  clearAuthSessionStorage();
+
+  // Cookies are cleared by the server-side route handler (Set-Cookie headers)
 }

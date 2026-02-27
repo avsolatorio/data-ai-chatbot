@@ -49,11 +49,18 @@ export async function fetchWithErrorHandlers(
   }
 }
 
-export function getLocalStorage(key: string) {
-  if (typeof window !== 'undefined') {
-    return JSON.parse(localStorage.getItem(key) || '[]');
+/** Allowed localStorage keys for getLocalStorage (non-sensitive UI/preferences only). Do not add tokens or PII. */
+const ALLOWED_LOCAL_STORAGE_KEYS = new Set<string>(["input"]);
+
+export function getLocalStorage(key: string): unknown[] {
+  if (typeof window === "undefined") return [];
+  if (!ALLOWED_LOCAL_STORAGE_KEYS.has(key)) return [];
+  try {
+    const raw = localStorage.getItem(key);
+    return raw !== null ? (JSON.parse(raw) as unknown[]) : [];
+  } catch {
+    return [];
   }
-  return [];
 }
 
 export function generateUUID(): string {

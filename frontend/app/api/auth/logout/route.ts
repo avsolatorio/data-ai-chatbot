@@ -6,7 +6,7 @@ import { type NextRequest, NextResponse } from "next/server";
  * Calls FastAPI logout endpoint, clears cookies, and redirects to login.
  * This ensures cookies are properly cleared before navigation.
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     // Call FastAPI logout endpoint
     // Use SERVER_API_URL for Docker internal networking, fallback to NEXT_PUBLIC_API_URL
@@ -56,11 +56,18 @@ export async function POST(request: NextRequest) {
       `user_session_id=; Path=/; Expires=${pastDate}; SameSite=Lax${isProduction ? "; Secure" : ""}; HttpOnly`
     );
 
+    // Delete MSAL user impersonation token cookie (UIT)
+    nextResponse.headers.append(
+      "Set-Cookie",
+      `UIT=; Path=/; Expires=${pastDate}; SameSite=Lax${isProduction ? "; Secure" : ""}; HttpOnly`
+    );
+
     // Also delete cookies in Next.js cookie store (server-side)
     const cookieStore = await cookies();
     cookieStore.delete("auth_token");
     cookieStore.delete("guest_session_id");
     cookieStore.delete("user_session_id");
+    cookieStore.delete("UIT");
 
     return nextResponse;
   } catch (error) {
@@ -84,6 +91,10 @@ export async function POST(request: NextRequest) {
       "Set-Cookie",
       `user_session_id=; Path=/; Expires=${pastDate}; SameSite=Lax${isProduction ? "; Secure" : ""}; HttpOnly`
     );
+    nextResponse.headers.append(
+      "Set-Cookie",
+      `UIT=; Path=/; Expires=${pastDate}; SameSite=Lax${isProduction ? "; Secure" : ""}; HttpOnly`
+    );
 
     // Also delete cookies in Next.js cookie store (server-side)
     try {
@@ -91,6 +102,7 @@ export async function POST(request: NextRequest) {
       cookieStore.delete("auth_token");
       cookieStore.delete("guest_session_id");
       cookieStore.delete("user_session_id");
+      cookieStore.delete("UIT");
     } catch {
       // Ignore errors when deleting cookies
     }

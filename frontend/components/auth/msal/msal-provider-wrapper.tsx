@@ -32,6 +32,7 @@ import {
 } from "@azure/msal-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { sessionStorageKeys } from "@/lib/constants";
 import {
   devLog,
   fetchUserImpersonationToken,
@@ -59,6 +60,9 @@ export function MsalProviderWrapper({ children }: { children: React.ReactNode })
      * need to refresh to re-run getCurrentUser() and update the sidebar.
      */
     async function runInit(): Promise<boolean> {
+      if (typeof sessionStorage !== "undefined") {
+        sessionStorage.removeItem(sessionStorageKeys.userData);
+      }
       await msalInstance.initialize();
       devLog("info", "[MSAL] initialize() completed");
 

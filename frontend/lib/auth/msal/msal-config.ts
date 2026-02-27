@@ -10,7 +10,6 @@ import type {
   IPublicClientApplication,
 } from "@azure/msal-browser";
 import { LogLevel } from "@azure/msal-browser";
-import { cookiesKey, sessionStorageKeys } from "@/lib/constants";
 
 const isDev =
   typeof process !== "undefined" && process.env.NODE_ENV === "development";
@@ -25,20 +24,8 @@ export function devLog(level: "info" | "warn", ...args: unknown[]): void {
   }
 }
 
-const GUEST_COOKIE_NAMES = [
-  cookiesKey.authToken,
-  "guest_session_id",
-  "user_session_id",
-] as const;
-
-/** Clear guest auth cookies so MSAL is the single identity (avoids chat 403 from stale guest owner). */
-function clearGuestCookies(): void {
-  if (typeof document === "undefined") return;
-  const past = new Date(0).toUTCString();
-  for (const name of GUEST_COOKIE_NAMES) {
-    document.cookie = `${name}=; expires=${past}; path=/;`;
-  }
-}
+/** Path for setting the impersonation token via HttpOnly cookie (server-side). */
+const MSAL_SET_TOKEN_PATH = "/api/auth/msal/set-token";
 
 export const loginRequest = {
   scopes: ["User.Read", "openid", "profile"],
@@ -59,7 +46,8 @@ export const msalConfig: Configuration = {
     redirectUri,
   },
   cache: {
-    cacheLocation: "localStorage",
+    // sessionStorage: tokens cleared when tab closes, reducing XSS exposure window (vs localStorage).
+    cacheLocation: "sessionStorage",
   },
   system: {
     loggerOptions: {
@@ -72,7 +60,8 @@ export const msalConfig: Configuration = {
 };
 
 /**
- * Acquire user impersonation token and store in cookie + sessionStorage.
+ * Acquire user impersonation token and store in cookie.
+ * User display name/email are available from MSAL account in memory (not stored in sessionStorage to avoid XSS-exposed PII).
  * Used by the MSAL provider after login. On failure, triggers login redirect.
  */
 export async function fetchUserImpersonationToken(
@@ -102,24 +91,18 @@ export async function fetchUserImpersonationToken(
     const hasToken = accessToken.length > 0;
     devLog("info", "[MSAL] acquireTokenSilent success; token length:", accessToken.length, "expiresOn:", response?.expiresOn ?? null);
 
-    const expiryTime = new Date();
-    expiryTime.setTime(expiryTime.getTime() + 24 * 60 * 60 * 1000); // 1 day
-
-    if (typeof document !== "undefined") {
-      const secure =
-        typeof window !== "undefined" && window.location.protocol === "https:";
-      document.cookie = `${cookiesKey.userImpersonationToken}=${accessToken}; expires=${expiryTime.toUTCString()}; SameSite=Lax; path=/${secure ? "; Secure" : ""}`;
-      clearGuestCookies();
-      devLog("info", "[MSAL] cookie set:", cookiesKey.userImpersonationToken, "length:", hasToken ? accessToken.length : 0);
-    }
-
-    if (typeof sessionStorage !== "undefined") {
-      const userData = {
-        name: response.account?.name ?? "",
-        email: response.account?.username ?? "",
-      };
-      sessionStorage.setItem(sessionStorageKeys.userData, JSON.stringify(userData));
-      devLog("info", "[MSAL] sessionStorage userData:", userData);
+    if (typeof window !== "undefined") {
+      const res = await fetch(MSAL_SET_TOKEN_PATH, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: accessToken }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        devLog("warn", "[MSAL] set-token API failed:", res.status);
+        return false;
+      }
+      devLog("info", "[MSAL] HttpOnly cookie set via API; token length:", hasToken ? accessToken.length : 0);
     }
 
     return true;
