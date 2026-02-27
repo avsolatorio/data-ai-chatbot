@@ -24,6 +24,7 @@ from app.api.v1 import (
     models as models_router,
 )
 from app.config import settings
+from app.core.cache_headers import CachePreventionMiddleware
 from app.core.csrf import CSRFMiddleware
 from app.core.redis import close_redis_client
 
@@ -109,6 +110,9 @@ app.add_middleware(
 
 # CSRF: validate Origin/Referer for state-changing requests (POST/PUT/PATCH/DELETE)
 app.add_middleware(CSRFMiddleware)
+
+# Cache prevention: no-store for all responses to avoid form/sensitive data caching
+app.add_middleware(CachePreventionMiddleware)
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
