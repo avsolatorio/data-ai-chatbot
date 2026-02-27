@@ -24,6 +24,7 @@ from app.api.v1 import (
     models as models_router,
 )
 from app.config import settings
+from app.core.csrf import CSRFMiddleware
 from app.core.redis import close_redis_client
 
 # Resolve log level from config (DEBUG, INFO, WARNING, ERROR)
@@ -105,6 +106,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# CSRF: validate Origin/Referer for state-changing requests (POST/PUT/PATCH/DELETE)
+app.add_middleware(CSRFMiddleware)
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])

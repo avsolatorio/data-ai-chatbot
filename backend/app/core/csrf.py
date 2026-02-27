@@ -1,11 +1,14 @@
 """
 CSRF protection utilities.
-Uses Origin header validation for state-changing operations.
+Uses Origin/Referer header validation for state-changing operations.
 """
 
 import logging
+from typing import Callable
 
 from fastapi import HTTPException, Request, status
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse, Response
 
 from app.config import settings
 
@@ -79,3 +82,22 @@ def validate_csrf(request: Request, require_origin: bool = True) -> None:
 
     # If origin is missing but we don't require it (e.g., for API clients), allow
     # This allows programmatic access while still protecting browser-based requests
+
+
+class CSRFMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware that runs CSRF validation (Origin/Referer check) on all
+    state-changing requests (POST, PUT, PATCH, DELETE). When Origin/Referer
+    is present it must match CORS_ORIGINS; when absent (e.g. server-to-server)
+    the request is allowed (require_origin=False).
+    """
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        try:
+            validate_csrf(request, require_origin=False)
+        except HTTPException as exc:
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"detail": exc.detail},
+            )
+        return await call_next(request)

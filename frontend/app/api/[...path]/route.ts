@@ -112,7 +112,7 @@ async function proxyRequest(
   // Prepare headers to forward
   const headers = new Headers();
 
-  // Forward important headers
+  // Forward important headers (include origin/referer so backend can validate CSRF)
   const headersToForward = [
     "authorization",
     "content-type",
@@ -120,6 +120,8 @@ async function proxyRequest(
     "accept-language",
     "user-agent",
     "x-requested-with",
+    "origin",
+    "referer",
   ];
 
   for (const headerName of headersToForward) {
