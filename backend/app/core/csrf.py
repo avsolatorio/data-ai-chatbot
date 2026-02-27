@@ -84,17 +84,29 @@ def validate_csrf(request: Request, require_origin: bool = True) -> None:
     # This allows programmatic access while still protecting browser-based requests
 
 
+def _require_origin_for_request(request: Request) -> bool:
+    """
+    Require Origin/Referer when the request carries credentials (Cookie), or when
+    CSRF_REQUIRE_ORIGIN_ALWAYS is True (closes "Absence of Origin Headers" finding).
+    """
+    if settings.CSRF_REQUIRE_ORIGIN_ALWAYS:
+        return True
+    # Header names are case-insensitive; Starlette normalizes to lowercase
+    return "cookie" in request.headers
+
+
 class CSRFMiddleware(BaseHTTPMiddleware):
     """
     Middleware that runs CSRF validation (Origin/Referer check) on all
     state-changing requests (POST, PUT, PATCH, DELETE). When Origin/Referer
-    is present it must match CORS_ORIGINS; when absent (e.g. server-to-server)
-    the request is allowed (require_origin=False).
+    is present it must match CORS_ORIGINS. When the request sends credentials
+    (Cookie), Origin/Referer is required; otherwise omitted origin is allowed.
     """
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         try:
-            validate_csrf(request, require_origin=False)
+            require_origin = _require_origin_for_request(request)
+            validate_csrf(request, require_origin=require_origin)
         except HTTPException as exc:
             return JSONResponse(
                 status_code=exc.status_code,

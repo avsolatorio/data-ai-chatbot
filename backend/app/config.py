@@ -100,6 +100,9 @@ class Settings(BaseSettings):
     # App
     ENVIRONMENT: str = "development"
     CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3001"
+    # When True, require Origin/Referer for all state-changing requests (POST/PUT/PATCH/DELETE).
+    # Closes "Absence of Origin Headers" finding; set True in production if you do not need API clients that omit Origin.
+    CSRF_REQUIRE_ORIGIN_ALWAYS: bool = False
 
     # Logging - optional file logging
     # If set, only application logs (logger names under "app.*") are written to this file.
@@ -148,8 +151,18 @@ class Settings(BaseSettings):
     def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
         if isinstance(v, str):
             # Split comma-separated string and strip whitespace
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v
+            origins = [origin.strip() for origin in v.split(",") if origin.strip()]
+        else:
+            origins = list(v)
+        # Reject wildcard: CORS with allow_credentials=True cannot use "*" (per spec)
+        # and allowing "*" would expose resources to any origin (CORS vulnerability)
+        if "*" in origins:
+            raise ValueError(
+                "CORS_ORIGINS must not contain '*'; use explicit origins (e.g. https://your-app.example.com)"
+            )
+        if not origins:
+            raise ValueError("CORS_ORIGINS must not be empty; set at least one allowed origin")
+        return origins
 
     model_config = ConfigDict(
         extra="allow",
