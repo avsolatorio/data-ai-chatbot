@@ -12,16 +12,29 @@ import {
   useRef,
 } from "react";
 import type { Components } from "react-markdown";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { defaultRehypePlugins, Streamdown } from "streamdown";
 import { cn } from "@/lib/utils";
 
+/** Sanitization schema: default (GitHub-style) plus allowed custom <claim> for PCN. */
+const SANITIZE_SCHEMA = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames ?? []), "claim"],
+  attributes: {
+    ...defaultSchema.attributes,
+    claim: ["id", "policy"],
+  },
+};
+
 /** Explicit rehype plugin list so raw HTML (e.g. <claim>) is always parsed in deployment (avoids relying on Streamdown’s default being applied). */
+/** Rehype plugin order: raw (parse HTML) → sanitize (XSS) → harden (URLs) → katex (math). */
 const REHYPE_PLUGINS = [
   ...(Array.isArray(defaultRehypePlugins)
     ? defaultRehypePlugins
     : [
-        defaultRehypePlugins.harden,
         defaultRehypePlugins.raw,
+        rehypeSanitize(SANITIZE_SCHEMA),
+        defaultRehypePlugins.harden,
         defaultRehypePlugins.katex,
       ].filter(Boolean)),
 ];
