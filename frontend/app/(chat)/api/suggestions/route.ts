@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/auth-service";
-import { serverApiFetch } from "@/lib/server-api-client";
 import { ChatSDKError } from "@/lib/errors";
+import { serverApiFetch } from "@/lib/server-api-client";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   if (!documentId) {
     return new ChatSDKError(
       "bad_request:api",
-      "Parameter documentId is required."
+      "Parameter documentId is required.",
     ).toResponse();
   }
 
@@ -20,11 +20,14 @@ export async function GET(request: Request) {
   }
 
   const response = await serverApiFetch(
-    `/api/chat/suggestions?documentId=${documentId}`
+    `/api/chat/suggestions?documentId=${documentId}`,
   );
 
   if (!response.ok) {
-    return Response.json([], { status: 200 });
+    return new Response(response.body, {
+      status: response.status,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   const suggestions = await response.json();

@@ -39,6 +39,7 @@ from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import (
     create_stream_id,
     delete_chat_by_id,
+    soft_delete_message_by_id,
     soft_delete_messages_by_chat_id_after_timestamp,
     get_chat_by_id,
     get_latest_messages_by_chat_id,
@@ -53,8 +54,8 @@ from app.db.queries.suggestion_queries import get_suggestions_by_document_id
 from app.utils.message_converter import convert_messages_to_openai_format
 from app.utils.resumable_stream import mark_stream_complete, store_stream_chunk
 from app.api.v1.schemas.chat_schemas import (
-    DeleteTrailingMessagesRequest,
-    DeleteTrailingMessagesResponse,
+    DeleteMessagesRequest,
+    DeleteMessagesResponse,
     SuggestionResponse,
     UpdateChatVisibilityRequest,
     UpdateChatVisibilityResponse,
@@ -806,15 +807,15 @@ async def delete_chat(
     }
 
 
-@router.delete("/messages", response_model=DeleteTrailingMessagesResponse)
-async def delete_trailing_messages(
-    request: DeleteTrailingMessagesRequest,
+@router.delete("/messages", response_model=DeleteMessagesResponse)
+async def delete_messages(
+    request: DeleteMessagesRequest,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Soft-delete a message and all subsequent messages in the same chat.
-    Used when editing a user message to remove the old message and its responses.
+    Soft-delete a message. If includeTrailing is True (default),
+    also soft-deletes all subsequent messages in the same chat.
     """
     message_id = UUID(request.id)
     message = await get_message_by_id(db, message_id)
@@ -829,15 +830,18 @@ async def delete_trailing_messages(
     if not user_ids_match(current_user["id"], chat.userId):
         raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
 
-    deleted_count = await soft_delete_messages_by_chat_id_after_timestamp(
-        db, message.chatId, message.createdAt
-    )
+    if request.includeTrailing:
+        deleted_count = await soft_delete_messages_by_chat_id_after_timestamp(
+            db, message.chatId, message.createdAt
+        )
+    else:
+        deleted_count = await soft_delete_message_by_id(db, message_id)
 
     logger.info(
-        "Soft-deleted %d trailing messages for chat_id=%s from message_id=%s",
-        deleted_count, message.chatId, message_id,
+        "Soft-deleted %d message(s) for chat_id=%s from message_id=%s (includeTrailing=%s)",
+        deleted_count, message.chatId, message_id, request.includeTrailing,
     )
-    return DeleteTrailingMessagesResponse(deletedCount=deleted_count)
+    return DeleteMessagesResponse(deletedCount=deleted_count)
 
 
 @router.patch("/visibility", response_model=UpdateChatVisibilityResponse)

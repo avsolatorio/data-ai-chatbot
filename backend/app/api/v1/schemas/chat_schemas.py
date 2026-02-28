@@ -1,6 +1,6 @@
 """Pydantic models for chat streaming API."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -41,24 +41,25 @@ class StreamRequest(BaseModel):
 # --- Request models for new endpoints ---
 
 
-class DeleteTrailingMessagesRequest(BaseModel):
-    """Request model for deleting trailing messages (edit/resend)."""
+class DeleteMessagesRequest(BaseModel):
+    """Request model for deleting messages."""
 
     id: str
+    includeTrailing: bool = True
 
 
 class UpdateChatVisibilityRequest(BaseModel):
     """Request model for updating chat visibility."""
 
     chatId: str
-    visibility: str
+    visibility: Literal["public", "private"]
 
 
 # --- Response models for new endpoints ---
 
 
-class DeleteTrailingMessagesResponse(BaseModel):
-    """Response model for delete trailing messages endpoint."""
+class DeleteMessagesResponse(BaseModel):
+    """Response model for delete messages endpoint."""
 
     deletedCount: int
 
@@ -67,7 +68,7 @@ class UpdateChatVisibilityResponse(BaseModel):
     """Response model for update chat visibility endpoint."""
 
     id: str
-    visibility: str
+    visibility: Literal["public", "private"]
 
 
 class SuggestionResponse(BaseModel):

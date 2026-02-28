@@ -52,8 +52,12 @@ async def get_latest_messages_by_chat_id(
 
 
 async def get_message_by_id(session: AsyncSession, message_id: UUID) -> Optional[Message]:
-    """Get a single message by its ID."""
-    result = await session.execute(select(Message).where(Message.id == message_id))
+    """Get a single active (non-deleted) message by its ID."""
+    result = await session.execute(
+        select(Message).where(
+            and_(Message.id == message_id, Message.deletedAt.is_(None))
+        )
+    )
     return result.scalar_one_or_none()
 
 
@@ -73,7 +77,31 @@ async def soft_delete_messages_by_chat_id_after_timestamp(
             and_(
                 Message.chatId == chat_id,
                 Message.createdAt >= timestamp,
-                Message.deletedAt.is_(None)
+                Message.deletedAt.is_(None),
+            )
+        )
+        .values(deletedAt=datetime.utcnow())
+    )
+
+    await session.commit()
+    return result.rowcount
+
+
+async def soft_delete_message_by_id(
+    session: AsyncSession,
+    message_id: UUID,
+) -> int:
+    """
+    Soft-delete a single message by ID.
+    Sets deletedAt to the current time instead of removing the row.
+    Returns 1 if deleted, 0 if not found or already deleted.
+    """
+    result = await session.execute(
+        update(Message)
+        .where(
+            and_(
+                Message.id == message_id,
+                Message.deletedAt.is_(None),
             )
         )
         .values(deletedAt=datetime.utcnow())
@@ -169,8 +197,12 @@ async def save_messages(
         msg_data["id"] = msg_id
         msg_data["chatId"] = chat_id
 
-        # Skip if message already exists (idempotent: safe for duplicate requests / retries)
-        existing = await session.execute(select(Message).where(Message.id == msg_id))
+        # Skip if active message already exists (idempotent: safe for duplicate requests / retries)
+        existing = await session.execute(
+            select(Message).where(
+                and_(Message.id == msg_id, Message.deletedAt.is_(None))
+            )
+        )
         if existing.scalar_one_or_none() is not None:
             logger.warning(
                 "Message %s already exists, skipping insert (idempotent)",

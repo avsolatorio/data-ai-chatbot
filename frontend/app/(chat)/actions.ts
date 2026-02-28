@@ -30,14 +30,14 @@ export async function generateTitleFromUserMessage({
 export async function deleteTrailingMessages({ id }: { id: string }) {
   const response = await serverApiFetch("/api/chat/messages", {
     method: "DELETE",
-    body: JSON.stringify({ id }),
+    body: JSON.stringify({ id, includeTrailing: true }),
   });
 
   if (!response.ok) {
     console.error(
       "Failed to delete trailing messages:",
       response.status,
-      await response.text().catch(() => "")
+      await response.text().catch(() => ""),
     );
   }
 }
@@ -58,7 +58,7 @@ export async function updateChatVisibility({
     console.error(
       "Failed to update chat visibility:",
       response.status,
-      await response.text().catch(() => "")
+      await response.text().catch(() => ""),
     );
   }
 }
