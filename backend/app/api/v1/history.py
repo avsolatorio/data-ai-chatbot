@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -11,6 +12,13 @@ from app.db.queries.chat_queries import delete_all_chats_by_user_id, get_chats_b
 from app.utils.user_id import get_user_id_uuid
 
 router = APIRouter()
+
+
+def _iso_utc(dt: datetime) -> str:
+    """Serialize datetime as ISO 8601 with Z suffix so clients parse as UTC."""
+    if dt.tzinfo is None:
+        return dt.isoformat(timespec="milliseconds") + "Z"
+    return dt.isoformat(timespec="milliseconds")
 
 
 @router.get("")
@@ -41,12 +49,13 @@ async def get_chat_history(
         db, user_id, limit=limit, starting_after=starting_after, ending_before=ending_before
     )
 
-    # Convert Chat objects to dict format matching frontend expectations
+    # Convert Chat objects to dict format matching frontend expectations.
+    # createdAt is serialized as UTC (Z suffix) so sidebar grouping by local day is correct.
     chats = [
         {
             "id": str(chat.id),
             "title": chat.title,
-            "createdAt": chat.createdAt.isoformat(),
+            "createdAt": _iso_utc(chat.createdAt),
             "visibility": chat.visibility,
             "userId": str(chat.userId),
             "lastContext": chat.lastContext,

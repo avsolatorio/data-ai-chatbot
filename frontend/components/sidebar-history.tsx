@@ -216,8 +216,14 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                 const chatsFromHistory = paginatedChatHistories.flatMap(
                   (paginatedChatHistory) => paginatedChatHistory.chats
                 );
+                // Sort by createdAt descending so grouping order is consistent (newest first within each section).
+                // API returns UTC ISO strings (with Z); new Date() parses as UTC so isToday/isYesterday use local day.
+                const sorted = [...chatsFromHistory].sort(
+                  (a, b) =>
+                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                );
 
-                const groupedChats = groupChatsByDate(chatsFromHistory);
+                const groupedChats = groupChatsByDate(sorted);
 
                 return (
                   <div className="flex flex-col gap-6">

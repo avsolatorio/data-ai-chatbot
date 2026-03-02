@@ -100,7 +100,9 @@ async function proxyRequest(
     if (contentType?.includes("application/json")) {
       body = await request.text();
     } else if (contentType?.includes("multipart/form-data")) {
-      body = await request.formData();
+      // Forward raw body: do not parse with formData() then re-serialize, or the boundary
+      // in Content-Type would not match the body and the backend returns 400 (boundary mismatch).
+      body = await request.arrayBuffer();
     } else if (contentType?.includes("application/x-www-form-urlencoded")) {
       body = await request.text();
     } else {
