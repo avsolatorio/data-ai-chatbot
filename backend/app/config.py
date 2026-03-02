@@ -118,6 +118,10 @@ class Settings(BaseSettings):
     # For production with subdomains, set to ".yourdomain.com" to share cookies across subdomains
     COOKIE_DOMAIN: str = ""
 
+    # File upload (multimodal images). Keep in sync with frontend NEXT_PUBLIC_* if you override.
+    MAX_UPLOAD_FILE_SIZE_BYTES: int = 5 * 1024 * 1024  # 5MB
+    ALLOWED_UPLOAD_IMAGE_TYPES: str = "image/jpeg,image/png"  # Comma-separated MIME types
+
     # Authentication
     # Note: Authentication is always enabled. Guest users provide anonymous access.
     # Resolved user (JWT/session) is cached for this many seconds to reduce DB round-trips.

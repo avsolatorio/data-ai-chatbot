@@ -6,12 +6,6 @@ const GUEST_COOKIE_NAMES = ["auth_token", "guest_session_id", "user_session_id"]
 const MAX_TOKEN_LENGTH = 20_000;
 const COOKIE_MAX_AGE_SECONDS = 86400; // 1 day
 
-/** Escape cookie value for RFC 6265 quoted-string (prevents ; or , in value from being parsed as attributes). */
-function cookieValueQuoted(value: string): string {
-  const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  return `"${escaped}"`;
-}
-
 /**
  * Sets the MSAL user impersonation token in an HttpOnly cookie so it is not
  * accessible to JavaScript (mitigates XSS token theft). Also clears guest
@@ -39,9 +33,9 @@ export async function POST(request: NextRequest) {
     const setCookieHeaders: string[] = [];
 
     // Set HttpOnly cookie for the impersonation token (not readable by JS).
-    // Quoted value per RFC 6265 so token cannot inject cookie attributes (e.g. ; or ,).
+    // Token is a JWT (base64url only); no quoting so clients do not send quotes back (avoids "Invalid header padding").
     setCookieHeaders.push(
-      `${COOKIE_NAME_UIT}=${cookieValueQuoted(token)}; Path=/; Expires=${expires}; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secure}; HttpOnly`
+      `${COOKIE_NAME_UIT}=${token}; Path=/; Expires=${expires}; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secure}; HttpOnly`
     );
 
     // Clear guest cookies so MSAL is the single identity

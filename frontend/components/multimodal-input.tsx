@@ -52,6 +52,24 @@ import type { VisibilityType } from "./visibility-selector";
 
 export type MultimodalInputHandle = { focus: () => void };
 
+const DEFAULT_MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const DEFAULT_ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png"] as const;
+
+/** Max upload size. From NEXT_PUBLIC_MAX_FILE_SIZE_BYTES; must match backend MAX_UPLOAD_FILE_SIZE_BYTES. */
+const MAX_FILE_SIZE_BYTES = (() => {
+  const v = process.env.NEXT_PUBLIC_MAX_FILE_SIZE_BYTES;
+  if (v === undefined || v === "") return DEFAULT_MAX_FILE_SIZE_BYTES;
+  const n = Number.parseInt(v, 10);
+  return Number.isNaN(n) || n <= 0 ? DEFAULT_MAX_FILE_SIZE_BYTES : n;
+})();
+
+/** Allowed image MIME types. From NEXT_PUBLIC_ALLOWED_IMAGE_TYPES (comma-separated); must match backend ALLOWED_UPLOAD_IMAGE_TYPES. */
+const ALLOWED_IMAGE_TYPES: readonly string[] = (() => {
+  const v = process.env.NEXT_PUBLIC_ALLOWED_IMAGE_TYPES;
+  if (v === undefined || v === "") return [...DEFAULT_ALLOWED_IMAGE_TYPES];
+  return v.split(",").map((t) => t.trim()).filter(Boolean);
+})();
+
 const PureMultimodalInput = forwardRef<
   MultimodalInputHandle,
   {
@@ -216,32 +234,66 @@ const PureMultimodalInput = forwardRef<
     resetHeight,
   ]);
 
-  const uploadFile = useCallback(async (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await apiFetch("/api/files/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const { url, pathname, contentType } = data;
-
-        return {
-          url,
-          name: pathname,
-          contentType,
-        };
+  const uploadFile = useCallback(
+    async (file: File): Promise<Attachment | undefined> => {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        toast.error(
+          `"${file.name}" is too large. Maximum size is 5MB.`,
+        );
+        return undefined;
       }
-      const { error } = await response.json();
-      toast.error(error);
-    } catch (_error) {
-      toast.error("Failed to upload file, please try again!");
-    }
-  }, []);
+      const type = (file.type?.toLowerCase() ?? "") as string;
+      if (
+        !ALLOWED_IMAGE_TYPES.includes(type)
+      ) {
+        toast.error(
+          `"${file.name}" is not a supported type. Please use JPEG or PNG.`,
+        );
+        return undefined;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const response = await apiFetch("/api/files/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = (await response.json()) as {
+            url: string;
+            pathname: string;
+            contentType: string;
+          };
+          const { url, pathname, contentType } = data;
+
+          return {
+            url,
+            name: pathname,
+            contentType,
+          };
+        }
+        let message = "Upload failed";
+        try {
+          const body = (await response.json()) as {
+            detail?: string;
+            error?: string;
+          };
+          message = body.detail ?? body.error ?? message;
+        } catch {
+          // Non-JSON response (e.g. 502 HTML); keep default message
+        }
+        toast.error(message);
+        return undefined;
+      } catch (_error) {
+        toast.error("Failed to upload file, please try again!");
+        return undefined;
+      }
+    },
+    [],
+  );
 
   const contextProps = useMemo(
     () => ({
@@ -253,14 +305,28 @@ const PureMultimodalInput = forwardRef<
   const handleFileChange = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(event.target.files || []);
+      const validFiles = files.filter((file) => {
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          toast.error(
+            `"${file.name}" is too large (max 5MB). Skipped.`,
+          );
+          return false;
+        }
+        return true;
+      });
 
-      setUploadQueue(files.map((file) => file.name));
+      if (validFiles.length === 0) {
+        event.target.value = "";
+        return;
+      }
+
+      setUploadQueue(validFiles.map((file) => file.name));
 
       try {
-        const uploadPromises = files.map((file) => uploadFile(file));
+        const uploadPromises = validFiles.map((file) => uploadFile(file));
         const uploadedAttachments = await Promise.all(uploadPromises);
         const successfullyUploadedAttachments = uploadedAttachments.filter(
-          (attachment) => attachment !== undefined,
+          (attachment): attachment is Attachment => attachment !== undefined,
         );
 
         setAttachments((currentAttachments) => [
@@ -271,6 +337,7 @@ const PureMultimodalInput = forwardRef<
         console.error("Error uploading files!", error);
       } finally {
         setUploadQueue([]);
+        event.target.value = "";
       }
     },
     [setAttachments, uploadFile],
@@ -343,6 +410,8 @@ const PureMultimodalInput = forwardRef<
   return (
     <div className={cn("relative flex w-full flex-col gap-4", className)}>
       <input
+        accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+        aria-label="Upload image (JPEG or PNG, max 5MB)"
         className="-top-4 -left-4 pointer-events-none fixed size-0.5 opacity-0"
         multiple
         onChange={handleFileChange}
