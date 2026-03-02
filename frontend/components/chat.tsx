@@ -289,15 +289,18 @@ export function Chat({
       clearThinkingStream();
 
       if (error instanceof ChatSDKError) {
-        // Check if it's a credit card error
+        // Only show allowlisted user-facing messages; never expose internal/API details
         if (
           error.message?.includes("AI Gateway requires a valid credit card")
         ) {
           setShowCreditCardAlert(true);
         } else {
+          const ref = error.errorId
+            ? ` Reference: ${error.errorId}.`
+            : "";
           toast({
             type: "error",
-            description: error.message,
+            description: `Something went wrong. Please try again.${ref}`,
           });
         }
       }
@@ -458,9 +461,8 @@ export function Chat({
       !isWaitingForSavedParts &&
       !isWaitingForSavedPartsRef.current
     ) {
-      console.log(
-        "[Chat] Saved thinking parts detected (likely from page refresh), clearing streaming parts",
-      );
+      // Clear streaming parts when saved parts are present (e.g. after refresh).
+      // No client-side logging of internal state to avoid leaking implementation details.
       preservedStreamingPartsRef.current = [];
       clearThinkingStream();
     }

@@ -22,6 +22,7 @@ from app.ai.protocols.stream import (
     ErrorPart,
     FinishMessagePart,
 )
+from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
 from app.utils.stream import stream_text
 
 StreamProcessorMode = Literal["thinking", "chat", "unified"]
@@ -320,15 +321,19 @@ class StreamEventProcessor:
             # Generator is being closed by client, re-raise to allow cleanup
             raise
         except Exception as stream_error:
-            # Log the error and send error event, then ensure stream closes properly
-            import traceback
-
-            stack_trace = traceback.format_exc()
-
-            error_msg = f"Error in stream: {str(stream_error)}\n{stack_trace}"
-            logger.error("Error in stream: %s", error_msg, exc_info=True)
+            error_id = new_error_id()
+            logger.error(
+                "Error in stream [%s]: %s",
+                error_id,
+                stream_error,
+                exc_info=True,
+            )
             try:
-                yield ErrorPart(errorText=error_msg).to_sse().encode("utf-8")
+                yield (
+                    ErrorPart(errorText=f"{USER_MESSAGE_GENERIC} Reference: {error_id}.")
+                    .to_sse()
+                    .encode("utf-8")
+                )
                 yield FinishMessagePart().to_sse().encode("utf-8")
                 yield DoneMarker().to_sse().encode("utf-8")
             except Exception:

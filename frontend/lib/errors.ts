@@ -4,7 +4,8 @@ export type ErrorType =
   | "forbidden"
   | "not_found"
   | "rate_limit"
-  | "offline";
+  | "offline"
+  | "internal";
 
 export type Surface =
   | "chat"
@@ -39,6 +40,8 @@ export class ChatSDKError extends Error {
   type: ErrorType;
   surface: Surface;
   statusCode: number;
+  /** Optional reference ID from backend for support correlation; safe to show to user. */
+  errorId?: string;
 
   constructor(errorCode: ErrorCode, cause?: string) {
     super();
@@ -135,6 +138,8 @@ function getStatusCodeByType(type: ErrorType) {
       return 429;
     case "offline":
       return 503;
+    case "internal":
+      return 500;
     default:
       return 500;
   }

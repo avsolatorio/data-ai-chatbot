@@ -35,8 +35,21 @@ export async function fetchWithErrorHandlers(
     const response = await apiFetch(input, init);
 
     if (!response.ok) {
-      const { code, cause } = await response.json();
-      throw new ChatSDKError(code as ErrorCode, cause);
+      const body = await response.json().catch(() => ({})) as {
+        code?: string;
+        cause?: string;
+        errorId?: string;
+      };
+      const { code, cause, errorId } = body;
+      if (code) {
+        const err = new ChatSDKError(code as ErrorCode, cause);
+        if (errorId) err.errorId = errorId;
+        throw err;
+      }
+      // Backend 5xx with { detail, errorId } (no code)
+      const err = new ChatSDKError('internal:api');
+      if (errorId) err.errorId = errorId;
+      throw err;
     }
 
     return response;

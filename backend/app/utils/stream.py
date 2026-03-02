@@ -9,7 +9,6 @@ import asyncio
 import json
 import logging
 import re
-import traceback
 from typing import Any, AsyncGenerator, Callable, Dict, Literal, Mapping, Optional, Sequence
 
 from fastapi.responses import StreamingResponse
@@ -38,6 +37,7 @@ from app.ai.protocols.stream import (
     ToolOutputErrorPart,
     part_to_sse,
 )
+from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
 
 logger = logging.getLogger(__name__)
 
@@ -184,15 +184,19 @@ async def execute_tool_with_streaming(
         raise
 
     except Exception as error:
-        tbck = traceback.format_exc()
-        error_text = str(error) + "\n" + tbck
-        logger.error("!!! Tool Error [%s]: %s", tool_name, error_text)
-        # Tool execution failed
+        error_id = new_error_id()
+        logger.error(
+            "!!! Tool Error [%s] [%s]: %s",
+            tool_name,
+            error_id,
+            error,
+            exc_info=True,
+        )
         tool_error = {
             "type": "tool-error",
             "toolCallId": tool_call_id,
             "toolName": tool_name,
-            "errorText": error_text,
+            "errorText": f"Tool execution failed. Please try again. Reference: {error_id}.",
         }
         yield ("error", tool_error)
         raise
@@ -1022,10 +1026,10 @@ async def stream_text(
         if effective_mode == "chat":
             yield DoneMarker().to_sse()
     except Exception:
-        logger.error("Error in stream_text", exc_info=True)
-        stack_trace = traceback.format_exc()
+        error_id = new_error_id()
+        logger.error("Error in stream_text [%s]", error_id, exc_info=True)
         yield part_to_sse(
-            ErrorPart(errorText=f"Error in stream_text: {stack_trace}"),
+            ErrorPart(errorText=f"{USER_MESSAGE_GENERIC} Reference: {error_id}."),
             mode=mode,
         )
         if mode == "chat":

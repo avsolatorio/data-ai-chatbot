@@ -4,8 +4,10 @@ import sys
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from app.api.v1 import (
     auth,
@@ -27,6 +29,7 @@ from app.config import settings
 from app.core.cache_headers import CachePreventionMiddleware
 from app.core.csrf import CSRFMiddleware
 from app.core.redis import close_redis_client
+from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
 
 # Resolve log level from config (DEBUG, INFO, WARNING, ERROR)
 _log_level_name = (settings.LOG_LEVEL or "INFO").strip().upper()
@@ -98,6 +101,31 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan,
 )
+
+
+async def exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Log errors with a unique ID and return a safe response; never expose internals."""
+    if isinstance(exc, HTTPException):
+        if exc.status_code >= 500:
+            error_id = new_error_id()
+            logger.error("Error [%s]: %s", error_id, exc, exc_info=True)
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"detail": USER_MESSAGE_GENERIC, "errorId": error_id},
+            )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+        )
+    error_id = new_error_id()
+    logger.error("Error [%s]: %s", error_id, exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": USER_MESSAGE_GENERIC, "errorId": error_id},
+    )
+
+
+app.add_exception_handler(Exception, exception_handler)
 
 # CORS Configuration
 app.add_middleware(
