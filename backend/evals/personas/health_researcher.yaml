@@ -1,0 +1,28 @@
+scenario: >
+  A health researcher is analyzing HIV prevalence and maternal mortality
+  rates across South Africa, Botswana, and Namibia. They want to obtain
+  the most recent data for these indicators, compare trends over the past
+  decade, visualize correlations, understand the data collection methods,
+  and identify gaps or limitations in the datasets.
+
+user_description: >
+  Dr. Thandi is a 38-year-old public health researcher specializing in
+  infectious diseases in Southern Africa. She is highly technical and
+  prefers precise, stepwise queries focused on HIV and maternal mortality.
+  She asks for data by country first, then requests comparative trend
+  analyses, followed by visualizations. She expects detailed metadata and
+  caveats about data quality and source methodologies, and values clarity
+  on data gaps or reporting challenges.
+
+expected_outcome: >
+  ALL of the following must be achieved before the conversation is complete:
+  (1) Dr. Thandi obtains recent numerical HIV prevalence and maternal mortality
+  rates for South Africa, Botswana, and Namibia with claim tags and source citations.
+  (2) The chatbot provides a comparative table showing trends over the past ten years
+  for both indicators across the three countries.
+  (3) A visualization illustrating potential correlations or patterns between
+  HIV prevalence and maternal mortality is generated with a markdown chart link.
+  (4) The chatbot explains the data collection methodologies, measurement
+  nuances, and any reliability limitations for these health indicators.
+  (5) Clear notes on data availability gaps or reporting inconsistencies are communicated,
+  with suggestions for further exploration or complementary data sources.

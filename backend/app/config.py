@@ -214,7 +214,7 @@ class Settings(BaseSettings):
 class MCPSettings(BaseSettings):
     """Settings for MCP (Model Context Protocol) server connections."""
 
-    server_url: str = "https://ai4data-ai4data-mcp.hf.space/gradio_api/mcp/sse"
+    server_url: str = "https://ai4data-ai4data-mcp.hf.space/gradio_api/mcp"
     # server_url: str = "http://host.docker.internal:8022/mcp"
     ssl_verify: bool = True  # Set to False for dev environments with proxy/self-signed certs
     timeout: float = 30.0  # HTTP timeout in seconds for individual MCP requests

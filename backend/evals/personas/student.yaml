@@ -1,0 +1,27 @@
+scenario: >
+  A graduate student is writing a thesis chapter on East African
+  economic development. They need to find Kenya's GDP data, compare
+  it with Tanzania in a table, visualize the comparison with a chart,
+  understand the methodology and limitations of the indicators, and
+  get follow-up suggestions leading to deeper analysis.
+
+user_description: >
+  Maria is a 24-year-old economics master's student at the University
+  of Nairobi. She is writing her thesis on economic growth in East Africa.
+  She speaks clearly but is not an expert in data APIs. She asks for data
+  step by step: first GDP, then comparison, then a chart, then methodology.
+  She occasionally asks follow-up questions about what the data means.
+  She always asks for the next logical step rather than dumping all
+  questions at once.
+
+expected_outcome: >
+  ALL of the following must be achieved before the conversation is complete:
+  (1) The student retrieves Kenya's GDP data with specific numerical values
+  wrapped in claim tags and a clear data source citation.
+  (2) The student gets a side-by-side comparison table of Kenya vs Tanzania
+  GDP data with units and time periods.
+  (3) A chart or visualization is generated showing the GDP trends,
+  presented as a clickable markdown link.
+  (4) The student learns about the methodology or limitations of the
+  GDP indicator, including the data source or measurement approach.
+  (5) The chatbot suggests relevant follow-up questions for deeper analysis.
