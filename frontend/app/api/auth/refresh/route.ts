@@ -1,28 +1,26 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
+import { getBearerTokenFromRequest } from "@/lib/auth/cookies";
 
 /**
  * Proxy endpoint for /api/auth/refresh
- * Forwards requests to FastAPI backend and forwards Set-Cookie headers to client
- * This allows the backend to refresh JWT tokens and update cookies
+ * Forwards requests to FastAPI backend and forwards Set-Cookie headers to client.
+ * Accepts auth from cookies (guest) or Authorization header (e.g. MSAL).
  */
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // Get cookies from the request
-    let cookieStore: Awaited<ReturnType<typeof cookies>>;
+    const bearerFromHeader = getBearerTokenFromRequest(request);
+
+    let cookieStore: Awaited<ReturnType<typeof cookies>> | null = null;
     try {
       cookieStore = await cookies();
     } catch {
-      return NextResponse.json(
-        { detail: "Not authenticated" },
-        { status: 401 }
-      );
+      // cookies() can throw during prerender
     }
-    const token = cookieStore.get("auth_token")?.value;
-    const guestSessionId = cookieStore.get("guest_session_id")?.value;
-    const userSessionId = cookieStore.get("user_session_id")?.value;
+    const token = cookieStore?.get("auth_token")?.value;
+    const guestSessionId = cookieStore?.get("guest_session_id")?.value;
+    const userSessionId = cookieStore?.get("user_session_id")?.value;
 
-    // Build cookie header with all session cookies
     const cookieHeader = [
       token && `auth_token=${token}`,
       guestSessionId && `guest_session_id=${guestSessionId}`,
@@ -31,8 +29,8 @@ export async function POST(_request: NextRequest) {
       .filter(Boolean)
       .join("; ");
 
-    // If no cookies at all, return 401
-    if (!cookieHeader) {
+    const bearerToken = bearerFromHeader ?? token;
+    if (!bearerToken && !cookieHeader) {
       return NextResponse.json(
         { detail: "Not authenticated" },
         { status: 401 }
@@ -47,12 +45,10 @@ export async function POST(_request: NextRequest) {
       "http://localhost:8001";
     const fastApiUrl = `${API_URL}/api/auth/refresh`;
 
-    // Build headers
     const headers: HeadersInit = {
       "Content-Type": "application/json",
-      Cookie: cookieHeader,
-      // Also send as Authorization header
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(cookieHeader && { Cookie: cookieHeader }),
+      ...(bearerToken && { Authorization: `Bearer ${bearerToken}` }),
     };
 
     // Add timeout to prevent hanging requests (5 seconds)

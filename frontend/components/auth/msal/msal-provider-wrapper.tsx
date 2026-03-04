@@ -11,9 +11,8 @@
  * 4. Use MsalAuthenticationTemplate for unauthenticated users so the library
  *    triggers loginRedirect when inProgress is None (avoids interaction_in_progress).
  *
- * After setting the UIT cookie (e.g. on return from redirect), we trigger router.refresh()
- * so the Server Component layout re-runs and getCurrentUser() sees the cookie; otherwise
- * the sidebar would show "Loading auth status" until a full page reload.
+ * After storing the token in session storage (e.g. on return from redirect), we trigger
+ * router.refresh(); the sidebar resolves the user client-side via /api/auth/me when using MSAL.
  *
  * @see https://learn.microsoft.com/en-us/entra/msal/javascript/browser/initialization
  * @see https://learn.microsoft.com/en-us/entra/msal/javascript/browser/errors
@@ -55,9 +54,8 @@ export function MsalProviderWrapper({ children }: { children: React.ReactNode })
     initStartedRef.current = true;
 
     /**
-     * Returns true if we just processed a redirect and set the UIT cookie.
-     * In that case the layout was server-rendered without the cookie, so we
-     * need to refresh to re-run getCurrentUser() and update the sidebar.
+     * Returns true if we just processed a redirect and stored the token in session storage.
+     * We refresh so the client sidebar can resolve the user via /api/auth/me.
      */
     async function runInit(): Promise<boolean> {
       if (typeof sessionStorage !== "undefined") {

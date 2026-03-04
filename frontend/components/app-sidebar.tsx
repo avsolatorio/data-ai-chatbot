@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
@@ -22,6 +22,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { apiFetch } from "@/lib/api-client";
+import { authProvider } from "@/lib/auth/config";
 import type { User } from "@/lib/auth-service-client";
 import { appConfig } from "@/lib/config";
 import { ApplicationStatusBanner } from "@/components/application-status-banner";
@@ -47,6 +48,29 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const { mutate } = useSWRConfig();
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  // MSAL: token lives in session storage; server has no cookie, so resolve user client-side.
+  const [msalUser, setMsalUser] = useState<User | null>(null);
+  const effectiveUser = user ?? msalUser ?? undefined;
+
+  useEffect(() => {
+    if (authProvider !== "msal" || user !== undefined) return;
+    let cancelled = false;
+    apiFetch("/api/auth/me", { credentials: "include" })
+      .then((res) => {
+        if (cancelled || !res.ok) return;
+        return res.json() as Promise<User>;
+      })
+      .then((data) => {
+        if (!cancelled && data) setMsalUser(data);
+      })
+      .catch(() => {
+        // Ignore; user remains undefined
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
 
   const handleDeleteAll = () => {
     const deletePromise = apiFetch("/api/history", {
@@ -83,7 +107,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 </span>
               </Link>
               <div className="flex flex-row gap-1">
-                {user && (
+                {effectiveUser && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -128,15 +152,15 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           variant="sidebar"
         />
         <SidebarContent>
-          <SidebarHistory user={user} />
+          <SidebarHistory user={effectiveUser} />
         </SidebarContent>
         <SidebarFooter>
           <FeedbackDialog
             onOpenChange={setFeedbackOpen}
             open={feedbackOpen}
           />
-          {user ? (
-            <SidebarUserNav user={user} />
+          {effectiveUser ? (
+            <SidebarUserNav user={effectiveUser} />
           ) : (
             <SidebarUserNav
               isLoading={true}

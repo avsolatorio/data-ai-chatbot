@@ -1,7 +1,7 @@
 /**
  * Server-side API client for Next.js server components.
  * Handles authentication for server-side requests to FastAPI backend.
- * Forwards auth cookies: auth_token (guest) and UIT (MSAL) so backend can resolve the user.
+ * Forwards auth cookies (guest). MSAL tokens are client-only in session storage.
  */
 
 import { cookies } from "next/headers";
@@ -50,8 +50,7 @@ export async function serverApiFetch(
   const guestSessionId = cookieStore?.get("guest_session_id")?.value;
   const userSessionId = cookieStore?.get("user_session_id")?.value;
 
-  // Build cookie header with all auth/session cookies (guest + MSAL)
-  // Backend uses UIT for MSAL, auth_token/guest_session_id for guest
+  // Build cookie header (guest cookies; optionally legacy UIT for backward compatibility)
   const cookieHeader = [
     authToken && `auth_token=${authToken}`,
     msalToken && `${cookiesKey.userImpersonationToken}=${msalToken}`,
@@ -64,7 +63,6 @@ export async function serverApiFetch(
   if (cookieHeader) {
     headers.set("Cookie", cookieHeader);
   }
-  // Prefer MSAL token for Authorization when present (backend prefers UIT when AUTH_PROVIDER=msal)
   const bearerToken = msalToken ?? authToken;
   if (bearerToken) {
     headers.set("Authorization", `Bearer ${bearerToken}`);

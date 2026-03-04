@@ -10,6 +10,7 @@ import type {
   IPublicClientApplication,
 } from "@azure/msal-browser";
 import { LogLevel } from "@azure/msal-browser";
+import { sessionStorageKeys } from "@/lib/constants";
 
 const isDev =
   typeof process !== "undefined" && process.env.NODE_ENV === "development";
@@ -24,7 +25,7 @@ export function devLog(level: "info" | "warn", ...args: unknown[]): void {
   }
 }
 
-/** Path for setting the impersonation token via HttpOnly cookie (server-side). */
+/** Path to validate token and clear guest cookies; client stores token in session storage only. */
 const MSAL_SET_TOKEN_PATH = "/api/auth/msal/set-token";
 
 export const loginRequest = {
@@ -60,7 +61,7 @@ export const msalConfig: Configuration = {
 };
 
 /**
- * Acquire user impersonation token and store in cookie.
+ * Acquire user impersonation token and store in session storage only (not in cookies).
  * User display name/email are available from MSAL account in memory (not stored in sessionStorage to avoid XSS-exposed PII).
  * Used by the MSAL provider after login. On failure, triggers login redirect.
  */
@@ -102,7 +103,13 @@ export async function fetchUserImpersonationToken(
         devLog("warn", "[MSAL] set-token API failed:", res.status);
         return false;
       }
-      devLog("info", "[MSAL] HttpOnly cookie set via API; token length:", hasToken ? accessToken.length : 0);
+      // Store token in session storage only; no token or PII in cookies.
+      try {
+        sessionStorage.setItem(sessionStorageKeys.msalUserImpersonationToken, accessToken);
+      } catch {
+        devLog("warn", "[MSAL] sessionStorage.setItem failed");
+      }
+      devLog("info", "[MSAL] Token stored in sessionStorage; token length:", hasToken ? accessToken.length : 0);
     }
 
     return true;

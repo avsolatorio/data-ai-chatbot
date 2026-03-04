@@ -6,11 +6,12 @@
 import { sessionStorageKeys } from "@/lib/constants";
 import { getApiUrl } from "./api-client";
 
-/** Clears auth-related sessionStorage (legacy USER_DATA, etc.) so no PII persists after logout. */
+/** Clears auth-related sessionStorage (tokens, legacy USER_DATA) so no PII or tokens persist after logout. */
 export function clearAuthSessionStorage(): void {
   if (typeof sessionStorage === "undefined") return;
   try {
     sessionStorage.removeItem(sessionStorageKeys.userData);
+    sessionStorage.removeItem(sessionStorageKeys.msalUserImpersonationToken);
   } catch {
     // Ignore quota or security errors
   }

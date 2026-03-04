@@ -1,27 +1,31 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
+import { getBearerTokenFromRequest } from "@/lib/auth/cookies";
 import { cookiesKey } from "@/lib/constants";
 
 /**
  * Proxy endpoint for /api/auth/me
  * Forwards requests to FastAPI backend and returns user info.
- * Forwards auth_token (guest) or UIT (MSAL) from cookies so backend can validate.
+ * Accepts auth from: (1) Authorization header (MSAL token from session storage),
+ * or (2) cookies (auth_token / UIT / guest_session_id / user_session_id).
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    let cookieStore: Awaited<ReturnType<typeof cookies>>;
+    const bearerFromHeader = getBearerTokenFromRequest(request);
+
+    let authToken: string | undefined;
+    let msalToken: string | undefined;
+    let guestSessionId: string | undefined;
+    let userSessionId: string | undefined;
     try {
-      cookieStore = await cookies();
+      const cookieStore = await cookies();
+      authToken = cookieStore.get("auth_token")?.value;
+      msalToken = cookieStore.get(cookiesKey.userImpersonationToken)?.value;
+      guestSessionId = cookieStore.get("guest_session_id")?.value;
+      userSessionId = cookieStore.get("user_session_id")?.value;
     } catch {
-      return NextResponse.json(
-        { detail: "Not authenticated" },
-        { status: 401 },
-      );
+      // cookies() can throw during prerender; continue if we have Bearer from header
     }
-    const authToken = cookieStore.get("auth_token")?.value;
-    const msalToken = cookieStore.get(cookiesKey.userImpersonationToken)?.value;
-    const guestSessionId = cookieStore.get("guest_session_id")?.value;
-    const userSessionId = cookieStore.get("user_session_id")?.value;
 
     const cookieHeader = [
       authToken && `auth_token=${authToken}`,
@@ -32,7 +36,8 @@ export async function GET(_request: NextRequest) {
       .filter(Boolean)
       .join("; ");
 
-    if (!cookieHeader) {
+    const bearerToken = bearerFromHeader ?? authToken ?? msalToken;
+    if (!bearerToken && !cookieHeader) {
       return NextResponse.json(
         { detail: "Not authenticated" },
         { status: 401 },
@@ -45,9 +50,8 @@ export async function GET(_request: NextRequest) {
       "http://localhost:8001";
     const fastApiUrl = `${API_URL}/api/auth/me`;
 
-    const bearerToken = authToken ?? msalToken;
     const headers: HeadersInit = {
-      Cookie: cookieHeader,
+      ...(cookieHeader && { Cookie: cookieHeader }),
       ...(bearerToken && { Authorization: `Bearer ${bearerToken}` }),
     };
 

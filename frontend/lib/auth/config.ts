@@ -21,10 +21,10 @@ export function getBearerTokenCookieName(): string {
   return authProvider === "msal" ? cookiesKey.userImpersonationToken : cookiesKey.authToken;
 }
 
-/** Cookie names that indicate an authenticated request (used by proxy). */
+/** Cookie names that indicate an authenticated request (used by proxy). MSAL uses session storage + Authorization header only; no auth cookies. */
 export function getAuthCookieNamesForProxy(): string[] {
   if (authProvider === "msal") {
-    return [cookiesKey.userImpersonationToken];
+    return [];
   }
   return [
     cookiesKey.authToken,

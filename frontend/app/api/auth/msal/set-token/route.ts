@@ -1,16 +1,15 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 
-const COOKIE_NAME_UIT = "UIT";
 const GUEST_COOKIE_NAMES = ["auth_token", "guest_session_id", "user_session_id"] as const;
 const MAX_TOKEN_LENGTH = 20_000;
-const COOKIE_MAX_AGE_SECONDS = 86400; // 1 day
 
 /**
- * Sets the MSAL user impersonation token in an HttpOnly cookie so it is not
- * accessible to JavaScript (mitigates XSS token theft). Also clears guest
- * auth cookies so MSAL is the single identity.
- * Only accepts POST with JSON body { token: string }.
+ * Validates the MSAL user impersonation token and clears guest auth cookies so
+ * MSAL is the single identity. Tokens must be stored in session storage on the
+ * client, not in cookies; no token or user id is stored in cookies.
+ * Only accepts POST with JSON body { token: string }. Client is responsible
+ * for storing the token in sessionStorage after a successful response.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -26,20 +25,12 @@ export async function POST(request: NextRequest) {
     }
 
     const isProduction = process.env.NODE_ENV === "production";
-    const secure = isProduction ? "; Secure" : "";
-    const expires = new Date(Date.now() + COOKIE_MAX_AGE_SECONDS * 1000).toUTCString();
-
     const cookieStore = await cookies();
     const setCookieHeaders: string[] = [];
-
-    // Set HttpOnly cookie for the impersonation token (not readable by JS).
-    // Token is a JWT (base64url only); no quoting so clients do not send quotes back (avoids "Invalid header padding").
-    setCookieHeaders.push(
-      `${COOKIE_NAME_UIT}=${token}; Path=/; Expires=${expires}; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secure}; HttpOnly`
-    );
-
-    // Clear guest cookies so MSAL is the single identity
     const past = new Date(0).toUTCString();
+
+    // Clear guest cookies so MSAL is the single identity. Do not set any
+    // cookie containing the token or user id (per MSAL / security requirements).
     for (const name of GUEST_COOKIE_NAMES) {
       setCookieHeaders.push(
         `${name}=; Path=/; Expires=${past}; SameSite=Lax${isProduction ? "; Secure" : ""}; HttpOnly`
@@ -47,7 +38,8 @@ export async function POST(request: NextRequest) {
     }
 
     const nextResponse = NextResponse.json({ success: true });
-    nextResponse.headers.set("Set-Cookie", setCookieHeaders[0] ?? "");
+    const first = setCookieHeaders[0];
+    if (first) nextResponse.headers.set("Set-Cookie", first);
     for (let i = 1; i < setCookieHeaders.length; i++) {
       nextResponse.headers.append("Set-Cookie", setCookieHeaders[i] ?? "");
     }

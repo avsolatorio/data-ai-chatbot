@@ -21,8 +21,10 @@ export const cookiesKey = {
   userImpersonationToken: "UIT",
 } as const;
 
-/** SessionStorage keys used by MSAL (user data for display). */
+/** SessionStorage keys used by MSAL and auth. */
 export const sessionStorageKeys = {
   userData: "USER_DATA",
   msal: "MSAL_DATA",
+  /** MSAL user impersonation token only; no PII. Required to be in session storage, not cookies. */
+  msalUserImpersonationToken: "MSAL_UIT",
 } as const;
