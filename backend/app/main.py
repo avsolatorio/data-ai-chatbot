@@ -28,6 +28,7 @@ from app.api.v1 import (
 from app.config import settings
 from app.core.cache_headers import CachePreventionMiddleware
 from app.core.csrf import CSRFMiddleware
+from app.core.rate_limit import RateLimitMiddleware
 from app.core.redis import close_redis_client
 from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
 
@@ -135,6 +136,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Global API rate limit (max requests per client per window; 429 when exceeded)
+if settings.RATE_LIMIT_ENABLED:
+    app.add_middleware(RateLimitMiddleware)
 
 # CSRF: validate Origin/Referer for state-changing requests (POST/PUT/PATCH/DELETE)
 app.add_middleware(CSRFMiddleware)

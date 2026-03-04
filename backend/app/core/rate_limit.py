@@ -4,11 +4,16 @@ Uses Redis if available, falls back to in-memory storage.
 """
 
 import asyncio
+import hashlib
 import time
 from collections import defaultdict
-from typing import Optional
+from typing import Callable, Optional
 
 from fastapi import HTTPException, Request, status
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse, Response
+
+from app.config import settings
 
 # In-memory fallback storage (simple dict)
 _memory_store: dict[str, list[float]] = defaultdict(list)
@@ -168,3 +173,82 @@ async def get_rate_limit_info(
             "reset_at": current_time + window_seconds,
             "count": len(requests),
         }
+
+
+def _client_ip(request: Request) -> str:
+    """Resolve client IP, honoring X-Forwarded-For when behind a proxy."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    if request.client:
+        return request.client.host
+    return "unknown"
+
+
+def get_rate_limit_identifier(request: Request) -> str:
+    """
+    Rate limit by authenticated user when possible, otherwise by IP.
+    Uses JWT sub, guest session user id, or MSAL token hash; falls back to IP.
+    """
+    # JWT (auth_token cookie or Authorization header)
+    token = (
+        request.cookies.get("auth_token")
+        or (request.headers.get("Authorization") or "").replace("Bearer ", "").strip()
+    )
+    if token:
+        from app.core.auth import decode_access_token
+
+        payload = decode_access_token(token)
+        if payload and payload.get("sub"):
+            return f"u:{payload['sub']}"
+
+    # Guest session cookie
+    guest_token = request.cookies.get("guest_session_id")
+    if guest_token:
+        from app.core.auth import validate_session_token
+
+        user_id = validate_session_token(guest_token)
+        if user_id:
+            return f"u:{user_id}"
+
+    # MSAL cookie (same token = same bucket; no Azure validation in middleware)
+    if getattr(settings, "AUTH_PROVIDER", "") == "msal":
+        msal_cookie = request.cookies.get(getattr(settings, "MSAL_AUTH_COOKIE_NAME", "UIT"), "")
+        if msal_cookie:
+            digest = hashlib.sha256(msal_cookie.encode()).hexdigest()[:32]
+            return f"m:{digest}"
+
+    return f"ip:{_client_ip(request)}"
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """
+    Global API rate limit: max N requests per user (if authenticated) or per IP.
+    Applies only to /api/* paths. Returns 429 Too Many Requests when exceeded.
+    """
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        if not settings.RATE_LIMIT_ENABLED:
+            return await call_next(request)
+
+        if not request.url.path.startswith("/api"):
+            return await call_next(request)
+
+        try:
+            await check_rate_limit(
+                request,
+                key_prefix="api_global",
+                max_requests=settings.RATE_LIMIT_REQUESTS,
+                window_seconds=settings.RATE_LIMIT_WINDOW_SECONDS,
+                identifier=get_rate_limit_identifier(request),
+            )
+        except HTTPException as exc:
+            if exc.status_code == status.HTTP_429_TOO_MANY_REQUESTS:
+                return JSONResponse(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    content={"detail": exc.detail},
+                    headers=dict(exc.headers) if exc.headers else None,
+                )
+            raise
+
+        return await call_next(request)

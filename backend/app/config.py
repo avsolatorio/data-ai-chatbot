@@ -143,6 +143,11 @@ class Settings(BaseSettings):
     # Redis - Optional: Only needed for resumable streams
     REDIS_URL: str = ""
 
+    # Rate limiting (global API) – per user (if authenticated) or per IP; returns 429 when exceeded
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_REQUESTS: int = 50  # Max requests per window
+    RATE_LIMIT_WINDOW_SECONDS: int = 60  # Window length in seconds (e.g. 1 minute)
+
     # Password Security
     ENABLE_HIBP_CHECK: bool = False  # Enable Have I Been Pwned password checking
 
