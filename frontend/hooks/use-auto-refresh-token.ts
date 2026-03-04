@@ -2,18 +2,18 @@
 
 import { useEffect, useRef } from "react";
 import { getApiUrl } from "@/lib/api-client";
+import { authProvider } from "@/lib/auth/config";
 
 /**
- * Hook to automatically refresh JWT tokens before they expire.
+ * Hook to automatically refresh JWT tokens before they expire (guest auth only).
  *
  * This implements proactive token refresh to prevent users from being logged out.
  * Tokens are refreshed every 25 minutes (for 30-minute tokens) to ensure
  * seamless authentication without interruption.
  *
- * The refresh happens by calling /api/auth/me, which automatically:
- * - Restores users from session cookies if JWT expired
- * - Issues new JWT tokens when restoration occurs
- * - Forwards Set-Cookie headers to update browser cookies
+ * The refresh happens by calling /api/auth/refresh (then /api/auth/me on 401),
+ * which uses cookies. For MSAL, tokens live in session storage and refresh is
+ * handled by the MSAL SDK; this hook does nothing when authProvider === "msal".
  */
 export function useAutoRefreshToken() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -22,6 +22,12 @@ export function useAutoRefreshToken() {
   useEffect(() => {
     // Only run on client side
     if (typeof window === "undefined") {
+      return;
+    }
+
+    // MSAL: token is in session storage; refresh is handled by MSAL SDK.
+    // This hook only sends cookies, so it would always get 401 for MSAL.
+    if (authProvider === "msal") {
       return;
     }
 

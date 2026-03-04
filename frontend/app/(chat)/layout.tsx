@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { DataStreamProvider } from "@/components/data-stream-provider";
 import { PcnProviderClient } from "@/components/data360/pcn-provider-client";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { authProvider } from "@/lib/auth/config";
 import { getCurrentUser } from "@/lib/auth-service";
 import type { User } from "@/lib/auth-service-client";
 
@@ -27,7 +28,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 }
 
 async function SidebarWrapper({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser();
+  // MSAL: token is in session storage; server has no cookie. Skip server fetch to avoid a redundant 401 and let the client sidebar fetch once with the token.
+  const user =
+    authProvider === "msal" ? null : await getCurrentUser();
 
   // Get sidebar state from cookies (handle prerendering gracefully)
   let isCollapsed = true; // Default to collapsed

@@ -53,7 +53,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const effectiveUser = user ?? msalUser ?? undefined;
 
   useEffect(() => {
-    if (authProvider !== "msal" || user !== undefined) return;
+    // For MSAL we pass user=null/undefined from layout (no server cookie). Run fetch when we don't have a user yet.
+    if (authProvider !== "msal" || user != null) return;
     let cancelled = false;
     apiFetch("/api/auth/me", { credentials: "include" })
       .then((res) => {

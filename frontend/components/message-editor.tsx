@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { deleteTrailingMessages } from "@/app/(chat)/actions";
+import { getAuthTokenFromDocument } from "@/lib/auth/cookies";
 import type { ChatMessage } from "@/lib/types";
 import { getTextFromMessage } from "@/lib/utils";
 import { Button } from "./ui/button";
@@ -80,9 +81,10 @@ export function MessageEditor({
           onClick={async () => {
             setIsSubmitting(true);
 
-            await deleteTrailingMessages({
-              id: message.id,
-            });
+            await deleteTrailingMessages(
+              { id: message.id },
+              getAuthTokenFromDocument()
+            );
 
             setMessages((messages) => {
               const index = messages.findIndex((m) => m.id === message.id);

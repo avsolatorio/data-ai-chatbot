@@ -33,11 +33,18 @@ export async function generateTitleFromUserMessage({
   return title;
 }
 
-export async function deleteTrailingMessages({ id }: { id: string }) {
-  const response = await serverApiFetch("/api/chat/messages", {
-    method: "DELETE",
-    body: JSON.stringify({ id, includeTrailing: true }),
-  });
+export async function deleteTrailingMessages(
+  { id }: { id: string },
+  bearerToken?: string | null
+) {
+  const response = await serverApiFetch(
+    "/api/chat/messages",
+    {
+      method: "DELETE",
+      body: JSON.stringify({ id, includeTrailing: true }),
+    },
+    { bearerToken: bearerToken ?? undefined }
+  );
 
   if (!response.ok) {
     console.error(
@@ -48,17 +55,24 @@ export async function deleteTrailingMessages({ id }: { id: string }) {
   }
 }
 
-export async function updateChatVisibility({
-  chatId,
-  visibility,
-}: {
-  chatId: string;
-  visibility: VisibilityType;
-}) {
-  const response = await serverApiFetch("/api/chat/visibility", {
-    method: "PATCH",
-    body: JSON.stringify({ chatId, visibility }),
-  });
+export async function updateChatVisibility(
+  {
+    chatId,
+    visibility,
+  }: {
+    chatId: string;
+    visibility: VisibilityType;
+  },
+  bearerToken?: string | null
+) {
+  const response = await serverApiFetch(
+    "/api/chat/visibility",
+    {
+      method: "PATCH",
+      body: JSON.stringify({ chatId, visibility }),
+    },
+    { bearerToken: bearerToken ?? undefined }
+  );
 
   if (!response.ok) {
     console.error(

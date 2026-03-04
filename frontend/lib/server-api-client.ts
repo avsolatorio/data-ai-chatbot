@@ -1,8 +1,13 @@
 /**
- * Server-side API client for Next.js server components.
- * Handles authentication for server-side requests to FastAPI backend.
- * Forwards auth cookies (guest). MSAL tokens are client-only in session storage.
+ * Server-side API client for Next.js server components and route handlers.
+ * Auth: cookies (guest) or optional options.bearerToken (e.g. from getBearerTokenFromRequest(request)).
+ * MSAL tokens are client-only; pass options.bearerToken when the caller has the token.
  */
+
+export type ServerApiFetchOptions = {
+  /** When provided (e.g. from getBearerTokenFromRequest in a route handler), used for Authorization. */
+  bearerToken?: string | null;
+};
 
 import { cookies } from "next/headers";
 import { cookiesKey } from "@/lib/constants";
@@ -24,7 +29,8 @@ const SERVER_API_URL =
  */
 export async function serverApiFetch(
   endpoint: string,
-  init?: RequestInit
+  init?: RequestInit,
+  options?: ServerApiFetchOptions
 ): Promise<Response> {
   // For server-side, always use SERVER_API_URL directly (bypass Next.js proxy)
   // Server-side fetch requires absolute URLs, and we don't need the proxy for CORS
@@ -63,7 +69,7 @@ export async function serverApiFetch(
   if (cookieHeader) {
     headers.set("Cookie", cookieHeader);
   }
-  const bearerToken = msalToken ?? authToken;
+  const bearerToken = options?.bearerToken ?? msalToken ?? authToken;
   if (bearerToken) {
     headers.set("Authorization", `Bearer ${bearerToken}`);
   }

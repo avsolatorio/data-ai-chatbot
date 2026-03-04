@@ -1,22 +1,19 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Chat } from "@/components/chat";
-import { DataStreamHandler } from "@/components/data-stream-handler";
+import { ChatPageClient } from "@/app/(chat)/chat/[id]/chat-page-client";
+import {
+  type ChatData,
+  ChatPageContent,
+  normalizeMessagesFromApi,
+} from "@/app/(chat)/chat/[id]/chat-page-shared";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
-import type { Chat as DBChat, DBMessage } from "@/lib/db/schema";
+import { authProvider } from "@/lib/auth/config";
 import { ChatSDKError } from "@/lib/errors";
 import { serverApiFetch } from "@/lib/server-api-client";
-import { convertToUIMessages } from "@/lib/utils";
 
 // Note: This page is automatically dynamic because it uses cookies() and serverApiFetch()
 // No need to export dynamic = "force-dynamic" as it conflicts with cacheComponents config
-
-type ChatData = {
-  chat: DBChat;
-  messages: DBMessage[];
-  isOwner: boolean;
-};
 
 export default function Page(props: { params: Promise<{ id: string }> }) {
   return (
@@ -29,11 +26,13 @@ export default function Page(props: { params: Promise<{ id: string }> }) {
 async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  // Note: Authentication is handled by the middleware (proxy.ts)
-  // If no user exists, the middleware redirects to /api/auth/guest
-  // We can proceed directly to fetch the chat data
+  // MSAL: token is in session storage only; server has no cookie. Fetch chat on the client
+  // so the request includes Authorization header from session storage.
+  if (authProvider === "msal") {
+    return <ChatPageClient id={id} />;
+  }
 
-  // Fetch chat data from backend API
+  // Guest: fetch chat on the server (cookies are available).
   let chatData: ChatData;
   try {
     const response = await serverApiFetch(`/api/chat/${id}`);
@@ -61,7 +60,7 @@ async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
       const errorData = await response.json().catch(() => ({}));
       throw new ChatSDKError(
         errorData.code || "bad_request:api",
-        errorData.cause || `Failed to fetch chat: ${response.statusText}`
+        errorData.cause || `Failed to fetch chat: ${response.statusText}`,
       );
     }
 
@@ -80,56 +79,18 @@ async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   }
 
   const { chat, messages: messagesFromApi, isOwner } = chatData;
+  const uiMessages = normalizeMessagesFromApi(chat, messagesFromApi);
 
-  // Convert backend message format to DBMessage format
-  // Backend returns createdAt as ISO string, but convertToUIMessages expects Date
-  const messagesFromDb = messagesFromApi.map(
-    (msg: DBMessage) =>
-      ({
-        id: msg.id,
-        chatId: chat.id,
-        role: msg.role as "user" | "assistant" | "system",
-        parts: msg.parts ?? [],
-        attachments: msg.attachments ?? [],
-        createdAt: msg.createdAt,
-      }) as DBMessage
-  );
-
-  const uiMessages = convertToUIMessages(messagesFromDb);
-
-  // Get chat model from cookie (only needed for this page, not for auth)
   const cookieStore = await cookies();
-  const chatModelFromCookie = cookieStore.get("chat-model");
-
-  if (!chatModelFromCookie) {
-    return (
-      <>
-        <Chat
-          autoResume={true}
-          id={chat.id}
-          initialChatModel={DEFAULT_CHAT_MODEL}
-          initialMessages={uiMessages}
-          initialVisibilityType={chat.visibility}
-          isReadonly={!isOwner}
-          lastContext={chat.lastContext ?? undefined}
-        />
-        <DataStreamHandler />
-      </>
-    );
-  }
+  const chatModel =
+    cookieStore.get("chat-model")?.value?.trim() || DEFAULT_CHAT_MODEL;
 
   return (
-    <>
-      <Chat
-        autoResume={true}
-        id={chat.id}
-        initialChatModel={chatModelFromCookie.value}
-        initialMessages={uiMessages}
-        initialVisibilityType={chat.visibility}
-        isReadonly={!isOwner}
-        lastContext={chat.lastContext ?? undefined}
-      />
-      <DataStreamHandler />
-    </>
+    <ChatPageContent
+      chat={chat}
+      initialChatModel={chatModel}
+      initialMessages={uiMessages}
+      isOwner={isOwner}
+    />
   );
 }

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
 import { updateChatVisibility } from "@/app/(chat)/actions";
+import { getAuthTokenFromDocument } from "@/lib/auth/cookies";
 import {
   type ChatHistory,
   getChatHistoryPaginationKey,
@@ -43,10 +44,10 @@ export function useChatVisibility({
     setLocalVisibility(updatedVisibilityType);
     mutate(unstable_serialize(getChatHistoryPaginationKey));
 
-    updateChatVisibility({
-      chatId,
-      visibility: updatedVisibilityType,
-    });
+    updateChatVisibility(
+      { chatId, visibility: updatedVisibilityType },
+      getAuthTokenFromDocument()
+    );
   };
 
   return { visibilityType, setVisibilityType };

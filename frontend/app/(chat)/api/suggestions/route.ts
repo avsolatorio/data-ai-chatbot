@@ -4,11 +4,6 @@ import { getBearerTokenFromRequest } from "@/lib/auth/cookies";
 import { ChatSDKError } from "@/lib/errors";
 import { serverApiFetch } from "@/lib/server-api-client";
 
-const API_URL =
-  process.env.SERVER_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:8001";
-
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const documentId = searchParams.get("documentId");
@@ -21,22 +16,17 @@ export async function GET(request: NextRequest) {
   }
 
   const user = await getCurrentUser();
-  const bearerFromRequest = getBearerTokenFromRequest(request);
+  const bearerToken = getBearerTokenFromRequest(request);
 
-  if (!user && !bearerFromRequest) {
+  if (!user && !bearerToken) {
     return new ChatSDKError("unauthorized:suggestions").toResponse();
   }
 
-  const url = `${API_URL}/api/chat/suggestions?documentId=${documentId}`;
-  const init: RequestInit = {
-    cache: "no-store",
-    ...(bearerFromRequest && {
-      headers: { Authorization: `Bearer ${bearerFromRequest}` },
-    }),
-  };
-  const response = bearerFromRequest
-    ? await fetch(url, init)
-    : await serverApiFetch(`/api/chat/suggestions?documentId=${documentId}`);
+  const response = await serverApiFetch(
+    `/api/chat/suggestions?documentId=${documentId}`,
+    { cache: "no-store" },
+    { bearerToken: bearerToken ?? undefined }
+  );
 
   if (!response.ok) {
     return new Response(response.body, {

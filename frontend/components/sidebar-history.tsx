@@ -110,6 +110,8 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     mutate,
   } = useSWRInfinite<ChatHistory>(getChatHistoryPaginationKey, fetcher, {
     fallbackData: [],
+    // Avoid duplicate requests when React Strict Mode remounts the component.
+    dedupingInterval: 5000,
   });
 
   const router = useRouter();
