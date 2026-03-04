@@ -14,9 +14,10 @@ from app.core.auth import (
     decode_access_token,
     generate_session_token,
     get_password_hash,
-    validate_session_token,
+    validate_session_token_async,
     verify_password,
 )
+from app.core.auth.session_token import is_opaque_token
 from app.core.cookie_utils import delete_auth_cookie, set_auth_cookie
 from app.core.csrf import validate_csrf
 from app.core.database import get_db
@@ -41,6 +42,7 @@ from app.db.queries.password_reset_queries import (
     mark_token_as_used,
 )
 from app.db.queries.revoked_token_queries import revoke_token
+from app.db.queries.session_queries import delete_session_by_id
 from app.db.queries.user_queries import (
     create_guest_user,
     create_user,
@@ -209,8 +211,8 @@ async def login(
     )
 
     # Also set user_session_id cookie for regular users (fallback if JWT key is lost)
-    # Use HMAC-signed token instead of raw user ID for security
-    session_token = generate_session_token(str(user.id))
+    # Opaque session id only; user_id stored server-side
+    session_token = await generate_session_token(db, str(user.id), "regular")
     set_auth_cookie(
         response=response,
         key="user_session_id",
@@ -304,8 +306,8 @@ async def register(
         guest_session_id = http_request.cookies.get("guest_session_id")
         guest_user_id = None
         if guest_session_id:
-            # Validate session token (HMAC-signed user ID)
-            validated_user_id = validate_session_token(guest_session_id)
+            # Opaque session or legacy token
+            validated_user_id = await validate_session_token_async(db, guest_session_id)
             if validated_user_id:
                 try:
                     guest_user_id = UUID(validated_user_id)
@@ -387,13 +389,15 @@ async def register(
             max_age=30 * 60,  # 30 minutes
         )
 
-        # Clear guest_session_id cookie (user is now registered, no longer a guest)
-        if guest_user_id:
+        # Clear guest_session_id cookie and invalidate server-side session
+        if guest_session_id:
+            if is_opaque_token(guest_session_id):
+                await delete_session_by_id(db, guest_session_id)
             delete_auth_cookie(response=response, key="guest_session_id")
 
         # Set user_session_id cookie for regular users (fallback if JWT key is lost)
-        # Use HMAC-signed token instead of raw user ID for security
-        session_token = generate_session_token(str(user.id))
+        # Opaque session id only; user_id stored server-side
+        session_token = await generate_session_token(db, str(user.id), "regular")
         set_auth_cookie(
             response=response,
             key="user_session_id",
@@ -430,8 +434,7 @@ async def create_guest(http_request: Request, db: AsyncSession = Depends(get_db)
     user = None
 
     if guest_session_id:
-        # Validate session token (HMAC-signed user ID)
-        validated_user_id = validate_session_token(guest_session_id)
+        validated_user_id = await validate_session_token_async(db, guest_session_id)
         if validated_user_id:
             # Try to restore existing guest user
             try:
@@ -485,9 +488,8 @@ async def create_guest(http_request: Request, db: AsyncSession = Depends(get_db)
     )
 
     # Long-lived guest session ID (400 days - browser max)
-    # This allows restoring the same guest user after JWT expires
-    # Use HMAC-signed token instead of raw user ID for security
-    guest_session_token = generate_session_token(str(user.id))
+    # Opaque session id only; user_id stored server-side
+    guest_session_token = await generate_session_token(db, str(user.id), "guest")
     set_auth_cookie(
         response=response,
         key="guest_session_id",
@@ -533,6 +535,14 @@ async def logout(http_request: Request, db: AsyncSession = Depends(get_db)):
                     )
                 except (ValueError, TypeError) as e:
                     logger.warning("Failed to revoke token on logout: %s", e)
+
+    # Invalidate server-side sessions for opaque cookies
+    for cookie_name, cookie_value in [
+        ("guest_session_id", http_request.cookies.get("guest_session_id")),
+        ("user_session_id", http_request.cookies.get("user_session_id")),
+    ]:
+        if cookie_value and is_opaque_token(cookie_value):
+            await delete_session_by_id(db, cookie_value)
 
     response = JSONResponse(content={"success": True})
     delete_auth_cookie(response=response, key="auth_token")
@@ -612,10 +622,9 @@ async def get_current_user_info(
             max_age=30 * 60,  # 30 minutes
         )
 
-        # Refresh session ID cookie (sliding expiry - 400 days)
+        # Refresh session ID cookie (sliding expiry - 400 days); opaque id only
         if user_type == "guest":
-            # Refresh guest_session_id cookie (must be HMAC-signed token, not raw user ID)
-            guest_session_token = generate_session_token(str(user.id))
+            guest_session_token = await generate_session_token(db, str(user.id), "guest")
             set_auth_cookie(
                 response=response,
                 key="guest_session_id",
@@ -623,8 +632,7 @@ async def get_current_user_info(
                 max_age=400 * 24 * 60 * 60,  # 400 days (browser maximum)
             )
         else:
-            # Refresh user_session_id cookie for regular users (must be HMAC-signed token)
-            user_session_token = generate_session_token(str(user.id))
+            user_session_token = await generate_session_token(db, str(user.id), "regular")
             set_auth_cookie(
                 response=response,
                 key="user_session_id",
@@ -725,9 +733,9 @@ async def refresh_token(
         max_age=30 * 60,  # 30 minutes
     )
 
-    # Refresh session ID cookie (sliding expiry)
+    # Refresh session ID cookie (sliding expiry); opaque id only
     if user_type == "guest":
-        guest_session_token = generate_session_token(str(user.id))
+        guest_session_token = await generate_session_token(db, str(user.id), "guest")
         set_auth_cookie(
             response=response,
             key="guest_session_id",
@@ -735,7 +743,7 @@ async def refresh_token(
             max_age=400 * 24 * 60 * 60,  # 400 days (browser maximum)
         )
     else:
-        user_session_token = generate_session_token(str(user.id))
+        user_session_token = await generate_session_token(db, str(user.id), "regular")
         set_auth_cookie(
             response=response,
             key="user_session_id",
@@ -987,8 +995,7 @@ async def confirm_password_reset(
     )
 
     # Also set user_session_id cookie for regular users (fallback if JWT key is lost)
-    # Use HMAC-signed token instead of raw user ID for security
-    session_token = generate_session_token(str(user.id))
+    session_token = await generate_session_token(db, str(user.id), "regular")
     set_auth_cookie(
         response=response,
         key="user_session_id",

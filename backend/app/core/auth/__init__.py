@@ -13,7 +13,11 @@ from app.core.auth.azure import (
 )
 from app.core.auth.jwt import create_access_token, decode_access_token
 from app.core.auth.password import get_password_hash, verify_password
-from app.core.auth.session_token import generate_session_token, validate_session_token
+from app.core.auth.session_token import (
+    generate_session_token,
+    validate_session_token,
+    validate_session_token_async,
+)
 
 __all__ = [
     "create_access_token",
@@ -23,5 +27,6 @@ __all__ = [
     "generate_session_token",
     "validate_azure_access_token_async",
     "validate_session_token",
+    "validate_session_token_async",
     "verify_password",
 ]

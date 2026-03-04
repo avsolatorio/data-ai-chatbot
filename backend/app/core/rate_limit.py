@@ -202,14 +202,19 @@ def get_rate_limit_identifier(request: Request) -> str:
         if payload and payload.get("sub"):
             return f"u:{payload['sub']}"
 
-    # Guest session cookie
+    # Guest session cookie: legacy (user_id:hmac) or opaque (lookup not available in sync)
     guest_token = request.cookies.get("guest_session_id")
     if guest_token:
-        from app.core.auth import validate_session_token
+        if ":" in guest_token:
+            from app.core.auth import validate_session_token
 
-        user_id = validate_session_token(guest_token)
-        if user_id:
-            return f"u:{user_id}"
+            user_id = validate_session_token(guest_token)
+            if user_id:
+                return f"u:{user_id}"
+        else:
+            # Opaque token: rate limit by session id hash (no user id in cookie)
+            digest = hashlib.sha256(guest_token.encode()).hexdigest()[:24]
+            return f"s:{digest}"
 
     # MSAL cookie (same token = same bucket; no Azure validation in middleware)
     if getattr(settings, "AUTH_PROVIDER", "") == "msal":

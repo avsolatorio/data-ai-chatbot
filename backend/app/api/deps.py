@@ -14,7 +14,7 @@ from app.core.auth import (
     decode_access_token,
     get_azure_claims_for_user,
     validate_azure_access_token_async,
-    validate_session_token,
+    validate_session_token_async,
 )
 from app.core.database import get_db
 from app.db.queries.revoked_token_queries import is_token_revoked
@@ -178,8 +178,8 @@ async def get_current_user(
         guest_session_id is not None,
     )
     if guest_session_id:
-        # guest_session_id is an HMAC-signed token, validate it first
-        validated_user_id = validate_session_token(guest_session_id)
+        # Opaque session id (lookup) or legacy user_id:hmac (backward compat)
+        validated_user_id = await validate_session_token_async(db, guest_session_id)
         logger.debug(
             "guest_session_id validation: token=%s, validated_user_id=%s",
             guest_session_id[:20] + "..." if len(guest_session_id) > 20 else guest_session_id,
@@ -253,8 +253,8 @@ async def get_current_user(
         user_session_id is not None,
     )
     if user_session_id:
-        # Validate session token (HMAC-signed user ID)
-        validated_user_id = validate_session_token(user_session_id)
+        # Opaque session id (lookup) or legacy user_id:hmac (backward compat)
+        validated_user_id = await validate_session_token_async(db, user_session_id)
         logger.debug(
             "user_session_id validation: token=%s, validated_user_id=%s",
             user_session_id[:20] + "..." if len(user_session_id) > 20 else user_session_id,
