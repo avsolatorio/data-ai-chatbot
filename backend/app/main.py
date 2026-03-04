@@ -147,6 +147,17 @@ app.add_middleware(CSRFMiddleware)
 # Cache prevention: no-store for all responses to avoid form/sensitive data caching
 app.add_middleware(CachePreventionMiddleware)
 
+
+@app.middleware("http")
+async def session_version_header(request: Request, call_next):
+    """Add X-Session-Version to /api/auth/me responses so MSAL clients can force logout on deploy."""
+    response = await call_next(request)
+    if request.url.path == "/api/auth/me":
+        version = getattr(settings, "SESSION_VERSION", "1")
+        response.headers["X-Session-Version"] = version
+    return response
+
+
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])

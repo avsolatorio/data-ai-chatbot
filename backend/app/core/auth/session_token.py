@@ -62,7 +62,7 @@ def validate_session_token(token: str) -> Optional[str]:
 async def validate_session_token_async(db: AsyncSession, token: str) -> Optional[str]:
     """
     Resolve session cookie to user_id. Supports:
-    - Opaque token: lookup in AuthSession (no PII in cookie).
+    - Opaque token: lookup in AuthSession (no PII in cookie); must match SESSION_VERSION.
     - Legacy token (user_id:hmac): validate in-process for backward compat.
     """
     if not token:
@@ -70,7 +70,8 @@ async def validate_session_token_async(db: AsyncSession, token: str) -> Optional
     if ":" in token:
         user_id = _validate_legacy_hmac_token(token)
         return user_id
-    user_id = await get_user_id_by_session(db, token)
+    current_version = getattr(settings, "SESSION_VERSION", None) or "1"
+    user_id = await get_user_id_by_session(db, token, current_version=current_version)
     return str(user_id) if user_id else None
 
 
@@ -86,7 +87,10 @@ async def generate_session_token(
     """
     session_id = secrets.token_urlsafe(43)
     uid = UUID(user_id)
-    await create_session(db, session_id, uid, kind, max_age_seconds)
+    session_version = getattr(settings, "SESSION_VERSION", None) or "1"
+    await create_session(
+        db, session_id, uid, kind, max_age_seconds, session_version=session_version
+    )
     return session_id
 
 

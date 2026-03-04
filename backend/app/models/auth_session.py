@@ -23,6 +23,9 @@ class AuthSession(Base):
     id = Column(String(64), primary_key=True)  # Opaque token (e.g. secrets.token_urlsafe(43))
     user_id = Column(UUID(as_uuid=True), ForeignKey("User.id"), nullable=False, index=True)
     kind = Column(String(16), nullable=False)  # "guest" or "regular"
+    session_version = Column(
+        String(64), nullable=False, default="1"
+    )  # Bump on deploy to force logout
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     expires_at = Column(DateTime, nullable=False)
 

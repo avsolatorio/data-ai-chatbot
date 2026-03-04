@@ -18,6 +18,7 @@ async def create_session(
     user_id: UUID,
     kind: str,
     max_age_seconds: int,
+    session_version: str = "1",
 ) -> AuthSession:
     """Create a session row. Caller must generate session_id (opaque token)."""
     now = datetime.utcnow()
@@ -26,6 +27,7 @@ async def create_session(
         id=session_id,
         user_id=user_id,
         kind=kind,
+        session_version=session_version,
         created_at=now,
         expires_at=expires_at,
     )
@@ -35,15 +37,20 @@ async def create_session(
     return row
 
 
-async def get_user_id_by_session(session: AsyncSession, session_id: str) -> UUID | None:
-    """Return user_id if session exists and is not expired; else None."""
+async def get_user_id_by_session(
+    session: AsyncSession,
+    session_id: str,
+    current_version: str | None = None,
+) -> UUID | None:
+    """Return user_id if session exists, is not expired, and version matches; else None."""
     now = datetime.utcnow()
-    result = await session.execute(
-        select(AuthSession.user_id).where(
-            AuthSession.id == session_id,
-            AuthSession.expires_at > now,
-        )
-    )
+    conditions = [
+        AuthSession.id == session_id,
+        AuthSession.expires_at > now,
+    ]
+    if current_version is not None:
+        conditions.append(AuthSession.session_version == current_version)
+    result = await session.execute(select(AuthSession.user_id).where(*conditions))
     return result.scalar_one_or_none()
 
 

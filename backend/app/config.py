@@ -90,6 +90,11 @@ class Settings(BaseSettings):
     # For production, use: openssl rand -hex 32
     SESSION_SECRET_KEY: str = ""
 
+    # Session version: bump on deploy to invalidate all server-side (opaque) sessions.
+    # Set to build id, git sha, or timestamp so each deploy gets a new value; existing
+    # sessions then fail validation and users must sign in again.
+    SESSION_VERSION: str = "1"
+
     # AI Model Configuration - can be overridden via environment variables
     models: ModelSettings = ModelSettings()
 

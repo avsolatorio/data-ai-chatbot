@@ -27,4 +27,6 @@ export const sessionStorageKeys = {
   msal: "MSAL_DATA",
   /** MSAL user impersonation token only; no PII. Required to be in session storage, not cookies. */
   msalUserImpersonationToken: "MSAL_UIT",
+  /** Last X-Session-Version from server; used to force MSAL logout when deploy version changes. */
+  sessionVersion: "SESSION_VERSION",
 } as const;

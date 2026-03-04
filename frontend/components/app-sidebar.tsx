@@ -23,8 +23,12 @@ import {
 } from "@/components/ui/sidebar";
 import { apiFetch } from "@/lib/api-client";
 import { authProvider } from "@/lib/auth/config";
-import type { User } from "@/lib/auth-service-client";
+import {
+  clearAuthSessionStorage,
+  type User,
+} from "@/lib/auth-service-client";
 import { appConfig } from "@/lib/config";
+import { sessionStorageKeys } from "@/lib/constants";
 import { ApplicationStatusBanner } from "@/components/application-status-banner";
 import { FeedbackDialog } from "@/components/feedback-dialog";
 import { useAutoRefreshToken } from "@/hooks/use-auto-refresh-token";
@@ -50,22 +54,47 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   // MSAL: token lives in session storage; server has no cookie, so resolve user client-side.
   const [msalUser, setMsalUser] = useState<User | null>(null);
+  // Only true while /api/auth/me is in flight for MSAL; false once we get 200 or 401 so we don't spin forever.
+  const [msalAuthChecking, setMsalAuthChecking] = useState(false);
   const effectiveUser = user ?? msalUser ?? undefined;
 
   useEffect(() => {
     // For MSAL we pass user=null/undefined from layout (no server cookie). Run fetch when we don't have a user yet.
-    if (authProvider !== "msal" || user != null) return;
+    if (authProvider !== "msal" || user != null) {
+      setMsalAuthChecking(false);
+      return;
+    }
     let cancelled = false;
+    setMsalAuthChecking(true);
     apiFetch("/api/auth/me", { credentials: "include" })
       .then((res) => {
-        if (cancelled || !res.ok) return;
+        if (cancelled) return;
+        const newVersion = res.headers.get("X-Session-Version");
+        if (typeof newVersion === "string") {
+          try {
+            const stored = sessionStorage.getItem(sessionStorageKeys.sessionVersion);
+            if (stored !== null && stored !== newVersion) {
+              clearAuthSessionStorage();
+              sessionStorage.removeItem(sessionStorageKeys.sessionVersion);
+              setMsalUser(null);
+            }
+            sessionStorage.setItem(sessionStorageKeys.sessionVersion, newVersion);
+          } catch {
+            // Ignore quota or security errors
+          }
+        }
+        if (!res.ok) {
+          setMsalAuthChecking(false);
+          return;
+        }
         return res.json() as Promise<User>;
       })
       .then((data) => {
         if (!cancelled && data) setMsalUser(data);
+        if (!cancelled) setMsalAuthChecking(false);
       })
       .catch(() => {
-        // Ignore; user remains undefined
+        if (!cancelled) setMsalAuthChecking(false);
       });
     return () => {
       cancelled = true;
@@ -164,7 +193,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
             <SidebarUserNav user={effectiveUser} />
           ) : (
             <SidebarUserNav
-              isLoading={true}
+              isLoading={msalAuthChecking}
               user={{
                 id: "guest-temp",
                 email: null,

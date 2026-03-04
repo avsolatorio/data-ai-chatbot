@@ -105,6 +105,12 @@ export async function GET(request: NextRequest) {
       status: response.status,
     });
 
+    // Forward session version so MSAL clients can force logout on deploy
+    const sessionVersion = response.headers.get("X-Session-Version");
+    if (sessionVersion) {
+      nextResponse.headers.set("X-Session-Version", sessionVersion);
+    }
+
     // Forward Set-Cookie headers from FastAPI to client
     // This allows the backend to refresh tokens or set new cookies
     const setCookieHeaders = response.headers.getSetCookie?.() || [];
