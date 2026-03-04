@@ -1,0 +1,16 @@
+scenario: A data analyst needs to integrate GDP and health expenditure data
+  for Brazil and Mexico into a Python analysis pipeline. They request the
+  raw API URLs for both indicators, example Python code snippets to retrieve
+  and process the data, and an option to download the raw API responses. They
+  also ask about any relevant metadata for validating the data.
+user_description: Carlos is a 33-year-old technical data analyst with strong
+  programming skills. He interacts in a precise, technical manner, asking
+  for API URLs, code snippets, and metadata for data validation. He expects
+  the chatbot to provide ready-to-use resources for integration into his workflow.
+expected_outcome: 'ALL of the following must be achieved before the conversation
+  is complete: (1) The chatbot supplies direct API URLs for GDP and health
+  expenditure data for Brazil and Mexico. (2) It generates example Python
+  code demonstrating data retrieval and basic processing. (3) The chatbot
+  offers downloadable raw API responses as files. (4) Metadata about indicators
+  is provided for data quality validation. (5) The chatbot clearly distinguishes
+  factual data from derived or interpretive content.'

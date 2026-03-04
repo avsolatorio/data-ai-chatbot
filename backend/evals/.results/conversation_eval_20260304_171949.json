@@ -1,0 +1,207 @@
+{
+  "timestamp": "20260304_171949",
+  "personas": [
+    "student_learning_and_exploration"
+  ],
+  "max_turns": 2,
+  "num_runs": 2,
+  "config": {
+    "judge_model": "gpt-4.1-mini",
+    "use_http_callback": true,
+    "hyperparameters": {
+      "prompt_version": "feat/setup-evals@6d5dbc9",
+      "system_prompt_hash": "947077be1c20"
+    }
+  },
+  "results": {
+    "student_learning_and_exploration": {
+      "Conversation Completeness": {
+        "score": 0.0,
+        "threshold": 0.5,
+        "passed": false,
+        "reason": "The score is 0.0 because the LLM response did not provide any explanation of 'literacy rate' nor the latest literacy rates for Ethiopia and Kenya, instead returning server error messages, thus completely failing to meet the user's intentions to understand the term in simple terms and obtain current data.",
+        "evaluation_model": "gpt-4.1-mini",
+        "std": 0.0,
+        "scores": [
+          0.0,
+          0.0
+        ],
+        "flaky": false,
+        "all_reasons": [
+          "The score is 0.0 because the LLM response completely failed to meet the user's intentions by not providing any explanation of the term 'literacy rate' nor the latest literacy rates for Ethiopia and Kenya, instead returning repeated server error messages that do not address the user's requests.",
+          "The score is 0.0 because the LLM response did not provide any explanation of 'literacy rate' nor the latest literacy rates for Ethiopia and Kenya, instead returning server error messages, thus completely failing to meet the user's intentions to understand the term in simple terms and obtain current data."
+        ]
+      },
+      "Turn Faithfulness": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "The score is 1.0 because the assistant's claims consistently aligned with the truths extracted from the retrieval context, with no contradictions or unsupported statements detected, demonstrating complete faithfulness in the responses.",
+        "evaluation_model": "gpt-4.1-mini",
+        "std": 0.0,
+        "scores": [
+          1.0,
+          1.0
+        ],
+        "flaky": false,
+        "all_reasons": [
+          "The score is 1.0 because all claims made by the assistant were fully supported by the retrieval context, with no contradictions or unsupported statements detected, demonstrating complete alignment between the assistant's output and the provided truths.",
+          "The score is 1.0 because the assistant's claims consistently aligned with the truths extracted from the retrieval context, with no contradictions or unsupported statements detected, demonstrating complete faithfulness in the responses."
+        ]
+      },
+      "Turn Relevancy": {
+        "score": 0.25,
+        "threshold": 0.5,
+        "passed": false,
+        "reason": "The score is 0.0 because message 1 contains a server error instead of explaining 'literacy rate' simply as requested by the user, and message 2 also only shows a server error without providing the latest literacy rates for Ethiopia and Kenya, making both messages completely irrelevant to the user's queries.",
+        "evaluation_model": "gpt-4.1-mini",
+        "std": 0.3536,
+        "scores": [
+          0.5,
+          0.0
+        ],
+        "flaky": true,
+        "all_reasons": [
+          "The score is 0.5 because in message 1, the assistant reports a server error instead of addressing the user's request about literacy rates in Ethiopia and Kenya, making it completely irrelevant to the user's query.",
+          "The score is 0.0 because message 1 contains a server error instead of explaining 'literacy rate' simply as requested by the user, and message 2 also only shows a server error without providing the latest literacy rates for Ethiopia and Kenya, making both messages completely irrelevant to the user's queries."
+        ]
+      },
+      "Context Retention [Conversational GEval]": {
+        "score": 0.1,
+        "threshold": 0.6,
+        "passed": false,
+        "reason": "The conversation has fewer than two successful data exchanges due to repeated server errors, making the evaluation of recall and re-searching criteria not applicable.",
+        "evaluation_model": "gpt-4.1-mini",
+        "std": 0.0,
+        "scores": [
+          0.1,
+          0.1
+        ],
+        "flaky": false,
+        "all_reasons": [
+          "The conversation has fewer than two successful data exchanges, making the evaluation of recall and re-searching criteria not applicable.",
+          "The conversation has fewer than two successful data exchanges due to repeated server errors, making the evaluation of recall and re-searching criteria not applicable."
+        ]
+      },
+      "Claim Tagging & PCN [Conversational GEval]": {
+        "score": 0.1,
+        "threshold": 0.8,
+        "passed": false,
+        "reason": "The assistant's responses contain only error messages and API URLs without any inline numeric data values, code snippets, or metadata, triggering the immediate score of 1 as per step 1.",
+        "evaluation_model": "gpt-4.1-mini",
+        "std": 0.0,
+        "scores": [
+          0.1,
+          0.1
+        ],
+        "flaky": false,
+        "all_reasons": [
+          "The assistant's responses contain only error messages and API URLs without any inline numeric data values, code snippets, or metadata, triggering the immediate score of 1 as per step 1.",
+          "The assistant's responses contain only error messages and API URLs without any inline numeric data values, code snippets, or metadata, triggering the immediate score of 1 as per step 1."
+        ]
+      },
+      "Data Accuracy [Conversational GEval]": {
+        "score": 0.1,
+        "threshold": 0.8,
+        "passed": false,
+        "reason": "No data was retrieved due to repeated server errors, making it not applicable to evaluate numeric values or entity names.",
+        "evaluation_model": "gpt-4.1-mini",
+        "std": 0.0,
+        "scores": [
+          0.1,
+          0.1
+        ],
+        "flaky": false,
+        "all_reasons": [
+          "No data was retrieved due to repeated server errors, making the evaluation of numeric values and entity names not applicable.",
+          "No data was retrieved due to repeated server errors, making it not applicable to evaluate numeric values or entity names."
+        ]
+      },
+      "Source Citation [Conversational GEval]": {
+        "score": 0.1,
+        "threshold": 0.6,
+        "passed": false,
+        "reason": "No tool-retrieved data was presented in the assistant's responses due to server errors, making citation requirements not applicable.",
+        "evaluation_model": "gpt-4.1-mini",
+        "std": 0.0,
+        "scores": [
+          0.1,
+          0.1
+        ],
+        "flaky": false,
+        "all_reasons": [
+          "No tool-retrieved data was presented in the assistant's responses due to server errors, making citation requirements not applicable.",
+          "No tool-retrieved data was presented in the assistant's responses due to server errors, making citation requirements not applicable."
+        ]
+      },
+      "Follow-up Suggestions [Conversational GEval]": {
+        "score": 0.1,
+        "threshold": 0.4,
+        "passed": false,
+        "reason": "No tool-retrieved data was presented due to server errors, making the evaluation of follow-ups and question phrasing not applicable.",
+        "evaluation_model": "gpt-4.1-mini",
+        "std": 0.0,
+        "scores": [
+          0.1,
+          0.1
+        ],
+        "flaky": false,
+        "all_reasons": [
+          "No tool-retrieved data was presented due to server errors, making the evaluation of follow-ups and question phrasing not applicable.",
+          "No tool-retrieved data was presented due to server errors, making the evaluation of follow-ups and question phrasing not applicable."
+        ]
+      },
+      "Data Formatting [Conversational GEval]": {
+        "score": 0.1,
+        "threshold": 0.4,
+        "passed": false,
+        "reason": "No tool-retrieved data is present due to repeated server errors; thus, evaluation criteria about values, units, tables, and scientific notation are not applicable.",
+        "evaluation_model": "gpt-4.1-mini",
+        "std": 0.0,
+        "scores": [
+          0.1,
+          0.1
+        ],
+        "flaky": false,
+        "all_reasons": [
+          "No tool-retrieved data or values were provided in the conversation due to repeated server errors, making the evaluation of units, markdown tables, and scientific notation not applicable.",
+          "No tool-retrieved data is present due to repeated server errors; thus, evaluation criteria about values, units, tables, and scientific notation are not applicable."
+        ]
+      },
+      "Latest Data Note [Conversational GEval]": {
+        "score": 0.1,
+        "threshold": 0.4,
+        "passed": false,
+        "reason": "No year was specified by the user, and the chatbot failed to provide any data or mention 'latest available data'; instead, it returned server errors without any relevant information.",
+        "evaluation_model": "gpt-4.1-mini",
+        "std": 0.0,
+        "scores": [
+          0.1,
+          0.1
+        ],
+        "flaky": false,
+        "all_reasons": [
+          "No year was specified by the user, and the chatbot failed to provide any data or mention 'latest available data'; instead, it returned server errors without any relevant information.",
+          "No year was specified by the user, and the chatbot failed to provide any data or mention 'latest available data'; instead, it returned server errors without any relevant information."
+        ]
+      },
+      "Content Structure [Conversational GEval]": {
+        "score": 0.1,
+        "threshold": 0.4,
+        "passed": false,
+        "reason": "No tool-retrieved data is present in the conversation, so evaluation criteria related to data labeling, limitations, and comparability warnings are not applicable.",
+        "evaluation_model": "gpt-4.1-mini",
+        "std": 0.0,
+        "scores": [
+          0.1,
+          0.1
+        ],
+        "flaky": false,
+        "all_reasons": [
+          "No tool-retrieved data is present in the conversation due to repeated server errors, making the evaluation of data labels, limitations, and comparability warnings not applicable.",
+          "No tool-retrieved data is present in the conversation, so evaluation criteria related to data labeling, limitations, and comparability warnings are not applicable."
+        ]
+      }
+    }
+  }
+}

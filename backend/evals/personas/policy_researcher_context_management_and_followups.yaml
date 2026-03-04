@@ -1,0 +1,18 @@
+scenario: A policy researcher conducts a multi-turn conversation exploring
+  renewable energy capacity in Germany and France. They first ask for the
+  latest data, then inquire about trends, then switch to a related topic of
+  carbon emissions. They expect the chatbot to remember context within the
+  conversation, allow smooth topic shifts, and suggest follow-up questions
+  after each response. When they switch topics, the chatbot suggests starting
+  a new conversation but allows continuation if desired.
+user_description: Julia is a 45-year-old senior researcher at an environmental
+  think tank. She is experienced with development data and expects the chatbot
+  to manage context effectively. She asks multiple linked questions, shifts
+  topics smoothly, and relies on follow-up suggestions to guide her analysis.
+expected_outcome: 'ALL of the following must be achieved before the conversation
+  is complete: (1) The chatbot retains context of prior questions and answers
+  for Germany and France energy capacity. (2) It supports smooth topic shifts
+  to carbon emissions without confusion. (3) After each response, it suggests
+  relevant follow-up questions. (4) When a clear new topic is detected, it
+  non-intrusively suggests starting a new conversation. (5) The chatbot displays
+  the current processing stage visibly during responses.'

@@ -1,0 +1,54 @@
+[
+  {
+    "persona": "student_learning_and_exploration",
+    "scenario": "A university student studying international development asks for the latest literacy rates in Ethiopia and Kenya. They want explanations of key terms like 'literacy rate' in plain language. They then request a comparison table, a simple bar chart, and suggestions for related indicators to explore next. They ask multiple follow-up questions to understand the data better.",
+    "expected_outcome": "ALL of the following must be achieved before the conversation is complete: (1) The chatbot provides the latest literacy rates for Ethiopia and Kenya with claim tags and sources. (2) Key terms like 'literacy rate' are explained in plain language inline. (3) A markdown table compares both countries' literacy rates with appropriate units and years. (4) A simple bar chart link visualizes the data. (5) The chatbot suggests relevant follow-up questions or related indicators for further learning.",
+    "num_turns": 4,
+    "model": "gpt-4.1-mini",
+    "prompt_version": "feat/setup-evals@6d5dbc9",
+    "system_prompt_hash": "947077be1c20",
+    "use_http_callback": true,
+    "turns": [
+      {
+        "role": "user",
+        "content": "Hi! I'm working on a project about education in Ethiopia and Kenya, and I need some help understanding the latest literacy rates there. Could you explain what 'literacy rate' means in simple terms?",
+        "turn_index": 1
+      },
+      {
+        "role": "assistant",
+        "content": "I encountered an error processing your request: Client error '405 Method Not Allowed' for url 'http://localhost:3001/api/auth/guest'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/405",
+        "turn_index": 1,
+        "pipeline_result": {
+          "routing_intent": "",
+          "routing_reasoning": "",
+          "planner_output": "",
+          "writer_output": "",
+          "tool_calls": [],
+          "model": "",
+          "turns_used": 0,
+          "error": "Client error '405 Method Not Allowed' for url 'http://localhost:3001/api/auth/guest'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/405"
+        }
+      },
+      {
+        "role": "user",
+        "content": "Could you please try again and explain 'literacy rate' in simple terms? Also, can you provide the latest literacy rates for Ethiopia and Kenya?",
+        "turn_index": 2
+      },
+      {
+        "role": "assistant",
+        "content": "I encountered an error processing your request: Client error '405 Method Not Allowed' for url 'http://localhost:3001/api/auth/guest'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/405",
+        "turn_index": 2,
+        "pipeline_result": {
+          "routing_intent": "",
+          "routing_reasoning": "",
+          "planner_output": "",
+          "writer_output": "",
+          "tool_calls": [],
+          "model": "",
+          "turns_used": 0,
+          "error": "Client error '405 Method Not Allowed' for url 'http://localhost:3001/api/auth/guest'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/405"
+        }
+      }
+    ]
+  }
+]

@@ -1,22 +1,34 @@
 """
-Generate evaluation persona YAML files using an LLM.
+Generate persona YAML files for Data360 Chat evaluation.
 
-Uses the EVALUATION_GUIDE.md and existing personas as context to generate
-new or regenerated persona definitions for the conversation evaluation.
+Creates ConversationalGolden-compatible persona files in two modes:
+
+  1. --from-docs: Read MVP feature/user-story documents and infer
+     realistic chatbot-user personas with scenarios, user descriptions,
+     and expected outcomes.
+
+  2. --describe: Provide a freeform text description and let the LLM
+     create a single persona YAML from it.
+
+Output format matches existing persona YAMLs (scenario, user_description,
+expected_outcome) and works directly with run_conversation_eval.py.
 
 Usage:
-    # Regenerate all 11 existing personas into personas_new/
-    cd backend
-    uv run python -m evals.generate_personas --regenerate
+    # Generate personas from MVP docs (infers user types automatically)
+    python -m evals.generate_personas \
+        --from-docs evals/mvp_features.md evals/mvp_user_stories.md
 
-    # Generate N new personas
-    uv run python -m evals.generate_personas --count 3
+    # Generate a single persona from a description
+    python -m evals.generate_personas \
+        --describe "A blind user using a screen reader who wants poverty data"
 
-    # Generate with a specific theme focus
-    uv run python -m evals.generate_personas --count 2 --focus "health and education data for African countries"
+    # Generate with custom count and model
+    python -m evals.generate_personas \
+        --from-docs evals/mvp_features.md --count 5 --model gpt-4.1
 
-    # Custom output directory
-    uv run python -m evals.generate_personas --regenerate --output personas_v2
+    # Preview without saving (dry-run)
+    python -m evals.generate_personas \
+        --describe "An economist comparing GDP" --dry-run
 """
 
 from __future__ import annotations
@@ -24,12 +36,10 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import re
 from pathlib import Path
 
 import yaml
-from openai import OpenAI
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,364 +48,443 @@ logging.basicConfig(
 )
 logger = logging.getLogger("generate_personas")
 
-EVALS_DIR = Path(__file__).parent
-PERSONAS_DIR = EVALS_DIR / "personas"
-GUIDE_PATH = EVALS_DIR / "EVALUATION_GUIDE.md"
+PERSONAS_DIR = Path(__file__).parent / "personas"
 
-GEN_MODEL = os.getenv("PERSONA_GEN_MODEL", "gpt-4.1-mini")
+# ---------------------------------------------------------------------------
+# Prompts
+# ---------------------------------------------------------------------------
 
-EXISTING_PERSONAS = [
-    "student", "geographer", "economist", "journalist", "policy_advisor",
-    "data_engineer", "ngo_worker", "curious_citizen", "adversarial",
-    "multilingual", "comparison_max",
-]
-
-PERSONA_BRIEFS = {
-    "student": "University grad student writing thesis on East African economic development. Step-by-step data exploration: GDP -> comparison table -> chart -> methodology -> follow-ups.",
-    "geographer": "Spatial analysis professor studying urbanization. SEX disaggregation, multi-country comparison, API URL access, visualization.",
-    "economist": "World Bank macroeconomist building a Phillips curve model. Needs inflation + unemployment for Brazil, side-by-side table, API URLs, comparability notes.",
-    "journalist": "Data journalist fact-checking income inequality story. Gini coefficient, multiple countries, markdown table, source verification, visualization.",
-    "policy_advisor": "Government advisor analyzing education spending vs outcomes in India. Multi-indicator comparison, cross-country benchmarking, chart, limitations.",
-    "data_engineer": "Health NGO data engineer building dashboard. Needs API URLs, Python code examples, programmatic access. Technical user.",
-    "ngo_worker": "UNICEF field officer in Bangladesh needing subnational child mortality data. Tests data unavailability handling and graceful fallback.",
-    "curious_citizen": "Non-technical retired teacher with vague questions about development. Tests guided discovery and plain language explanations.",
-    "adversarial": "QA tester trying to break the system: fictional countries (Wakanda), future projections, creative content requests (poems). Tests scope guard.",
-    "multilingual": "French-speaking analyst using non-English country names: Cote d'Ivoire, Deutschland, Congo disambiguation. Tests country resolution.",
-    "comparison_max": "Think tank analyst comparing BRICS vs G7 (14 countries) in one request. Tests high-cardinality handling and batch tool calls.",
-}
-
-
-def _load_guide_context():
-    """Load key sections from EVALUATION_GUIDE.md for context."""
-    if not GUIDE_PATH.exists():
-        logger.warning("EVALUATION_GUIDE.md not found, using minimal context")
-        return ""
-
-    guide = GUIDE_PATH.read_text()
-    sections = []
-    for section in ["## 1. Executive Summary", "## 2. Evaluation Pipeline", "## 3. Metrics Reference"]:
-        idx = guide.find(section)
-        if idx >= 0:
-            next_section = guide.find("\n## ", idx + len(section))
-            if next_section > 0:
-                sections.append(guide[idx:next_section])
-            else:
-                sections.append(guide[idx:])
-
-    return "\n\n".join(sections)[:8000]
-
-
-def _load_existing_persona(key):
-    """Load an existing persona YAML as a string for few-shot examples."""
-    path = PERSONAS_DIR / f"{key}.yaml"
-    if path.exists():
-        return path.read_text()
-    return ""
-
-
-def _build_system_prompt(guide_context):
-    """Build system prompt for persona generation."""
-    return f"""You are an expert evaluation designer for the Data360 Chatbot -- an MCP-powered assistant that retrieves World Bank development data, generates visualizations, and provides analysis.
-
-Your job is to generate persona YAML files for conversation-based evaluation. Each persona drives a simulated multi-turn conversation between a user and the chatbot.
-
-## Chatbot Capabilities (from the Evaluation Guide)
-
-{guide_context}
-
-## YAML Structure
-
-Each persona YAML file has exactly 3 fields:
-
+_EXAMPLE_PERSONA = """\
 ```yaml
 scenario: >
-  A 2-4 sentence description of what the user is trying to accomplish.
-  Be specific about topics, countries, and data types.
+  A graduate student is writing a thesis chapter on East African
+  economic development. They need to find Kenya's GDP data, compare
+  it with Tanzania in a table, visualize the comparison with a chart,
+  understand the methodology and limitations of the indicators, and
+  get follow-up suggestions leading to deeper analysis.
 
 user_description: >
-  A 3-5 sentence character profile. Include: name, age, role, expertise level,
-  and HOW they ask questions (step-by-step vs all-at-once, technical vs casual).
-  This controls the simulator LLM's behavior.
+  Maria is a 24-year-old economics master's student at the University
+  of Nairobi. She is writing her thesis on economic growth in East Africa.
+  She speaks clearly but is not an expert in data APIs. She asks for data
+  step by step: first GDP, then comparison, then a chart, then methodology.
+  She occasionally asks follow-up questions about what the data means.
+  She always asks for the next logical step rather than dumping all
+  questions at once.
 
 expected_outcome: >
   ALL of the following must be achieved before the conversation is complete:
-  (1) First specific, verifiable goal...
-  (2) Second goal...
-  (3) Third goal...
-  (4) Fourth goal...
-  (5) Fifth goal...
-```
+  (1) The student retrieves Kenya's GDP data with specific numerical values
+  wrapped in claim tags and a clear data source citation.
+  (2) The student gets a side-by-side comparison table of Kenya vs Tanzania
+  GDP data with units and time periods.
+  (3) A chart or visualization is generated showing the GDP trends,
+  presented as a clickable markdown link.
+  (4) The student learns about the methodology or limitations of the
+  GDP indicator, including the data source or measurement approach.
+  (5) The chatbot suggests relevant follow-up questions for deeper analysis.
+```"""
 
-## Critical Rules
+_PERSONA_RULES = """\
+RULES:
+1. Each persona MUST test DIFFERENT chatbot capabilities.
+2. The `scenario` describes WHAT HAPPENS — a realistic situation where someone
+   uses the chatbot. It should describe a multi-step interaction, not a single
+   question. Name specific countries, indicators, or topics.
+3. The `user_description` describes WHO the user is — their name, age, role,
+   technical literacy, and HOW they ask questions (step-by-step, one at a time,
+   waits for each response). Include personality traits.
+4. The `expected_outcome` lists SPECIFIC, TESTABLE criteria that must ALL be met.
+   Start with "ALL of the following must be achieved before the conversation is
+   complete:" then use numbered items (1), (2), (3), etc. Include 4-5 goals.
+   Reference concrete chatbot behaviors: claim tags, source citations, markdown
+   tables, chart links, API URLs, limitations notices, follow-up suggestions.
+5. The `key` is a lowercase_snake_case identifier for the persona file name.
+6. Scenarios should describe concrete data queries and chatbot usage — not
+   abstract discussions about the chatbot's features."""
 
-1. **expected_outcome MUST start with "ALL of the following must be achieved before the conversation is complete:"**
-2. **expected_outcome must have exactly 4-5 numbered sub-goals** -- each must be specific and verifiable
-3. **Sub-goals should reference concrete chatbot behaviors**: claim tags, source citations, markdown tables, chart links, API URLs, limitations sections, etc.
-4. **user_description should define conversation pacing** (step-by-step is preferred -- one question at a time)
-5. **scenario should name specific countries, indicators, or topics** -- never be vague
-6. **Use the YAML block scalar `>` for multi-line strings** (folds newlines into spaces)
-7. Output ONLY valid YAML -- no markdown fencing, no comments, no explanations
-"""
+_FROM_DOCS_SYSTEM = """\
+You are an evaluation engineer for Data360 Chat, a conversational AI that \
+provides authoritative development data (GDP, poverty, health indicators, etc.) \
+from the World Bank's Data360 platform.
+
+Your task: read the provided product documents and generate {count} DISTINCT \
+evaluation personas. Each persona represents a realistic user who would \
+interact with this chatbot.
+
+{rules}
+
+Personas should span diverse user types: policymakers, students, journalists, \
+analysts, technical users, multilingual users, adversarial testers, etc.
+
+Here is an example of a well-written persona:
+
+{example}
+
+You MUST respond with valid JSON. Use a JSON object with a "personas" key \
+containing an array of {count} objects, each with keys: key, scenario, \
+user_description, expected_outcome."""
+
+_FROM_DOCS_USER = """\
+Here are the product documents:
+
+{doc_blocks}
+
+Generate {count} personas as JSON."""
+
+_DESCRIBE_SYSTEM = """\
+You are an evaluation engineer for Data360 Chat, a conversational AI that \
+provides authoritative development data (GDP, poverty, health indicators, etc.) \
+from the World Bank's Data360 platform.
+
+Your task: given a user's description of a persona they want to create, \
+generate a complete evaluation persona.
+
+{rules}
+
+Here is an example of an existing persona:
+
+{example}
+
+You MUST respond with valid JSON. Use a JSON object with keys: key, scenario, \
+user_description, expected_outcome."""
+
+_DESCRIBE_USER = """\
+Create a persona based on this description:
+
+{description}
+
+Respond with a single JSON object."""
 
 
-def _generate_single_persona(client, key, brief, system_prompt, examples):
-    """Generate a single persona YAML using the LLM."""
-    user_prompt = f"""Generate a persona YAML file for the persona key: `{key}`
+# ---------------------------------------------------------------------------
+# Core functions
+# ---------------------------------------------------------------------------
 
-**Role brief:** {brief}
+def _call_llm(
+    system_prompt: str,
+    user_prompt: str,
+    model: str = "gpt-4.1-mini",
+    temperature: float = 0.7,
+) -> str:
+    """Call the OpenAI API and return the response text."""
+    from openai import OpenAI
 
-Here are 2 examples of well-written personas for reference (do NOT copy them -- use as style guide only):
-
---- Example 1 ---
-{examples[0]}
---- Example 2 ---
-{examples[1]}
----
-
-Now generate the YAML for `{key}`. Output ONLY the raw YAML content, no markdown fencing."""
-
+    client = OpenAI()
     response = client.chat.completions.create(
-        model=GEN_MODEL,
+        model=model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=0.7,
-        max_tokens=1000,
+        temperature=temperature,
+        max_tokens=4096,
+        response_format={"type": "json_object"},
     )
-
-    content = response.choices[0].message.content.strip()
-    content = re.sub(r"^```ya?ml\s*\n", "", content)
-    content = re.sub(r"\n```\s*$", "", content)
-    return content
+    return response.choices[0].message.content.strip()
 
 
-def _generate_new_persona(client, index, focus, system_prompt, examples, existing_keys):
-    """Generate a completely new persona. Returns (key, yaml_content)."""
-    focus_instruction = ""
-    if focus:
-        focus_instruction = f"\n**Theme focus:** {focus}\n"
+def _parse_json_response(text: str) -> list[dict] | dict:
+    """Extract JSON from an LLM response."""
+    cleaned = re.sub(r"^```(?:json)?\s*\n?", "", text, flags=re.MULTILINE)
+    cleaned = re.sub(r"\n?```\s*$", "", cleaned, flags=re.MULTILINE)
+    result = json.loads(cleaned)
 
-    existing_list = ", ".join(existing_keys)
+    # Handle {"personas": [...]} wrapper
+    if isinstance(result, dict) and "personas" in result:
+        return result["personas"]
 
-    user_prompt = f"""Generate a NEW, UNIQUE persona YAML file (persona #{index}).
-{focus_instruction}
-**Already existing personas (do NOT duplicate these roles):** {existing_list}
-
-Create a persona that tests a DIFFERENT aspect of the chatbot than the existing ones.
-Think about: different regions, different data topics, different user expertise levels,
-different interaction patterns, different edge cases.
-
-First, pick a short snake_case key (e.g., `health_researcher`, `trade_analyst`).
-Then generate the YAML.
-
-Output format:
-KEY: <snake_case_key>
----
-<yaml content>
-
-Here are 2 examples for style reference:
-
---- Example 1 ---
-{examples[0]}
---- Example 2 ---
-{examples[1]}
----
-
-Output ONLY the key and YAML, nothing else."""
-
-    response = client.chat.completions.create(
-        model=GEN_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.9,
-        max_tokens=1000,
-    )
-
-    content = response.choices[0].message.content.strip()
-    content = re.sub(r"^```ya?ml\s*\n", "", content)
-    content = re.sub(r"\n```\s*$", "", content)
-
-    # Try format: "KEY: key_name\n---\nyaml..."
-    key_match = re.match(r"KEY:\s*(\w+)\s*\n---\s*\n(.*)", content, re.DOTALL)
-    if key_match:
-        return key_match.group(1), key_match.group(2).strip()
-
-    # Try format: "key_name:\n---\nscenario: ..."
-    key_match2 = re.match(r"(\w+):\s*\n---\s*\n(.*)", content, re.DOTALL)
-    if key_match2:
-        return key_match2.group(1), key_match2.group(2).strip()
-
-    # Try format: "key_name:\n---\n" at top, or "KEY: x" somewhere in content
-    lines = content.split("\n")
-    key = "persona_%d" % index
-    for line in lines:
-        stripped = line.strip()
-        if stripped.startswith("KEY:"):
-            key = stripped.split(":", 1)[1].strip()
-            break
-        # Single word followed by colon (like "health_researcher:")
-        single_key = re.match(r"^(\w+):\s*$", stripped)
-        if single_key:
-            key = single_key.group(1)
-            break
-
-    # Remove key line and document separator, keep just the YAML
-    yaml_content = re.sub(r"^(KEY:.*|[\w]+:)\s*\n---\s*\n?", "", content, count=1).strip()
-    # Also strip leading --- if present
-    yaml_content = re.sub(r"^---\s*\n", "", yaml_content).strip()
-
-    return key, yaml_content
+    return result
 
 
-def _validate_yaml(content, key):
-    """Validate that generated YAML is well-formed and has required fields."""
-    try:
-        data = yaml.safe_load(content)
-        if not isinstance(data, dict):
-            logger.error("[%s] YAML did not parse as a dict", key)
+def _validate_persona(persona: dict) -> bool:
+    """Validate that a persona dict has required fields."""
+    for field in ("key", "scenario", "user_description", "expected_outcome"):
+        if field not in persona:
+            logger.error("Missing required field: %s", field)
+            return False
+        if not persona[field] or len(str(persona[field]).strip()) < 20:
+            logger.error("Field '%s' is too short", field)
             return False
 
-        for field in ("scenario", "user_description", "expected_outcome"):
-            if field not in data:
-                logger.error("[%s] Missing required field: %s", key, field)
-                return False
-            if not data[field] or len(str(data[field]).strip()) < 20:
-                logger.error("[%s] Field '%s' is too short", key, field)
-                return False
+    outcome = str(persona["expected_outcome"])
+    if "ALL of the following" not in outcome:
+        logger.warning(
+            "[%s] expected_outcome missing 'ALL of the following' prefix",
+            persona["key"],
+        )
 
-        outcome = str(data["expected_outcome"])
-        if "ALL of the following" not in outcome:
-            logger.warning("[%s] expected_outcome missing 'ALL of the following' prefix", key)
+    goal_count = len(re.findall(r"\(\d+\)", outcome))
+    if goal_count < 3:
+        logger.warning(
+            "[%s] expected_outcome has only %d goals (expected 4-5)",
+            persona["key"], goal_count,
+        )
 
-        goal_count = len(re.findall(r"\(\d+\)", outcome))
-        if goal_count < 3:
-            logger.warning("[%s] expected_outcome has only %d goals (expected 4-5)", key, goal_count)
+    return True
 
-        return True
 
-    except yaml.YAMLError as e:
-        logger.error("[%s] Invalid YAML: %s", key, e)
-        return False
+def _save_persona_yaml(
+    persona: dict,
+    output_dir: Path,
+    overwrite: bool = False,
+) -> Path:
+    """Save a persona dict as a YAML file."""
+    key = persona["key"]
+    filepath = output_dir / f"{key}.yaml"
 
+    if filepath.exists() and not overwrite:
+        logger.warning(
+            "File already exists, skipping: %s (use --overwrite)", filepath
+        )
+        return filepath
+
+    data = {
+        "scenario": persona["scenario"].strip(),
+        "user_description": persona["user_description"].strip(),
+        "expected_outcome": persona["expected_outcome"].strip(),
+    }
+
+    content = yaml.dump(
+        data,
+        default_flow_style=False,
+        allow_unicode=True,
+        width=72,
+        sort_keys=False,
+    )
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    filepath.write_text(content)
+    return filepath
+
+
+def generate_from_docs(
+    doc_paths: list[str],
+    count: int = 6,
+    model: str = "gpt-4.1-mini",
+    output_dir: Path | None = None,
+    overwrite: bool = False,
+    dry_run: bool = False,
+) -> list[dict]:
+    """Generate personas by reading documents and inferring user types."""
+    output_dir = output_dir or PERSONAS_DIR
+
+    doc_blocks = []
+    for p in doc_paths:
+        path = Path(p)
+        if not path.exists():
+            logger.warning("Document not found, skipping: %s", p)
+            continue
+        doc_blocks.append(
+            f"--- DOCUMENT: {path.name} ---\n{path.read_text()}\n--- END ---"
+        )
+
+    if not doc_blocks:
+        raise FileNotFoundError(f"No valid documents found: {doc_paths}")
+
+    logger.info(
+        "Generating %d personas from %d document(s) using %s...",
+        count, len(doc_blocks), model,
+    )
+
+    system = _FROM_DOCS_SYSTEM.format(
+        count=count, rules=_PERSONA_RULES, example=_EXAMPLE_PERSONA,
+    )
+    user = _FROM_DOCS_USER.format(
+        doc_blocks="\n\n".join(doc_blocks), count=count,
+    )
+
+    raw = _call_llm(system, user, model=model)
+    personas = _parse_json_response(raw)
+
+    if not isinstance(personas, list):
+        personas = [personas]
+
+    logger.info("Generated %d personas", len(personas))
+
+    valid_personas = []
+    for persona in personas:
+        if not _validate_persona(persona):
+            logger.error("  INVALID: %s -- skipping", persona.get("key", "?"))
+            continue
+
+        valid_personas.append(persona)
+        logger.info(
+            "  [%s] %s",
+            persona["key"],
+            persona["scenario"][:80] + "...",
+        )
+
+        if not dry_run:
+            filepath = _save_persona_yaml(
+                persona, output_dir, overwrite=overwrite,
+            )
+            logger.info("    -> Saved: %s", filepath)
+        else:
+            print(f"\n--- {persona['key']} ---")
+            print(yaml.dump(
+                {k: persona[k] for k in ("scenario", "user_description", "expected_outcome")},
+                default_flow_style=False, allow_unicode=True,
+                width=72, sort_keys=False,
+            ))
+
+    return valid_personas
+
+
+def generate_from_description(
+    description: str,
+    model: str = "gpt-4.1-mini",
+    output_dir: Path | None = None,
+    overwrite: bool = False,
+    dry_run: bool = False,
+) -> dict:
+    """Generate a single persona from a freeform text description."""
+    output_dir = output_dir or PERSONAS_DIR
+
+    logger.info("Generating persona from description using %s...", model)
+    logger.info("  Description: %s", description[:120])
+
+    system = _DESCRIBE_SYSTEM.format(
+        rules=_PERSONA_RULES, example=_EXAMPLE_PERSONA,
+    )
+    user = _DESCRIBE_USER.format(description=description)
+    raw = _call_llm(system, user, model=model)
+    persona = _parse_json_response(raw)
+
+    if isinstance(persona, list):
+        persona = persona[0]
+
+    if not _validate_persona(persona):
+        logger.error("Generated persona failed validation")
+        return persona
+
+    logger.info(
+        "Generated persona: [%s] %s",
+        persona["key"], persona["scenario"][:80] + "...",
+    )
+
+    if not dry_run:
+        filepath = _save_persona_yaml(
+            persona, output_dir, overwrite=overwrite,
+        )
+        logger.info("  -> Saved: %s", filepath)
+    else:
+        print(f"\n--- {persona['key']} ---")
+        print(yaml.dump(
+            {k: persona[k] for k in ("scenario", "user_description", "expected_outcome")},
+            default_flow_style=False, allow_unicode=True,
+            width=72, sort_keys=False,
+        ))
+
+    return persona
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate evaluation persona YAML files using an LLM"
+        description="Generate persona YAML files for Data360 Chat evaluation",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""\
+Examples:
+  # Generate personas from MVP docs
+  python -m evals.generate_personas \\
+      --from-docs evals/mvp_features.md evals/mvp_user_stories.md
+
+  # Generate a single persona from a description
+  python -m evals.generate_personas \\
+      --describe "A blind user using a screen reader"
+
+  # Preview without saving
+  python -m evals.generate_personas \\
+      --describe "An economist comparing GDP" --dry-run
+
+  # Generate 10 personas with a specific model
+  python -m evals.generate_personas \\
+      --from-docs evals/mvp_features.md --count 10 --model gpt-4.1
+""",
+    )
+
+    # Mode: mutually exclusive
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument(
+        "--from-docs",
+        nargs="+",
+        metavar="DOC",
+        help="Document paths to infer personas from",
+    )
+    mode.add_argument(
+        "--describe",
+        type=str,
+        help='Freeform persona description (e.g., "A blind user...")',
+    )
+
+    # Common options
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=6,
+        help="Number of personas to generate (--from-docs only, default: 6)",
     )
     parser.add_argument(
-        "--regenerate", action="store_true",
-        help="Regenerate all 11 existing personas (using their briefs as input)",
+        "--model",
+        type=str,
+        default="gpt-4.1-mini",
+        help="LLM model to use (default: gpt-4.1-mini)",
     )
     parser.add_argument(
-        "--count", type=int, default=0,
-        help="Number of NEW personas to generate (default: 0)",
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Output directory for YAML files (default: evals/personas/)",
     )
     parser.add_argument(
-        "--focus", type=str, default=None,
-        help="Optional theme focus for new personas",
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing persona files with the same key",
     )
     parser.add_argument(
-        "--output", type=str, default="personas_new",
-        help="Output directory name inside evals/ (default: personas_new)",
+        "--dry-run",
+        action="store_true",
+        help="Print generated personas without saving to files",
     )
-    parser.add_argument(
-        "--model", type=str, default=None,
-        help="Model to use for generation (default: %s)" % GEN_MODEL,
-    )
+
     args = parser.parse_args()
 
-    if not args.regenerate and args.count == 0:
-        parser.error("Must specify --regenerate and/or --count N")
+    output_dir = Path(args.output_dir) if args.output_dir else None
 
-    gen_model = args.model or GEN_MODEL
+    if args.from_docs:
+        personas = generate_from_docs(
+            doc_paths=args.from_docs,
+            count=args.count,
+            model=args.model,
+            output_dir=output_dir,
+            overwrite=args.overwrite,
+            dry_run=args.dry_run,
+        )
 
-    output_dir = EVALS_DIR / args.output
-    output_dir.mkdir(parents=True, exist_ok=True)
+        print(f"\n{'=' * 60}")
+        print(f"  Generated {len(personas)} personas")
+        if not args.dry_run:
+            print(f"  Output: {output_dir or PERSONAS_DIR}/")
+        print(f"{'=' * 60}")
 
-    logger.info("Output directory: %s", output_dir)
-    logger.info("Generation model: %s", gen_model)
+    elif args.describe:
+        persona = generate_from_description(
+            description=args.describe,
+            model=args.model,
+            output_dir=output_dir,
+            overwrite=args.overwrite,
+            dry_run=args.dry_run,
+        )
 
-    client = OpenAI()
-
-    guide_context = _load_guide_context()
-    system_prompt = _build_system_prompt(guide_context)
-
-    example_keys = ["student", "adversarial"]
-    examples = [_load_existing_persona(k) for k in example_keys]
-
-    generated = []
-    failed = []
-
-    if args.regenerate:
-        logger.info("Regenerating %d existing personas...", len(EXISTING_PERSONAS))
-        for key in EXISTING_PERSONAS:
-            brief = PERSONA_BRIEFS.get(key, "Persona: " + key)
-            logger.info("  Generating: %s", key)
-
-            try:
-                content = _generate_single_persona(
-                    client, key, brief, system_prompt, examples
-                )
-
-                if _validate_yaml(content, key):
-                    out_path = output_dir / (key + ".yaml")
-                    out_path.write_text(content + "\n")
-                    generated.append(key)
-                    logger.info("  OK %s -> %s", key, out_path.name)
-                else:
-                    failed.append(key)
-                    out_path = output_dir / (key + ".yaml.invalid")
-                    out_path.write_text(content + "\n")
-                    logger.error("  FAIL %s (validation failed, saved as .invalid)", key)
-
-            except Exception as e:
-                failed.append(key)
-                logger.error("  FAIL %s: %s", key, e)
-
-    if args.count > 0:
-        logger.info("Generating %d new personas...", args.count)
-        all_keys = list(EXISTING_PERSONAS) + generated
-
-        for i in range(1, args.count + 1):
-            logger.info("  Generating new persona #%d", i)
-
-            try:
-                key, content = _generate_new_persona(
-                    client, i, args.focus, system_prompt, examples, all_keys
-                )
-
-                if _validate_yaml(content, key):
-                    out_path = output_dir / (key + ".yaml")
-                    out_path.write_text(content + "\n")
-                    generated.append(key)
-                    all_keys.append(key)
-                    logger.info("  OK %s -> %s", key, out_path.name)
-                else:
-                    failed.append(key)
-                    out_path = output_dir / (key + ".yaml.invalid")
-                    out_path.write_text(content + "\n")
-                    logger.error("  FAIL %s (validation failed)", key)
-
-            except Exception as e:
-                failed.append("new_" + str(i))
-                logger.error("  FAIL new persona #%d: %s", i, e)
-
-    print("")
-    print("=" * 60)
-    print("  Generated: %d personas" % len(generated))
-    if failed:
-        print("  Failed:    %d (%s)" % (len(failed), ", ".join(failed)))
-    print("  Output:    %s/" % output_dir)
-    print("=" * 60)
-    print("")
-
-    for f in sorted(output_dir.glob("*.yaml")):
-        data = yaml.safe_load(f.read_text())
-        scenario_preview = str(data.get("scenario", ""))[:80]
-        print("  %s: %s..." % (f.name, scenario_preview))
+        print(f"\n{'=' * 60}")
+        print(f"  Generated persona: {persona.get('key', '?')}")
+        if not args.dry_run:
+            print(f"  Output: {output_dir or PERSONAS_DIR}/{persona['key']}.yaml")
+        print(f"{'=' * 60}")
 
 
 if __name__ == "__main__":
