@@ -25,7 +25,7 @@ from app.api.v1.utils.continue_stream import _continue_stream_in_background
 from app.api.v1.utils.tool_setup import prepare_tools
 from app.core.database import get_db
 from app.core.errors import ChatSDKError
-from app.db.queries.chat_queries import create_stream_id
+from app.db.queries.chat_queries import create_stream_id, get_chat_by_id
 from app.utils.message_converter import convert_messages_to_openai_format
 from app.utils.resumable_stream import (
     mark_stream_complete,
@@ -56,6 +56,18 @@ async def stream_chat(
     logger.info("User ID: %s", current_user.get("id"))
     try:
         user_id = get_user_id_uuid(current_user["id"])
+
+        # Validate chat access: if chat exists, it must belong to the current user
+        # (prevents bypass via malicious chat ID to write to another user's chat)
+        existing_chat = await get_chat_by_id(db, request.id)
+        if existing_chat is not None and existing_chat.userId != user_id:
+            logger.warning(
+                "Stream access denied: chat_id=%s belongs to user=%s, current_user=%s",
+                request.id,
+                existing_chat.userId,
+                user_id,
+            )
+            raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
 
         # 1. Prepare messages
         # Combine existing messages with the new user message
