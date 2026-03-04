@@ -2,21 +2,26 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useContext, useEffect, useState } from "react";
 
+import { MsalInstanceContext } from "@/components/auth/msal/msal-provider-wrapper";
 import { AuthForm } from "@/components/auth-form";
 import { LoaderIcon } from "@/components/icons";
 import { SubmitButton } from "@/components/submit-button";
 import { toast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
+import { authProvider } from "@/lib/auth/config";
+import { loginRequest } from "@/lib/auth/msal/msal-config";
 import { type LoginActionState, login } from "../actions";
 
 export default function Page() {
   const router = useRouter();
+  const msalInstance = useContext(MsalInstanceContext);
 
   const [email, setEmail] = useState("");
   const [isSuccessful, setIsSuccessful] = useState(false);
   const [isCreatingGuest, setIsCreatingGuest] = useState(false);
+  const [isMsalRedirecting, setIsMsalRedirecting] = useState(false);
 
   const [state, formAction] = useActionState<LoginActionState, FormData>(
     login,
@@ -25,7 +30,6 @@ export default function Page() {
     },
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: router is a stable ref
   useEffect(() => {
     if (state.status === "failed") {
       toast({
@@ -41,7 +45,6 @@ export default function Page() {
       setIsSuccessful(false);
     } else if (state.status === "success") {
       setIsSuccessful(true);
-      // Redirect to chat page after successful login
       setTimeout(() => {
         router.push("/");
       }, 500);
@@ -61,9 +64,6 @@ export default function Page() {
     setIsCreatingGuest(true);
 
     try {
-      // Use window.location.href to navigate to the guest endpoint
-      // This allows the server-side route handler to set cookies and redirect properly
-      // The route handler will create the guest session and redirect to home
       window.location.href = `/api/auth/guest?redirectUrl=${encodeURIComponent(`${window.location.origin}/`)}`;
     } catch (error) {
       console.error("Error creating guest session:", error);
@@ -74,6 +74,52 @@ export default function Page() {
       setIsCreatingGuest(false);
     }
   };
+
+  const handleLoginWithMsal = async () => {
+    if (!msalInstance || isMsalRedirecting) return;
+    setIsMsalRedirecting(true);
+    try {
+      await msalInstance.loginRedirect(loginRequest);
+    } catch {
+      toast({
+        type: "error",
+        description: "Failed to start sign in. Please try again.",
+      });
+      setIsMsalRedirecting(false);
+    }
+  };
+
+  if (authProvider === "msal") {
+    return (
+      <div className="flex h-dvh w-screen items-start justify-center bg-background pt-12 md:items-center md:pt-0">
+        <div className="flex w-full max-w-md flex-col gap-8 overflow-hidden rounded-2xl px-4 sm:px-16">
+          <div className="flex flex-col items-center justify-center gap-2 text-center">
+            <h3 className="font-semibold text-xl dark:text-zinc-50">Sign In</h3>
+            <p className="text-gray-500 text-sm dark:text-zinc-400">
+              Sign in with your organization account
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={handleLoginWithMsal}
+            disabled={isMsalRedirecting}
+            className="w-full"
+          >
+            {isMsalRedirecting ? (
+              <>
+                <span className="mr-2 animate-spin">
+                  <LoaderIcon />
+                </span>
+                Redirecting to sign in...
+              </>
+            ) : (
+              "Login with MSAL"
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-dvh w-screen items-start justify-center bg-background pt-12 md:items-center md:pt-0">

@@ -6,21 +6,27 @@ import { type NextRequest, NextResponse } from "next/server";
  * Calls FastAPI logout endpoint, clears cookies, and redirects to login.
  * This ensures cookies are properly cleared before navigation.
  */
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // Call FastAPI logout endpoint
-    // Use SERVER_API_URL for Docker internal networking, fallback to NEXT_PUBLIC_API_URL
+    // Call FastAPI logout endpoint so the backend can revoke the JWT (invalidate session).
+    // Forward the incoming Cookie header so FastAPI receives the auth cookies and can revoke the token.
     const API_URL =
       process.env.SERVER_API_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
       "http://localhost:8001";
     const fastApiUrl = `${API_URL}/api/auth/logout`;
 
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+    const cookieHeader = request.headers.get("cookie");
+    if (cookieHeader) {
+      headers.Cookie = cookieHeader;
+    }
+
     const response = await fetch(fastApiUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       credentials: "include",
     });
 

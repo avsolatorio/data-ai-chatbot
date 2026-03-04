@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type HomeConfig = {
   greeting: {
@@ -29,8 +29,11 @@ const DEFAULT_CONFIG: HomeConfig = {
 
 export function useHomeConfig(): HomeConfig {
   const [config, setConfig] = useState<HomeConfig>(DEFAULT_CONFIG);
+  const fetchStartedRef = useRef(false);
 
   useEffect(() => {
+    if (fetchStartedRef.current) return;
+    fetchStartedRef.current = true;
     let cancelled = false;
 
     fetch("/json/home-config.json")

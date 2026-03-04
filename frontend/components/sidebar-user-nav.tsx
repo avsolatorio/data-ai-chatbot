@@ -3,11 +3,14 @@
 import { ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { useContext } from "react";
 import { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
+import { MsalInstanceContext } from "@/components/auth/msal/msal-provider-wrapper";
 import type { User } from "@/lib/auth-service-client";
 import { logoutClient } from "@/lib/auth-service-client";
 import { getApiUrl } from "@/lib/api-client";
+import { authProvider } from "@/lib/auth/config";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +38,7 @@ export function SidebarUserNav({
   const router = useRouter();
   const { setTheme, resolvedTheme } = useTheme();
   const { mutate } = useSWRConfig();
+  const msalInstance = useContext(MsalInstanceContext);
 
   const isGuest = user.type === "guest";
 
@@ -108,16 +112,30 @@ export function SidebarUserNav({
 
                   if (isGuest) {
                     router.push("/login");
+                  } else if (authProvider === "msal" && msalInstance) {
+                    try {
+                      await logoutClient();
+                      mutate(unstable_serialize(getChatHistoryPaginationKey));
+                      // MSAL logout clears its cache and redirects to Azure logout, then to postLogoutRedirectUri.
+                      // That ensures the next app load shows the Microsoft sign-in page instead of cached state.
+                      const postLogoutRedirectUri =
+                        typeof window !== "undefined"
+                          ? `${window.location.origin}/login`
+                          : "/login";
+                      await msalInstance.logoutRedirect({
+                        postLogoutRedirectUri,
+                      });
+                    } catch {
+                      toast({
+                        type: "error",
+                        description: "Failed to sign out. Please try again.",
+                      });
+                    }
                   } else {
                     try {
-                      // Logout via Next.js API route which handles cookie clearing server-side
                       await logoutClient();
-
-                      // Invalidate SWR cache for chat history
                       mutate(unstable_serialize(getChatHistoryPaginationKey));
 
-                      // Verify logout by checking auth status
-                      // Retry a few times to ensure cookies are cleared
                       let isLoggedOut = false;
                       for (let i = 0; i < 5; i++) {
                         await new Promise((resolve) => {
@@ -136,17 +154,13 @@ export function SidebarUserNav({
                         }
                       }
 
-                      // Use window.location.href for a full page reload
-                      // This ensures cookies are fully cleared before navigation
-                      // and prevents any client-side state from interfering
                       if (isLoggedOut) {
-                        window.location.href = "/login";
+                        window.location.replace("/login");
                       } else {
-                        // If verification failed, still navigate but log warning
                         console.warn("Logout verification failed, but proceeding with navigation");
-                        window.location.href = "/login";
+                        window.location.replace("/login");
                       }
-                    } catch (error) {
+                    } catch {
                       toast({
                         type: "error",
                         description: "Failed to sign out. Please try again.",
