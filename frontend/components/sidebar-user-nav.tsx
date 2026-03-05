@@ -33,13 +33,17 @@ export type SidebarUserNavProps = {
   isLoading?: boolean;
   /** When set, show this label instead of Guest/email (e.g. "Sign in" for MSAL when not logged in). */
   placeholderLabel?: string;
+  /** When "guest", do not show "Login to your account" for guest users (login page is Try as guest only). */
+  authProvider?: "guest" | "msal" | "user";
 };
 
 export function SidebarUserNav({
   user,
   isLoading,
   placeholderLabel,
+  authProvider: authProviderProp,
 }: SidebarUserNavProps) {
+  const showLoginOption = authProviderProp !== "guest" || !(user.type === "guest");
   const router = useRouter();
   const { setTheme, resolvedTheme } = useTheme();
   const { mutate } = useSWRConfig();
@@ -129,8 +133,10 @@ export function SidebarUserNav({
                 </DropdownMenuItem>
               </>
             )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild data-testid="user-nav-item-auth">
+            {showLoginOption && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild data-testid="user-nav-item-auth">
               <button
                 className="w-full cursor-pointer"
                 onClick={async () => {
@@ -207,6 +213,8 @@ export function SidebarUserNav({
                 {isGuest ? "Login to your account" : "Sign out"}
               </button>
             </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

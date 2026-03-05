@@ -139,7 +139,8 @@ class Settings(BaseSettings):
     )
 
     # MSAL / Azure AD (optional). When AUTH_PROVIDER=msal, backend accepts Azure AD tokens.
-    AUTH_PROVIDER: str = "guest"  # "guest" | "msal"
+    # "guest" | "user" | "msal". guest/user both use cookie/session auth; difference is login UI only.
+    AUTH_PROVIDER: str = "guest"  # "guest" | "user" | "msal"
     MSAL_AUTH_COOKIE_NAME: str = "UIT"  # Cookie name for Azure AD token (must match frontend)
     AZURE_AD_TENANT_ID: str = (
         ""  # Tenant ID (or "common" for multi-tenant). Required for MSAL to validate tokens.

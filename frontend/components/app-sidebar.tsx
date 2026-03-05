@@ -190,7 +190,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
             open={feedbackOpen}
           />
           {effectiveUser ? (
-            <SidebarUserNav user={effectiveUser} />
+            <SidebarUserNav user={effectiveUser} authProvider={authProvider} />
           ) : (
             <SidebarUserNav
               isLoading={msalAuthChecking}
@@ -200,6 +200,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 type: authProvider === "msal" ? "regular" : "guest",
               }}
               placeholderLabel={authProvider === "msal" ? "Sign in" : undefined}
+              authProvider={authProvider}
             />
           )}
         </SidebarFooter>

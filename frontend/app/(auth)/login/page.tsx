@@ -121,6 +121,38 @@ export default function Page() {
     );
   }
 
+  if (authProvider === "guest") {
+    return (
+      <div className="flex h-dvh w-screen items-start justify-center bg-background pt-12 md:items-center md:pt-0">
+        <div className="flex w-full max-w-md flex-col gap-8 overflow-hidden rounded-2xl px-4 sm:px-16">
+          <div className="flex flex-col items-center justify-center gap-2 text-center">
+            <h3 className="font-semibold text-xl dark:text-zinc-50">Sign In</h3>
+            <p className="text-gray-500 text-sm dark:text-zinc-400">
+              Continue as guest to get started
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={handleTryAsGuest}
+            disabled={isCreatingGuest}
+            className="w-full"
+          >
+            {isCreatingGuest ? (
+              <>
+                <span className="mr-2 animate-spin">
+                  <LoaderIcon />
+                </span>
+                Creating guest session...
+              </>
+            ) : (
+              "Try as guest"
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-dvh w-screen items-start justify-center bg-background pt-12 md:items-center md:pt-0">
       <div className="flex w-full max-w-md flex-col gap-12 overflow-hidden rounded-2xl">
