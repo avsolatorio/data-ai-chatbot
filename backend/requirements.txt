@@ -45,9 +45,7 @@ azure-identity==1.25.1
 backports-asyncio-runner==1.2.0 ; python_full_version < '3.11'
     # via pytest-asyncio
 bcrypt==4.3.0
-    # via
-    #   backend
-    #   passlib
+    # via backend
 beartype==0.22.8
     # via
     #   py-key-value-aio
@@ -234,8 +232,6 @@ packaging==25.0
     # via
     #   huggingface-hub
     #   pytest
-passlib==1.7.4
-    # via backend
 pathable==0.4.4
     # via jsonschema-path
 pathvalidate==3.3.1

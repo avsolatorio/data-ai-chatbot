@@ -132,6 +132,12 @@ class Settings(BaseSettings):
     # Resolved user (JWT/session) is cached for this many seconds to reduce DB round-trips.
     USER_CACHE_TTL_SECONDS: int = 120  # 2 minutes
 
+    # Guest session TTL (idle + absolute). Regular user sessions keep 400 days; guest is more conservative.
+    GUEST_SESSION_MAX_AGE_DAYS: int = 90  # Cookie and server session absolute TTL (e.g. 30–90 days)
+    GUEST_SESSION_IDLE_DAYS: int = (
+        30  # Idle timeout: session invalid after this many days without use
+    )
+
     # MSAL / Azure AD (optional). When AUTH_PROVIDER=msal, backend accepts Azure AD tokens.
     AUTH_PROVIDER: str = "guest"  # "guest" | "msal"
     MSAL_AUTH_COOKIE_NAME: str = "UIT"  # Cookie name for Azure AD token (must match frontend)

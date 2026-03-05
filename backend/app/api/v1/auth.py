@@ -424,14 +424,18 @@ async def create_guest(http_request: Request, db: AsyncSession = Depends(get_db)
     """
     Create a guest user (no email/password required).
     Returns JWT token and sets httpOnly cookies.
-    Sets both auth_token (30 min) and guest_session_id (400 days) for persistence.
+    Sets both auth_token (30 min) and guest_session_id (configurable, default 90 days) for persistence.
     """
+    # CSRF protection for state-changing operation (same as login/register)
+    validate_csrf(http_request, require_origin=False)
+
     # Rate limiting: 5 guest users per minute per IP (reduced from 10 for security)
     await check_rate_limit(http_request, "guest", max_requests=5, window_seconds=60)
 
     # Check if guest_session_id cookie exists - reuse existing guest user
     guest_session_id = http_request.cookies.get("guest_session_id")
     user = None
+    reused_guest = False
 
     if guest_session_id:
         validated_user_id = await validate_session_token_async(db, guest_session_id)
@@ -450,7 +454,9 @@ async def create_guest(http_request: Request, db: AsyncSession = Depends(get_db)
                     )
                 )
 
-                if not is_guest:
+                if is_guest:
+                    reused_guest = True
+                else:
                     # User doesn't exist or is not a guest user - create new one
                     user = None
             except (ValueError, TypeError):
@@ -460,6 +466,12 @@ async def create_guest(http_request: Request, db: AsyncSession = Depends(get_db)
     # Create new guest user if we don't have a valid one
     if not user:
         user = await create_guest_user(db)
+
+    # Session rotation: when reusing an existing guest, delete old session so only the new one is valid
+    if reused_guest and guest_session_id and is_opaque_token(guest_session_id):
+        await delete_session_by_id(db, guest_session_id)
+
+    guest_max_age_seconds = getattr(settings, "GUEST_SESSION_MAX_AGE_DAYS", 90) * 24 * 60 * 60
 
     # Create JWT token (use type from database if available)
     user_type = user.type if hasattr(user, "type") and user.type else "guest"
@@ -487,16 +499,35 @@ async def create_guest(http_request: Request, db: AsyncSession = Depends(get_db)
         max_age=30 * 60,  # 30 minutes
     )
 
-    # Long-lived guest session ID (400 days - browser max)
-    # Opaque session id only; user_id stored server-side
-    guest_session_token = await generate_session_token(db, str(user.id), "guest")
+    # Guest session ID: configurable max age (default 90 days), opaque id only; user_id stored server-side
+    guest_session_token = await generate_session_token(
+        db, str(user.id), "guest", max_age_seconds=guest_max_age_seconds
+    )
     set_auth_cookie(
         response=response,
         key="guest_session_id",
         value=guest_session_token,
-        max_age=400 * 24 * 60 * 60,  # 400 days (browser maximum)
+        max_age=guest_max_age_seconds,
     )
 
+    return response
+
+
+@router.post("/guest/reset")
+async def reset_guest_session(http_request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Reset guest session: invalidate server-side guest session and clear guest_session_id cookie.
+    Client can then call POST /guest to get a fresh guest session (e.g. "Start over" for guests).
+    Does not require authentication; only clears guest cookie/session if present.
+    """
+    validate_csrf(http_request, require_origin=False)
+
+    guest_session_id = http_request.cookies.get("guest_session_id")
+    if guest_session_id and is_opaque_token(guest_session_id):
+        await delete_session_by_id(db, guest_session_id)
+
+    response = JSONResponse(content={"success": True})
+    delete_auth_cookie(response=response, key="guest_session_id")
     return response
 
 

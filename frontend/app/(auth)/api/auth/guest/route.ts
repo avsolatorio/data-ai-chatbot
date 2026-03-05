@@ -122,9 +122,12 @@ export async function GET(request: Request) {
       "http://localhost:8001";
     const fastApiUrl = `${API_URL}/api/auth/guest`;
 
-    // Build headers with cookies
+    // Build headers with cookies. Forward Origin/Referer so FastAPI CSRF middleware
+    // accepts the request (it requires Origin when Cookie is present).
     const headers: HeadersInit = {
       "Content-Type": "application/json",
+      Origin: baseOrigin,
+      Referer: `${baseOrigin}/`,
       ...(cookieHeader && { Cookie: cookieHeader }),
       ...(token && { Authorization: `Bearer ${token}` }),
     };

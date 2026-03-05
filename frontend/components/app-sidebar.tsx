@@ -70,10 +70,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       .then((res) => {
         if (cancelled) return;
         const newVersion = res.headers.get("X-Session-Version");
-        if (typeof newVersion === "string") {
+        if (typeof newVersion === "string" && newVersion.length > 0) {
           try {
             const stored = sessionStorage.getItem(sessionStorageKeys.sessionVersion);
-            if (stored !== null && stored !== newVersion) {
+            if (stored !== null && stored.length > 0 && stored !== newVersion) {
               clearAuthSessionStorage();
               sessionStorage.removeItem(sessionStorageKeys.sessionVersion);
               setMsalUser(null);
@@ -197,8 +197,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               user={{
                 id: "guest-temp",
                 email: null,
-                type: "guest",
+                type: authProvider === "msal" ? "regular" : "guest",
               }}
+              placeholderLabel={authProvider === "msal" ? "Sign in" : undefined}
             />
           )}
         </SidebarFooter>

@@ -6,9 +6,10 @@ Cookie stores only session id; user_id is resolved server-side.
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.auth_session import AuthSession
 
 
@@ -30,6 +31,7 @@ async def create_session(
         session_version=session_version,
         created_at=now,
         expires_at=expires_at,
+        last_activity_at=now,
     )
     session.add(row)
     await session.commit()
@@ -37,12 +39,24 @@ async def create_session(
     return row
 
 
+def _guest_idle_seconds() -> int | None:
+    """Return guest idle TTL in seconds, or None to disable idle check."""
+    days = getattr(settings, "GUEST_SESSION_IDLE_DAYS", None)
+    if days is None or days <= 0:
+        return None
+    return days * 24 * 60 * 60
+
+
 async def get_user_id_by_session(
     session: AsyncSession,
     session_id: str,
     current_version: str | None = None,
 ) -> UUID | None:
-    """Return user_id if session exists, is not expired, and version matches; else None."""
+    """
+    Return user_id if session exists, is not expired, and version matches.
+    For guest sessions, also enforces idle TTL (GUEST_SESSION_IDLE_DAYS).
+    Updates last_activity_at on successful use.
+    """
     now = datetime.utcnow()
     conditions = [
         AuthSession.id == session_id,
@@ -50,8 +64,29 @@ async def get_user_id_by_session(
     ]
     if current_version is not None:
         conditions.append(AuthSession.session_version == current_version)
-    result = await session.execute(select(AuthSession.user_id).where(*conditions))
-    return result.scalar_one_or_none()
+    # Select user_id, kind, last_activity_at for idle check and update
+    result = await session.execute(
+        select(AuthSession.user_id, AuthSession.kind, AuthSession.last_activity_at).where(
+            *conditions
+        )
+    )
+    row = result.one_or_none()
+    if row is None:
+        return None
+    user_id, kind, last_activity_at = row
+    # Guest idle TTL: if session is guest and last_activity is too old, treat as expired
+    if kind == "guest":
+        idle_seconds = _guest_idle_seconds()
+        if idle_seconds is not None and last_activity_at is not None:
+            idle_cutoff = datetime.fromtimestamp(now.timestamp() - idle_seconds)
+            if last_activity_at < idle_cutoff:
+                return None
+    # Refresh last_activity_at on use
+    await session.execute(
+        update(AuthSession).where(AuthSession.id == session_id).values(last_activity_at=now)
+    )
+    await session.commit()
+    return user_id
 
 
 async def delete_session_by_id(session: AsyncSession, session_id: str) -> bool:

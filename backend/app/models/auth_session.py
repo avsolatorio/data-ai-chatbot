@@ -28,5 +28,7 @@ class AuthSession(Base):
     )  # Bump on deploy to force logout
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     expires_at = Column(DateTime, nullable=False)
+    # For guest sessions: idle TTL is enforced by checking last_activity_at in get_user_id_by_session.
+    last_activity_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     user = relationship("User", backref="auth_sessions")

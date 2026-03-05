@@ -16,9 +16,10 @@ def test_guest_cookie_is_opaque_when_success():
     When guest endpoint succeeds, guest_session_id cookie must be opaque
     (no colon = no user_id:signature format). Requires DB + AuthSession migration.
     """
+    # Origin must match CORS_ORIGINS for CSRF (default includes localhost:3001)
     response = client.post(
         "/api/auth/guest",
-        headers={"Origin": "http://localhost:3000"},
+        headers={"Origin": "http://localhost:3001"},
     )
     if response.status_code != 200:
         # DB not available or CSRF / rate limit; skip assertion

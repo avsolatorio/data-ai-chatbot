@@ -5,9 +5,9 @@ import { ChatPageClient } from "@/app/(chat)/chat/[id]/chat-page-client";
 import {
   type ChatData,
   ChatPageContent,
-  normalizeMessagesFromApi,
 } from "@/app/(chat)/chat/[id]/chat-page-shared";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
+import { normalizeMessagesFromApi } from "@/lib/chat-messages";
 import { authProvider } from "@/lib/auth/config";
 import { ChatSDKError } from "@/lib/errors";
 import { serverApiFetch } from "@/lib/server-api-client";
@@ -79,7 +79,7 @@ async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   }
 
   const { chat, messages: messagesFromApi, isOwner } = chatData;
-  const uiMessages = normalizeMessagesFromApi(chat, messagesFromApi);
+  const initialMessages = normalizeMessagesFromApi(chat, messagesFromApi);
 
   const cookieStore = await cookies();
   const chatModel =
@@ -88,8 +88,8 @@ async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <ChatPageContent
       chat={chat}
+      initialMessages={initialMessages}
       initialChatModel={chatModel}
-      initialMessages={uiMessages}
       isOwner={isOwner}
     />
   );

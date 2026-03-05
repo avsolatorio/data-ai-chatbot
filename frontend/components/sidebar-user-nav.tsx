@@ -28,19 +28,26 @@ import { getChatHistoryPaginationKey } from "./sidebar-history";
 import { LoaderIcon } from "./icons";
 import { toast } from "./toast";
 
+export type SidebarUserNavProps = {
+  user: User;
+  isLoading?: boolean;
+  /** When set, show this label instead of Guest/email (e.g. "Sign in" for MSAL when not logged in). */
+  placeholderLabel?: string;
+};
+
 export function SidebarUserNav({
   user,
   isLoading,
-}: {
-  user: User;
-  isLoading?: boolean;
-}) {
+  placeholderLabel,
+}: SidebarUserNavProps) {
   const router = useRouter();
   const { setTheme, resolvedTheme } = useTheme();
   const { mutate } = useSWRConfig();
   const msalInstance = useContext(MsalInstanceContext);
 
   const isGuest = user.type === "guest";
+  const displayLabel = placeholderLabel ?? (isGuest ? "Guest" : user?.email || "User");
+  const avatarLetter = placeholderLabel ? placeholderLabel.charAt(0).toUpperCase() : (isGuest ? "G" : (user.email ?? "U").charAt(0).toUpperCase());
 
   return (
     <SidebarMenu>
@@ -67,15 +74,13 @@ export function SidebarUserNav({
                 <Avatar className="size-6">
                   <AvatarFallback
                     className="text-xs"
-                    title={isGuest ? "Guest User" : (user.email ?? "User")}
+                    title={placeholderLabel ?? (isGuest ? "Guest User" : (user.email ?? "User"))}
                   >
-                    {isGuest
-                      ? "G"
-                      : (user.email ?? "U").charAt(0).toUpperCase()}
+                    {avatarLetter}
                   </AvatarFallback>
                 </Avatar>
                 <span className="truncate" data-testid="user-email">
-                  {isGuest ? "Guest" : user?.email || "User"}
+                  {displayLabel}
                 </span>
                 <ChevronUp className="ml-auto" />
               </SidebarMenuButton>
@@ -95,6 +100,35 @@ export function SidebarUserNav({
             >
               {`Toggle ${resolvedTheme === "light" ? "dark" : "light"} mode`}
             </DropdownMenuItem>
+            {isGuest && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  data-testid="user-nav-item-reset-guest"
+                  onSelect={async () => {
+                    if (isLoading) return;
+                    try {
+                      const resetUrl = getApiUrl("/api/auth/guest/reset");
+                      const res = await fetch(resetUrl, {
+                        method: "POST",
+                        credentials: "include",
+                      });
+                      if (!res.ok) throw new Error("Reset failed");
+                      mutate(unstable_serialize(getChatHistoryPaginationKey));
+                      window.location.href = "/api/auth/guest";
+                    } catch {
+                      toast({
+                        type: "error",
+                        description: "Failed to start over. Please try again.",
+                      });
+                    }
+                  }}
+                >
+                  Start over (new guest session)
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild data-testid="user-nav-item-auth">
               <button

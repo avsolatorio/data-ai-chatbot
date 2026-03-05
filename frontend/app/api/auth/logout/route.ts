@@ -16,12 +16,20 @@ export async function POST(request: NextRequest) {
       "http://localhost:8001";
     const fastApiUrl = `${API_URL}/api/auth/logout`;
 
+    // Forward Origin/Referer so FastAPI CSRF middleware accepts the request when Cookie is present
+    const origin =
+      request.headers.get("origin") ??
+      (request.headers.get("host")
+        ? `${request.url.startsWith("https") ? "https" : "http"}://${request.headers.get("host")}`
+        : "");
+
     const headers: HeadersInit = {
       "Content-Type": "application/json",
+      ...(origin && { Origin: origin, Referer: `${origin}/` }),
     };
     const cookieHeader = request.headers.get("cookie");
     if (cookieHeader) {
-      headers.Cookie = cookieHeader;
+      (headers as Record<string, string>).Cookie = cookieHeader;
     }
 
     const response = await fetch(fastApiUrl, {

@@ -69,6 +69,27 @@ export async function serverApiFetch(
   if (cookieHeader) {
     headers.set("Cookie", cookieHeader);
   }
+
+  // When sending cookies with a state-changing method, FastAPI CSRF requires Origin/Referer.
+  const method = (init?.method ?? "GET").toUpperCase();
+  const stateChangingMethods = ["POST", "PUT", "PATCH", "DELETE"];
+  if (cookieHeader && stateChangingMethods.includes(method)) {
+    const appOrigin =
+      process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+      "http://localhost:3001";
+    try {
+      const originUrl = new URL(appOrigin);
+      const origin = originUrl.origin;
+      if (origin) {
+        headers.set("Origin", origin);
+        headers.set("Referer", `${origin}/`);
+      }
+    } catch {
+      headers.set("Origin", "http://localhost:3001");
+      headers.set("Referer", "http://localhost:3001/");
+    }
+  }
+
   const bearerToken = options?.bearerToken ?? msalToken ?? authToken;
   if (bearerToken) {
     headers.set("Authorization", `Bearer ${bearerToken}`);

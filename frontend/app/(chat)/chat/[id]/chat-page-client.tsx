@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type ChatData,
   ChatPageContent,
-  normalizeMessagesFromApi,
 } from "@/app/(chat)/chat/[id]/chat-page-shared";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
 import { apiFetch } from "@/lib/api-client";
@@ -65,14 +64,13 @@ export function ChatPageClient({ id }: { id: string }) {
   }
 
   const { chat, messages: messagesFromApi, isOwner } = state.data;
-  const uiMessages = normalizeMessagesFromApi(chat, messagesFromApi);
   const chatModel = getChatModelFromDocument();
 
   return (
     <ChatPageContent
       chat={chat}
+      messagesFromApi={messagesFromApi}
       initialChatModel={chatModel}
-      initialMessages={uiMessages}
       isOwner={isOwner}
     />
   );

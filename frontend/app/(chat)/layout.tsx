@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { DataStreamProvider } from "@/components/data-stream-provider";
 import { PcnProviderClient } from "@/components/data360/pcn-provider-client";
+import { HomeConfigProvider } from "@/components/home-config-provider";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { authProvider } from "@/lib/auth/config";
 import { getCurrentUser } from "@/lib/auth-service";
@@ -18,9 +19,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       />
       <DataStreamProvider>
         <PcnProviderClient>
-          <Suspense fallback={<div className="flex h-dvh" />}>
-            <SidebarWrapper>{children}</SidebarWrapper>
-          </Suspense>
+          <HomeConfigProvider>
+            <Suspense fallback={<div className="flex h-dvh" />}>
+              <SidebarWrapper>{children}</SidebarWrapper>
+            </Suspense>
+          </HomeConfigProvider>
         </PcnProviderClient>
       </DataStreamProvider>
     </>
