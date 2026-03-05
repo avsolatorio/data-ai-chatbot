@@ -322,7 +322,10 @@ async function proxyRequest(
 
     return proxiedResponse;
   } catch (error) {
-    console.error("Proxy error:", error);
+    console.error(
+      "Proxy error:",
+      error instanceof Error ? error.message : String(error),
+    );
 
     // Provide more specific error messages
     let statusCode = 502;
