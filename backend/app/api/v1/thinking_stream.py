@@ -50,6 +50,8 @@ async def stream_chat(
     """
     Stream AI response for a chat.
     This replaces the Next.js /api/chat/stream endpoint.
+    SECURITY: If this router is mounted, add chat-ownership validation (existing_chat.userId == user_id)
+    before using request.id, as in chat_stream.stream_chat, to prevent bypass via malicious chat ID.
     """
     logger.info("=== STREAM CHAT ENDPOINT CALLED ===")
     logger.info("Chat ID: %s", request.id)

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.core.errors import ChatSDKError
-from app.db.queries.chat_queries import get_chat_by_id
+from app.db.queries.chat_queries import get_chat_by_id, get_message_by_id
 from app.db.queries.vote_queries import get_votes_by_chat_id, vote_message
 from app.utils.user_id import get_user_id_uuid, user_ids_match
 
@@ -133,6 +133,15 @@ async def vote(
                 chat.visibility,
             )
             raise ChatSDKError("forbidden:vote", status_code=status.HTTP_403_FORBIDDEN)
+
+    # Guardrail: ensure message belongs to this chat (prevents cross-chat vote injection via malicious messageId)
+    message = await get_message_by_id(db, request.messageId)
+    if not message or message.chatId != request.chatId:
+        raise ChatSDKError(
+            "not_found:message",
+            "Message not found or does not belong to this chat",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
 
     # Vote on message or submit feedback
     await vote_message(db, request.chatId, request.messageId, request.type, request.feedback)

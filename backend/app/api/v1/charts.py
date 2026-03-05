@@ -65,7 +65,11 @@ async def get_chart(
     chart_id: UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a stored chart by ID. Returns the full Vega-Lite spec."""
+    """
+    Get a stored chart by ID. Returns the full Vega-Lite spec.
+    Intentionally world-readable by ID (shareable/embed). If charts become private,
+    add get_current_user and enforce chart.user_id == current_user.
+    """
     chart = await get_chart_by_id(db, chart_id)
     if not chart:
         raise ChatSDKError("not_found:chart", status_code=status.HTTP_404_NOT_FOUND)

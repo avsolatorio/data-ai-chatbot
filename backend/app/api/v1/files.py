@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_optional_user
 from app.config import settings
 from app.core.database import get_db
 from app.core.errors import ChatSDKError
@@ -139,10 +139,13 @@ async def upload_file(
 @router.get("/{file_id}")
 async def get_file(
     file_id: uuid.UUID,
+    current_user: dict | None = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Retrieve a file by ID from PostgreSQL storage.
+    Access: owner only. If the file has no owner (user_id is null), any authenticated user may read it.
+    Prevents IDOR: malicious request cannot download another user's file by guessing file ID.
     """
     try:
         result = await db.execute(select(File).where(File.id == file_id))
@@ -154,6 +157,22 @@ async def get_file(
                 "File not found",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
+
+        # Guardrail: enforce ownership so file_id cannot be used to bypass and read another user's file
+        if file_record.user_id is not None:
+            if not current_user:
+                raise ChatSDKError(
+                    "forbidden:api",
+                    "Authentication required to access this file",
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
+            current_user_id = get_user_id_uuid(current_user["id"])
+            if file_record.user_id != current_user_id:
+                raise ChatSDKError(
+                    "forbidden:api",
+                    "You do not have access to this file",
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
 
         # Return file as streaming response (chunked for better memory efficiency)
         # Create a BytesIO object from the file data
