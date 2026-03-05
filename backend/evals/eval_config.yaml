@@ -266,6 +266,92 @@ base_metrics:
       - "If no tool-retrieved data is present, score 1.0 (not applicable)"
 
 
+# ── Per-Turn Metrics ─────────────────────────────────────────────
+# Evaluated on each assistant turn individually (using standard GEval
+# on LLMTestCase), IN ADDITION to conversation-level base_metrics.
+# Provides per-turn scores to pinpoint which turn broke.
+
+per_turn_metrics:
+  - name: "Per-Turn Context Retention"
+    type: "geval"
+    threshold: 0.6
+    criteria: >
+      You are evaluating a SINGLE assistant turn in a multi-turn
+      conversation. You are given:
+      - PRIOR CONTEXT: all previous turns (user + assistant) including
+        tool calls and claim-tagged data from earlier turns.
+      - CURRENT USER INPUT: the user's question for this turn.
+      - CURRENT ASSISTANT OUTPUT: the assistant's response for this turn.
+
+      Evaluate whether THIS specific turn correctly retains and reuses
+      information from the prior context:
+      (1) If the user's question references or builds on prior data
+      (e.g., "now break it down by gender", "compare with Kenya"),
+      does the assistant reuse the indicator_id and database_id from
+      prior tool calls? Or did it re-search unnecessarily?
+      (2) If the assistant references a numeric value that appeared in
+      a prior turn, does it reuse the same claim_id?
+      (3) Does the assistant avoid re-asking questions the user already
+      answered in prior turns?
+
+      APPLICABILITY: If this is the first data-containing turn, or
+      the user's question does NOT reference prior data at all (i.e.,
+      it's an entirely new topic), score 1.0 — retention is not
+      tested in this turn.
+    evaluation_steps:
+      - >
+        Check if the current user input references or builds on
+        data from the prior context (e.g., same indicator, same
+        country, filter change). If not, score 1.0 immediately.
+      - >
+        If it does, check the assistant's tool calls in the current
+        turn: did it call search_indicators again for an indicator
+        already resolved in prior turns? If so, penalize.
+      - >
+        Check if the assistant reuses the same indicator_id and
+        database_id from prior tool calls when appropriate.
+      - >
+        Check if any numeric values from prior turns are referenced
+        with the SAME claim_id, not a new one.
+
+  - name: "Per-Turn Claim Consistency"
+    type: "geval"
+    threshold: 0.8
+    criteria: >
+      You are evaluating a SINGLE assistant turn. You are given:
+      - PRIOR CONTEXT: all previous turns including tool calls and
+        claim-tagged values.
+      - CURRENT ASSISTANT OUTPUT: the response for this turn.
+
+      Evaluate claim tag correctness for THIS turn only:
+      (1) Every numeric value retrieved from tool calls in THIS turn
+      must be enclosed in <claim id="claim_id" policy="auto">value
+      </claim> tags — no untagged tool-retrieved numbers.
+      (2) The claim_id must match the EXACT claim_id from the tool
+      output — never invented or generic.
+      (3) If this turn references a numeric value that was ALREADY
+      presented in a prior turn (from the prior context), the
+      assistant MUST reuse the SAME claim_id — not generate a new
+      one for the same data point.
+      (4) Both 'id' and 'policy' attributes are required.
+
+      APPLICABILITY: If this turn contains no inline numeric data
+      (API URLs, code, refusals, greetings, explanations only),
+      score 1.0.
+    evaluation_steps:
+      - >
+        Check if this turn contains any inline numeric data values.
+        If not, score 1.0 immediately.
+      - >
+        For each numeric value, verify it is wrapped in <claim> tags
+        with correct id and policy attributes.
+      - >
+        Cross-reference claim_ids against tool output from THIS turn
+        to verify they match exactly.
+      - >
+        Check if any values also appeared in prior turns. If so,
+        verify the SAME claim_id is reused.
+
 # ── Edge-Case Metrics ────────────────────────────────────────────
 # Applied only to specific personas, in addition to base metrics.
 

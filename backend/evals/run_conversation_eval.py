@@ -39,14 +39,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger("conversation_eval")
-
-import yaml
 
 RESULTS_DIR = Path(__file__).parent / ".results"
 PERSONAS_DIR = Path(__file__).parent / "personas"
@@ -57,12 +57,15 @@ CONFIG_PATH = Path(__file__).parent / "eval_config.yaml"
 # Configuration loading
 # ---------------------------------------------------------------------------
 
+
 def _get_git_branch() -> str:
     """Get the current git branch name for prompt_version tracking."""
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
             cwd=Path(__file__).parent.parent,
         )
         return result.stdout.strip() if result.returncode == 0 else "unknown"
@@ -75,7 +78,9 @@ def _get_git_short_hash() -> str:
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
             cwd=Path(__file__).parent.parent,
         )
         return result.stdout.strip() if result.returncode == 0 else "unknown"
@@ -88,6 +93,7 @@ def _get_system_prompt_hash() -> str:
     try:
         from app.ai.prompts import get_combined_system_prompt
         from app.config import ModelType
+
         prompt = get_combined_system_prompt(ModelType.CHAT_MODEL)
         return hashlib.sha256(prompt.encode()).hexdigest()[:12]
     except Exception:
@@ -145,9 +151,11 @@ def _load_config(config_path: str | Path | None = None) -> dict:
 # Exhaustive conversation data tracking
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class TurnData:
     """Structured data for a single conversation turn."""
+
     role: str
     content: str
     turn_index: int
@@ -157,6 +165,7 @@ class TurnData:
     planner_output: str = ""
     writer_output: str = ""
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
+    agent_actions: list[dict[str, Any]] = field(default_factory=list)  # sequential timeline
     model: str = ""
     turns_used: int = 0
     error: str | None = None
@@ -164,6 +173,9 @@ class TurnData:
 
 # Global turn data store, keyed by thread_id
 _turn_data_store: dict[str, list[TurnData]] = {}
+
+# Per-thread session cache for HTTP mode (reuse auth + chat_id across turns)
+_http_sessions: dict[str, dict] = {}
 
 
 def _store_turn_data(thread_id: str, data: TurnData):
@@ -179,11 +191,13 @@ def _get_turn_data(thread_id: str) -> list[TurnData]:
 def _clear_turn_data():
     """Clear all stored turn data."""
     _turn_data_store.clear()
+    _http_sessions.clear()
 
 
 # ---------------------------------------------------------------------------
 # Persona loading
 # ---------------------------------------------------------------------------
+
 
 def _load_personas() -> dict:
     """Load persona definitions from YAML files in evals/personas/.
@@ -198,14 +212,10 @@ def _load_personas() -> dict:
             data = yaml.safe_load(f)
         for field_name in ("scenario", "user_description", "expected_outcome"):
             if field_name not in data:
-                raise ValueError(
-                    f"Persona '{key}' missing required field: {field_name}"
-                )
+                raise ValueError(f"Persona '{key}' missing required field: {field_name}")
         personas[key] = data
     if not personas:
-        raise FileNotFoundError(
-            f"No persona YAML files found in {PERSONAS_DIR}"
-        )
+        raise FileNotFoundError(f"No persona YAML files found in {PERSONAS_DIR}")
     logger.info("Loaded %d personas from %s", len(personas), PERSONAS_DIR)
     return personas
 
@@ -216,6 +226,7 @@ PERSONAS = _load_personas()
 # ---------------------------------------------------------------------------
 # Model callback — in-process pipeline (default)
 # ---------------------------------------------------------------------------
+
 
 async def _pipeline_model_callback(
     input,  # noqa: A002
@@ -239,10 +250,12 @@ async def _pipeline_model_callback(
     conversation_history = []
     if turns:
         for t in turns:
-            conversation_history.append({
-                "role": t.role,
-                "content": t.content,
-            })
+            conversation_history.append(
+                {
+                    "role": t.role,
+                    "content": t.content,
+                }
+            )
 
     # Store the user turn data
     turn_index = (len(conversation_history) // 2) + 1
@@ -281,7 +294,9 @@ async def _pipeline_model_callback(
         # Append tool calls so the judge can cross-reference data
         if result.tool_calls:
             content += "\n\n---\n"
-            content += "<details>\n<summary>\U0001f4cb <b>Tool Calls</b> (click to expand)</summary>\n\n"
+            content += (
+                "<details>\n<summary>\U0001f4cb <b>Tool Calls</b> (click to expand)</summary>\n\n"
+            )
             for i, tc in enumerate(result.tool_calls, 1):
                 content += f"**{i}. {tc['tool']}**\n"
                 args_str = json.dumps(tc["arguments"], indent=2)
@@ -350,6 +365,7 @@ async def _pipeline_model_callback(
 # Model callback — HTTP-based E2E (hits the running chatbot)
 # ---------------------------------------------------------------------------
 
+
 async def _http_model_callback(
     input,  # noqa: A002
     turns=None,
@@ -361,13 +377,19 @@ async def _http_model_callback(
     This provides true end-to-end testing through the full stack:
     FastAPI -> streaming -> LLM -> tools -> response assembly.
 
+    Uses POST /api/chat (the real frontend endpoint) which handles
+    chat creation on first call and loads history from DB on subsequent
+    calls. Reuses the same auth token and chat_id across turns.
+
     Requires the chatbot to be running (docker-compose up).
     """
+    from uuid import uuid4
+
     import httpx
     from deepeval.test_case import Turn
 
     config = config or {}
-    api_base = config.get("chatbot_api_base", "http://localhost:8000")
+    api_base = config.get("chatbot_api_base", "http://localhost:8001")
     turn_index = (len(turns) // 2 + 1) if turns else 1
 
     # Store user turn data
@@ -382,79 +404,193 @@ async def _http_model_callback(
     )
 
     try:
-        # First, get a guest auth token
-        async with httpx.AsyncClient(base_url=api_base, timeout=120.0) as client:
-            auth_resp = await client.post("/api/auth/guest")
-            auth_resp.raise_for_status()
-            token = auth_resp.json()["access_token"]
-            headers = {"Authorization": f"Bearer {token}"}
-
-            # Build message history in the format the API expects
-            from uuid import uuid4
-            existing_messages = []
-            if turns:
-                for t in turns:
-                    existing_messages.append({
-                        "id": str(uuid4()),
-                        "role": t.role,
-                        "parts": [{"type": "text", "text": t.content}],
-                        "attachments": [],
-                        "createdAt": datetime.utcnow().isoformat(),
-                    })
-
-            chat_id = thread_id or str(uuid4())
-            request_body = {
-                "id": chat_id,
-                "message": {
-                    "id": str(uuid4()),
-                    "role": "user",
-                    "parts": [{"type": "text", "text": input}],
-                },
-                "selectedChatModel": "chat-model",
-                "selectedVisibilityType": "private",
-                "existingMessages": existing_messages,
+        # Reuse or create session (auth token + chat_id) for this thread
+        session = _http_sessions.get(thread_id)
+        if not session:
+            async with httpx.AsyncClient(
+                base_url=api_base,
+                timeout=30.0,
+            ) as tmp:
+                auth_resp = await tmp.post("/api/auth/guest")
+                auth_resp.raise_for_status()
+                token = auth_resp.json()["access_token"]
+            session = {
+                "token": token,
+                "chat_id": str(uuid4()),
             }
+            _http_sessions[thread_id] = session
+            logger.info(
+                "[%s] Created HTTP session: chat_id=%s",
+                thread_id[:8],
+                session["chat_id"][:8],
+            )
 
-            # Call the stream endpoint
-            response = await client.post(
-                "/api/v1/chat/stream",
+        headers = {"Authorization": f"Bearer {session['token']}"}
+
+        # POST /api/chat — the real frontend endpoint.
+        # It creates the chat on the first call (title generation + save)
+        # and loads history from DB on subsequent calls.
+        # No need to pass existingMessages — the DB is the source of truth.
+        request_body = {
+            "id": session["chat_id"],
+            "message": {
+                "id": str(uuid4()),
+                "role": "user",
+                "parts": [{"type": "text", "text": input}],
+            },
+            "selectedChatModel": "chat-model",
+            "selectedVisibilityType": "private",
+        }
+
+        async with httpx.AsyncClient(
+            base_url=api_base,
+            timeout=300.0,
+        ) as client:
+            # Use streaming to handle SSE properly (response can be large)
+            async with client.stream(
+                "POST",
+                "/api/chat",
                 json=request_body,
                 headers=headers,
-            )
-            response.raise_for_status()
+            ) as response:
+                response.raise_for_status()
 
-            # Parse SSE response — collect all text chunks
-            full_content = ""
-            for line in response.text.split("\n"):
-                if line.startswith("data: "):
-                    try:
-                        event_data = json.loads(line[6:])
-                        if isinstance(event_data, dict):
-                            if "text" in event_data:
-                                full_content += event_data["text"]
-                            elif "content" in event_data:
-                                full_content += event_data["content"]
-                        elif isinstance(event_data, str):
-                            full_content += event_data
-                    except json.JSONDecodeError:
-                        pass
+                # Parse SSE response — build sequential timeline
+                full_content = ""
+                routing_text = ""
+                planner_text = ""
+                current_stage = ""
+                buffer = ""
+                tool_calls_captured = []  # list of {name, args, output}
+                _tool_call_map = {}  # toolCallId -> index in tool_calls_captured
+                agent_timeline = []  # sequential list of all events
+                _thinking_buf = ""  # accumulate thinking text before flushing
+                _thinking_stage = ""  # stage of current thinking buffer
+                async for chunk in response.aiter_text():
+                    buffer += chunk
+                    while "\n" in buffer:
+                        line, buffer = buffer.split("\n", 1)
+                        line = line.strip()
+                        if not line or not line.startswith("data: "):
+                            continue
+                        raw = line[6:]
+                        try:
+                            event = json.loads(raw)
+                        except json.JSONDecodeError:
+                            continue
+                        if not isinstance(event, dict):
+                            continue
+                        etype = event.get("type", "")
+                        if etype == "data-stage":
+                            new_stage = event.get("data", {}).get("stage", "")
+                            # Flush accumulated thinking text on stage change
+                            if _thinking_buf.strip():
+                                label = "routing" if _thinking_stage == "routing" else "thinking"
+                                agent_timeline.append(
+                                    {
+                                        "type": label,
+                                        "stage": _thinking_stage,
+                                        "content": _thinking_buf.strip(),
+                                    }
+                                )
+                                _thinking_buf = ""
+                            _thinking_stage = new_stage
+                            current_stage = new_stage
+                        elif etype == "text-delta":
+                            full_content += event.get("delta", "")
+                        elif etype == "data-thinking":
+                            inner = event.get("data", {})
+                            if not isinstance(inner, dict):
+                                continue
+                            inner_type = inner.get("type", "")
+                            if inner_type == "text-delta":
+                                delta = inner.get("delta", "")
+                                _thinking_buf += delta
+                                # Legacy buckets for eval metrics
+                                if current_stage == "routing":
+                                    routing_text += delta
+                                elif current_stage in ("interpreting", "executing"):
+                                    planner_text += delta
+                            elif inner_type == "tool-input-available":
+                                # Flush thinking text before tool call
+                                if _thinking_buf.strip():
+                                    label = (
+                                        "routing" if _thinking_stage == "routing" else "thinking"
+                                    )
+                                    agent_timeline.append(
+                                        {
+                                            "type": label,
+                                            "stage": _thinking_stage,
+                                            "content": _thinking_buf.strip(),
+                                        }
+                                    )
+                                    _thinking_buf = ""
+                                tc_id = inner.get("toolCallId", "")
+                                tc_entry = {
+                                    "name": inner.get("toolName", ""),
+                                    "args": inner.get("input", {}),
+                                    "output": None,
+                                }
+                                tool_calls_captured.append(tc_entry)
+                                _tool_call_map[tc_id] = len(tool_calls_captured) - 1
+                                agent_timeline.append(
+                                    {
+                                        "type": "tool_call",
+                                        "stage": current_stage,
+                                        "name": tc_entry["name"],
+                                        "args": tc_entry["args"],
+                                        "toolCallId": tc_id,
+                                    }
+                                )
+                            elif inner_type == "tool-output-available":
+                                tc_id = inner.get("toolCallId", "")
+                                output = inner.get("output")
+                                idx = _tool_call_map.get(tc_id)
+                                if idx is not None:
+                                    tool_calls_captured[idx]["output"] = output
+                                agent_timeline.append(
+                                    {
+                                        "type": "tool_output",
+                                        "stage": current_stage,
+                                        "toolCallId": tc_id,
+                                        "output": output,
+                                    }
+                                )
+                # Flush any remaining thinking text
+                if _thinking_buf.strip():
+                    label = "routing" if _thinking_stage == "routing" else "thinking"
+                    agent_timeline.append(
+                        {
+                            "type": label,
+                            "stage": _thinking_stage,
+                            "content": _thinking_buf.strip(),
+                        }
+                    )
 
-            content = full_content or "(no response from HTTP endpoint)"
+        content = full_content or "(no response from HTTP endpoint)"
 
-        # Store assistant turn data (HTTP mode has less pipeline detail)
+        # Store assistant turn data with routing/planner detail
         assistant_data = TurnData(
             role="assistant",
             content=content,
             turn_index=turn_index,
             routing_intent="(via HTTP)",
+            routing_reasoning=routing_text.strip(),
+            planner_output=planner_text.strip(),
+            tool_calls=tool_calls_captured,
+            agent_actions=agent_timeline,
             model=config.get("hyperparameters", {}).get("model", "unknown"),
         )
         _store_turn_data(thread_id, assistant_data)
 
         logger.info(
-            "[%s] HTTP Assistant: %d chars",
+            "[%s] HTTP Assistant: %d chars (routing=%d, planner=%d, tools=%d, actions=%d)",
             thread_id[:8] if thread_id else "?",
             len(content),
+            len(routing_text),
+            len(planner_text),
+            len(tool_calls_captured),
+            len(agent_timeline),
         )
 
         return Turn(role="assistant", content=content)
@@ -486,11 +622,12 @@ def _get_builtin_metric_classes():
     global _BUILTIN_METRIC_CLASSES
     if _BUILTIN_METRIC_CLASSES is None:
         from deepeval.metrics import (
-            ConversationCompletenessMetric,
             ConversationalGEval,
+            ConversationCompletenessMetric,
             TurnFaithfulnessMetric,
             TurnRelevancyMetric,
         )
+
         _BUILTIN_METRIC_CLASSES = {
             "ConversationCompletenessMetric": ConversationCompletenessMetric,
             "TurnFaithfulnessMetric": TurnFaithfulnessMetric,
@@ -517,6 +654,7 @@ def _build_metric_from_config(metric_def: dict, judge_model: str):
         )
     elif metric_def["type"] == "geval":
         from deepeval.metrics import ConversationalGEval
+
         return ConversationalGEval(
             name=metric_def["name"],
             criteria=metric_def["criteria"],
@@ -575,7 +713,9 @@ def _build_edge_case_metrics(persona_key, config):
             except Exception as e:
                 logger.error(
                     "Failed to build edge metric '%s' for %s: %s",
-                    metric_def.get("name"), persona_key, e,
+                    metric_def.get("name"),
+                    persona_key,
+                    e,
                 )
 
     # Viz & API URLs — only for specified personas
@@ -590,6 +730,173 @@ def _build_edge_case_metrics(persona_key, config):
                 logger.error("Failed to build viz metric: %s", e)
 
     return extra
+
+
+def _build_per_turn_metrics(config):
+    """Build per-turn GEval metrics from config.
+
+    These use standard (non-conversational) GEval on LLMTestCase objects.
+    They run IN ADDITION to conversation-level metrics.
+    """
+    from deepeval.metrics import GEval
+    from deepeval.test_case import LLMTestCaseParams
+
+    judge_model = config.get("judge_model", "gpt-4.1-mini")
+    per_turn_defs = config.get("per_turn_metrics", [])
+
+    if not per_turn_defs:
+        return []
+
+    metrics = []
+    for metric_def in per_turn_defs:
+        try:
+            metric = GEval(
+                name=metric_def["name"],
+                criteria=metric_def["criteria"],
+                evaluation_steps=metric_def.get("evaluation_steps", []),
+                evaluation_params=[
+                    LLMTestCaseParams.INPUT,
+                    LLMTestCaseParams.ACTUAL_OUTPUT,
+                    LLMTestCaseParams.CONTEXT,
+                ],
+                threshold=metric_def.get("threshold", 0.5),
+                model=judge_model,
+            )
+            metrics.append(metric)
+        except Exception as e:
+            logger.error(
+                "Failed to build per-turn metric '%s': %s",
+                metric_def.get("name"),
+                e,
+            )
+            raise
+
+    logger.info("Built %d per-turn metrics from config", len(metrics))
+    return metrics
+
+
+def _evaluate_per_turn(test_cases, persona_keys, config):
+    """Run per-turn GEval on each assistant turn individually.
+
+    For each assistant turn (2+), the judge evaluates it against
+    accumulated prior context to check indicator reuse, claim_id
+    consistency, etc.
+
+    Returns:
+        dict: persona_key -> {
+            turn_idx: {
+                metric_name: {
+                    "score": float,
+                    "reason": str,
+                    "passed": bool,
+                }
+            }
+        }
+    """
+    from deepeval import evaluate
+    from deepeval.evaluate import DisplayConfig, ErrorConfig
+    from deepeval.test_case import LLMTestCase
+
+    per_turn_metrics = _build_per_turn_metrics(config)
+    if not per_turn_metrics:
+        return {}
+
+    all_per_turn = {}
+
+    for tc, key in zip(test_cases, persona_keys):
+        logger.info("  [%s] Running per-turn evaluation...", key)
+        per_turn_scores = {}
+        prior_context_parts = []
+
+        turn_pairs = []  # (user_content, assistant_content) pairs
+        current_user = None
+
+        for turn in tc.turns:
+            if turn.role == "user":
+                current_user = turn.content
+            else:
+                turn_pairs.append((current_user, turn.content))
+
+        for turn_idx, (user_input, assistant_output) in enumerate(turn_pairs):
+            # Turn 0 (first assistant response) — no prior context
+            if turn_idx == 0:
+                prior_context_parts.append(
+                    f"[Turn {turn_idx + 1}]\nUser: {user_input}\nAssistant: {assistant_output}"
+                )
+                # Score 1.0 for first turn — nothing to retain
+                per_turn_scores[turn_idx] = {}
+                for m in per_turn_metrics:
+                    per_turn_scores[turn_idx][m.name] = {
+                        "score": 1.0,
+                        "reason": "First turn — no prior context to retain.",
+                        "passed": True,
+                    }
+                continue
+
+            # Build context from all prior turns
+            context = prior_context_parts.copy()
+
+            # Create LLMTestCase
+            llm_tc = LLMTestCase(
+                input=user_input or "",
+                actual_output=assistant_output or "",
+                context=context,
+            )
+
+            try:
+                # Build fresh metrics to avoid stale state
+                fresh_metrics = _build_per_turn_metrics(config)
+                results = evaluate(
+                    test_cases=[llm_tc],
+                    metrics=fresh_metrics,
+                    display_config=DisplayConfig(print_results=False, verbose_mode=False),
+                    error_config=ErrorConfig(skip_on_missing_params=True, ignore_errors=True),
+                )
+
+                per_turn_scores[turn_idx] = {}
+                if results and results.test_results:
+                    for md in results.test_results[0].metrics_data:
+                        per_turn_scores[turn_idx][md.name] = {
+                            "score": md.score if md.score is not None else 0.0,
+                            "reason": md.reason if hasattr(md, "reason") else "",
+                            "passed": (
+                                md.success if hasattr(md, "success") else (md.score or 0) >= 0.5
+                            ),
+                        }
+            except Exception as e:
+                logger.error(
+                    "Per-turn eval failed for %s turn %d: %s",
+                    key,
+                    turn_idx,
+                    e,
+                )
+                per_turn_scores[turn_idx] = {}
+                for m in per_turn_metrics:
+                    per_turn_scores[turn_idx][m.name] = {
+                        "score": 0.0,
+                        "reason": f"Evaluation error: {e}",
+                        "passed": False,
+                    }
+
+            # Add this turn to prior context for next iteration
+            prior_context_parts.append(
+                f"[Turn {turn_idx + 1}]\nUser: {user_input}\nAssistant: {assistant_output}"
+            )
+
+        all_per_turn[key] = per_turn_scores
+        # Log summary
+        for tidx, scores in per_turn_scores.items():
+            for mname, mdata in scores.items():
+                status = "PASS" if mdata["passed"] else "FAIL"
+                logger.info(
+                    "    Turn %d | %s: %.2f [%s]",
+                    tidx + 1,
+                    mname,
+                    mdata["score"],
+                    status,
+                )
+
+    return all_per_turn
 
 
 def _get_threshold_map(config, persona_key):
@@ -627,16 +934,14 @@ def _get_threshold_map(config, persona_key):
 # Main (synchronous — simulator handles async internally)
 # ---------------------------------------------------------------------------
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Run persona-based conversation simulations"
-    )
+    parser = argparse.ArgumentParser(description="Run persona-based conversation simulations")
     parser.add_argument(
         "--turns",
         type=int,
         default=None,
-        help="Max user-assistant turn cycles per persona "
-             "(default: from config or 5)",
+        help="Max user-assistant turn cycles per persona (default: from config or 5)",
     )
     parser.add_argument(
         "--persona",
@@ -654,14 +959,14 @@ def parse_args():
         type=int,
         default=1,
         help="Number of independent runs per persona (default: 1). "
-             "Reports mean +/- std when N > 1.",
+        "Reports mean +/- std when N > 1.",
     )
     parser.add_argument(
         "--replay",
         type=str,
         default=None,
         help="Timestamp of a prior run to replay (e.g., 20260227_144407). "
-             "Skips simulation and re-evaluates saved conversations.",
+        "Skips simulation and re-evaluates saved conversations.",
     )
     parser.add_argument(
         "--config",
@@ -679,7 +984,7 @@ def parse_args():
         type=str,
         default=None,
         help="Path to JSON file with pre-generated ConversationalGoldens "
-             "(from generate_goldens.py).",
+        "(from generate_goldens.py).",
     )
     return parser.parse_args()
 
@@ -687,6 +992,7 @@ def parse_args():
 # ---------------------------------------------------------------------------
 # Helpers — simulation, evaluation, reporting
 # ---------------------------------------------------------------------------
+
 
 def _simulate(persona_keys, max_turns, config):
     """Run conversation simulation and return test cases + raw data."""
@@ -716,14 +1022,20 @@ def _simulate(persona_keys, max_turns, config):
 
         async def callback(input, turns=None, thread_id=""):
             return await _http_model_callback(
-                input, turns, thread_id, config=config,
+                input,
+                turns,
+                thread_id,
+                config=config,
             )
     else:
         logger.info("Using in-process pipeline callback")
 
         async def callback(input, turns=None, thread_id=""):
             return await _pipeline_model_callback(
-                input, turns, thread_id, config=config,
+                input,
+                turns,
+                thread_id,
+                config=config,
             )
 
     simulator = ConversationSimulator(
@@ -787,10 +1099,7 @@ def _load_replay(timestamp, persona_keys):
             continue
         conv_data = conv_by_persona[key]
         turn_list = conv_data.get("turns", [])
-        turns = [
-            Turn(role=t["role"], content=t["content"])
-            for t in turn_list
-        ]
+        turns = [Turn(role=t["role"], content=t["content"]) for t in turn_list]
         tc = ConversationalTestCase(turns=turns)
         test_cases.append(tc)
         loaded_keys.append(key)
@@ -826,9 +1135,9 @@ def _evaluate_single_run(test_cases, persona_keys, config):
         if edge_metrics:
             logger.info(
                 "  [%s] +%d edge-case metric(s): %s",
-                key, len(edge_metrics),
-                [m.name if hasattr(m, 'name') else type(m).__name__
-                 for m in edge_metrics],
+                key,
+                len(edge_metrics),
+                [m.name if hasattr(m, "name") else type(m).__name__ for m in edge_metrics],
             )
 
         try:
@@ -836,32 +1145,41 @@ def _evaluate_single_run(test_cases, persona_keys, config):
                 test_cases=[tc],
                 metrics=combined,
                 hyperparameters=hyperparams,
-                display_config=DisplayConfig(
-                    print_results=False, verbose_mode=False
-                ),
-                error_config=ErrorConfig(
-                    skip_on_missing_params=True, ignore_errors=True
-                ),
+                display_config=DisplayConfig(print_results=False, verbose_mode=False),
+                error_config=ErrorConfig(skip_on_missing_params=True, ignore_errors=True),
             )
             if results and results.test_results:
+                # Build metric-name → metric-object map for score_breakdown
+                metric_map = {
+                    (m.name if hasattr(m, "name") else type(m).__name__): m for m in combined
+                }
                 # Extract exhaustive metric data including judge reasoning
                 all_scores[key] = {}
                 for md in results.test_results[0].metrics_data:
+                    metric_obj = metric_map.get(md.name)
                     all_scores[key][md.name] = {
                         "score": md.score if md.score is not None else 0.0,
                         "threshold": md.threshold if hasattr(md, "threshold") else 0.5,
-                        "passed": md.success if hasattr(md, "success") else (
+                        "passed": md.success
+                        if hasattr(md, "success")
+                        else (
                             (md.score or 0) >= (md.threshold if hasattr(md, "threshold") else 0.5)
                         ),
                         "reason": md.reason if hasattr(md, "reason") else "",
-                        "evaluation_model": md.evaluation_model if hasattr(md, "evaluation_model") else "",
+                        "evaluation_model": md.evaluation_model
+                        if hasattr(md, "evaluation_model")
+                        else "",
+                        "verbose_logs": md.verbose_logs or ""
+                        if hasattr(md, "verbose_logs")
+                        else "",
+                        "score_breakdown": (
+                            getattr(metric_obj, "score_breakdown", None) if metric_obj else None
+                        ),
                     }
             else:
                 all_scores[key] = {}
         except Exception as e:
-            logger.error(
-                "Evaluation failed for %s: %s", key, e, exc_info=True
-            )
+            logger.error("Evaluation failed for %s: %s", key, e, exc_info=True)
             all_scores[key] = {}
 
     return all_scores
@@ -996,9 +1314,7 @@ def _save_conversations_exhaustive(
                 first_user = next((t for t in tc.turns if t.role == "user"), None)
                 first_stored = next((t for t in turns_list if t.role == "user"), None)
                 if first_user and first_stored and first_user.content == first_stored.content:
-                    stored_data = {
-                        (t.role, t.turn_index): t for t in turns_list
-                    }
+                    stored_data = {(t.role, t.turn_index): t for t in turns_list}
                     break
 
         turns_data = []
@@ -1031,17 +1347,19 @@ def _save_conversations_exhaustive(
 
             turns_data.append(turn_entry)
 
-        conversations_data.append({
-            "persona": key,
-            "scenario": PERSONAS[key]["scenario"],
-            "expected_outcome": PERSONAS[key]["expected_outcome"],
-            "num_turns": len(tc.turns),
-            "model": hyper.get("model", config.get("judge_model", "")),
-            "prompt_version": hyper.get("prompt_version", ""),
-            "system_prompt_hash": hyper.get("system_prompt_hash", ""),
-            "use_http_callback": config.get("use_http_callback", False),
-            "turns": turns_data,
-        })
+        conversations_data.append(
+            {
+                "persona": key,
+                "scenario": PERSONAS[key]["scenario"],
+                "expected_outcome": PERSONAS[key]["expected_outcome"],
+                "num_turns": len(tc.turns),
+                "model": hyper.get("model", config.get("judge_model", "")),
+                "prompt_version": hyper.get("prompt_version", ""),
+                "system_prompt_hash": hyper.get("system_prompt_hash", ""),
+                "use_http_callback": config.get("use_http_callback", False),
+                "turns": turns_data,
+            }
+        )
 
     conversations_file.write_text(json.dumps(conversations_data, indent=2))
     logger.info("Exhaustive conversations saved to: %s", conversations_file)
@@ -1055,6 +1373,7 @@ def _save_conversation_markdown(
     timestamp,
     config,
     run_label=None,
+    per_turn_scores=None,
 ):
     """Generate per-persona conversation markdown files in evals/conversations/.
 
@@ -1097,9 +1416,7 @@ def _save_conversation_markdown(
         lines.append(f"**Prompt Version:** {hyper.get('prompt_version', 'N/A')}")
         lines.append(f"**Judge Model:** {config.get('judge_model', 'N/A')}")
         lines.append(f"**Mode:** {'HTTP E2E' if config.get('use_http_callback') else 'In-Process'}")
-        lines.append(
-            f"**Persona:** {persona_info['user_description'][:100]}..."
-        )
+        lines.append(f"**Persona:** {persona_info['user_description'][:100]}...")
         lines.append(f"**Turns:** {len(tc.turns)}\n")
 
         # Evaluation results table
@@ -1141,13 +1458,10 @@ def _save_conversation_markdown(
                     std = statistics.stdev(scores)
                     flaky = " !!" if std > 0.15 else ""
                     lines.append(
-                        f"| {metric} | {mean:.2f} +/- {std:.2f}{flaky} "
-                        f"| {threshold} | {status} |"
+                        f"| {metric} | {mean:.2f} +/- {std:.2f}{flaky} | {threshold} | {status} |"
                     )
                 else:
-                    lines.append(
-                        f"| {metric} | {mean:.2f} | {threshold} | {status} |"
-                    )
+                    lines.append(f"| {metric} | {mean:.2f} | {threshold} | {status} |")
 
             total = pass_count + fail_count
             lines.append(
@@ -1160,12 +1474,8 @@ def _save_conversation_markdown(
             lines.append("### Strengths\n")
 
             if perfect_metrics:
-                names = ", ".join(
-                    f"**{m}**" for m, _ in sorted(perfect_metrics)
-                )
-                lines.append(
-                    f"- **Perfect/near-perfect scores (>=0.95):** {names}"
-                )
+                names = ", ".join(f"**{m}**" for m, _ in sorted(perfect_metrics))
+                lines.append(f"- **Perfect/near-perfect scores (>=0.95):** {names}")
 
             if near_perfect:
                 for m, s in sorted(near_perfect):
@@ -1193,30 +1503,192 @@ def _save_conversation_markdown(
                 lines.append("")
 
                 lines.append("### Recommended Next Steps\n")
-                for i, (m, s, t) in enumerate(
-                    sorted(failed_metrics, key=lambda x: x[1]), 1
-                ):
-                    lines.append(
-                        f"{i}. Investigate **{m}** failure "
-                        f"(scored {s:.2f}, needs >={t})"
-                    )
+                for i, (m, s, t) in enumerate(sorted(failed_metrics, key=lambda x: x[1]), 1):
+                    lines.append(f"{i}. Investigate **{m}** failure (scored {s:.2f}, needs >={t})")
                 lines.append("")
             else:
                 lines.append("### No Failures!\n")
                 lines.append("All metrics passed their thresholds.\n")
 
-        # Full conversation transcript
+        # --- Judge reasoning section (per-metric, for ALL metrics) ---
+        if agg.get(key) and all_run_scores:
+            lines.append("---\n")
+            lines.append("## Judge Reasoning\n")
+            last_run = all_run_scores[-1]
+            metric_data = last_run.get(key, {})
+            for metric_name, data in metric_data.items():
+                score = data.get("score", 0.0)
+                threshold = data.get("threshold", 0.5)
+                passed = score >= threshold
+                status = "✅" if passed else "❌"
+                lines.append(
+                    f"<details>\n<summary>📊 {metric_name} ({score:.2f} {status})</summary>\n"
+                )
+                reason = data.get("reason", "")
+                verbose = data.get("verbose_logs", "")
+                if reason:
+                    lines.append(f"**Reason:** {reason}\n")
+                if verbose:
+                    lines.append(f"**Verbose Logs:**\n\n```\n{verbose}\n```\n")
+                breakdown = data.get("score_breakdown")
+                if breakdown:
+                    lines.append(f"**Score Breakdown:** `{breakdown}`\n")
+                if not reason and not verbose and not breakdown:
+                    lines.append("_No detailed reasoning available._\n")
+                lines.append("</details>\n")
+
+        # --- Full conversation transcript with routing/planner ---
         lines.append("---\n")
         lines.append("## Conversation\n")
+
+        # Look up stored turn data for this persona
+        turn_data_list = None
+        if len(_turn_data_store) == 1:
+            # Single thread — use it directly
+            turn_data_list = list(_turn_data_store.values())[0]
+        else:
+            # Multiple threads — match by first user content
+            for tid, td_list in _turn_data_store.items():
+                if td_list and tc.turns:
+                    first_user_td = next((td for td in td_list if td.role == "user"), None)
+                    first_user_turn = next((t for t in tc.turns if t.role == "user"), None)
+                    if (
+                        first_user_td
+                        and first_user_turn
+                        and first_user_td.content.strip() == first_user_turn.content.strip()
+                    ):
+                        turn_data_list = td_list
+                        break
+
         turn_num = 0
+        assistant_idx = 0  # Track which assistant turn we're on
+        seen_claims = {}  # claim_id -> (turn_number, value)
         for turn in tc.turns:
             if turn.role == "user":
                 turn_num += 1
                 lines.append(f"### User (Turn {turn_num})\n")
+                lines.append(turn.content)
+                lines.append("")
             else:
                 lines.append("### Assistant\n")
-            lines.append(turn.content)
-            lines.append("")
+                # Find matching assistant TurnData for routing/planner
+                atd = None
+                if turn_data_list:
+                    assistant_turns = [td for td in turn_data_list if td.role == "assistant"]
+                    if assistant_idx < len(assistant_turns):
+                        atd = assistant_turns[assistant_idx]
+                    assistant_idx += 1
+
+                # Sequential Agent Actions timeline (matches chatbot UI order)
+                if atd and atd.agent_actions:
+                    action_lines = []
+                    tool_num = 0
+                    for act in atd.agent_actions:
+                        atype = act.get("type", "")
+                        if atype == "routing":
+                            txt = re.sub(
+                                r"^---+$", "<hr>", act.get("content", ""), flags=re.MULTILINE
+                            )
+                            action_lines.append(f"**🧭 Routing**\n\n{txt}")
+                        elif atype == "thinking":
+                            txt = re.sub(
+                                r"^---+$", "<hr>", act.get("content", ""), flags=re.MULTILINE
+                            )
+                            action_lines.append(
+                                f"**🧠 Thinking** (stage: {act.get('stage', '')})\n\n{txt}"
+                            )
+                        elif atype == "tool_call":
+                            tool_num += 1
+                            tc_name = act.get("name", "unknown")
+                            tc_args = act.get("args", {})
+                            args_parts = []
+                            for k, v in tc_args.items():
+                                val = json.dumps(v) if not isinstance(v, str) else v
+                                if len(val) > 120:
+                                    val = val[:117] + "..."
+                                args_parts.append(f"  {k}: {val}")
+                            args_block = "\n".join(args_parts)
+                            action_lines.append(
+                                f"**🔧 Tool Call #{tool_num}: `{tc_name}`**\n```\n{args_block}\n```"
+                            )
+                        elif atype == "tool_output":
+                            output = act.get("output")
+                            if output is not None:
+                                out_str = json.dumps(output, indent=2)
+                                if len(out_str) > 2000:
+                                    out_str = out_str[:2000] + "\n... (truncated)"
+                                action_lines.append(
+                                    "<details>\n"
+                                    "<summary>Tool Output</summary>\n\n"
+                                    f"```json\n{out_str}\n```\n\n"
+                                    "</details>"
+                                )
+                    actions_block = "\n\n<hr>\n\n".join(action_lines)
+                    n_tools = sum(1 for a in atd.agent_actions if a.get("type") == "tool_call")
+                    lines.append(
+                        "<details>\n"
+                        f"<summary>🔍 Agent Actions ({len(atd.agent_actions)} events, {n_tools} tool calls)</summary>\n\n"
+                        f"{actions_block}\n\n"
+                        "</details>\n"
+                    )
+
+                # Writer output (collapsible, open by default)
+                lines.append(
+                    f"<details open>\n<summary>✍️ Writer</summary>\n\n{turn.content}\n\n</details>\n"
+                )
+
+                # Per-turn scores (collapsible)
+                if per_turn_scores and key in per_turn_scores:
+                    pt_data = per_turn_scores[key].get(assistant_idx - 1, {})
+                    if pt_data:
+                        pt_lines = []
+                        for mname, mdata in pt_data.items():
+                            score = mdata.get("score", 0.0)
+                            reason = mdata.get("reason", "")
+                            passed = mdata.get("passed", False)
+                            icon = "✅" if passed else "❌"
+                            pt_lines.append(f"- **{mname}**: {score:.2f} {icon}\n  - {reason}")
+                        pt_block = "\n".join(pt_lines)
+                        lines.append(
+                            "<details>\n"
+                            "<summary>📝 Per-Turn Scores</summary>\n\n"
+                            f"{pt_block}\n\n"
+                            "</details>\n"
+                        )
+
+                # Claim ID tracking (collapsible)
+                claim_matches = re.findall(
+                    r'<claim\s+id="([^"]+)"[^>]*>([^<]+)</claim>',
+                    turn.content,
+                )
+                if claim_matches:
+                    claim_lines = []
+                    for cid, cval in claim_matches:
+                        if cid in seen_claims:
+                            prev_turn, prev_val = seen_claims[cid]
+                            if cval.strip() == prev_val.strip():
+                                claim_lines.append(
+                                    f"- `{cid}` = {cval} (reused from Turn {prev_turn})"
+                                )
+                            else:
+                                claim_lines.append(
+                                    f"- `{cid}` = {cval} "
+                                    f"(reused from Turn {prev_turn}, "
+                                    f"was: {prev_val})"
+                                )
+                        else:
+                            claim_lines.append(f"- `{cid}` = {cval} (new)")
+                            seen_claims[cid] = (assistant_idx, cval)
+                    claim_block = "\n".join(claim_lines)
+                    lines.append(
+                        "<details>\n"
+                        "<summary>🏷️ Claim IDs "
+                        f"({len(claim_matches)} tags)</summary>\n\n"
+                        f"{claim_block}\n\n"
+                        "</details>\n"
+                    )
+
+                lines.append("")
 
         # Write file -- include run label in filename for multi-run
         suffix = f"_{run_label}" if run_label else ""
@@ -1228,6 +1700,7 @@ def _save_conversation_markdown(
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     args = parse_args()
@@ -1243,8 +1716,10 @@ def main():
 
     if args.replay and args.runs > 1:
         print("ERROR: --replay and --runs > 1 cannot be used together.")
-        print("Replay re-evaluates a fixed conversation -- multiple runs "
-              "would produce identical results.")
+        print(
+            "Replay re-evaluates a fixed conversation -- multiple runs "
+            "would produce identical results."
+        )
         return
 
     # Select personas
@@ -1258,9 +1733,11 @@ def main():
 
     # Print config summary
     hyper = config.get("hyperparameters", {})
-    print(f"\n  Config: judge={config.get('judge_model')}, "
-          f"prompt={hyper.get('prompt_version')}, "
-          f"http={config.get('use_http_callback', False)}")
+    print(
+        f"\n  Config: judge={config.get('judge_model')}, "
+        f"prompt={hyper.get('prompt_version')}, "
+        f"http={config.get('use_http_callback', False)}"
+    )
 
     # -- Replay mode -------------------------------------------------------
     if args.replay:
@@ -1276,11 +1753,22 @@ def main():
 
         if not args.no_eval:
             run_scores = _evaluate_single_run(test_cases, persona_keys, config)
+            pt_scores = _evaluate_per_turn(test_cases, persona_keys, config)
             _print_and_save_results(
-                [run_scores], persona_keys, timestamp, max_turns, 1, config,
+                [run_scores],
+                persona_keys,
+                timestamp,
+                max_turns,
+                1,
+                config,
             )
             _save_conversation_markdown(
-                test_cases, persona_keys, [run_scores], timestamp, config,
+                test_cases,
+                persona_keys,
+                [run_scores],
+                timestamp,
+                config,
+                per_turn_scores=pt_scores,
             )
 
         print("\n" + "=" * 72)
@@ -1291,6 +1779,7 @@ def main():
     # -- Simulation mode ---------------------------------------------------
     all_run_scores = []
     all_run_test_cases = []  # Store test_cases from each run
+    pt_scores = None  # Per-turn scores (from last run)
 
     for run_idx in range(args.runs):
         if args.runs > 1:
@@ -1299,9 +1788,11 @@ def main():
             print(f"{'#' * 72}")
 
         logger.info(
-            "Running conversation simulation (run %d/%d): personas=%s, "
-            "max_turns=%d",
-            run_idx + 1, args.runs, persona_keys, max_turns,
+            "Running conversation simulation (run %d/%d): personas=%s, max_turns=%d",
+            run_idx + 1,
+            args.runs,
+            persona_keys,
+            max_turns,
         )
 
         test_cases = _simulate(persona_keys, max_turns, config)
@@ -1319,52 +1810,62 @@ def main():
         print("=" * 72)
 
         for tc, key in zip(test_cases, persona_keys):
-            print(
-                f"\n--- Persona: {key.upper()} "
-                f"({len(tc.turns)} turns) ---\n"
-            )
+            print(f"\n--- Persona: {key.upper()} ({len(tc.turns)} turns) ---\n")
             for turn in tc.turns:
-                role_icon = (
-                    "User" if turn.role == "user" else "Asst"
-                )
+                role_icon = "User" if turn.role == "user" else "Asst"
                 content_preview = turn.content[:200].replace("\n", " ")
                 print(f"  {role_icon}: {content_preview}...")
                 print()
 
         # Save exhaustive conversations (per-run timestamp for multi-run)
-        run_ts = (
-            f"{timestamp}_r{run_idx + 1}" if args.runs > 1 else timestamp
-        )
+        run_ts = f"{timestamp}_r{run_idx + 1}" if args.runs > 1 else timestamp
         _save_conversations_exhaustive(
-            test_cases, persona_keys, run_ts, config,
+            test_cases,
+            persona_keys,
+            run_ts,
+            config,
         )
 
         # Evaluate this run
         if not args.no_eval:
             logger.info("Running evaluation (run %d)...", run_idx + 1)
             run_scores = _evaluate_single_run(test_cases, persona_keys, config)
+            pt_scores = _evaluate_per_turn(test_cases, persona_keys, config)
             all_run_scores.append(run_scores)
 
             # Save per-run markdown (each run gets its own files)
             if args.runs > 1:
                 run_label = f"r{run_idx + 1}"
                 _save_conversation_markdown(
-                    test_cases, persona_keys, [run_scores],
-                    timestamp, config, run_label=run_label,
+                    test_cases,
+                    persona_keys,
+                    [run_scores],
+                    timestamp,
+                    config,
+                    run_label=run_label,
+                    per_turn_scores=pt_scores,
                 )
 
     # Print and save aggregated results
     if not args.no_eval and all_run_scores:
         _print_and_save_results(
-            all_run_scores, persona_keys, timestamp,
-            max_turns, len(all_run_scores), config,
+            all_run_scores,
+            persona_keys,
+            timestamp,
+            max_turns,
+            len(all_run_scores),
+            config,
         )
         # Save aggregated markdown (uses last run's conversations)
         # Single run: <persona>.md
         # Multi-run: <persona>.md (aggregated) + <persona>_r1.md, _r2.md, ...
         _save_conversation_markdown(
-            all_run_test_cases[-1], persona_keys,
-            all_run_scores, timestamp, config,
+            all_run_test_cases[-1],
+            persona_keys,
+            all_run_scores,
+            timestamp,
+            config,
+            per_turn_scores=pt_scores,
         )
 
     print("\n" + "=" * 72)
