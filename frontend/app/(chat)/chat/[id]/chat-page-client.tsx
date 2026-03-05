@@ -24,19 +24,23 @@ export function ChatPageClient({ id }: { id: string }) {
   >({ status: "loading" });
 
   const load = useCallback(async () => {
-    const response = await apiFetch(`/api/chat/${id}`, {
-      credentials: "include",
-    });
-    if (response.status === 404 || response.status === 403) {
-      setState({ status: "error", statusCode: response.status });
-      return;
+    try {
+      const response = await apiFetch(`/api/chat/${id}`, {
+        credentials: "include",
+      });
+      if (response.status === 404 || response.status === 403) {
+        setState({ status: "error", statusCode: response.status });
+        return;
+      }
+      if (!response.ok) {
+        setState({ status: "error", statusCode: response.status });
+        return;
+      }
+      const data = (await response.json()) as ChatData;
+      setState({ status: "ok", data });
+    } catch {
+      setState({ status: "error", statusCode: 500 });
     }
-    if (!response.ok) {
-      setState({ status: "error", statusCode: response.status });
-      return;
-    }
-    const data = (await response.json()) as ChatData;
-    setState({ status: "ok", data });
   }, [id]);
 
   // Avoid duplicate fetch when React Strict Mode double-invokes the effect.

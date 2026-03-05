@@ -193,14 +193,16 @@ export const codeArtifact = new Artifact<"code", Metadata>({
               },
             ],
           }));
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error ? error.message : String(error ?? "Execution failed");
           setMetadata((metadata) => ({
             ...metadata,
             outputs: [
               ...metadata.outputs.filter((output) => output.id !== runId),
               {
                 id: runId,
-                contents: [{ type: "text", value: error.message }],
+                contents: [{ type: "text", value: message }],
                 status: "failed",
               },
             ],
@@ -239,9 +241,13 @@ export const codeArtifact = new Artifact<"code", Metadata>({
     {
       icon: <CopyIcon size={18} />,
       description: "Copy code to clipboard",
-      onClick: ({ content }) => {
-        navigator.clipboard.writeText(content);
-        toast.success("Copied to clipboard!");
+      onClick: async ({ content }) => {
+        try {
+          await navigator.clipboard.writeText(content);
+          toast.success("Copied to clipboard!");
+        } catch {
+          toast.error("Failed to copy to clipboard");
+        }
       },
     },
   ],

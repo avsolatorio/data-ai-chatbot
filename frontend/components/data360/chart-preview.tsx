@@ -107,58 +107,66 @@ function ChartThumbnail({ specJson }: { specJson: string }) {
     let cancelled = false;
 
     void (async () => {
-      const { default: embed } = await import("vega-embed");
-      let hasEmbedded = false;
+      try {
+        const { default: embed } = await import("vega-embed");
+        let hasEmbedded = false;
 
-      const CHART_PADDING = 24;
-      const padTotalX = CHART_PADDING * 2;
-      const padTotalY = CHART_PADDING * 2;
+        const CHART_PADDING = 24;
+        const padTotalX = CHART_PADDING * 2;
+        const padTotalY = CHART_PADDING * 2;
 
-      const runEmbed = (w: number, h: number) => {
-        if (cancelled || !el.isConnected) return;
-        const width = Math.max(1, Math.floor(w));
-        const height = Math.max(1, Math.floor(h));
-        const innerWidth = Math.max(1, width - padTotalX);
-        const innerHeight = Math.max(1, height - padTotalY);
-        if (viewRef.current) {
-          viewRef.current.width(innerWidth).height(innerHeight).run();
-          return;
-        }
-        if (hasEmbedded) return;
-        hasEmbedded = true;
-        // Force the chart to fit inside the container. With autosize "fit", padding can
-        // be applied after size and expand the view, so use inner dimensions so the
-        // total rendered chart (content + padding) stays within the container.
-        const specForContainer: Record<string, unknown> = {
-          ...specWithTheme,
-          width: innerWidth,
-          height: innerHeight,
-          padding: CHART_PADDING,
-          autosize: { type: "fit", contain: "padding" },
-        };
-        embed(el, specForContainer, {
-          renderer: "canvas",
-          actions: false,
-        }).then((result) => {
-          if (cancelled) {
-            result.view.finalize();
+        const runEmbed = (w: number, h: number) => {
+          if (cancelled || !el.isConnected) return;
+          const width = Math.max(1, Math.floor(w));
+          const height = Math.max(1, Math.floor(h));
+          const innerWidth = Math.max(1, width - padTotalX);
+          const innerHeight = Math.max(1, height - padTotalY);
+          if (viewRef.current) {
+            viewRef.current.width(innerWidth).height(innerHeight).run();
             return;
           }
-          viewRef.current = result.view as VegaViewRef;
-        });
-      };
+          if (hasEmbedded) return;
+          hasEmbedded = true;
+          // Force the chart to fit inside the container. With autosize "fit", padding can
+          // be applied after size and expand the view, so use inner dimensions so the
+          // total rendered chart (content + padding) stays within the container.
+          const specForContainer: Record<string, unknown> = {
+            ...specWithTheme,
+            width: innerWidth,
+            height: innerHeight,
+            padding: CHART_PADDING,
+            autosize: { type: "fit", contain: "padding" },
+          };
+          embed(el, specForContainer, {
+            renderer: "canvas",
+            actions: false,
+          })
+            .then((result) => {
+              if (cancelled) {
+                result.view.finalize();
+                return;
+              }
+              viewRef.current = result.view as VegaViewRef;
+            })
+            .catch(() => {
+              if (!cancelled) viewRef.current = null;
+            });
+        };
 
-      resizeObserver = new ResizeObserver((entries) => {
-        const entry = entries[0];
-        if (!entry) return;
-        const { width } = entry.contentRect;
-        const height = width / PREVIEW_ASPECT_RATIO;
-        runEmbed(width, height);
-      });
-      resizeObserver.observe(el);
-      const w = el.clientWidth;
-      const h = el.clientHeight;
-      if (w > 0 && h > 0) runEmbed(w, h);
+        resizeObserver = new ResizeObserver((entries) => {
+          const entry = entries[0];
+          if (!entry) return;
+          const { width } = entry.contentRect;
+          const height = width / PREVIEW_ASPECT_RATIO;
+          runEmbed(width, height);
+        });
+        resizeObserver.observe(el);
+        const w = el.clientWidth;
+        const h = el.clientHeight;
+        if (w > 0 && h > 0) runEmbed(w, h);
+      } catch {
+        if (!cancelled) viewRef.current = null;
+      }
     })();
 
     return () => {

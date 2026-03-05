@@ -109,56 +109,60 @@ function ChartEditor({ content, status }: ChartEditorProps) {
     };
 
     void (async () => {
-      const { default: embed } = await import("vega-embed");
-      const result = await embed(
-        el,
-        buildSpecForSize(initialWidth, initialHeight),
-        {
-          renderer: "canvas",
-          actions: false,
-        },
-      );
-      if (cancelled) {
-        result.view.finalize();
-        el.replaceChildren();
-        return;
+      try {
+        const { default: embed } = await import("vega-embed");
+        const result = await embed(
+          el,
+          buildSpecForSize(initialWidth, initialHeight),
+          {
+            renderer: "canvas",
+            actions: false,
+          },
+        );
+        if (cancelled) {
+          result.view.finalize();
+          el.replaceChildren();
+          return;
+        }
+        const view = result.view;
+        viewRef.current = view;
+
+        let lastW = 0;
+        let lastH = 0;
+        const sizeThreshold = 2;
+
+        const applySize = (w: number, h: number) => {
+          const innerW = Math.max(1, w - padTotalX);
+          const innerH = Math.max(1, h - padTotalY);
+          view.width(innerW).height(innerH).run();
+        };
+
+        const readSizeAndApply = () => {
+          if (cancelled || !el.isConnected) return;
+          const w = Math.max(1, el.clientWidth);
+          const containerH = Math.max(1, el.clientHeight);
+          const h = Math.min(containerH, getMaxChartHeight());
+          const changed =
+            Math.abs(w - lastW) >= sizeThreshold ||
+            Math.abs(h - lastH) >= sizeThreshold;
+          if (!changed && lastW !== 0 && lastH !== 0) return;
+          lastW = w;
+          lastH = h;
+          applySize(w, h);
+        };
+
+        const onResize = () => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(readSizeAndApply);
+          });
+        };
+
+        resizeObserver = new ResizeObserver(onResize);
+        resizeObserver.observe(el);
+        onResize();
+      } catch {
+        if (!cancelled) el.replaceChildren();
       }
-      const view = result.view;
-      viewRef.current = view;
-
-      let lastW = 0;
-      let lastH = 0;
-      const sizeThreshold = 2;
-
-      const applySize = (w: number, h: number) => {
-        const innerW = Math.max(1, w - padTotalX);
-        const innerH = Math.max(1, h - padTotalY);
-        view.width(innerW).height(innerH).run();
-      };
-
-      const readSizeAndApply = () => {
-        if (cancelled || !el.isConnected) return;
-        const w = Math.max(1, el.clientWidth);
-        const containerH = Math.max(1, el.clientHeight);
-        const h = Math.min(containerH, getMaxChartHeight());
-        const changed =
-          Math.abs(w - lastW) >= sizeThreshold ||
-          Math.abs(h - lastH) >= sizeThreshold;
-        if (!changed && lastW !== 0 && lastH !== 0) return;
-        lastW = w;
-        lastH = h;
-        applySize(w, h);
-      };
-
-      const onResize = () => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(readSizeAndApply);
-        });
-      };
-
-      resizeObserver = new ResizeObserver(onResize);
-      resizeObserver.observe(el);
-      onResize();
     })();
 
     return () => {
