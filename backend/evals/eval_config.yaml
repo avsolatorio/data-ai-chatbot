@@ -34,293 +34,122 @@ synthesizer:
     chunk_overlap: 0
 
 # ── Base Metrics ─────────────────────────────────────────────────
-# Applied to ALL personas during conversational evaluation.
-#
-# Types:
-#   builtin  — DeepEval built-in metric class (class field required)
-#   geval    — ConversationalGEval with custom criteria + evaluation_steps
+# Conversation-level metrics that need holistic view of all turns.
+# Only Conversation Completeness stays here — it must track ALL user
+# intentions across the full conversation to score partial fulfillment.
+# All other metrics are per-turn with aggregation (see per_turn_metrics).
 
 base_metrics:
   - name: "Conversation Completeness"
-    type: "builtin"
-    class: "ConversationCompletenessMetric"
+    type: "geval"
     threshold: 0.5
-
-  - name: "Turn Faithfulness"
-    type: "builtin"
-    class: "TurnFaithfulnessMetric"
-    threshold: 0.5
-
-  - name: "Turn Relevancy"
-    type: "builtin"
-    class: "TurnRelevancyMetric"
-    threshold: 0.5
-
-  - name: "Context Retention"
-    type: "geval"
-    threshold: 0.6
     criteria: >
-      Evaluate whether the chatbot correctly retains and references
-      information from earlier turns. Specifically:
-      (1) When the user asks a follow-up referencing prior data
-      (e.g., 'compare with Tanzania' after getting Kenya data), the
-      chatbot should correctly recall and reference the earlier data.
-      (2) The chatbot should reuse indicator IDs and database IDs from
-      prior tool calls instead of searching again unnecessarily — it
-      should only re-fetch if the user requests NEW data or different
-      parameters.
-      (3) The chatbot should not re-ask questions the user already
-      answered.
-      (4) When referencing earlier data values, it should reuse the
-      correct claim_ids from previous turns, not generate new ones for
-      the same data point.
-      APPLICABILITY: If the conversation has fewer than 2 data-containing
-      exchanges, or involves only refusals/greetings with no data to
-      retain, score 1.0 — context retention is not applicable.
+      Evaluate whether the chatbot addresses all user intentions across the
+      conversation. For EACH user intention, determine if the chatbot:
+      (A) Fulfilled it directly with data — classify as MET.
+      (B) Could not fulfill it because the data is genuinely unavailable in
+      the Data360/World Bank API, BUT the chatbot: (i) explicitly stated the
+      data gap, (ii) explained WHY it's missing, (iii) suggested alternative
+      data sources or approaches. This is CORRECT BEHAVIOR per the product
+      spec and should be classified as PARTIALLY MET (not failed).
+      (C) Ignored the intention, gave a vague non-answer, or fabricated data
+      — classify as UNMET.
+      IMPORTANT: The chatbot is constrained to a specific data API (Data360 /
+      World Bank). When that API genuinely lacks data for a country, time
+      period, or indicator, the chatbot MUST NOT fabricate values. Instead,
+      graceful handling (explain gap + suggest alternatives) is the expected
+      behavior and should NOT be penalized as a failure.
     evaluation_steps:
-      - "Check if the user references prior data in a follow-up question"
-      - "If so, verify the chatbot recalls and uses that prior data correctly"
-      - "Check if the chatbot re-searches for indicators it already has from prior turns"
-      - "If the conversation has < 2 data exchanges, score 1.0 (not applicable)"
-
-  - name: "Claim Tagging & PCN"
-    type: "geval"
-    threshold: 0.8
-    criteria: >
-      Evaluate whether the chatbot correctly tags numerical data
-      using the PCN (Policy-Controlled Numbers) protocol.
-      Format: <claim id="claim_id" policy="auto">value</claim>.
-      COVERAGE: (1) Every numeric value retrieved from data tools
-      MUST be enclosed in claim tags — no untagged tool-retrieved
-      numbers. (2) Claim tags should NEVER appear on speculative,
-      estimated, or fabricated numbers.
-      CORRECTNESS: (3) Both 'id' and 'policy' attributes are
-      required — missing either is a violation. (4) The claim_id
-      MUST be the EXACT claim_id from the tool output — never
-      invented or generic. (5) Numeric values inside tags must NOT
-      be quoted. (6) Values MAY be formatted for readability (e.g.,
-      commas, '$361.8 billion') as long as accuracy is preserved.
-      TRACEABILITY: (7) Each claim-tagged value must be traceable
-      to a specific tool call output. (8) When referencing the same
-      data across turns, the chatbot must reuse the same claim_id
-      — not generate a new one.
-      APPLICABILITY: Only evaluate turns where the chatbot presents
-      numeric data values inline in its response text. If the
-      chatbot provides API URLs, code snippets, or metadata WITHOUT
-      presenting actual data values, claim tags are not needed —
-      score 1.0. Similarly score 1.0 for refusals, greetings, or
-      out-of-scope responses where no data is presented.
-    evaluation_steps:
+      - "Identify all user intentions across the conversation"
       - >
-        FIRST: Check if the response contains any inline numeric data values.
-        If the response ONLY contains API URLs, code snippets, metadata,
-        or no data at all, score 1.0 immediately and skip remaining steps
-      - "Identify all numeric data values in the assistant's response text"
+        For each intention, classify as:
+        MET (data provided), PARTIALLY MET (data unavailable but gap
+        explained + alternatives suggested), or UNMET (ignored/vague/fabricated)
+      - "Score = (MET count + 0.5 * PARTIALLY_MET count) / total intentions"
       - >
-        Cross-reference each value against the '📋 Tool Calls' section
-        to verify data came from actual tool output
-      - >
-        For each tool-retrieved value, check if it is wrapped in
-        <claim id="..." policy="auto">value</claim> tags
-      - "Verify both 'id' and 'policy' attributes are present on every claim tag"
-      - >
-        Check that claim_ids match the exact IDs from the tool output
-        shown in the tool calls section — not invented or generic
-
-  - name: "Data Accuracy"
-    type: "geval"
-    threshold: 0.8
-    criteria: >
-      Evaluate whether numerical values presented are accurate and
-      consistent with tool-retrieved data. Specifically:
-      (1) The chatbot must NEVER fabricate, guess, or approximate
-      numbers. If data is unavailable for a country or year, it must
-      say 'Data not available' explicitly.
-      (2) Values must match the correct REF_AREA (country) and
-      TIME_PERIOD (year) from tool output — cross-check that each
-      value belongs to the right row.
-      (3) The chatbot must use EXACT entity names as returned by tools
-      — never substitute common aliases.
-      (4) Correctly refusing to provide data for invalid requests
-      (fictional countries, future years without data) IS accurate
-      behavior and should score highly.
-      APPLICABILITY: If the conversation contains no data retrieval
-      (only refusals, greetings, or explanations without numbers),
-      score 1.0 — there is nothing to verify.
-    evaluation_steps:
-      - "Check if any numeric values in the response appear fabricated or guessed"
-      - "Verify each value matches the correct country and year from tool output"
-      - "Check that entity names match tool output exactly"
-      - "If no data was retrieved, score 1.0 (not applicable)"
-
-  - name: "Source Citation"
-    type: "geval"
-    threshold: 0.6
-    criteria: >
-      Evaluate whether responses presenting tool-retrieved data include
-      a 'Sources:' section at the end of the response. Requirements:
-      (1) Format citations as: **Database name** — Indicator name —
-      methodology note (e.g., 'World Bank — Health, Nutrition and
-      Population Statistics — Unemployment, total (% of total labor
-      force) — modeled ILO estimate').
-      (2) Use bullet points for multiple sources.
-      (3) Sources must not be omitted when presenting tool-retrieved
-      data.
-      APPLICABILITY: Responses that do NOT contain tool-retrieved data
-      (refusals, greetings, clarifications, general explanations) do
-      not need source citations — score those turns as 1.0.
-    evaluation_steps:
-      - "Check if assistant responses with data include a 'Sources:' section"
-      - "Verify the citation format includes database name, indicator, and methodology"
-      - "If no tool-retrieved data is presented, score 1.0 (not applicable)"
-
-  - name: "Follow-up Suggestions"
-    type: "geval"
-    threshold: 0.4
-    criteria: >
-      Evaluate whether responses that include data or a direct answer
-      end with a 'Suggested follow-ups:' section containing 2-3
-      questions. Requirements:
-      (1) Questions must be phrased as the USER would ask them (e.g.,
-      'What is GDP for Kenya in 2020?').
-      (2) NEVER use assistant-offering phrasing like 'Would you like
-      me to…' or 'Shall I…'.
-      (3) The section label must be 'Suggested follow-ups:'.
-      APPLICABILITY: Responses that are refusals, greetings,
-      clarification questions, or general explanations WITHOUT tool-
-      retrieved data do NOT need follow-ups — score those turns as 1.0.
-    evaluation_steps:
-      - "Check if data-containing responses have a 'Suggested follow-ups:' section"
-      - "Verify questions are user-phrased, not 'Would you like me to...' style"
-      - "If no tool-retrieved data is presented, score 1.0 (not applicable)"
-
-  - name: "Data Formatting"
-    type: "geval"
-    threshold: 0.4
-    criteria: >
-      Evaluate data presentation formatting in turns that present
-      tool-retrieved data. Rules:
-      (1) ALWAYS include units (%, USD, years, per capita) alongside
-      data values.
-      (2) Use markdown tables for 3+ related numeric values (e.g.,
-      multiple countries or years). Otherwise use short bullets or a
-      paragraph.
-      (3) NEVER use scientific notation (e.g., 1.23e+10) — use
-      readable formats unless the user explicitly asks for it.
-      (4) Give a 1-2 sentence high-level insight first, then details
-      (table or bullets).
-      APPLICABILITY: If a turn contains no tool-retrieved data
-      (refusals, greetings, general explanations), score it as 1.0
-      — formatting rules do not apply.
-    evaluation_steps:
-      - "Check if values include units (%, USD, years, etc.)"
-      - "For 3+ values, verify markdown tables are used"
-      - "Check for scientific notation (should not appear)"
-      - "If no tool-retrieved data is present, score 1.0 (not applicable)"
-
-  - name: "Latest Data Note"
-    type: "geval"
-    threshold: 0.4
-    criteria: >
-      Evaluate whether the chatbot notes when data is the latest
-      available. This rule is CONDITIONAL:
-      (1) When the user did NOT specify a time period and the chatbot
-      uses the latest available data, it should add a phrase like
-      '(using latest available data)' or explicitly mention the
-      reference year near the first mention of data.
-      (2) If the user explicitly asked for a specific year (e.g.,
-      '2020'), this note is NOT needed — the chatbot should just
-      provide data for that year.
-      (3) If a requested year has no data, the chatbot must state
-      'Data not available' for that year.
-      APPLICABILITY: Only evaluate turns where tool-retrieved data is
-      presented. Turns without data (refusals, greetings, explanations)
-      should score 1.0 — this metric does not apply.
-    evaluation_steps:
-      - "Check if the user specified a year in their request"
-      - "If no year specified, verify the chatbot notes 'latest available data' or similar"
-      - "If a year was specified, this note is not needed — do not penalize"
-      - "If no data was presented, score 1.0 (not applicable)"
-
-  - name: "Content Structure"
-    type: "geval"
-    threshold: 0.4
-    criteria: >
-      Evaluate response structure in turns that present tool-retrieved
-      data. Required labels and sections:
-      (1) 'Data:' for figures from the dataset.
-      (2) 'Analysis:' for computed or compared findings.
-      (3) 'Note:' for interpretive context or explanation of
-      technical terms and concepts.
-      (4) 'Limitations:' for caveats, missing coverage, or quality
-      flags — required when the research packet notes any caveats.
-      (5) Comparability warnings when comparing indicators with
-      differing time periods, methodologies, or definitions.
-      APPLICABILITY: Turns that are refusals, greetings, or general
-      explanations without tool data do not need this structure —
-      score them 1.0.
-    evaluation_steps:
-      - "Check if data-containing responses use 'Data:', 'Analysis:', 'Note:' labels"
-      - "Check for 'Limitations:' section when caveats exist"
-      - "Verify comparability warnings when comparing different indicators"
-      - "If no tool-retrieved data is present, score 1.0 (not applicable)"
+        If all unmeetable intentions were handled with explicit gap
+        explanation + alternatives, the minimum score should be 0.5
+    rubric:
+      - score_range: [9, 10]
+        expected_outcome: "All user intentions fully met with data."
+      - score_range: [7, 8]
+        expected_outcome: "Most intentions met; any gaps handled gracefully with explanation + alternatives."
+      - score_range: [5, 6]
+        expected_outcome: "Some intentions met, some gaps handled gracefully, minor issues."
+      - score_range: [3, 4]
+        expected_outcome: "Multiple unmet intentions without proper gap explanation or alternatives."
+      - score_range: [0, 2]
+        expected_outcome: "Most intentions unmet, no gap handling, or data fabricated."
 
 
 # ── Per-Turn Metrics ─────────────────────────────────────────────
-# Evaluated on each assistant turn individually (using standard GEval
-# on LLMTestCase), IN ADDITION to conversation-level base_metrics.
-# Provides per-turn scores to pinpoint which turn broke.
+# Evaluated on each assistant turn individually (using GEval on
+# LLMTestCase). Per-turn scores are aggregated to conversation-level.
+#
+# Pre-filtering via `requires` field:
+#   tool_data     — skip if turn has no tool-retrieved data
+#   data_gap      — skip if turn has no data unavailability
+#   comparison    — skip if turn has no cross-country/time comparison
+#   technical_terms — skip if turn has no technical terms/acronyms
+#   prior_context — skip on first turn (nothing to retain)
+#
+# Aggregation:
+#   aggregates_to — name of the conversation-level aggregated score
+#   aggregation   — min (strictest turn) or mean (average quality)
 
 per_turn_metrics:
-  - name: "Per-Turn Context Retention"
+  # ── Data Trust ─────────────────────────────────────────────────
+
+  - name: "Per-Turn Data Accuracy"
     type: "geval"
-    threshold: 0.6
+    threshold: 0.8
+    requires: "tool_data"
+    aggregates_to: "Data Accuracy"
+    aggregation: "min"
     criteria: >
-      You are evaluating a SINGLE assistant turn in a multi-turn
-      conversation. You are given:
-      - PRIOR CONTEXT: all previous turns (user + assistant) including
-        tool calls and claim-tagged data from earlier turns.
-      - CURRENT USER INPUT: the user's question for this turn.
-      - CURRENT ASSISTANT OUTPUT: the assistant's response for this turn.
+      You are evaluating a SINGLE assistant turn. You are given:
+      - PRIOR CONTEXT: structured summary of prior turns including
+        indicators, databases, claim_ids, and data values retrieved.
+      - CURRENT ASSISTANT OUTPUT: the response for this turn.
 
-      Evaluate whether THIS specific turn correctly retains and reuses
-      information from the prior context:
-      (1) If the user's question references or builds on prior data
-      (e.g., "now break it down by gender", "compare with Kenya"),
-      does the assistant reuse the indicator_id and database_id from
-      prior tool calls? Or did it re-search unnecessarily?
-      (2) If the assistant references a numeric value that appeared in
-      a prior turn, does it reuse the same claim_id?
-      (3) Does the assistant avoid re-asking questions the user already
-      answered in prior turns?
+      Evaluate whether numerical values in THIS turn are accurate:
+      (1) The chatbot must NEVER fabricate, guess, or approximate
+      numbers. If data is unavailable, it must say so explicitly.
+      (2) Values must match the correct REF_AREA (country) and
+      TIME_PERIOD (year) from tool output — cross-check that each
+      value belongs to the right row.
+      (3) Entity names must match tool output exactly — never
+      substitute common aliases.
+      (4) Correctly refusing to provide data for invalid requests
+      IS accurate behavior and should score highly.
 
-      APPLICABILITY: If this is the first data-containing turn, or
-      the user's question does NOT reference prior data at all (i.e.,
-      it's an entirely new topic), score 1.0 — retention is not
-      tested in this turn.
+      APPLICABILITY: If this turn contains no numeric data values,
+      score 10.
     evaluation_steps:
-      - >
-        Check if the current user input references or builds on
-        data from the prior context (e.g., same indicator, same
-        country, filter change). If not, score 1.0 immediately.
-      - >
-        If it does, check the assistant's tool calls in the current
-        turn: did it call search_indicators again for an indicator
-        already resolved in prior turns? If so, penalize.
-      - >
-        Check if the assistant reuses the same indicator_id and
-        database_id from prior tool calls when appropriate.
-      - >
-        Check if any numeric values from prior turns are referenced
-        with the SAME claim_id, not a new one.
+      - "Check if this turn presents any numeric data values. If not, score 10."
+      - "For each value, verify it matches the correct country and year from tool output"
+      - "Check entity names match tool output exactly"
+      - "Check for fabricated or guessed numbers"
+    rubric:
+      - score_range: [10, 10]
+        expected_outcome: "Not applicable — no numeric data. Score 10."
+      - score_range: [7, 9]
+        expected_outcome: "All values accurate with minor presentation issues."
+      - score_range: [4, 6]
+        expected_outcome: "Some values mismatched to wrong country/year."
+      - score_range: [0, 3]
+        expected_outcome: "Values fabricated, guessed, or significantly wrong."
 
   - name: "Per-Turn Claim Consistency"
     type: "geval"
     threshold: 0.8
+    requires: "tool_data"
+    aggregates_to: "Claim Tagging & PCN"
+    aggregation: "min"
     criteria: >
       You are evaluating a SINGLE assistant turn. You are given:
-      - PRIOR CONTEXT: all previous turns including tool calls and
-        claim-tagged values.
+      - PRIOR CONTEXT: structured summary of prior turns including
+        claim_ids and their associated values.
       - CURRENT ASSISTANT OUTPUT: the response for this turn.
 
       Evaluate claim tag correctness for THIS turn only:
@@ -337,11 +166,11 @@ per_turn_metrics:
 
       APPLICABILITY: If this turn contains no inline numeric data
       (API URLs, code, refusals, greetings, explanations only),
-      score 1.0.
+      score 10.
     evaluation_steps:
       - >
         Check if this turn contains any inline numeric data values.
-        If not, score 1.0 immediately.
+        If not, score 10 immediately.
       - >
         For each numeric value, verify it is wrapped in <claim> tags
         with correct id and policy attributes.
@@ -351,6 +180,363 @@ per_turn_metrics:
       - >
         Check if any values also appeared in prior turns. If so,
         verify the SAME claim_id is reused.
+    rubric:
+      - score_range: [10, 10]
+        expected_outcome: "Not applicable — no inline numeric data. Score 10."
+      - score_range: [7, 9]
+        expected_outcome: "All or nearly all values correctly claim-tagged with proper IDs."
+      - score_range: [4, 6]
+        expected_outcome: "Some values untagged or with incorrect/invented claim_ids."
+      - score_range: [0, 3]
+        expected_outcome: "Most values untagged, or claim tags used on fabricated data."
+
+  # ── Context & Retention ────────────────────────────────────────
+
+  - name: "Per-Turn Context Retention"
+    type: "geval"
+    threshold: 0.6
+    requires: "prior_context"
+    aggregates_to: "Context Retention"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn. You are given:
+      - PRIOR CONTEXT: structured summary of prior turns including
+        indicator_ids, database_ids, claim_ids with their values,
+        countries queried, and data availability status.
+      - CURRENT USER INPUT: the user's question for this turn.
+      - CURRENT ASSISTANT OUTPUT: the assistant's response for this turn.
+
+      Evaluate whether THIS turn correctly retains and reuses
+      information from prior context:
+      (1) If the user references or builds on prior data (e.g.,
+      "compare with Kenya", "now break it down by gender"), does the
+      assistant reuse the indicator_id and database_id from prior
+      tool calls? Or did it re-search unnecessarily?
+      (2) DATA TRUST: If the assistant references a numeric value from
+      a prior turn, does it reuse the SAME claim_id? Inventing a new
+      claim_id for an already-presented value breaks data provenance.
+      (3) CONSISTENCY: If a prior turn stated "data not available for
+      Kenya", a follow-up turn must maintain that assertion — not
+      contradict it or silently fabricate the missing data.
+      (4) Does the assistant avoid re-asking questions the user already
+      answered in prior turns?
+
+      APPLICABILITY: If this is the first turn, or the user's question
+      does NOT reference prior data (entirely new topic), score 10.
+    evaluation_steps:
+      - >
+        Check if the current user input references or builds on data
+        from prior context. If not, score 10 immediately.
+      - >
+        Check the assistant's tool calls: did it re-search for an
+        indicator already resolved in prior turns? If so, penalize.
+      - >
+        Check if numeric values from prior turns are referenced with
+        the SAME claim_id (data provenance check).
+      - >
+        Check consistency: if prior context says data was unavailable,
+        does this turn maintain that assertion?
+    rubric:
+      - score_range: [10, 10]
+        expected_outcome: "Not applicable — first turn or no reference to prior data. Score 10."
+      - score_range: [7, 9]
+        expected_outcome: "Correctly retains context, reuses IDs and claim_ids, maintains consistency."
+      - score_range: [4, 6]
+        expected_outcome: "Partially retains context — re-searches or misses some prior data."
+      - score_range: [0, 3]
+        expected_outcome: "Ignores prior context, invents new claim_ids, or contradicts prior assertions."
+
+  # ── Data Gap Handling ──────────────────────────────────────────
+
+  - name: "Per-Turn Data Gap Handling"
+    type: "geval"
+    threshold: 0.5
+    requires: "data_gap"
+    aggregates_to: "Data Gap Handling"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn where data was
+      unavailable for at least one requested item. You are given:
+      - PRIOR CONTEXT: structured summary including what data was
+        and was not available in prior turns.
+      - CURRENT ASSISTANT OUTPUT: the response for this turn.
+
+      Evaluate whether THIS turn handles the data gap correctly:
+      (1) Explicitly states what data is missing and why (e.g.,
+      "No recent literacy data for Kenya in WDI for 2019-2024").
+      (2) Never silently skips missing data or substitutes fabricated
+      values.
+      (3) Explains what data IS available as an alternative (e.g.,
+      different indicator, older years, coarser disaggregation).
+      (4) Suggests actionable next steps.
+      (5) When falling back to a different level of data, clearly
+      notes the gap between requested and provided.
+
+      APPLICABILITY: Only evaluated when data gaps are detected. If
+      all requested data was available, this metric is skipped.
+    evaluation_steps:
+      - "Check if the chatbot explicitly stated what data is missing"
+      - "Verify no data was silently skipped or fabricated"
+      - "Check if alternatives were suggested"
+      - "Check if actionable next steps were provided"
+    rubric:
+      - score_range: [10, 10]
+        expected_outcome: "Not applicable — no data gaps. Score 10."
+      - score_range: [7, 9]
+        expected_outcome: "Gap explicitly stated with explanation and alternatives."
+      - score_range: [4, 6]
+        expected_outcome: "Gap noted but missing explanation or alternatives."
+      - score_range: [0, 3]
+        expected_outcome: "Gap silently skipped, fabricated, or no alternatives."
+
+  # ── Comparability ──────────────────────────────────────────────
+
+  - name: "Per-Turn Comparability Warnings"
+    type: "geval"
+    threshold: 0.4
+    requires: "comparison"
+    aggregates_to: "Comparability Warnings"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn that compares data
+      across countries, time periods, or sources. You are given:
+      - PRIOR CONTEXT: structured summary including ref_areas and
+        time_periods from prior turns.
+      - CURRENT ASSISTANT OUTPUT: the response for this turn.
+
+      Evaluate whether THIS turn warns about comparability issues:
+      (1) Different TIME PERIODS (e.g., Ethiopia 2022 vs Kenya 2018)
+      — the year difference must be noted.
+      (2) Different DATABASES or METHODOLOGIES — note the difference.
+      (3) Different DEFINITIONS (e.g., gross vs net enrollment) —
+      explain the conceptual difference.
+      (4) Differing values from multiple sources — note discrepancy.
+
+      APPLICABILITY: Only evaluated when comparisons are detected.
+    evaluation_steps:
+      - "Identify comparisons in this turn (cross-country, cross-time)"
+      - "Check if time period differences are noted"
+      - "Check if methodology/definition differences are flagged"
+    rubric:
+      - score_range: [10, 10]
+        expected_outcome: "Not applicable — no comparisons. Score 10."
+      - score_range: [7, 9]
+        expected_outcome: "All comparability issues flagged with clear warnings."
+      - score_range: [4, 6]
+        expected_outcome: "Some warnings present but incomplete."
+      - score_range: [0, 3]
+        expected_outcome: "Comparisons without required warnings."
+
+  # ── Response Quality ───────────────────────────────────────────
+
+  - name: "Per-Turn Content Structure"
+    type: "geval"
+    threshold: 0.4
+    requires: "tool_data"
+    aggregates_to: "Content Structure"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn that presents
+      tool-retrieved data. Evaluate response structure:
+      (1) 'Data:' for figures from the dataset.
+      (2) 'Analysis:' for computed or compared findings.
+      (3) 'Note:' for interpretive context or explanations.
+      (4) 'Limitations:' for caveats or quality flags.
+      (5) Comparability warnings when applicable.
+      (6) Clear distinction between factual data (from tools),
+      derived analysis (computed), and AI interpretation.
+
+      APPLICABILITY: If this turn has no tool data, score 10.
+    evaluation_steps:
+      - "Check for 'Data:', 'Analysis:', 'Note:' section labels"
+      - "Check for 'Limitations:' when caveats exist"
+      - "Check that facts, analysis, and interpretation are separated"
+      - "If no tool data, score 10"
+    rubric:
+      - score_range: [10, 10]
+        expected_outcome: "Not applicable — no tool data. Score 10."
+      - score_range: [7, 9]
+        expected_outcome: "Proper section labels, limitations noted, facts separated from interpretation."
+      - score_range: [4, 6]
+        expected_outcome: "Some labels missing or facts mixed with interpretation."
+      - score_range: [0, 3]
+        expected_outcome: "No structure despite presenting tool data."
+
+  - name: "Per-Turn Follow-up Suggestions"
+    type: "geval"
+    threshold: 0.4
+    requires: "tool_data"
+    aggregates_to: "Follow-up Suggestions"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn that presents data.
+      (1) Must end with a 'Suggested follow-ups:' section with 2-3
+      user-phrased questions (e.g., 'What is GDP for Kenya?').
+      (2) NEVER use 'Would you like me to…' or 'Shall I…' phrasing.
+      (3) Section label must be 'Suggested follow-ups:'.
+
+      APPLICABILITY: If this turn has no tool data, score 10.
+    evaluation_steps:
+      - "Check for 'Suggested follow-ups:' section"
+      - "Verify questions are user-phrased"
+      - "If no tool data, score 10"
+    rubric:
+      - score_range: [10, 10]
+        expected_outcome: "Not applicable — no tool data. Score 10."
+      - score_range: [7, 9]
+        expected_outcome: "Follow-ups present with proper user-phrased questions."
+      - score_range: [4, 6]
+        expected_outcome: "Follow-ups present but wrong phrasing or label."
+      - score_range: [0, 3]
+        expected_outcome: "No follow-ups despite presenting data."
+
+  - name: "Per-Turn Latest Data Note"
+    type: "geval"
+    threshold: 0.4
+    requires: "tool_data"
+    aggregates_to: "Latest Data Note"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn that presents data.
+      (1) When the user did NOT specify a time period and the chatbot
+      uses latest available data, it should note this explicitly.
+      (2) If the user asked for a specific year, no note needed.
+      (3) If a requested year has no data, state 'Data not available'.
+
+      APPLICABILITY: If this turn has no tool data, score 10.
+    evaluation_steps:
+      - "Check if user specified a year in their request"
+      - "If not, verify 'latest available data' note or year mentioned"
+      - "If no data presented, score 10"
+    rubric:
+      - score_range: [10, 10]
+        expected_outcome: "Not applicable — no tool data. Score 10."
+      - score_range: [7, 9]
+        expected_outcome: "Latest data note present or user specified year."
+      - score_range: [4, 6]
+        expected_outcome: "Data presented without clear year context."
+      - score_range: [0, 3]
+        expected_outcome: "Data presented with no time period mention."
+
+  - name: "Per-Turn Source Citation"
+    type: "geval"
+    threshold: 0.6
+    requires: "tool_data"
+    aggregates_to: "Source Citation"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn that presents data.
+      (1) Must end with a 'Sources:' section listing database name,
+      indicator name, and methodology note.
+      (2) Format: **Database name** — Indicator name — methodology note.
+      (3) Use bullet points for multiple sources.
+
+      APPLICABILITY: If this turn has no tool data, score 10.
+    evaluation_steps:
+      - "Check if this turn presents tool-retrieved data. If not, score 10."
+      - "Check for 'Sources:' section"
+      - "Verify citation format"
+    rubric:
+      - score_range: [10, 10]
+        expected_outcome: "Not applicable — no tool data. Score 10."
+      - score_range: [7, 9]
+        expected_outcome: "Sources section present with correct format."
+      - score_range: [4, 6]
+        expected_outcome: "Sources present but incomplete."
+      - score_range: [0, 3]
+        expected_outcome: "No Sources section despite presenting data."
+
+  - name: "Per-Turn Data Formatting"
+    type: "geval"
+    threshold: 0.4
+    requires: "tool_data"
+    aggregates_to: "Data Formatting"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn that presents data.
+      (1) All numeric values must include units (%, USD, years).
+      (2) Use markdown tables for 3+ related values.
+      (3) Never use scientific notation.
+      (4) Lead with a 1-2 sentence insight, then details.
+
+      APPLICABILITY: If this turn has no tool data, score 10.
+    evaluation_steps:
+      - "Check if this turn presents tool data. If not, score 10."
+      - "Check if values include units"
+      - "For 3+ values, verify markdown tables"
+      - "Check for scientific notation"
+    rubric:
+      - score_range: [10, 10]
+        expected_outcome: "Not applicable — no tool data. Score 10."
+      - score_range: [7, 9]
+        expected_outcome: "Well-formatted with units, tables, no scientific notation."
+      - score_range: [4, 6]
+        expected_outcome: "Some formatting issues."
+      - score_range: [0, 3]
+        expected_outcome: "Poor formatting — no units, no tables, or scientific notation."
+
+  # ── Accessibility & Learning ───────────────────────────────────
+
+  - name: "Per-Turn Inline Explanations"
+    type: "geval"
+    threshold: 0.4
+    requires: "technical_terms"
+    aggregates_to: "Inline Explanations"
+    aggregation: "mean"
+    criteria: >
+      You are evaluating a SINGLE assistant turn that uses technical
+      terms or indicator names. Evaluate:
+      (1) Technical indicator names (e.g., 'gross enrollment ratio')
+      should include a brief plain-language explanation on first use.
+      (2) Statistical concepts should be defined on first use.
+      (3) Acronyms expanded on first use (e.g., WDI = World
+      Development Indicators).
+      (4) Explanations should be concise and inline.
+
+      APPLICABILITY: Only evaluated when technical terms are detected.
+    evaluation_steps:
+      - "Identify technical terms, indicator names, or acronyms"
+      - "Check if plain-language explanation provided on first use"
+      - "Verify explanations are inline and concise"
+    rubric:
+      - score_range: [10, 10]
+        expected_outcome: "Not applicable — no technical terms. Score 10."
+      - score_range: [7, 9]
+        expected_outcome: "All or most terms explained inline."
+      - score_range: [4, 6]
+        expected_outcome: "Some terms explained, others left unexplained."
+      - score_range: [0, 3]
+        expected_outcome: "Technical terms used without explanation."
+
+  - name: "Per-Turn Progressive Disclosure"
+    type: "geval"
+    threshold: 0.4
+    requires: "tool_data"
+    aggregates_to: "Progressive Disclosure"
+    aggregation: "mean"
+    criteria: >
+      You are evaluating a SINGLE assistant turn that presents data.
+      (1) Lead with a 1-2 sentence summary or key insight BEFORE
+      detailed numbers/tables.
+      (2) Don't overwhelm with all data at once.
+      (3) Offer drill-down via follow-up questions.
+      (4) For broad questions, start with the most relevant indicator.
+
+      APPLICABILITY: If the response is simple or has no data, score 10.
+    evaluation_steps:
+      - "Check if response starts with a summary/insight"
+      - "Verify the response doesn't dump excessive data"
+      - "Check if drill-down offered via follow-ups"
+      - "If simple/short response, score 10"
+    rubric:
+      - score_range: [10, 10]
+        expected_outcome: "Not applicable — simple answer or no data. Score 10."
+      - score_range: [7, 9]
+        expected_outcome: "Leads with insight, progressive structure, offers drill-down."
+      - score_range: [4, 6]
+        expected_outcome: "Some structure but missing summary or too much data upfront."
+      - score_range: [0, 3]
+        expected_outcome: "Data dumped without summary or structure."
 
 # ── Edge-Case Metrics ────────────────────────────────────────────
 # Applied only to specific personas, in addition to base metrics.

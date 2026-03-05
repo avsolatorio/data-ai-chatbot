@@ -54,6 +54,118 @@ CONFIG_PATH = Path(__file__).parent / "eval_config.yaml"
 
 
 # ---------------------------------------------------------------------------
+# Preflight connectivity checks
+# ---------------------------------------------------------------------------
+
+
+def _preflight_checks(config):
+    """Verify that required services are reachable before running evals.
+
+    Checks (when use_http_callback is True):
+    1. Docker chatbot frontend (chatbot_url, default localhost:3001)
+    2. Backend API (chatbot_api_base, default localhost:8001)
+    3. MCP server (MCP_SERVER_URL env var)
+
+    Raises SystemExit with actionable error messages on failure.
+    """
+    import urllib.request
+    import urllib.error
+
+    if not config.get("use_http_callback", False):
+        logger.info("Preflight: Skipping (not in HTTP mode)")
+        return
+
+    print("\n" + "=" * 72)
+    print("  PREFLIGHT CHECKS")
+    print("=" * 72)
+
+    errors = []
+
+    # 1. Chatbot frontend
+    chatbot_url = os.environ.get(
+        "CHATBOT_URL", config.get("chatbot_url", "http://localhost:3001")
+    )
+    print(f"\n  [1/3] Chatbot frontend: {chatbot_url}")
+    try:
+        req = urllib.request.Request(chatbot_url, method="HEAD")
+        urllib.request.urlopen(req, timeout=5)
+        print("        ✅ Reachable")
+    except urllib.error.HTTPError as e:
+        # Any HTTP response (307, 404, etc.) means the server is running
+        print(f"        ✅ Reachable (HTTP {e.code})")
+    except Exception as e:
+        msg = f"Chatbot frontend unreachable at {chatbot_url}: {e}"
+        print(f"        ❌ {msg}")
+        errors.append(msg)
+
+    # 2. Backend API
+    api_base = os.environ.get(
+        "CHATBOT_API_BASE",
+        config.get("chatbot_api_base", "http://localhost:8001"),
+    )
+    health_url = f"{api_base}/health" if not api_base.endswith("/health") else api_base
+    print(f"  [2/3] Backend API: {api_base}")
+    try:
+        req = urllib.request.Request(health_url, method="GET")
+        urllib.request.urlopen(req, timeout=5)
+        print("        ✅ Reachable")
+    except urllib.error.HTTPError as e:
+        if e.code < 500:
+            print(f"        ✅ Reachable (HTTP {e.code})")
+        else:
+            msg = f"Backend API error at {health_url}: HTTP {e.code}"
+            print(f"        ❌ {msg}")
+            errors.append(msg)
+    except Exception as e:
+        msg = f"Backend API unreachable at {api_base}: {e}"
+        print(f"        ❌ {msg}")
+        errors.append(msg)
+
+    # 3. MCP Server
+    mcp_url = os.environ.get("MCP_SERVER_URL", "")
+    print(f"  [3/3] MCP Server: {mcp_url or '(not set)'}")
+    if not mcp_url:
+        msg = (
+            "MCP_SERVER_URL is not set. The chatbot cannot access Data360 tools.\n"
+            "        Set it: export MCP_SERVER_URL=http://host.docker.internal:8021/mcp"
+        )
+        print(f"        ❌ {msg}")
+        errors.append("MCP_SERVER_URL is not set")
+    else:
+        # For host-side probing, translate host.docker.internal -> localhost
+        probe_url = mcp_url.replace("host.docker.internal", "localhost")
+        if probe_url != mcp_url:
+            print(f"        (probing via {probe_url})")
+        try:
+            req = urllib.request.Request(probe_url, method="GET")
+            urllib.request.urlopen(req, timeout=5)
+            print("        ✅ Reachable")
+        except urllib.error.HTTPError as e:
+            # Any HTTP response means the server process is running
+            print(f"        ✅ Reachable (HTTP {e.code})")
+        except Exception as e:
+            msg = f"MCP Server unreachable at {probe_url}: {e}"
+            print(f"        ❌ {msg}")
+            errors.append(msg)
+
+    print()
+    if errors:
+        print("  ❌ PREFLIGHT FAILED — fix the following before running evals:\n")
+        for i, err in enumerate(errors, 1):
+            print(f"    {i}. {err}")
+        print()
+        print("  Hints:")
+        print("    • Start the chatbot: docker compose up -d")
+        print("    • Start the MCP server: ./run_server.sh")
+        print("    • Set MCP URL: export MCP_SERVER_URL=http://host.docker.internal:8021/mcp")
+        print("=" * 72)
+        raise SystemExit(1)
+
+    print("  ✅ All preflight checks passed!")
+    print("=" * 72)
+
+
+# ---------------------------------------------------------------------------
 # Configuration loading
 # ---------------------------------------------------------------------------
 
@@ -623,15 +735,9 @@ def _get_builtin_metric_classes():
     if _BUILTIN_METRIC_CLASSES is None:
         from deepeval.metrics import (
             ConversationalGEval,
-            ConversationCompletenessMetric,
-            TurnFaithfulnessMetric,
-            TurnRelevancyMetric,
         )
 
         _BUILTIN_METRIC_CLASSES = {
-            "ConversationCompletenessMetric": ConversationCompletenessMetric,
-            "TurnFaithfulnessMetric": TurnFaithfulnessMetric,
-            "TurnRelevancyMetric": TurnRelevancyMetric,
             "ConversationalGEval": ConversationalGEval,
         }
     return _BUILTIN_METRIC_CLASSES
@@ -654,6 +760,17 @@ def _build_metric_from_config(metric_def: dict, judge_model: str):
         )
     elif metric_def["type"] == "geval":
         from deepeval.metrics import ConversationalGEval
+        from deepeval.metrics.g_eval.utils import Rubric
+
+        rubric = None
+        if metric_def.get("rubric"):
+            rubric = [
+                Rubric(
+                    score_range=tuple(r["score_range"]),
+                    expected_outcome=r["expected_outcome"],
+                )
+                for r in metric_def["rubric"]
+            ]
 
         return ConversationalGEval(
             name=metric_def["name"],
@@ -661,6 +778,7 @@ def _build_metric_from_config(metric_def: dict, judge_model: str):
             evaluation_steps=metric_def.get("evaluation_steps", []),
             threshold=metric_def.get("threshold", 0.5),
             model=judge_model,
+            rubric=rubric,
         )
     else:
         raise ValueError(f"Unknown metric type: {metric_def['type']}")
@@ -732,13 +850,208 @@ def _build_edge_case_metrics(persona_key, config):
     return extra
 
 
-def _build_per_turn_metrics(config):
+def _turn_has_tool_data(content: str) -> bool:
+    """Check if an assistant turn contains tool-retrieved data.
+
+    Used for pre-filtering: if no tool data, data-dependent metrics
+    auto-score 1.0 without calling the LLM judge.
+    """
+    if not content:
+        return False
+    markers = [
+        "📋 Tool Calls",
+        "<claim ",
+        "tool_output",
+        "OBS_VALUE",
+        "🔧 Tool Call",
+    ]
+    return any(marker in content for marker in markers)
+
+
+def _build_condensed_context(user_input: str, assistant_output: str, turn_idx: int) -> dict:
+    """Build a structured context dict for per-turn evaluation.
+
+    Extracts evaluation-relevant signals from a single turn into a dict
+    with boolean flags for pre-filtering and structured fields for the
+    LLM judge. Replaces the old string-based context with richer signals.
+    """
+    output = assistant_output or ""
+    user = user_input or ""
+
+    # Extract tool call names
+    tools_called = re.findall(r'Tool Call #\d+: `([^`]+)`', output)
+
+    # Extract claim IDs and values
+    claims_raw = re.findall(
+        r'<claim\s+id="([^"]+)"[^>]*>([^<]+)</claim>',
+        output,
+    )
+    claims = {cid: cval.strip() for cid, cval in claims_raw}
+
+    # Extract indicator/database IDs from tool args
+    indicators = set(re.findall(r'indicator_id["\s:]+([A-Z0-9_]+)', output))
+    databases = set(re.findall(r'database_id["\s:]+([A-Z0-9_]+)', output))
+
+    # Extract ref_areas and time_periods from tool args
+    ref_areas = set(re.findall(r'(?:ref_area|country_code|REF_AREA)["\s:]+([A-Z]{3})', output))
+    multi_codes = re.findall(r'(?:ref_area|country_code|REF_AREA)["\s:]+([A-Z]{3}(?:,[A-Z]{3})+)', output)
+    for mc in multi_codes:
+        ref_areas.update(mc.split(","))
+    time_periods = set(re.findall(r'(?:TIME_PERIOD|start_year|end_year)["\s:]+(\d{4})', output))
+
+    # Detect data gaps from response text
+    gap_patterns = [
+        r'(?:data|information)\s+(?:is\s+)?(?:not|un)\s*available',
+        r'no\s+(?:recent\s+)?data\s+(?:was\s+)?(?:found|available)',
+        r'could\s+not\s+(?:find|retrieve|locate)\s+(?:any\s+)?data',
+        r'does\s+not\s+(?:have|contain)\s+data',
+        r'no\s+results?\s+(?:were\s+)?(?:found|returned)',
+        r"don'?t\s+have\s+(?:live\s+)?access",
+    ]
+    data_gaps = []
+    for pat in gap_patterns:
+        matches = re.findall(pat, output, re.IGNORECASE)
+        data_gaps.extend(matches)
+    has_data_gap = len(data_gaps) > 0
+
+    # Detect alternatives suggested
+    alt_patterns = [
+        r'(?:alternative|instead|you\s+(?:could|might|can)\s+(?:try|look|use))',
+        r'(?:suggest|recommend)\s+(?:checking|looking|using)',
+    ]
+    alternatives_found = any(re.search(pat, output, re.IGNORECASE) for pat in alt_patterns)
+
+    # Detect comparisons
+    has_comparison = len(ref_areas) > 1 or len(time_periods) > 1
+
+    # Detect technical terms
+    tech_patterns = [
+        r'\b(?:GDP|GNI|PPP|HDI|WDI|CPI|FDI|ODA)\b',
+        r'\b(?:gross|net)\s+(?:enrollment|enrolment)',
+        r'\b(?:literacy|mortality|fertility|prevalence)\s+rate\b',
+        r'\b(?:disaggregat|methodology|baseline|indicator)\b',
+        r'\bper\s+capita\b',
+    ]
+    has_technical_terms = any(
+        re.search(pat, output, re.IGNORECASE) for pat in tech_patterns
+    )
+
+    has_tool_data = _turn_has_tool_data(output)
+
+    # Extract sources cited
+    sources_match = re.findall(r'\*\*([^*]+)\*\*\s*[—–-]\s*(.+?)(?:\n|$)', output)
+    sources_cited = [f"{s[0]} — {s[1].strip()}" for s in sources_match]
+
+    # Brief response preview
+    clean = re.sub(r'<details.*?</details>', '', output, flags=re.DOTALL)
+    clean = clean.strip()[:200]
+
+    return {
+        "turn_idx": turn_idx,
+        "user_input": user[:200],
+        "tools_called": tools_called,
+        "indicators": indicators,
+        "databases": databases,
+        "ref_areas": ref_areas,
+        "time_periods": time_periods,
+        "claims": claims,
+        "has_tool_data": has_tool_data,
+        "has_data_gap": has_data_gap,
+        "has_comparison": has_comparison,
+        "has_technical_terms": has_technical_terms,
+        "data_gaps": data_gaps,
+        "alternatives_suggested": alternatives_found,
+        "sources_cited": sources_cited,
+        "response_preview": clean,
+    }
+
+
+def _serialize_condensed_context(ctx: dict) -> str:
+    """Serialize a structured context dict into a string for LLM judge."""
+    parts = [f"[Turn {ctx['turn_idx'] + 1}]"]
+    parts.append(f"User: {ctx['user_input']}")
+
+    if ctx["tools_called"]:
+        parts.append(f"Tools: {', '.join(ctx['tools_called'])}")
+    if ctx["indicators"]:
+        parts.append(f"Indicators: {', '.join(ctx['indicators'])}")
+    if ctx["databases"]:
+        parts.append(f"Databases: {', '.join(ctx['databases'])}")
+    if ctx["ref_areas"]:
+        parts.append(f"REF_AREA: {', '.join(ctx['ref_areas'])}")
+    if ctx["time_periods"]:
+        parts.append(f"TIME_PERIOD: {', '.join(ctx['time_periods'])}")
+    if ctx["claims"]:
+        claim_strs = [f"{cid}={cval}" for cid, cval in ctx["claims"].items()]
+        parts.append(f"Claims: {', '.join(claim_strs)}")
+    if ctx["has_data_gap"]:
+        parts.append("Data Gaps: YES")
+    if ctx["has_comparison"]:
+        parts.append("Comparison: YES (multiple ref_areas or time_periods)")
+    if ctx["sources_cited"]:
+        parts.append(f"Sources: {'; '.join(ctx['sources_cited'])}")
+    if ctx["response_preview"]:
+        parts.append(f"Response: {ctx['response_preview']}")
+
+    return "\n".join(parts)
+
+
+def _select_metrics_for_turn(ctx: dict, all_metric_defs: list) -> set:
+    """Select applicable metrics for a turn based on structured context flags.
+
+    Args:
+        ctx: Structured context dict from _build_condensed_context.
+        all_metric_defs: List of per-turn metric definitions from config.
+
+    Returns:
+        Set of metric names that should be evaluated for this turn.
+    """
+    _REQUIRES_MAP = {
+        "tool_data": "has_tool_data",
+        "data_gap": "has_data_gap",
+        "comparison": "has_comparison",
+        "technical_terms": "has_technical_terms",
+        "prior_context": None,
+    }
+
+    applicable = set()
+    for metric_def in all_metric_defs:
+        name = metric_def["name"]
+        requires = metric_def.get("requires")
+
+        if requires is None:
+            # Legacy: requires_tool_data field
+            if not metric_def.get("requires_tool_data", False):
+                applicable.add(name)
+            elif ctx["has_tool_data"]:
+                applicable.add(name)
+            continue
+
+        if requires == "prior_context":
+            if ctx["turn_idx"] > 0:
+                applicable.add(name)
+            continue
+
+        flag_key = _REQUIRES_MAP.get(requires)
+        if flag_key and ctx.get(flag_key, False):
+            applicable.add(name)
+
+    return applicable
+
+def _build_per_turn_metrics(config, only_names=None):
     """Build per-turn GEval metrics from config.
 
     These use standard (non-conversational) GEval on LLMTestCase objects.
-    They run IN ADDITION to conversation-level metrics.
+
+    Args:
+        config: Loaded eval config dict.
+        only_names: Optional set of metric names to build. If None, builds all.
+
+    Returns:
+        List of GEval metric objects.
     """
     from deepeval.metrics import GEval
+    from deepeval.metrics.g_eval.utils import Rubric
     from deepeval.test_case import LLMTestCaseParams
 
     judge_model = config.get("judge_model", "gpt-4.1-mini")
@@ -749,7 +1062,19 @@ def _build_per_turn_metrics(config):
 
     metrics = []
     for metric_def in per_turn_defs:
+        if only_names and metric_def["name"] not in only_names:
+            continue
         try:
+            rubric = None
+            if metric_def.get("rubric"):
+                rubric = [
+                    Rubric(
+                        score_range=tuple(r["score_range"]),
+                        expected_outcome=r["expected_outcome"],
+                    )
+                    for r in metric_def["rubric"]
+                ]
+
             metric = GEval(
                 name=metric_def["name"],
                 criteria=metric_def["criteria"],
@@ -761,6 +1086,7 @@ def _build_per_turn_metrics(config):
                 ],
                 threshold=metric_def.get("threshold", 0.5),
                 model=judge_model,
+                rubric=rubric,
             )
             metrics.append(metric)
         except Exception as e:
@@ -778,35 +1104,48 @@ def _build_per_turn_metrics(config):
 def _evaluate_per_turn(test_cases, persona_keys, config):
     """Run per-turn GEval on each assistant turn individually.
 
-    For each assistant turn (2+), the judge evaluates it against
-    accumulated prior context to check indicator reuse, claim_id
-    consistency, etc.
+    Optimizations applied:
+    1. Intent-based pre-filtering: _select_metrics_for_turn uses structured
+       context flags (has_tool_data, has_data_gap, has_comparison, etc.) to
+       select only applicable metrics per turn — inapplicable metrics get
+       auto-scored 1.0 with zero judge calls.
+    2. Context compression: prior context is a structured dict with only
+       evaluation-relevant signals, serialized to string for the LLM judge.
+    3. Aggregation: metrics with aggregates_to are rolled up into
+       conversation-level scores using min or mean (configurable per metric).
 
     Returns:
-        dict: persona_key -> {
-            turn_idx: {
-                metric_name: {
-                    "score": float,
-                    "reason": str,
-                    "passed": bool,
-                }
-            }
-        }
+        Tuple of (per_turn_scores, aggregated_scores):
+        - per_turn_scores: persona_key -> {turn_idx -> {metric_name -> {score, reason, passed}}}
+        - aggregated_scores: persona_key -> {aggregated_name -> {score, threshold, passed, reason}}
     """
     from deepeval import evaluate
     from deepeval.evaluate import DisplayConfig, ErrorConfig
     from deepeval.test_case import LLMTestCase
 
-    per_turn_metrics = _build_per_turn_metrics(config)
-    if not per_turn_metrics:
-        return {}
+    per_turn_defs = config.get("per_turn_metrics", [])
+    if not per_turn_defs:
+        return {}, {}
+
+    all_metric_names = {d["name"] for d in per_turn_defs}
+
+    # Build aggregation map: per_turn_name -> (aggregated_name, threshold, method)
+    agg_map = {}
+    for d in per_turn_defs:
+        if d.get("aggregates_to"):
+            agg_map[d["name"]] = (
+                d["aggregates_to"],
+                d.get("threshold", 0.5),
+                d.get("aggregation", "min"),
+            )
 
     all_per_turn = {}
+    all_aggregated = {}
 
     for tc, key in zip(test_cases, persona_keys):
         logger.info("  [%s] Running per-turn evaluation...", key)
         per_turn_scores = {}
-        prior_context_parts = []
+        condensed_context_dicts = []  # list of structured dicts
 
         turn_pairs = []  # (user_content, assistant_content) pairs
         current_user = None
@@ -817,35 +1156,47 @@ def _evaluate_per_turn(test_cases, persona_keys, config):
             else:
                 turn_pairs.append((current_user, turn.content))
 
+        skipped_count = 0
+        judged_count = 0
+
         for turn_idx, (user_input, assistant_output) in enumerate(turn_pairs):
-            # Turn 0 (first assistant response) — no prior context
-            if turn_idx == 0:
-                prior_context_parts.append(
-                    f"[Turn {turn_idx + 1}]\nUser: {user_input}\nAssistant: {assistant_output}"
-                )
-                # Score 1.0 for first turn — nothing to retain
-                per_turn_scores[turn_idx] = {}
-                for m in per_turn_metrics:
-                    per_turn_scores[turn_idx][m.name] = {
-                        "score": 1.0,
-                        "reason": "First turn — no prior context to retain.",
-                        "passed": True,
-                    }
+            per_turn_scores[turn_idx] = {}
+
+            # Build structured context for this turn
+            ctx = _build_condensed_context(user_input, assistant_output, turn_idx)
+
+            # Determine which metrics apply to this turn
+            metrics_to_run = _select_metrics_for_turn(ctx, per_turn_defs)
+
+            # Auto-score all non-applicable metrics as 1.0
+            skipped_names = all_metric_names - metrics_to_run
+            for name in skipped_names:
+                per_turn_scores[turn_idx][name] = {
+                    "score": 1.0,
+                    "reason": "N/A — pre-filtered (metric not applicable to this turn).",
+                    "passed": True,
+                }
+            skipped_count += len(skipped_names)
+
+            if not metrics_to_run:
+                condensed_context_dicts.append(ctx)
                 continue
 
-            # Build context from all prior turns
-            context = prior_context_parts.copy()
+            # Build serialized context strings for LLM judge
+            context_strings = [
+                _serialize_condensed_context(c) for c in condensed_context_dicts
+            ]
 
-            # Create LLMTestCase
             llm_tc = LLMTestCase(
                 input=user_input or "",
                 actual_output=assistant_output or "",
-                context=context,
+                context=context_strings,
             )
 
             try:
-                # Build fresh metrics to avoid stale state
-                fresh_metrics = _build_per_turn_metrics(config)
+                fresh_metrics = _build_per_turn_metrics(config, only_names=metrics_to_run)
+                judged_count += len(fresh_metrics)
+
                 results = evaluate(
                     test_cases=[llm_tc],
                     metrics=fresh_metrics,
@@ -853,15 +1204,17 @@ def _evaluate_per_turn(test_cases, persona_keys, config):
                     error_config=ErrorConfig(skip_on_missing_params=True, ignore_errors=True),
                 )
 
-                per_turn_scores[turn_idx] = {}
                 if results and results.test_results:
                     for md in results.test_results[0].metrics_data:
-                        per_turn_scores[turn_idx][md.name] = {
+                        # Strip DeepEval's [GEval] / [Conversational GEval] suffix
+                        clean_name = re.sub(r'\s*\[(?:Conversational )?GEval\]$', '', md.name)
+                        per_turn_scores[turn_idx][clean_name] = {
                             "score": md.score if md.score is not None else 0.0,
                             "reason": md.reason if hasattr(md, "reason") else "",
                             "passed": (
                                 md.success if hasattr(md, "success") else (md.score or 0) >= 0.5
                             ),
+                            "prefiltered": False,
                         }
             except Exception as e:
                 logger.error(
@@ -870,21 +1223,56 @@ def _evaluate_per_turn(test_cases, persona_keys, config):
                     turn_idx,
                     e,
                 )
-                per_turn_scores[turn_idx] = {}
-                for m in per_turn_metrics:
-                    per_turn_scores[turn_idx][m.name] = {
+                for name in metrics_to_run:
+                    per_turn_scores[turn_idx][name] = {
                         "score": 0.0,
                         "reason": f"Evaluation error: {e}",
                         "passed": False,
                     }
 
-            # Add this turn to prior context for next iteration
-            prior_context_parts.append(
-                f"[Turn {turn_idx + 1}]\nUser: {user_input}\nAssistant: {assistant_output}"
-            )
+            # Add structured context for next iteration
+            condensed_context_dicts.append(ctx)
+
+        # ── Aggregate per-turn scores to conversation-level ──
+        aggregated = {}
+        for pt_name, (conv_name, threshold, agg_method) in agg_map.items():
+            turn_scores = []
+            turn_reasons = []
+            for tidx, scores in per_turn_scores.items():
+                if pt_name in scores:
+                    s = scores[pt_name]
+                    # Skip pre-filtered scores — they are N/A, not real 1.0
+                    if s.get("prefiltered", False):
+                        continue
+                    turn_scores.append(s["score"])
+                    if s["score"] < 1.0:
+                        turn_reasons.append(f"Turn {tidx + 1}: {s['reason']}")
+            if turn_scores:
+                if agg_method == "mean":
+                    agg_score = sum(turn_scores) / len(turn_scores)
+                else:  # default to min
+                    agg_score = min(turn_scores)
+                aggregated[conv_name] = {
+                    "score": agg_score,
+                    "threshold": threshold,
+                    "passed": agg_score >= threshold,
+                    "reason": (
+                        f"Aggregated from {len(turn_scores)} turns ({agg_method}={agg_score:.2f}). "
+                        + (" | ".join(turn_reasons) if turn_reasons else "All turns passed.")
+                    ),
+                    "evaluation_model": config.get("judge_model", "gpt-4.1-mini"),
+                }
 
         all_per_turn[key] = per_turn_scores
+        all_aggregated[key] = aggregated
+
         # Log summary
+        logger.info(
+            "  [%s] Per-turn eval: %d judge calls, %d pre-filtered (saved)",
+            key,
+            judged_count,
+            skipped_count,
+        )
         for tidx, scores in per_turn_scores.items():
             for mname, mdata in scores.items():
                 status = "PASS" if mdata["passed"] else "FAIL"
@@ -895,8 +1283,19 @@ def _evaluate_per_turn(test_cases, persona_keys, config):
                     mdata["score"],
                     status,
                 )
+        # Log aggregated
+        if aggregated:
+            logger.info("  [%s] Aggregated conversation-level scores:", key)
+            for aname, adata in aggregated.items():
+                status = "PASS" if adata["passed"] else "FAIL"
+                logger.info(
+                    "    %s: %.2f [%s]",
+                    aname,
+                    adata["score"],
+                    status,
+                )
 
-    return all_per_turn
+    return all_per_turn, all_aggregated
 
 
 def _get_threshold_map(config, persona_key):
@@ -1714,6 +2113,9 @@ def main():
 
     max_turns = args.turns or config.get("default_max_turns", 5)
 
+    # ── Preflight checks ──────────────────────────────────────────────────
+    _preflight_checks(config)
+
     if args.replay and args.runs > 1:
         print("ERROR: --replay and --runs > 1 cannot be used together.")
         print(
@@ -1753,7 +2155,14 @@ def main():
 
         if not args.no_eval:
             run_scores = _evaluate_single_run(test_cases, persona_keys, config)
-            pt_scores = _evaluate_per_turn(test_cases, persona_keys, config)
+            pt_scores, pt_aggregated = _evaluate_per_turn(test_cases, persona_keys, config)
+            # Merge aggregated per-turn scores into conversation-level results
+            for key in persona_keys:
+                if key in pt_aggregated:
+                    if key not in run_scores:
+                        run_scores[key] = {}
+                    for agg_name, agg_data in pt_aggregated[key].items():
+                        run_scores[key][agg_name] = agg_data
             _print_and_save_results(
                 [run_scores],
                 persona_keys,
@@ -1830,7 +2239,14 @@ def main():
         if not args.no_eval:
             logger.info("Running evaluation (run %d)...", run_idx + 1)
             run_scores = _evaluate_single_run(test_cases, persona_keys, config)
-            pt_scores = _evaluate_per_turn(test_cases, persona_keys, config)
+            pt_scores, pt_aggregated = _evaluate_per_turn(test_cases, persona_keys, config)
+            # Merge aggregated per-turn scores into conversation-level results
+            for key in persona_keys:
+                if key in pt_aggregated:
+                    if key not in run_scores:
+                        run_scores[key] = {}
+                    for agg_name, agg_data in pt_aggregated[key].items():
+                        run_scores[key][agg_name] = agg_data
             all_run_scores.append(run_scores)
 
             # Save per-run markdown (each run gets its own files)
