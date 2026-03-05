@@ -13,11 +13,16 @@ from app.models.revoked_token import RevokedToken
 
 async def revoke_token(
     session: AsyncSession, jti: str, user_id: UUID, expires_at: datetime
-) -> RevokedToken:
+) -> RevokedToken | None:
     """
     Revoke a JWT token by storing its JWT ID (jti) in the database.
-    Returns the RevokedToken object.
+    Idempotent: if jti is already revoked, does nothing and returns None.
+    Returns the RevokedToken object when created, None when already present.
     """
+    result = await session.execute(select(RevokedToken).where(RevokedToken.jti == jti))
+    if result.scalar_one_or_none() is not None:
+        return None
+
     revoked_token = RevokedToken(
         jti=jti,
         user_id=user_id,

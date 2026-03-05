@@ -91,8 +91,9 @@ class Settings(BaseSettings):
     SESSION_SECRET_KEY: str = ""
 
     # Session version: bump on deploy to invalidate all server-side (opaque) sessions.
-    # Set to build id, git sha, or timestamp so each deploy gets a new value; existing
-    # sessions then fail validation and users must sign in again.
+    # When changed, guests and all users are logged out and lose access to previous session
+    # history (chats remain in DB but are no longer visible). Default "1" keeps sessions across
+    # restarts. Set to build id or timestamp in CI only when you want deploy-time invalidation.
     SESSION_VERSION: str = "1"
 
     # AI Model Configuration - can be overridden via environment variables

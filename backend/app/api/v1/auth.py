@@ -558,13 +558,17 @@ async def logout(http_request: Request, db: AsyncSession = Depends(get_db)):
                     user_id = UUID(user_id_str)
                     # Convert exp (Unix timestamp) to datetime
                     expires_at = datetime.utcfromtimestamp(exp)
-                    await revoke_token(db, jti, user_id, expires_at)
-                    logger.info(
-                        "Token revoked on logout: jti=%s, user_id=%s",
-                        jti[:8] + "...",
-                        hash_user_id(user_id_str),
-                    )
+                    revoked = await revoke_token(db, jti, user_id, expires_at)
+                    if revoked:
+                        logger.info(
+                            "Token revoked on logout: jti=%s, user_id=%s",
+                            jti[:8] + "...",
+                            hash_user_id(user_id_str),
+                        )
                 except (ValueError, TypeError) as e:
+                    logger.warning("Failed to revoke token on logout: %s", e)
+                except Exception as e:
+                    await db.rollback()
                     logger.warning("Failed to revoke token on logout: %s", e)
 
     # Invalidate server-side sessions for opaque cookies
@@ -718,7 +722,7 @@ async def refresh_token(
         user.type if hasattr(user, "type") and user.type else current_user.get("type", "regular")
     )
 
-    # Revoke the old token if it has a jti claim
+    # Revoke the old token if it has a jti claim (idempotent: already-revoked is a no-op)
     old_token = http_request.cookies.get("auth_token")
     if old_token:
         old_payload = decode_access_token(old_token)
@@ -730,15 +734,24 @@ async def refresh_token(
                     from datetime import datetime
 
                     expires_at = datetime.utcfromtimestamp(old_exp)
-                    await revoke_token(db, old_jti, user_id, expires_at)
-                    logger.info(
-                        "Old token revoked on refresh: jti=%s, user_id=%s",
-                        old_jti[:8] + "...",
-                        hash_user_id(user_id_str),
-                    )
+                    revoked = await revoke_token(db, old_jti, user_id, expires_at)
+                    if revoked:
+                        logger.info(
+                            "Old token revoked on refresh: jti=%s, user_id=%s",
+                            old_jti[:8] + "...",
+                            hash_user_id(user_id_str),
+                        )
                 except Exception as e:
-                    # Log but don't fail refresh if revocation fails
+                    # Rollback so the session is usable for the rest of the request
+                    await db.rollback()
                     logger.warning("Failed to revoke old token on refresh: %s", e)
+                    # Re-fetch user so lazy-loaded attributes work after rollback
+                    user = await get_user_by_id(db, user_id)
+                    if not user:
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail="User not found",
+                        )
 
     # Create new JWT token
     access_token = create_access_token(data={"sub": str(user.id), "type": user_type})

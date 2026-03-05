@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { getBearerTokenFromRequest } from "@/lib/auth/cookies";
+import { getAuthProxyTimeoutMs } from "@/lib/constants";
 
 /**
  * Proxy endpoint for /api/auth/refresh
@@ -59,9 +60,11 @@ export async function POST(request: NextRequest) {
       ...(bearerToken && { Authorization: `Bearer ${bearerToken}` }),
     };
 
-    // Add timeout to prevent hanging requests (5 seconds)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      getAuthProxyTimeoutMs()
+    );
 
     let response: Response;
     try {
@@ -75,7 +78,10 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === "AbortError") {
-        console.error("Timeout fetching /api/auth/refresh from FastAPI");
+        console.error(
+          "Timeout fetching /api/auth/refresh from FastAPI (backend=%s)",
+          fastApiUrl
+        );
         return NextResponse.json(
           { detail: "Request timeout" },
           { status: 504 }

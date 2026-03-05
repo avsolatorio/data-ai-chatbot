@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { getBearerTokenFromRequest } from "@/lib/auth/cookies";
-import { cookiesKey } from "@/lib/constants";
+import { cookiesKey, getAuthProxyTimeoutMs } from "@/lib/constants";
 
 /**
  * Proxy endpoint for /api/auth/me
@@ -55,9 +55,11 @@ export async function GET(request: NextRequest) {
       ...(bearerToken && { Authorization: `Bearer ${bearerToken}` }),
     };
 
-    // Add timeout to prevent hanging requests (5 seconds)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      getAuthProxyTimeoutMs()
+    );
 
     let response: Response;
     try {

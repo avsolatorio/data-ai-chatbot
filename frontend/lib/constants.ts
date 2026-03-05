@@ -30,3 +30,18 @@ export const sessionStorageKeys = {
   /** Last X-Session-Version from server; used to force MSAL logout when deploy version changes. */
   sessionVersion: "SESSION_VERSION",
 } as const;
+
+/** Default timeout (ms) for auth proxy requests to FastAPI (cold start / DB / Docker). */
+const DEFAULT_AUTH_PROXY_TIMEOUT_MS = 15_000;
+
+/**
+ * Timeout in ms for /api/auth/me and /api/auth/refresh when proxying to FastAPI.
+ * Set AUTH_PROXY_TIMEOUT_MS in env to override (e.g. 20000 for slow backends).
+ */
+export function getAuthProxyTimeoutMs(): number {
+  const raw = process.env.AUTH_PROXY_TIMEOUT_MS;
+  if (raw === undefined || raw === "") return DEFAULT_AUTH_PROXY_TIMEOUT_MS;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < 1000) return DEFAULT_AUTH_PROXY_TIMEOUT_MS;
+  return n;
+}
