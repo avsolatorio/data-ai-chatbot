@@ -138,9 +138,9 @@ class Settings(BaseSettings):
         30  # Idle timeout: session invalid after this many days without use
     )
 
-    # MSAL / Azure AD (optional). When AUTH_PROVIDER=msal, backend accepts Azure AD tokens.
-    # "guest" | "user" | "msal". guest/user both use cookie/session auth; difference is login UI only.
-    AUTH_PROVIDER: str = "guest"  # "guest" | "user" | "msal"
+    # Auth: backend tries JWT first, then Azure AD if JWT fails and AZURE_* are set (no AUTH_PROVIDER needed).
+    # AUTH_PROVIDER is optional/legacy; frontend can set NEXT_PUBLIC_AUTH_PROVIDER for UI only.
+    AUTH_PROVIDER: str = "guest"  # "guest" | "user" | "msal" (optional; auth inferred from token)
     MSAL_AUTH_COOKIE_NAME: str = "UIT"  # Cookie name for Azure AD token (must match frontend)
     AZURE_AD_TENANT_ID: str = (
         ""  # Tenant ID (or "common" for multi-tenant). Required for MSAL to validate tokens.

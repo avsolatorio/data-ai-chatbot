@@ -217,11 +217,10 @@ def get_rate_limit_identifier(request: Request) -> str:
             return f"s:{digest}"
 
     # MSAL cookie (same token = same bucket; no Azure validation in middleware)
-    if getattr(settings, "AUTH_PROVIDER", "") == "msal":
-        msal_cookie = request.cookies.get(getattr(settings, "MSAL_AUTH_COOKIE_NAME", "UIT"), "")
-        if msal_cookie:
-            digest = hashlib.sha256(msal_cookie.encode()).hexdigest()[:32]
-            return f"m:{digest}"
+    msal_cookie = request.cookies.get(getattr(settings, "MSAL_AUTH_COOKIE_NAME", "UIT"), "")
+    if msal_cookie:
+        digest = hashlib.sha256(msal_cookie.encode()).hexdigest()[:32]
+        return f"m:{digest}"
 
     return f"ip:{_client_ip(request)}"
 

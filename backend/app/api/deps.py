@@ -49,29 +49,30 @@ async def get_current_user(
     all_cookies = list(request.cookies.keys())
     logger.debug("get_current_user: cookies received: %s", all_cookies)
     token = None
-    auth_provider = getattr(settings, "AUTH_PROVIDER", "guest")
     msal_cookie_name = getattr(settings, "MSAL_AUTH_COOKIE_NAME", "UIT")
+    azure_configured = bool(
+        (getattr(settings, "AZURE_AD_TENANT_ID", "") or "").strip()
+        and (getattr(settings, "AZURE_AD_CLIENT_ID", "") or "").strip()
+    )
 
-    # Resolve token: MSAL UIT cookie or auth_token cookie, then Authorization header
-    if auth_provider == "msal":
+    # Resolve token: auth_token cookie, then MSAL cookie, then Authorization header
+    cookie_token = request.cookies.get("auth_token")
+    if cookie_token:
+        token = cookie_token
+    if not token:
         msal_cookie = request.cookies.get(msal_cookie_name)
         if msal_cookie:
             token = msal_cookie
-    if not token:
-        cookie_token = request.cookies.get("auth_token")
-        if cookie_token:
-            token = cookie_token
     if not token and credentials:
         token = credentials.credentials
 
-    # If we have a token, try to decode it (own JWT first, then Azure AD when msal)
+    # Try JWT first; if decode fails and Azure AD is configured, try Azure AD token
     if token:
         payload = decode_access_token(token)
 
-        # When MSAL is enabled and our JWT decode failed, try Azure AD token
-        if payload is None and auth_provider == "msal":
+        if payload is None and azure_configured:
             logger.debug(
-                "JWT decode failed, attempting Azure AD token validation (AUTH_PROVIDER=msal)"
+                "JWT decode failed, attempting Azure AD token validation (Azure AD configured)"
             )
             azure_payload = await validate_azure_access_token_async(token)
             if azure_payload:
@@ -101,15 +102,9 @@ async def get_current_user(
                 logger.warning("Azure AD token missing oid or email claim")
             else:
                 logger.warning(
-                    "Azure AD token validation failed. Check AUTH_PROVIDER=msal, "
-                    "AZURE_AD_TENANT_ID, AZURE_AD_CLIENT_ID, and token validity/expiry."
+                    "Azure AD token validation failed. Check AZURE_AD_TENANT_ID, "
+                    "AZURE_AD_CLIENT_ID, and token validity/expiry."
                 )
-        elif payload is None and token and auth_provider != "msal":
-            logger.debug(
-                "Token present but not our JWT; Azure AD not tried (AUTH_PROVIDER=%s). "
-                "Set AUTH_PROVIDER=msal to use MSAL.",
-                auth_provider,
-            )
 
         if payload is not None:
             user_id: str = payload.get("sub")

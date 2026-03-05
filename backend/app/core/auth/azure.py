@@ -1,6 +1,6 @@
 """
 Validate Azure AD (MSAL) access tokens and extract claims.
-Used when AUTH_PROVIDER=msal. Requires AZURE_AD_TENANT_ID to be set.
+Used when JWT decode fails and Azure AD is configured (AZURE_AD_TENANT_ID and AZURE_AD_CLIENT_ID).
 
 Accepts both v1 (sts.windows.net) and v2 (login.microsoftonline.com/.../v2.0) issuer formats.
 Fetches jwks_uri from OpenID metadata first, then falls back to known URLs.
