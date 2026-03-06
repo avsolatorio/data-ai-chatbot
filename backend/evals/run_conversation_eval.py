@@ -68,8 +68,8 @@ def _preflight_checks(config):
 
     Raises SystemExit with actionable error messages on failure.
     """
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     if not config.get("use_http_callback", False):
         logger.info("Preflight: Skipping (not in HTTP mode)")
@@ -82,9 +82,7 @@ def _preflight_checks(config):
     errors = []
 
     # 1. Chatbot frontend
-    chatbot_url = os.environ.get(
-        "CHATBOT_URL", config.get("chatbot_url", "http://localhost:3001")
-    )
+    chatbot_url = os.environ.get("CHATBOT_URL", config.get("chatbot_url", "http://localhost:3001"))
     print(f"\n  [1/3] Chatbot frontend: {chatbot_url}")
     try:
         req = urllib.request.Request(chatbot_url, method="HEAD")
@@ -879,7 +877,7 @@ def _build_condensed_context(user_input: str, assistant_output: str, turn_idx: i
     user = user_input or ""
 
     # Extract tool call names
-    tools_called = re.findall(r'Tool Call #\d+: `([^`]+)`', output)
+    tools_called = re.findall(r"Tool Call #\d+: `([^`]+)`", output)
 
     # Extract claim IDs and values
     claims_raw = re.findall(
@@ -894,18 +892,20 @@ def _build_condensed_context(user_input: str, assistant_output: str, turn_idx: i
 
     # Extract ref_areas and time_periods from tool args
     ref_areas = set(re.findall(r'(?:ref_area|country_code|REF_AREA)["\s:]+([A-Z]{3})', output))
-    multi_codes = re.findall(r'(?:ref_area|country_code|REF_AREA)["\s:]+([A-Z]{3}(?:,[A-Z]{3})+)', output)
+    multi_codes = re.findall(
+        r'(?:ref_area|country_code|REF_AREA)["\s:]+([A-Z]{3}(?:,[A-Z]{3})+)', output
+    )
     for mc in multi_codes:
         ref_areas.update(mc.split(","))
     time_periods = set(re.findall(r'(?:TIME_PERIOD|start_year|end_year)["\s:]+(\d{4})', output))
 
     # Detect data gaps from response text
     gap_patterns = [
-        r'(?:data|information)\s+(?:is\s+)?(?:not|un)\s*available',
-        r'no\s+(?:recent\s+)?data\s+(?:was\s+)?(?:found|available)',
-        r'could\s+not\s+(?:find|retrieve|locate)\s+(?:any\s+)?data',
-        r'does\s+not\s+(?:have|contain)\s+data',
-        r'no\s+results?\s+(?:were\s+)?(?:found|returned)',
+        r"(?:data|information)\s+(?:is\s+)?(?:not|un)\s*available",
+        r"no\s+(?:recent\s+)?data\s+(?:was\s+)?(?:found|available)",
+        r"could\s+not\s+(?:find|retrieve|locate)\s+(?:any\s+)?data",
+        r"does\s+not\s+(?:have|contain)\s+data",
+        r"no\s+results?\s+(?:were\s+)?(?:found|returned)",
         r"don'?t\s+have\s+(?:live\s+)?access",
     ]
     data_gaps = []
@@ -916,8 +916,8 @@ def _build_condensed_context(user_input: str, assistant_output: str, turn_idx: i
 
     # Detect alternatives suggested
     alt_patterns = [
-        r'(?:alternative|instead|you\s+(?:could|might|can)\s+(?:try|look|use))',
-        r'(?:suggest|recommend)\s+(?:checking|looking|using)',
+        r"(?:alternative|instead|you\s+(?:could|might|can)\s+(?:try|look|use))",
+        r"(?:suggest|recommend)\s+(?:checking|looking|using)",
     ]
     alternatives_found = any(re.search(pat, output, re.IGNORECASE) for pat in alt_patterns)
 
@@ -926,24 +926,22 @@ def _build_condensed_context(user_input: str, assistant_output: str, turn_idx: i
 
     # Detect technical terms
     tech_patterns = [
-        r'\b(?:GDP|GNI|PPP|HDI|WDI|CPI|FDI|ODA)\b',
-        r'\b(?:gross|net)\s+(?:enrollment|enrolment)',
-        r'\b(?:literacy|mortality|fertility|prevalence)\s+rate\b',
-        r'\b(?:disaggregat|methodology|baseline|indicator)\b',
-        r'\bper\s+capita\b',
+        r"\b(?:GDP|GNI|PPP|HDI|WDI|CPI|FDI|ODA)\b",
+        r"\b(?:gross|net)\s+(?:enrollment|enrolment)",
+        r"\b(?:literacy|mortality|fertility|prevalence)\s+rate\b",
+        r"\b(?:disaggregat|methodology|baseline|indicator)\b",
+        r"\bper\s+capita\b",
     ]
-    has_technical_terms = any(
-        re.search(pat, output, re.IGNORECASE) for pat in tech_patterns
-    )
+    has_technical_terms = any(re.search(pat, output, re.IGNORECASE) for pat in tech_patterns)
 
     has_tool_data = _turn_has_tool_data(output)
 
     # Extract sources cited
-    sources_match = re.findall(r'\*\*([^*]+)\*\*\s*[—–-]\s*(.+?)(?:\n|$)', output)
+    sources_match = re.findall(r"\*\*([^*]+)\*\*\s*[—–-]\s*(.+?)(?:\n|$)", output)
     sources_cited = [f"{s[0]} — {s[1].strip()}" for s in sources_match]
 
     # Brief response preview
-    clean = re.sub(r'<details.*?</details>', '', output, flags=re.DOTALL)
+    clean = re.sub(r"<details.*?</details>", "", output, flags=re.DOTALL)
     clean = clean.strip()[:200]
 
     return {
@@ -1006,7 +1004,7 @@ def _select_metrics_for_turn(ctx: dict, all_metric_defs: list) -> set:
     Returns:
         Set of metric names that should be evaluated for this turn.
     """
-    _REQUIRES_MAP = {
+    requires_map = {
         "tool_data": "has_tool_data",
         "data_gap": "has_data_gap",
         "comparison": "has_comparison",
@@ -1032,11 +1030,12 @@ def _select_metrics_for_turn(ctx: dict, all_metric_defs: list) -> set:
                 applicable.add(name)
             continue
 
-        flag_key = _REQUIRES_MAP.get(requires)
+        flag_key = requires_map.get(requires)
         if flag_key and ctx.get(flag_key, False):
             applicable.add(name)
 
     return applicable
+
 
 def _build_per_turn_metrics(config, only_names=None):
     """Build per-turn GEval metrics from config.
@@ -1183,9 +1182,7 @@ def _evaluate_per_turn(test_cases, persona_keys, config):
                 continue
 
             # Build serialized context strings for LLM judge
-            context_strings = [
-                _serialize_condensed_context(c) for c in condensed_context_dicts
-            ]
+            context_strings = [_serialize_condensed_context(c) for c in condensed_context_dicts]
 
             llm_tc = LLMTestCase(
                 input=user_input or "",
@@ -1207,7 +1204,7 @@ def _evaluate_per_turn(test_cases, persona_keys, config):
                 if results and results.test_results:
                     for md in results.test_results[0].metrics_data:
                         # Strip DeepEval's [GEval] / [Conversational GEval] suffix
-                        clean_name = re.sub(r'\s*\[(?:Conversational )?GEval\]$', '', md.name)
+                        clean_name = re.sub(r"\s*\[(?:Conversational )?GEval\]$", "", md.name)
                         per_turn_scores[turn_idx][clean_name] = {
                             "score": md.score if md.score is not None else 0.0,
                             "reason": md.reason if hasattr(md, "reason") else "",
@@ -1437,7 +1434,16 @@ def _simulate(persona_keys, max_turns, config):
                 config=config,
             )
 
-    simulator = ConversationSimulator(
+    # Subclass to prevent DeepEval from stopping on empty/short conversations.
+    # The LLM can incorrectly judge an empty conversation as "complete",
+    # especially for adversarial personas with complex expected_outcomes.
+    class _GuardedSimulator(ConversationSimulator):
+        async def a_stop_conversation(self, turns, golden, progress=None, pbar_turns_id=None):
+            if len(turns) < 2:
+                return False  # Need at least 1 full user+assistant exchange
+            return await super().a_stop_conversation(turns, golden, progress, pbar_turns_id)
+
+    simulator = _GuardedSimulator(
         model_callback=callback,
         simulator_model=judge_model,
         async_mode=True,

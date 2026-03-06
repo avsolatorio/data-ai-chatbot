@@ -51,3 +51,9 @@ yarn-error.log*
 /blob-report/
 /playwright/*
 feedback-to-tasks-workspace/
+
+# Eval artifacts
+.results/
+.cache/
+backend/logs/
+backend/evals/reviews/
