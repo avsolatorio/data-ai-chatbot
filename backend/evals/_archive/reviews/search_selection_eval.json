@@ -1,0 +1,141 @@
+{
+  "timestamp": "2026-03-01 19:42",
+  "chatbot_model": "gpt-4.1-mini",
+  "judge_model": "gpt-4.1-mini",
+  "aggregate": {
+    "mrr": 0.6667,
+    "hit_at_1": 0.3333,
+    "hit_at_3": 1.0,
+    "hit_at_5": 1.0,
+    "miss_rate": 0.0,
+    "avg_judge_score": 0.7,
+    "total_queries": 3
+  },
+  "results": [
+    {
+      "query": "labor force participation rate for both sexes",
+      "country": "Bangladesh",
+      "selected_id": "WB_HCP_EMP_2WAP_A",
+      "rank": 2,
+      "total_results": 10,
+      "judge_score": 0.8,
+      "judge_reasoning": "The selected indicator 'Labor force participation rate (%)' covers both sexes and is appropriate for the query. However, it is less specific than some other indicators that explicitly mention both sexes or total population, such as 'Labor force participation rate for ages 15-24, total (%)' or the general labor force participation rate from WB_WDI. Still, it is a good and relevant choice."
+    },
+    {
+      "query": "unemployment rate male and female comparison",
+      "country": "Bangladesh",
+      "selected_id": "WB_WDI_SL_UEM_TOTL_MA_NE_ZS",
+      "rank": 1,
+      "total_results": 10,
+      "judge_score": 0.5,
+      "judge_reasoning": "The selected indicator provides male unemployment rate but does not include female unemployment rate for direct comparison. A better selection would include both male and female unemployment rates to fully address the query."
+    },
+    {
+      "query": "life expectancy by gender for both male and female",
+      "country": "Bangladesh",
+      "selected_id": "WB_WDI_SP_DYN_LE00_FE_IN",
+      "rank": 2,
+      "total_results": 10,
+      "judge_score": 0.8,
+      "judge_reasoning": "The selected indicator provides life expectancy at birth for females in Bangladesh, which is relevant. However, the query asks for both male and female life expectancy, so including the male life expectancy indicator would be slightly better."
+    }
+  ],
+  "disaggregation_results": [
+    {
+      "query": "under-5 mortality rate by gender",
+      "country": "Bangladesh",
+      "expected_dim": "SEX",
+      "selected_id": "WB_WDI_SH_DYN_MORT_MA",
+      "rank": 4,
+      "total_results": 10,
+      "has_disaggregation": false,
+      "available_dims": {},
+      "judge_score": 1.0,
+      "judge_reasoning": "The selected indicator specifically provides the under-5 mortality rate for males, which directly matches the user's request for under-5 mortality rate by gender in Bangladesh. The complementary female indicator is also available, making this selection perfect."
+    },
+    {
+      "query": "unemployment rate male vs female",
+      "country": "Bangladesh",
+      "expected_dim": "SEX",
+      "selected_id": "WB_WDI_SL_UEM_TOTL_MA_NE_ZS",
+      "rank": 2,
+      "total_results": 10,
+      "has_disaggregation": false,
+      "available_dims": {},
+      "judge_score": 0.8,
+      "judge_reasoning": "The selected indicator provides the male unemployment rate, which is part of the query. However, the female unemployment rate indicator (rank 3) is equally relevant and should ideally be presented alongside for a complete comparison."
+    },
+    {
+      "query": "literacy rate by sex",
+      "country": "Bangladesh",
+      "expected_dim": "SEX",
+      "selected_id": "WB_WDI_SE_ADT_LITR_FE_ZS",
+      "rank": 5,
+      "total_results": 10,
+      "has_disaggregation": false,
+      "available_dims": {},
+      "judge_score": 1.0,
+      "judge_reasoning": "The selected indicator 'Literacy rate, adult female (% of females ages 15 and above)' directly matches the query for literacy rate by sex in Bangladesh, providing female literacy data. Combined with the male literacy indicator also available, it fully covers the query."
+    },
+    {
+      "query": "labor force participation rate female",
+      "country": "Bangladesh",
+      "expected_dim": "SEX",
+      "selected_id": "WB_WDI_SL_TLF_CACT_FE_ZS",
+      "rank": 1,
+      "total_results": 10,
+      "has_disaggregation": false,
+      "available_dims": {},
+      "judge_score": 1.0,
+      "judge_reasoning": "The selected indicator directly matches the user query for female labor force participation rate in Bangladesh, providing the latest modeled ILO estimate for the relevant population."
+    },
+    {
+      "query": "population by urban rural",
+      "country": "Bangladesh",
+      "expected_dim": "URBANISATION",
+      "selected_id": "WB_WDI_SP_RUR_TOTL_ZS",
+      "rank": 1,
+      "total_results": 10,
+      "has_disaggregation": false,
+      "available_dims": {},
+      "judge_score": 0.8,
+      "judge_reasoning": "The selected indicator provides rural population as a percentage of total population, which is relevant. However, the query asks for population by both urban and rural, so including the urban population percentage indicator would provide a more complete answer."
+    },
+    {
+      "query": "poverty rate urban vs rural",
+      "country": "Bangladesh",
+      "expected_dim": "URBANISATION",
+      "selected_id": "WB_SSGD_POVERTY_RATIO_NPL",
+      "rank": 10,
+      "total_results": 10,
+      "has_disaggregation": false,
+      "available_dims": {},
+      "judge_score": 0.2,
+      "judge_reasoning": "The selected indicator is the national poverty headcount ratio, which does not differentiate between urban and rural poverty rates. The query specifically asks for poverty rates in urban vs rural areas in Bangladesh, but none of the search results provide direct urban vs rural poverty rates. Therefore, the selected indicator is only marginally relevant."
+    },
+    {
+      "query": "school enrollment by gender",
+      "country": "Bangladesh",
+      "expected_dim": "SEX",
+      "selected_id": "WB_GS_SE_ENR",
+      "rank": 2,
+      "total_results": 10,
+      "has_disaggregation": false,
+      "available_dims": {},
+      "judge_score": 1.0,
+      "judge_reasoning": "The selected indicator 'School enrollment, gender parity index' directly matches the user query about school enrollment by gender for Bangladesh, providing the ratio of girls to boys enrolled in schools."
+    },
+    {
+      "query": "life expectancy male female",
+      "country": "Bangladesh",
+      "expected_dim": "SEX",
+      "selected_id": "WB_WDI_SP_DYN_LE00_MA_IN",
+      "rank": 3,
+      "total_results": 10,
+      "has_disaggregation": false,
+      "available_dims": {},
+      "judge_score": 0.5,
+      "judge_reasoning": "The selected indicator provides life expectancy for males only, but the user query requests both male and female life expectancy for Bangladesh. A better selection would include both male and female indicators or a total life expectancy indicator with gender breakdown."
+    }
+  ]
+}

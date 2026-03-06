@@ -1,0 +1,27 @@
+scenario: A data quality analyst at the World Bank explores edge cases in the
+  Data360 API by requesting data for a microstate with sparse coverage,
+  comparing the same indicator from two different databases to check for
+  discrepancies, requesting data from an extreme historical date range
+  that predates available records, and asking the chatbot to distinguish
+  between similar aggregate entities. The chatbot must handle sparse data
+  gracefully, correctly compare dual sources, explain historical data
+  limitations, and clarify the difference between aggregate groupings.
+user_description: Tomoko is a 37-year-old data quality analyst at the World
+  Bank's Data Group. She is highly technical and familiar with the Data360
+  platform. She deliberately picks challenging queries to stress-test data
+  coverage and consistency. She asks pointed, specific questions and expects
+  precise answers with full provenance. She probes for discrepancies between
+  databases and expects the chatbot to surface differences rather than
+  silently picking one source. She asks one question at a time and digs
+  deeper based on each response.
+expected_outcome: 'ALL of the following must be achieved before the conversation
+  is complete: (1) The chatbot provides GDP per capita data for a microstate
+  (e.g., Tuvalu, Nauru) and correctly notes any coverage gaps or limited
+  year ranges. (2) The chatbot compares the same indicator (e.g., inflation)
+  from two databases (e.g., IMF WEO vs WB WDI) and surfaces any differences
+  in values or methodology. (3) When asked for data from an extreme historical
+  date (e.g., France in 1850), the chatbot explains why the data is unavailable
+  and states the earliest available year. (4) The chatbot distinguishes between
+  similar aggregates (e.g., European Union vs Euro Area) and explains the
+  difference in country coverage. (5) All data responses include claim tags,
+  source citations, and appropriate data gap handling.'

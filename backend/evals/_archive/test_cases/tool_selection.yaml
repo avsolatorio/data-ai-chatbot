@@ -1,0 +1,75 @@
+# Tool Selection evaluation test cases
+# Each case defines a user input and the expected/unexpected tool calls.
+
+- id: "ts_gdp_kenya_01"
+  description: "Single country GDP query"
+  input: "What is the GDP of Kenya?"
+  expected_tools:
+    - tool: "data360_find_codelist_value"
+      args_contain: { codelist_type: "REF_AREA", query: "Kenya" }
+    - tool: "data360_search_indicators"
+      args_contain: { query: "GDP" }
+    - tool: "data360_get_data"
+      args_contain: {}
+  unexpected_tools: ["data360_get_viz_spec"]
+  expected_entities: ["Kenya", "GDP"]
+  expect_chart: false
+  tags: ["single-turn", "single-country", "basic"]
+
+- id: "ts_unemployment_multi_02"
+  description: "Multi-country unemployment comparison"
+  input: "Compare unemployment rates in Kenya and Tanzania"
+  expected_tools:
+    - tool: "data360_find_codelist_value"
+      args_contain: { codelist_type: "REF_AREA" }
+    - tool: "data360_search_indicators"
+      args_contain: { query: "unemployment" }
+    - tool: "data360_get_data"
+      args_contain: {}
+  unexpected_tools: ["data360_get_viz_spec"]
+  expected_entities: ["Kenya", "Tanzania", "unemployment"]
+  expect_chart: false
+  tags: ["single-turn", "multi-country", "comparison"]
+
+- id: "ts_population_viz_03"
+  description: "Population query requesting a chart"
+  input: "Show me a chart of China's population over the last 20 years"
+  expected_tools:
+    - tool: "data360_find_codelist_value"
+      args_contain: { codelist_type: "REF_AREA", query: "China" }
+    - tool: "data360_search_indicators"
+      args_contain: { query: "population" }
+    - tool: "data360_get_data"
+      args_contain: {}
+    - tool: "data360_get_viz_spec"
+      args_contain: {}
+  unexpected_tools: []
+  expected_entities: ["China", "population"]
+  expect_chart: true
+  tags: ["single-turn", "visualization", "time-series"]
+
+- id: "ts_metadata_04"
+  description: "Methodology question"
+  input: "How is the poverty headcount ratio measured?"
+  expected_tools:
+    - tool: "data360_search_indicators"
+      args_contain: { query: "poverty headcount" }
+    - tool: "data360_get_metadata"
+      args_contain: {}
+  unexpected_tools: ["data360_get_viz_spec", "data360_get_data"]
+  expected_entities: ["poverty"]
+  expect_chart: false
+  tags: ["single-turn", "metadata", "methodology"]
+
+- id: "ts_greeting_05"
+  description: "Simple greeting should not trigger any MCP tools"
+  input: "Hello, how are you?"
+  expected_tools: []
+  unexpected_tools:
+    - "data360_search_indicators"
+    - "data360_get_data"
+    - "data360_get_viz_spec"
+  expected_entities: []
+  expect_chart: false
+  expected_routing: "DIRECT"
+  tags: ["single-turn", "routing", "direct"]

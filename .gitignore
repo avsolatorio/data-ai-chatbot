@@ -56,4 +56,7 @@ feedback-to-tasks-workspace/
 .results/
 .cache/
 backend/logs/
-backend/evals/reviews/
+
+# Python
+__pycache__/
+*.pyc

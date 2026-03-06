@@ -138,7 +138,7 @@ per_turn_metrics:
   - name: "Per-Turn Claim Consistency"
     type: "geval"
     threshold: 0.8
-    requires: "tool_data"
+    requires: "claim_data"
     aggregates_to: "Claim Tagging & PCN"
     aggregation: "min"
     criteria: >
@@ -382,7 +382,7 @@ per_turn_metrics:
   - name: "Per-Turn Source Citation"
     type: "geval"
     threshold: 0.6
-    requires: "tool_data"
+    requires: "presented_data"
     aggregates_to: "Source Citation"
     aggregation: "min"
     criteria: >
@@ -484,6 +484,214 @@ per_turn_metrics:
       - score_range: [0, 3]
         expected_outcome: "Data dumped without summary or structure."
 
+  # ── Tool-Use Evaluation ─────────────────────────────────────────
+
+  - name: "Per-Turn Tool Selection"
+    type: "geval"
+    threshold: 0.5
+    requires: "tool_calls"
+    aggregates_to: "Tool Selection"
+    aggregation: "mean"
+    criteria: >
+      You are evaluating a SINGLE assistant turn. You are given:
+      - CURRENT USER INPUT: the user's question for this turn.
+      - Tool Sequence and Tool Call details (tool names and arguments).
+      - CURRENT ASSISTANT OUTPUT: the response for this turn.
+
+      The available MCP tools are: data360_search_indicators (discover
+      indicators by topic), data360_get_data (fetch indicator data),
+      data360_get_viz_spec (generate charts), data360_find_codelist_value
+      (resolve country/region names to codes), data360_get_metadata
+      (indicator metadata), data360_get_disaggregation (available
+      breakdowns), data360_get_data_api_url (direct API URL),
+      data360_get_supported_chart_types (chart type guidance),
+      data360_list_indicators (list all indicators in a database).
+
+      Evaluate whether the correct tools were selected for this turn:
+      (1) Data retrieval questions should use search_indicators then
+      get_data. Chart requests should include get_viz_spec. Codelist
+      lookups should use find_codelist_value for ambiguous names.
+      (2) No hallucinated tools — all called tools must be from the
+      list above.
+      (3) No unnecessary tools — avoid calling tools that don't
+      contribute to answering the user's question.
+      (4) No skipped critical tools — e.g., if the user asks for
+      data, search_indicators and get_data should both be called.
+
+    evaluation_steps:
+      - "List the tools called and compare against the user's intent"
+      - "Check all tool names are real MCP tools from the list above"
+      - "Identify any missing tools that should have been called"
+      - "Identify any unnecessary tools that add no value"
+    rubric:
+      - score_range: [8, 10]
+        expected_outcome: "All correct tools called, no hallucinated or unnecessary tools."
+      - score_range: [4, 7]
+        expected_outcome: "Most tools correct but one missing or unnecessary tool."
+      - score_range: [0, 3]
+        expected_outcome: "Wrong tools, hallucinated tool names, or critical tools skipped."
+
+  - name: "Per-Turn Tool Sequencing"
+    type: "geval"
+    threshold: 0.5
+    requires: "tool_calls"
+    aggregates_to: "Tool Sequencing"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn. You are given:
+      - Tool Sequence: the ordered list of tool calls made.
+      - Tool Call details with arguments.
+
+      Evaluate whether tools were called in a logical order:
+      (1) DISCOVERY BEFORE DATA: search_indicators should be called
+      BEFORE get_data — never fetch data without first knowing the
+      correct indicator_id and database_id.
+      (2) CODELIST BEFORE DATA: find_codelist_value should be called
+      BEFORE get_data when the country name is ambiguous (e.g.,
+      "Congo", non-English names, abbreviations).
+      (3) METADATA/DISAGGREGATION BEFORE FILTERED DATA:
+      get_disaggregation or get_metadata should come before get_data
+      when the query requires specific breakdowns (by sex, age, etc.).
+      (4) CHART TYPE BEFORE CHART: get_supported_chart_types may
+      precede get_viz_spec for chart type selection, but this is
+      optional.
+      (5) If only 1 tool is called, sequencing is trivially correct.
+
+    evaluation_steps:
+      - "Check if search_indicators precedes get_data"
+      - "Check if find_codelist_value precedes get_data for ambiguous countries"
+      - "Check if get_disaggregation precedes get_data for filtered queries"
+      - "Flag any cases where data is fetched before discovery"
+    rubric:
+      - score_range: [8, 10]
+        expected_outcome: "Tools called in correct logical order."
+      - score_range: [4, 7]
+        expected_outcome: "Minor ordering issue but data still retrieved correctly."
+      - score_range: [0, 3]
+        expected_outcome: "Data fetched before discovery, or major ordering violation."
+
+  - name: "Per-Turn Argument Quality"
+    type: "geval"
+    threshold: 0.5
+    requires: "tool_calls"
+    aggregates_to: "Argument Quality"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn. You are given:
+      - Tool Call details with tool name, arguments, and results.
+      - CURRENT USER INPUT and ASSISTANT OUTPUT.
+
+      Evaluate whether tool arguments are well-formed and semantically
+      correct:
+      (1) COUNTRY CODES: REF_AREA and country_code values should be
+      valid 3-letter ISO codes (e.g., KEN for Kenya, USA for United
+      States). Never use full country names in code fields.
+      (2) INDICATOR IDs: indicator_id values should match the format
+      returned by search_indicators (e.g., WB_WDI_NY_GDP_PCAP_CD).
+      Never invent indicator IDs.
+      (3) DATABASE IDs: database_id should match the indicator's
+      source database (e.g., WB_WDI, WB_HNP). Never guess.
+      (4) QUERY STRINGS: Search queries should be specific and
+      relevant to the user's question (e.g., "GDP per capita" not
+      just "GDP" when the user asked about per-capita).
+      (5) FILTER VALUES: Disaggregation filters (SEX, AGE, etc.)
+      should use valid codes (e.g., "F", "M", "_T").
+
+    evaluation_steps:
+      - "Check country codes are valid 3-letter ISO codes"
+      - "Check indicator_id and database_id formats are plausible"
+      - "Verify search queries are specific to the user's intent"
+      - "Check disaggregation filter values are valid codes"
+    rubric:
+      - score_range: [8, 10]
+        expected_outcome: "All arguments well-formed with correct codes and specific queries."
+      - score_range: [4, 7]
+        expected_outcome: "Some arguments correct but a minor issue (vague query, wrong format)."
+      - score_range: [0, 3]
+        expected_outcome: "Hallucinated IDs, invalid codes, or completely wrong arguments."
+
+  - name: "Per-Turn Routing Correctness"
+    type: "geval"
+    threshold: 0.5
+    requires: "routing"
+    aggregates_to: "Routing Correctness"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn. You are given:
+      - Routing classification (RESEARCH or DIRECT).
+      - CURRENT USER INPUT and ASSISTANT OUTPUT.
+      - Tool Sequence (if any tools were called).
+
+      Evaluate whether the routing classification is correct:
+      (1) RESEARCH: User asks for data, indicators, charts, comparisons,
+      methodology, analysis, or any question that requires tool calls
+      to retrieve information from the Data360 API.
+      (2) DIRECT: User sends a greeting, asks a general question not
+      requiring data, or makes an out-of-scope request.
+      (3) CONSISTENCY: If routing is DIRECT but tools were called,
+      that indicates a routing error. If routing is RESEARCH but no
+      tools were called, that may indicate the user's question was
+      actually simple/direct.
+      (4) If routing information is not available (e.g., "(via HTTP)"),
+      score based on whether the tool usage pattern is consistent
+      with the user's intent.
+
+    evaluation_steps:
+      - "Classify the user's intent: does it require data retrieval?"
+      - "Check the routing classification matches the intent"
+      - "Verify consistency between routing and tool usage"
+    rubric:
+      - score_range: [8, 10]
+        expected_outcome: "Routing matches user intent and is consistent with tool usage."
+      - score_range: [4, 7]
+        expected_outcome: "Borderline case — intent is ambiguous but routing is reasonable."
+      - score_range: [0, 3]
+        expected_outcome: "Clearly wrong routing — data question routed as DIRECT or vice versa."
+
+  - name: "Per-Turn Visualization & API URLs"
+    type: "geval"
+    threshold: 0.5
+    requires: "tool_calls"
+    aggregates_to: "Visualization & API URLs"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn. You are given:
+      - Tool Sequence and Tool Call details (tool names and arguments).
+      - CURRENT USER INPUT and ASSISTANT OUTPUT.
+      - Programmatic verification signals (when applicable):
+        * "Viz Request: YES" = user asked for a chart/visualization.
+        * "get_viz_spec Called: YES/NO" = whether the tool was called.
+        * "Viz URL From Tool: <url>" = the URL returned by the tool.
+        * "Viz URL In Response: VERIFIED/MISSING" = whether the
+          tool's URL appears in the assistant's response.
+
+      Rules for scoring:
+      (a) VISUALIZATION: When "Viz Request: YES" and "get_viz_spec
+      Called: YES" and "Viz URL In Response: VERIFIED", score 10
+      -- the URL is confirmed valid by programmatic check.
+      (b) When "Viz Request: YES" but "get_viz_spec Called: NO",
+      score 0-3 -- the chatbot should have called get_viz_spec.
+      (c) When "Viz Request: YES" and "get_viz_spec Called: YES"
+      but "Viz URL In Response: MISSING", score 4-7 -- the tool
+      was called but the URL wasn't presented to the user.
+      (d) API URL: When the user asks for API access, verify
+      a URL under 'Direct API Access:'. Do not expect API URLs
+      on every response -- only when explicitly requested.
+      (e) If the user did NOT ask for a chart or API URL on this
+      turn, this metric is trivially satisfied -- score 10.
+
+    evaluation_steps:
+      - "Check if 'Viz Request: YES' is present in the context"
+      - "If yes, check 'get_viz_spec Called' and 'Viz URL In Response'"
+      - "Use programmatic signals to determine score -- do NOT judge URL validity yourself"
+      - "If no viz request, check for API URL request; otherwise score 10"
+    rubric:
+      - score_range: [8, 10]
+        expected_outcome: "Viz request handled correctly (URL VERIFIED), or not applicable."
+      - score_range: [4, 7]
+        expected_outcome: "get_viz_spec called but URL missing from response, or API URL formatting issue."
+      - score_range: [0, 3]
+        expected_outcome: "Viz requested but get_viz_spec NOT called, or apologized instead."
 # ── Edge-Case Metrics ────────────────────────────────────────────
 # Applied only to specific personas, in addition to base metrics.
 
@@ -612,35 +820,3 @@ edge_case_metrics:
         - "Verify suggested indicators are in plain language, not technical codes"
         - "Check if technical terms are explained inline"
         - "Verify the response doesn't overwhelm with too much data at once"
-
-# Personas that get the "Visualization & API URLs" edge-case metric
-viz_personas:
-  - student
-  - geographer
-  - economist
-  - data_engineer
-  - journalist
-  - policy_advisor
-  - comparison_max
-
-viz_metric:
-  name: "Visualization & API URLs"
-  type: "geval"
-  threshold: 0.5
-  criteria: >
-    Evaluate whether the chatbot handles chart and API URL
-    requests correctly:
-    (a) VISUALIZATION: When the user asks for a chart, graph,
-    plot, or visualization, the chatbot must call get_viz_spec
-    and present the resulting URL as a clickable markdown link
-    (e.g., [View Chart](URL)). It must NEVER apologize, claim
-    it cannot generate visualizations, or invent fake URLs.
-    (b) API URL: When the user asks to access data directly or
-    get an API link, the chatbot must provide a URL under
-    'Direct API Access:'. API URLs are on-demand only — never
-    expected by default on every response. Never fabricate URLs.
-  evaluation_steps:
-    - "Check if the user asked for a chart/visualization"
-    - "If so, verify get_viz_spec was called and a clickable [View Chart](URL) link is provided"
-    - "Check if the user asked for API/data access — verify URL under 'Direct API Access:'"
-    - "Verify no fabricated or placeholder URLs appear"

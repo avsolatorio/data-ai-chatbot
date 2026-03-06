@@ -1,0 +1,51 @@
+# Argument Correctness evaluation test cases
+# Focuses on correct translation of user intent to tool arguments.
+
+- id: "ac_country_code_01"
+  description: "Kenya should resolve to KEN"
+  input: "What is the life expectancy in Kenya?"
+  expected_tools:
+    - tool: "data360_find_codelist_value"
+      args_contain: { codelist_type: "REF_AREA", query: "Kenya" }
+    - tool: "data360_search_indicators"
+      args_contain: { query: "life expectancy" }
+    - tool: "data360_get_data"
+      args_contain: { disaggregation_filters: { REF_AREA: "KEN" } }
+  tags: ["argument", "country-code"]
+
+- id: "ac_multi_country_02"
+  description: "Multiple countries in a single codelist call"
+  input: "Compare GDP per capita between the Philippines, Indonesia, and Thailand"
+  expected_tools:
+    - tool: "data360_find_codelist_value"
+      args_contain: { codelist_type: "REF_AREA" }
+    - tool: "data360_search_indicators"
+      args_contain: { query: "GDP per capita" }
+    - tool: "data360_get_data"
+      args_contain: {}
+  expected_entities: ["Philippines", "Indonesia", "Thailand", "GDP"]
+  tags: ["argument", "multi-country", "batch-lookup"]
+
+- id: "ac_year_filter_03"
+  description: "Explicit year should appear in data fetch"
+  input: "What was the inflation rate in Brazil in 2019?"
+  expected_tools:
+    - tool: "data360_find_codelist_value"
+      args_contain: { codelist_type: "REF_AREA", query: "Brazil" }
+    - tool: "data360_search_indicators"
+      args_contain: { query: "inflation" }
+    - tool: "data360_get_data"
+      args_contain: { start_year: 2019 }
+  expected_entities: ["Brazil", "inflation", "2019"]
+  tags: ["argument", "year-filter"]
+
+- id: "ac_disagg_sex_04"
+  description: "Gender-specific query should use SEX filter"
+  input: "What is the female labor force participation rate in India?"
+  expected_tools:
+    - tool: "data360_search_indicators"
+      args_contain: { query: "labor force participation" }
+    - tool: "data360_get_data"
+      args_contain: { disaggregation_filters: { SEX: "F" } }
+  expected_entities: ["India", "female", "labor force"]
+  tags: ["argument", "disaggregation", "gender"]

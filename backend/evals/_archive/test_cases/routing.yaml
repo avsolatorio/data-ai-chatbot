@@ -1,0 +1,94 @@
+# Routing evaluation test cases
+# Tests the intent router (RESEARCH vs DIRECT classification).
+
+# ── DIRECT cases ──────────────────────────────────────────────
+- id: "rt_greeting_01"
+  description: "Simple greeting"
+  input: "Hello!"
+  expected_routing: "DIRECT"
+  tags: ["routing", "direct"]
+
+- id: "rt_thanks_02"
+  description: "Thank you message"
+  input: "Thanks for the help!"
+  expected_routing: "DIRECT"
+  tags: ["routing", "direct"]
+
+- id: "rt_small_talk_03"
+  description: "Small talk / off-topic"
+  input: "What's the weather like today?"
+  expected_routing: "DIRECT"
+  tags: ["routing", "direct", "off-topic"]
+
+- id: "rt_sports_04"
+  description: "Sports question (off-topic)"
+  input: "Who won the World Cup last year?"
+  expected_routing: "DIRECT"
+  tags: ["routing", "direct", "off-topic"]
+
+- id: "rt_recipe_05"
+  description: "Recipe question (off-topic)"
+  input: "How do I make banana bread?"
+  expected_routing: "DIRECT"
+  tags: ["routing", "direct", "off-topic"]
+
+# ── RESEARCH cases ────────────────────────────────────────────
+- id: "rt_gdp_06"
+  description: "GDP data query"
+  input: "What is the GDP of Kenya?"
+  expected_routing: "RESEARCH"
+  tags: ["routing", "research"]
+
+- id: "rt_chart_07"
+  description: "Chart request"
+  input: "Show me a chart of population growth in India"
+  expected_routing: "RESEARCH"
+  tags: ["routing", "research", "visualization"]
+
+- id: "rt_methodology_08"
+  description: "Methodology question should be RESEARCH (metadata)"
+  input: "How is the poverty headcount ratio measured?"
+  expected_routing: "RESEARCH"
+  tags: ["routing", "research", "metadata"]
+
+- id: "rt_comparison_09"
+  description: "Multi-country comparison"
+  input: "Compare education spending between Brazil and Mexico"
+  expected_routing: "RESEARCH"
+  tags: ["routing", "research", "comparison"]
+
+- id: "rt_availability_10"
+  description: "Data availability question"
+  input: "Is there data on child mortality for Rwanda?"
+  expected_routing: "RESEARCH"
+  tags: ["routing", "research", "availability"]
+
+- id: "rt_wdi_11"
+  description: "Explicit WDI / Data360 mention"
+  input: "Search WDI for indicators related to clean water"
+  expected_routing: "RESEARCH"
+  tags: ["routing", "research", "explicit"]
+
+- id: "rt_development_12"
+  description: "General development question"
+  input: "What are the latest literacy rates in Sub-Saharan Africa?"
+  expected_routing: "RESEARCH"
+  tags: ["routing", "research"]
+
+# ── EDGE cases ────────────────────────────────────────────────
+- id: "rt_ambiguous_13"
+  description: "Ambiguous — could be general or data-related"
+  input: "Tell me about poverty"
+  expected_routing: "RESEARCH"
+  tags: ["routing", "research", "ambiguous"]
+
+- id: "rt_followup_14"
+  description: "Follow-up on previous data"
+  input: "What about for the year 2020?"
+  expected_routing: "RESEARCH"
+  conversation_history:
+    - role: "user"
+      content: "What is the GDP of Kenya?"
+    - role: "assistant"
+      content: "The GDP of Kenya in 2023 was approximately $113 billion USD."
+  tags: ["routing", "research", "follow-up"]

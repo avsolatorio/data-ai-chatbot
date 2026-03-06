@@ -41,6 +41,15 @@ from typing import Any
 
 import yaml
 
+from evals.metric_builder import (
+    _build_conversational_metrics,
+    _build_edge_case_metrics,
+    _get_threshold_map,
+)
+from evals.per_turn_eval import (
+    _evaluate_per_turn as _evaluate_per_turn_impl,
+)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -721,609 +730,18 @@ async def _http_model_callback(
 
 
 # ---------------------------------------------------------------------------
-# Conversational metrics — built from config
+# Conversational metrics -- built from config (see metric_builder.py)
+# Per-turn evaluation -- see per_turn_eval.py
 # ---------------------------------------------------------------------------
-
-_BUILTIN_METRIC_CLASSES = None
-
-
-def _get_builtin_metric_classes():
-    """Lazily import builtin metric classes."""
-    global _BUILTIN_METRIC_CLASSES
-    if _BUILTIN_METRIC_CLASSES is None:
-        from deepeval.metrics import (
-            ConversationalGEval,
-        )
-
-        _BUILTIN_METRIC_CLASSES = {
-            "ConversationalGEval": ConversationalGEval,
-        }
-    return _BUILTIN_METRIC_CLASSES
-
-
-def _build_metric_from_config(metric_def: dict, judge_model: str):
-    """Build a single DeepEval metric from a config dict entry."""
-    classes = _get_builtin_metric_classes()
-
-    if metric_def["type"] == "builtin":
-        cls = classes.get(metric_def["class"])
-        if cls is None:
-            raise ValueError(
-                f"Unknown builtin metric class: {metric_def['class']}. "
-                f"Available: {list(classes.keys())}"
-            )
-        return cls(
-            threshold=metric_def.get("threshold", 0.5),
-            model=judge_model,
-        )
-    elif metric_def["type"] == "geval":
-        from deepeval.metrics import ConversationalGEval
-        from deepeval.metrics.g_eval.utils import Rubric
-
-        rubric = None
-        if metric_def.get("rubric"):
-            rubric = [
-                Rubric(
-                    score_range=tuple(r["score_range"]),
-                    expected_outcome=r["expected_outcome"],
-                )
-                for r in metric_def["rubric"]
-            ]
-
-        return ConversationalGEval(
-            name=metric_def["name"],
-            criteria=metric_def["criteria"],
-            evaluation_steps=metric_def.get("evaluation_steps", []),
-            threshold=metric_def.get("threshold", 0.5),
-            model=judge_model,
-            rubric=rubric,
-        )
-    else:
-        raise ValueError(f"Unknown metric type: {metric_def['type']}")
-
-
-def _build_conversational_metrics(config):
-    """Build base metrics from config.
-
-    Args:
-        config: Loaded eval config dict with 'base_metrics' list.
-
-    Returns:
-        List of DeepEval metric objects.
-    """
-    judge_model = config.get("judge_model", "gpt-4.1-mini")
-    base_defs = config.get("base_metrics", [])
-
-    if not base_defs:
-        raise ValueError("No 'base_metrics' defined in eval config")
-
-    metrics = []
-    for metric_def in base_defs:
-        try:
-            metric = _build_metric_from_config(metric_def, judge_model)
-            metrics.append(metric)
-        except Exception as e:
-            logger.error("Failed to build metric '%s': %s", metric_def.get("name"), e)
-            raise
-
-    logger.info("Built %d base metrics from config", len(metrics))
-    return metrics
-
-
-def _build_edge_case_metrics(persona_key, config):
-    """Return additional metrics for edge-case personas, from config.
-
-    These run IN ADDITION to the base metrics, targeting behaviors
-    that the standard metrics don't properly evaluate.
-    """
-    judge_model = config.get("judge_model", "gpt-4.1-mini")
-    extra = []
-
-    # Persona-specific edge case metrics
-    edge_defs = config.get("edge_case_metrics", {})
-    if persona_key in edge_defs:
-        for metric_def in edge_defs[persona_key]:
-            try:
-                metric = _build_metric_from_config(metric_def, judge_model)
-                extra.append(metric)
-            except Exception as e:
-                logger.error(
-                    "Failed to build edge metric '%s' for %s: %s",
-                    metric_def.get("name"),
-                    persona_key,
-                    e,
-                )
-
-    # Viz & API URLs — only for specified personas
-    viz_personas = set(config.get("viz_personas", []))
-    if persona_key in viz_personas:
-        viz_def = config.get("viz_metric")
-        if viz_def:
-            try:
-                metric = _build_metric_from_config(viz_def, judge_model)
-                extra.append(metric)
-            except Exception as e:
-                logger.error("Failed to build viz metric: %s", e)
-
-    return extra
-
-
-def _turn_has_tool_data(content: str) -> bool:
-    """Check if an assistant turn contains tool-retrieved data.
-
-    Used for pre-filtering: if no tool data, data-dependent metrics
-    auto-score 1.0 without calling the LLM judge.
-    """
-    if not content:
-        return False
-    markers = [
-        "📋 Tool Calls",
-        "<claim ",
-        "tool_output",
-        "OBS_VALUE",
-        "🔧 Tool Call",
-    ]
-    return any(marker in content for marker in markers)
-
-
-def _build_condensed_context(user_input: str, assistant_output: str, turn_idx: int) -> dict:
-    """Build a structured context dict for per-turn evaluation.
-
-    Extracts evaluation-relevant signals from a single turn into a dict
-    with boolean flags for pre-filtering and structured fields for the
-    LLM judge. Replaces the old string-based context with richer signals.
-    """
-    output = assistant_output or ""
-    user = user_input or ""
-
-    # Extract tool call names
-    tools_called = re.findall(r"Tool Call #\d+: `([^`]+)`", output)
-
-    # Extract claim IDs and values
-    claims_raw = re.findall(
-        r'<claim\s+id="([^"]+)"[^>]*>([^<]+)</claim>',
-        output,
-    )
-    claims = {cid: cval.strip() for cid, cval in claims_raw}
-
-    # Extract indicator/database IDs from tool args
-    indicators = set(re.findall(r'indicator_id["\s:]+([A-Z0-9_]+)', output))
-    databases = set(re.findall(r'database_id["\s:]+([A-Z0-9_]+)', output))
-
-    # Extract ref_areas and time_periods from tool args
-    ref_areas = set(re.findall(r'(?:ref_area|country_code|REF_AREA)["\s:]+([A-Z]{3})', output))
-    multi_codes = re.findall(
-        r'(?:ref_area|country_code|REF_AREA)["\s:]+([A-Z]{3}(?:,[A-Z]{3})+)', output
-    )
-    for mc in multi_codes:
-        ref_areas.update(mc.split(","))
-    time_periods = set(re.findall(r'(?:TIME_PERIOD|start_year|end_year)["\s:]+(\d{4})', output))
-
-    # Detect data gaps from response text
-    gap_patterns = [
-        r"(?:data|information)\s+(?:is\s+)?(?:not|un)\s*available",
-        r"no\s+(?:recent\s+)?data\s+(?:was\s+)?(?:found|available)",
-        r"could\s+not\s+(?:find|retrieve|locate)\s+(?:any\s+)?data",
-        r"does\s+not\s+(?:have|contain)\s+data",
-        r"no\s+results?\s+(?:were\s+)?(?:found|returned)",
-        r"don'?t\s+have\s+(?:live\s+)?access",
-    ]
-    data_gaps = []
-    for pat in gap_patterns:
-        matches = re.findall(pat, output, re.IGNORECASE)
-        data_gaps.extend(matches)
-    has_data_gap = len(data_gaps) > 0
-
-    # Detect alternatives suggested
-    alt_patterns = [
-        r"(?:alternative|instead|you\s+(?:could|might|can)\s+(?:try|look|use))",
-        r"(?:suggest|recommend)\s+(?:checking|looking|using)",
-    ]
-    alternatives_found = any(re.search(pat, output, re.IGNORECASE) for pat in alt_patterns)
-
-    # Detect comparisons
-    has_comparison = len(ref_areas) > 1 or len(time_periods) > 1
-
-    # Detect technical terms
-    tech_patterns = [
-        r"\b(?:GDP|GNI|PPP|HDI|WDI|CPI|FDI|ODA)\b",
-        r"\b(?:gross|net)\s+(?:enrollment|enrolment)",
-        r"\b(?:literacy|mortality|fertility|prevalence)\s+rate\b",
-        r"\b(?:disaggregat|methodology|baseline|indicator)\b",
-        r"\bper\s+capita\b",
-    ]
-    has_technical_terms = any(re.search(pat, output, re.IGNORECASE) for pat in tech_patterns)
-
-    has_tool_data = _turn_has_tool_data(output)
-
-    # Extract sources cited
-    sources_match = re.findall(r"\*\*([^*]+)\*\*\s*[—–-]\s*(.+?)(?:\n|$)", output)
-    sources_cited = [f"{s[0]} — {s[1].strip()}" for s in sources_match]
-
-    # Brief response preview
-    clean = re.sub(r"<details.*?</details>", "", output, flags=re.DOTALL)
-    clean = clean.strip()[:200]
-
-    return {
-        "turn_idx": turn_idx,
-        "user_input": user[:200],
-        "tools_called": tools_called,
-        "indicators": indicators,
-        "databases": databases,
-        "ref_areas": ref_areas,
-        "time_periods": time_periods,
-        "claims": claims,
-        "has_tool_data": has_tool_data,
-        "has_data_gap": has_data_gap,
-        "has_comparison": has_comparison,
-        "has_technical_terms": has_technical_terms,
-        "data_gaps": data_gaps,
-        "alternatives_suggested": alternatives_found,
-        "sources_cited": sources_cited,
-        "response_preview": clean,
-    }
-
-
-def _serialize_condensed_context(ctx: dict) -> str:
-    """Serialize a structured context dict into a string for LLM judge."""
-    parts = [f"[Turn {ctx['turn_idx'] + 1}]"]
-    parts.append(f"User: {ctx['user_input']}")
-
-    if ctx["tools_called"]:
-        parts.append(f"Tools: {', '.join(ctx['tools_called'])}")
-    if ctx["indicators"]:
-        parts.append(f"Indicators: {', '.join(ctx['indicators'])}")
-    if ctx["databases"]:
-        parts.append(f"Databases: {', '.join(ctx['databases'])}")
-    if ctx["ref_areas"]:
-        parts.append(f"REF_AREA: {', '.join(ctx['ref_areas'])}")
-    if ctx["time_periods"]:
-        parts.append(f"TIME_PERIOD: {', '.join(ctx['time_periods'])}")
-    if ctx["claims"]:
-        claim_strs = [f"{cid}={cval}" for cid, cval in ctx["claims"].items()]
-        parts.append(f"Claims: {', '.join(claim_strs)}")
-    if ctx["has_data_gap"]:
-        parts.append("Data Gaps: YES")
-    if ctx["has_comparison"]:
-        parts.append("Comparison: YES (multiple ref_areas or time_periods)")
-    if ctx["sources_cited"]:
-        parts.append(f"Sources: {'; '.join(ctx['sources_cited'])}")
-    if ctx["response_preview"]:
-        parts.append(f"Response: {ctx['response_preview']}")
-
-    return "\n".join(parts)
-
-
-def _select_metrics_for_turn(ctx: dict, all_metric_defs: list) -> set:
-    """Select applicable metrics for a turn based on structured context flags.
-
-    Args:
-        ctx: Structured context dict from _build_condensed_context.
-        all_metric_defs: List of per-turn metric definitions from config.
-
-    Returns:
-        Set of metric names that should be evaluated for this turn.
-    """
-    requires_map = {
-        "tool_data": "has_tool_data",
-        "data_gap": "has_data_gap",
-        "comparison": "has_comparison",
-        "technical_terms": "has_technical_terms",
-        "prior_context": None,
-    }
-
-    applicable = set()
-    for metric_def in all_metric_defs:
-        name = metric_def["name"]
-        requires = metric_def.get("requires")
-
-        if requires is None:
-            # Legacy: requires_tool_data field
-            if not metric_def.get("requires_tool_data", False):
-                applicable.add(name)
-            elif ctx["has_tool_data"]:
-                applicable.add(name)
-            continue
-
-        if requires == "prior_context":
-            if ctx["turn_idx"] > 0:
-                applicable.add(name)
-            continue
-
-        flag_key = requires_map.get(requires)
-        if flag_key and ctx.get(flag_key, False):
-            applicable.add(name)
-
-    return applicable
-
-
-def _build_per_turn_metrics(config, only_names=None):
-    """Build per-turn GEval metrics from config.
-
-    These use standard (non-conversational) GEval on LLMTestCase objects.
-
-    Args:
-        config: Loaded eval config dict.
-        only_names: Optional set of metric names to build. If None, builds all.
-
-    Returns:
-        List of GEval metric objects.
-    """
-    from deepeval.metrics import GEval
-    from deepeval.metrics.g_eval.utils import Rubric
-    from deepeval.test_case import LLMTestCaseParams
-
-    judge_model = config.get("judge_model", "gpt-4.1-mini")
-    per_turn_defs = config.get("per_turn_metrics", [])
-
-    if not per_turn_defs:
-        return []
-
-    metrics = []
-    for metric_def in per_turn_defs:
-        if only_names and metric_def["name"] not in only_names:
-            continue
-        try:
-            rubric = None
-            if metric_def.get("rubric"):
-                rubric = [
-                    Rubric(
-                        score_range=tuple(r["score_range"]),
-                        expected_outcome=r["expected_outcome"],
-                    )
-                    for r in metric_def["rubric"]
-                ]
-
-            metric = GEval(
-                name=metric_def["name"],
-                criteria=metric_def["criteria"],
-                evaluation_steps=metric_def.get("evaluation_steps", []),
-                evaluation_params=[
-                    LLMTestCaseParams.INPUT,
-                    LLMTestCaseParams.ACTUAL_OUTPUT,
-                    LLMTestCaseParams.CONTEXT,
-                ],
-                threshold=metric_def.get("threshold", 0.5),
-                model=judge_model,
-                rubric=rubric,
-            )
-            metrics.append(metric)
-        except Exception as e:
-            logger.error(
-                "Failed to build per-turn metric '%s': %s",
-                metric_def.get("name"),
-                e,
-            )
-            raise
-
-    logger.info("Built %d per-turn metrics from config", len(metrics))
-    return metrics
 
 
 def _evaluate_per_turn(test_cases, persona_keys, config):
-    """Run per-turn GEval on each assistant turn individually.
-
-    Optimizations applied:
-    1. Intent-based pre-filtering: _select_metrics_for_turn uses structured
-       context flags (has_tool_data, has_data_gap, has_comparison, etc.) to
-       select only applicable metrics per turn — inapplicable metrics get
-       auto-scored 1.0 with zero judge calls.
-    2. Context compression: prior context is a structured dict with only
-       evaluation-relevant signals, serialized to string for the LLM judge.
-    3. Aggregation: metrics with aggregates_to are rolled up into
-       conversation-level scores using min or mean (configurable per metric).
-
-    Returns:
-        Tuple of (per_turn_scores, aggregated_scores):
-        - per_turn_scores: persona_key -> {turn_idx -> {metric_name -> {score, reason, passed}}}
-        - aggregated_scores: persona_key -> {aggregated_name -> {score, threshold, passed, reason}}
-    """
-    from deepeval import evaluate
-    from deepeval.evaluate import DisplayConfig, ErrorConfig
-    from deepeval.test_case import LLMTestCase
-
-    per_turn_defs = config.get("per_turn_metrics", [])
-    if not per_turn_defs:
-        return {}, {}
-
-    all_metric_names = {d["name"] for d in per_turn_defs}
-
-    # Build aggregation map: per_turn_name -> (aggregated_name, threshold, method)
-    agg_map = {}
-    for d in per_turn_defs:
-        if d.get("aggregates_to"):
-            agg_map[d["name"]] = (
-                d["aggregates_to"],
-                d.get("threshold", 0.5),
-                d.get("aggregation", "min"),
-            )
-
-    all_per_turn = {}
-    all_aggregated = {}
-
-    for tc, key in zip(test_cases, persona_keys):
-        logger.info("  [%s] Running per-turn evaluation...", key)
-        per_turn_scores = {}
-        condensed_context_dicts = []  # list of structured dicts
-
-        turn_pairs = []  # (user_content, assistant_content) pairs
-        current_user = None
-
-        for turn in tc.turns:
-            if turn.role == "user":
-                current_user = turn.content
-            else:
-                turn_pairs.append((current_user, turn.content))
-
-        skipped_count = 0
-        judged_count = 0
-
-        for turn_idx, (user_input, assistant_output) in enumerate(turn_pairs):
-            per_turn_scores[turn_idx] = {}
-
-            # Build structured context for this turn
-            ctx = _build_condensed_context(user_input, assistant_output, turn_idx)
-
-            # Determine which metrics apply to this turn
-            metrics_to_run = _select_metrics_for_turn(ctx, per_turn_defs)
-
-            # Auto-score all non-applicable metrics as 1.0
-            skipped_names = all_metric_names - metrics_to_run
-            for name in skipped_names:
-                per_turn_scores[turn_idx][name] = {
-                    "score": 1.0,
-                    "reason": "N/A — pre-filtered (metric not applicable to this turn).",
-                    "passed": True,
-                }
-            skipped_count += len(skipped_names)
-
-            if not metrics_to_run:
-                condensed_context_dicts.append(ctx)
-                continue
-
-            # Build serialized context strings for LLM judge
-            context_strings = [_serialize_condensed_context(c) for c in condensed_context_dicts]
-
-            llm_tc = LLMTestCase(
-                input=user_input or "",
-                actual_output=assistant_output or "",
-                context=context_strings,
-            )
-
-            try:
-                fresh_metrics = _build_per_turn_metrics(config, only_names=metrics_to_run)
-                judged_count += len(fresh_metrics)
-
-                results = evaluate(
-                    test_cases=[llm_tc],
-                    metrics=fresh_metrics,
-                    display_config=DisplayConfig(print_results=False, verbose_mode=False),
-                    error_config=ErrorConfig(skip_on_missing_params=True, ignore_errors=True),
-                )
-
-                if results and results.test_results:
-                    for md in results.test_results[0].metrics_data:
-                        # Strip DeepEval's [GEval] / [Conversational GEval] suffix
-                        clean_name = re.sub(r"\s*\[(?:Conversational )?GEval\]$", "", md.name)
-                        per_turn_scores[turn_idx][clean_name] = {
-                            "score": md.score if md.score is not None else 0.0,
-                            "reason": md.reason if hasattr(md, "reason") else "",
-                            "passed": (
-                                md.success if hasattr(md, "success") else (md.score or 0) >= 0.5
-                            ),
-                            "prefiltered": False,
-                        }
-            except Exception as e:
-                logger.error(
-                    "Per-turn eval failed for %s turn %d: %s",
-                    key,
-                    turn_idx,
-                    e,
-                )
-                for name in metrics_to_run:
-                    per_turn_scores[turn_idx][name] = {
-                        "score": 0.0,
-                        "reason": f"Evaluation error: {e}",
-                        "passed": False,
-                    }
-
-            # Add structured context for next iteration
-            condensed_context_dicts.append(ctx)
-
-        # ── Aggregate per-turn scores to conversation-level ──
-        aggregated = {}
-        for pt_name, (conv_name, threshold, agg_method) in agg_map.items():
-            turn_scores = []
-            turn_reasons = []
-            for tidx, scores in per_turn_scores.items():
-                if pt_name in scores:
-                    s = scores[pt_name]
-                    # Skip pre-filtered scores — they are N/A, not real 1.0
-                    if s.get("prefiltered", False):
-                        continue
-                    turn_scores.append(s["score"])
-                    if s["score"] < 1.0:
-                        turn_reasons.append(f"Turn {tidx + 1}: {s['reason']}")
-            if turn_scores:
-                if agg_method == "mean":
-                    agg_score = sum(turn_scores) / len(turn_scores)
-                else:  # default to min
-                    agg_score = min(turn_scores)
-                aggregated[conv_name] = {
-                    "score": agg_score,
-                    "threshold": threshold,
-                    "passed": agg_score >= threshold,
-                    "reason": (
-                        f"Aggregated from {len(turn_scores)} turns ({agg_method}={agg_score:.2f}). "
-                        + (" | ".join(turn_reasons) if turn_reasons else "All turns passed.")
-                    ),
-                    "evaluation_model": config.get("judge_model", "gpt-4.1-mini"),
-                }
-
-        all_per_turn[key] = per_turn_scores
-        all_aggregated[key] = aggregated
-
-        # Log summary
-        logger.info(
-            "  [%s] Per-turn eval: %d judge calls, %d pre-filtered (saved)",
-            key,
-            judged_count,
-            skipped_count,
-        )
-        for tidx, scores in per_turn_scores.items():
-            for mname, mdata in scores.items():
-                status = "PASS" if mdata["passed"] else "FAIL"
-                logger.info(
-                    "    Turn %d | %s: %.2f [%s]",
-                    tidx + 1,
-                    mname,
-                    mdata["score"],
-                    status,
-                )
-        # Log aggregated
-        if aggregated:
-            logger.info("  [%s] Aggregated conversation-level scores:", key)
-            for aname, adata in aggregated.items():
-                status = "PASS" if adata["passed"] else "FAIL"
-                logger.info(
-                    "    %s: %.2f [%s]",
-                    aname,
-                    adata["score"],
-                    status,
-                )
-
-    return all_per_turn, all_aggregated
+    """Delegate to per_turn_eval module, passing the global turn_data_store."""
+    return _evaluate_per_turn_impl(test_cases, persona_keys, config, _turn_data_store)
 
 
-def _get_threshold_map(config, persona_key):
-    """Build metric name -> threshold mapping from config.
-
-    Single source of truth — no more hardcoded threshold duplication.
-    """
-    thresholds = {}
-
-    # Base metrics
-    for m in config.get("base_metrics", []):
-        name = m.get("name") or m.get("class", "").replace("Metric", "")
-        # Insert spaces before capitals for class names
-        if m["type"] == "builtin" and not m.get("name"):
-            name = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", name)
-        thresholds[name] = m.get("threshold", 0.5)
-
-    # Edge case metrics for this persona
-    edge_defs = config.get("edge_case_metrics", {})
-    if persona_key in edge_defs:
-        for m in edge_defs[persona_key]:
-            thresholds[m["name"]] = m.get("threshold", 0.5)
-
-    # Viz metric
-    viz_personas = set(config.get("viz_personas", []))
-    if persona_key in viz_personas:
-        viz_def = config.get("viz_metric")
-        if viz_def:
-            thresholds[viz_def["name"]] = viz_def.get("threshold", 0.5)
-
-    return thresholds
+def _turn_has_tool_data_placeholder():
+    pass  # Original moved to per_turn_eval.py
 
 
 # ---------------------------------------------------------------------------
@@ -1381,6 +799,14 @@ def parse_args():
         default=None,
         help="Path to JSON file with pre-generated ConversationalGoldens "
         "(from generate_goldens.py).",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Directory for markdown output (default: evals/conversations/). "
+        "Use to write replay results to a versioned run directory, e.g. "
+        "evals/conversations/run_20260305_210102_v2/",
     )
     return parser.parse_args()
 
@@ -1483,7 +909,11 @@ def _load_goldens_file(goldens_path):
 
 
 def _load_replay(timestamp, persona_keys):
-    """Load saved conversations and rebuild ConversationalTestCase objects."""
+    """Load saved conversations and rebuild ConversationalTestCase objects.
+
+    Also restores ``_turn_data_store`` so that the markdown dumper can
+    render full Agent Actions sections (routing, tool calls, etc.).
+    """
     from deepeval.test_case import ConversationalTestCase, Turn
 
     conv_file = RESULTS_DIR / f"conversations_{timestamp}.json"
@@ -1509,8 +939,127 @@ def _load_replay(timestamp, persona_keys):
         test_cases.append(tc)
         loaded_keys.append(key)
 
+        # Restore _turn_data_store so the markdown dumper has pipeline details
+        thread_id = f"replay_{key}"
+        for t in turn_list:
+            pr = t.get("pipeline_result", {})
+            agent_actions = pr.get("agent_actions", [])
+
+            # Reconstruct agent_actions from routing/planner/tool_calls
+            # when the field is empty (old JSONs or known save-time issue)
+            if not agent_actions and pr and t["role"] == "assistant":
+                agent_actions = _reconstruct_agent_actions(pr)
+
+            td = TurnData(
+                role=t["role"],
+                content=t.get("content", ""),
+                turn_index=t.get("turn_index", 0),
+                routing_intent=pr.get("routing_intent", ""),
+                routing_reasoning=pr.get("routing_reasoning", ""),
+                planner_output=pr.get("planner_output", ""),
+                writer_output=pr.get("writer_output", ""),
+                tool_calls=pr.get("tool_calls", []),
+                agent_actions=agent_actions,
+                model=pr.get("model", ""),
+                turns_used=pr.get("turns_used", 0),
+                error=pr.get("error"),
+            )
+            _store_turn_data(thread_id, td)
+
+    # Fallback: if no keys matched (e.g. old conversation used different
+    # persona names), auto-discover all personas from the JSON
+    if not loaded_keys:
+        logger.warning(
+            "No requested personas found in %s (has: %s). Loading all.",
+            conv_file.name,
+            ", ".join(conv_by_persona.keys()),
+        )
+        for key in conv_by_persona:
+            conv_data = conv_by_persona[key]
+            turn_list = conv_data.get("turns", [])
+            turns = [Turn(role=t["role"], content=t["content"]) for t in turn_list]
+            tc = ConversationalTestCase(turns=turns)
+            test_cases.append(tc)
+            loaded_keys.append(key)
+
+            thread_id = f"replay_{key}"
+            for t in turn_list:
+                pr = t.get("pipeline_result", {})
+                agent_actions = pr.get("agent_actions", [])
+                if not agent_actions and pr and t["role"] == "assistant":
+                    agent_actions = _reconstruct_agent_actions(pr)
+                td = TurnData(
+                    role=t["role"],
+                    content=t.get("content", ""),
+                    turn_index=t.get("turn_index", 0),
+                    routing_intent=pr.get("routing_intent", ""),
+                    routing_reasoning=pr.get("routing_reasoning", ""),
+                    planner_output=pr.get("planner_output", ""),
+                    writer_output=pr.get("writer_output", ""),
+                    tool_calls=pr.get("tool_calls", []),
+                    agent_actions=agent_actions,
+                    model=pr.get("model", ""),
+                    turns_used=pr.get("turns_used", 0),
+                    error=pr.get("error"),
+                )
+                _store_turn_data(thread_id, td)
+
     logger.info("Loaded %d persona(s) from %s", len(loaded_keys), conv_file.name)
     return test_cases, loaded_keys
+
+
+def _reconstruct_agent_actions(pipeline_result: dict) -> list[dict]:
+    """Rebuild the agent_actions timeline from saved pipeline_result fields.
+
+    This handles old conversation JSONs that didn't save agent_actions,
+    reconstructing the timeline from routing_reasoning, planner_output,
+    and tool_calls.
+    """
+    actions = []
+
+    # 1. Routing
+    routing = pipeline_result.get("routing_reasoning", "")
+    if routing:
+        actions.append(
+            {
+                "type": "routing",
+                "stage": "routing",
+                "content": routing,
+            }
+        )
+
+    # 2. Tool calls interleaved with outputs
+    tool_calls = pipeline_result.get("tool_calls", [])
+    for tc in tool_calls:
+        actions.append(
+            {
+                "type": "tool_call",
+                "stage": "researching",
+                "name": tc.get("name", "unknown"),
+                "args": tc.get("args", {}),
+            }
+        )
+        if "output" in tc:
+            actions.append(
+                {
+                    "type": "tool_output",
+                    "stage": "researching",
+                    "output": tc["output"],
+                }
+            )
+
+    # 3. Planner / thinking output
+    planner = pipeline_result.get("planner_output", "")
+    if planner:
+        actions.append(
+            {
+                "type": "thinking",
+                "stage": "interpreting",
+                "content": planner,
+            }
+        )
+
+    return actions
 
 
 def _evaluate_single_run(test_cases, persona_keys, config):
@@ -1779,6 +1328,7 @@ def _save_conversation_markdown(
     config,
     run_label=None,
     per_turn_scores=None,
+    output_dir=None,
 ):
     """Generate per-persona conversation markdown files in evals/conversations/.
 
@@ -1789,10 +1339,12 @@ def _save_conversation_markdown(
         run_label: Optional label (e.g. "r1", "r2") for per-run files.
                    When set, files are named <persona>_<run_label>.md.
                    When None, files are named <persona>.md (aggregated).
+        output_dir: Optional directory path. When set, markdown files are
+                    written here instead of the default evals/conversations/.
     """
     import statistics
 
-    convos_dir = Path(__file__).parent / "conversations"
+    convos_dir = Path(output_dir) if output_dir else Path(__file__).parent / "conversations"
     convos_dir.mkdir(parents=True, exist_ok=True)
 
     num_runs = len(all_run_scores) if all_run_scores else 0
@@ -1809,7 +1361,7 @@ def _save_conversation_markdown(
                 agg[key][metric]["scores"].append(data.get("score", 0.0))
 
     for tc, key in zip(test_cases, persona_keys):
-        persona_info = PERSONAS[key]
+        persona_info = PERSONAS.get(key, {"user_description": key, "system_prompt": ""})
         hyper = config.get("hyperparameters", {})
         lines = []
 
@@ -2184,6 +1736,7 @@ def main():
                 timestamp,
                 config,
                 per_turn_scores=pt_scores,
+                output_dir=args.output_dir,
             )
 
         print("\n" + "=" * 72)
@@ -2288,6 +1841,7 @@ def main():
             timestamp,
             config,
             per_turn_scores=pt_scores,
+            output_dir=args.output_dir,
         )
 
     print("\n" + "=" * 72)

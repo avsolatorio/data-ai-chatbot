@@ -1,0 +1,49 @@
+# Chart Expected evaluation test cases
+# Validates whether visualization is triggered when appropriate.
+
+- id: "ch_explicit_chart_01"
+  description: "Explicit 'chart' keyword should trigger visualization"
+  input: "Create a chart of GDP growth for South Korea from 2000 to 2023"
+  expect_chart: true
+  expected_tools:
+    - tool: "data360_get_viz_spec"
+  expected_entities: ["South Korea", "GDP"]
+  tags: ["chart", "explicit-request"]
+
+- id: "ch_explicit_graph_02"
+  description: "'Graph' keyword should trigger visualization"
+  input: "Graph the population trends of Japan"
+  expect_chart: true
+  expected_tools:
+    - tool: "data360_get_viz_spec"
+  tags: ["chart", "explicit-request"]
+
+- id: "ch_visualize_03"
+  description: "'Visualize' keyword should trigger visualization"
+  input: "Visualize the infant mortality rate across ASEAN countries"
+  expect_chart: true
+  expected_tools:
+    - tool: "data360_get_viz_spec"
+  tags: ["chart", "explicit-request"]
+
+- id: "ch_no_chart_04"
+  description: "Plain data query should NOT trigger visualization"
+  input: "What is the literacy rate in Ethiopia?"
+  expect_chart: false
+  unexpected_tools: ["data360_get_viz_spec"]
+  tags: ["chart", "no-chart"]
+
+- id: "ch_no_chart_methodology_05"
+  description: "Methodology question should NOT trigger visualization"
+  input: "How is the Human Development Index calculated?"
+  expect_chart: false
+  unexpected_tools: ["data360_get_viz_spec"]
+  tags: ["chart", "no-chart", "metadata"]
+
+- id: "ch_plot_06"
+  description: "'Plot' keyword should trigger visualization"
+  input: "Plot the unemployment trends in Germany over the past decade"
+  expect_chart: true
+  expected_tools:
+    - tool: "data360_get_viz_spec"
+  tags: ["chart", "explicit-request"]
