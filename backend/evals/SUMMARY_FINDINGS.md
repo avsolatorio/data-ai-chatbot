@@ -42,7 +42,15 @@ Two distinct infrastructure issues:
 
 ---
 
-## 3. LLM Instruction-Following -- Dropped `Sources:` Section
+## 3. Draco2 Visualization Errors
+
+The `data360_get_viz_spec` tool uses Draco2 to generate Vega-Lite chart specs. Draco2 occasionally fails on certain data shapes or encoding combinations, causing the tool to return an error instead of a chart URL. When this happens, the chatbot has no fallback and reports the failure to the user.
+
+**Status:** Addressed in `feat/error-management` branch. The fix adds a fallback mechanism that generates a basic Vega-Lite spec directly when Draco2 fails, ensuring visualization requests still produce a chart.
+
+---
+
+## 4. LLM Instruction-Following -- Dropped `Sources:` Section
 
 **Affected:** student (Turn 4), adversarial_api_edge_cases (Turn 3)
 
@@ -57,7 +65,7 @@ This is not a missing instruction -- the instruction exists. The LLM simply did 
 
 ---
 
-## 4. claim_id Collision on Derived Values (Intermittent)
+## 5. claim_id Collision on Derived Values (Intermittent)
 
 **Affected:** regression_south_asia_and_claim_id
 
@@ -73,7 +81,7 @@ The collision itself was **not reproduced** but the inconsistent handling is a k
 
 ---
 
-## 5. Product Decision -- Manual Data-Fetch Instructions
+## 6. Product Decision -- Manual Data-Fetch Instructions
 
 > [!IMPORTANT]
 > When Data360 API calls failed (journalist Turns 1-2), the chatbot directed the user to data.worldbank.org to fetch the data manually. This is transparent but undermines the product's value proposition.
@@ -82,6 +90,17 @@ The collision itself was **not reproduced** but the inconsistent handling is a k
 1. **Prohibit** -- retry + fallback databases; if all fail, state the data could not be retrieved and suggest trying again later.
 2. **Allow as last resort** -- only after retry/fallback attempts are exhausted; frame as a temporary workaround.
 3. **Keep freely** -- allow since it is technically helpful and transparent.
+
+---
+
+## Benchmarking Context
+
+The evaluation results above are benchmarked against:
+
+- **Chatbot prompts:** `prompts.py` from the `dev` branch (current production prompts)
+- **MCP tool descriptions:** `improve-tools-description` branch of `data360-mcp` (improved tool descriptions for better LLM tool selection)
+
+Future runs will compare against updated prompt versions and tool description changes to measure the impact of each independently.
 
 ---
 
