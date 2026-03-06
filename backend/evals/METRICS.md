@@ -83,3 +83,40 @@ Scored on every turn (always applicable).
 ## Edge-Case Metrics
 
 Persona-specific metrics defined in `edge_case_metrics` in eval_config.yaml. Applied in addition to the metrics above.
+
+## Adding a New Metric
+
+### Per-Turn Metric
+
+Add to `per_turn_metrics` in `eval_config.yaml`:
+```yaml
+- name: "Per-Turn My Metric"
+  type: "geval"
+  threshold: 0.5
+  requires: "tool_data"           # pre-filter flag
+  aggregates_to: "My Metric"      # conversation-level name
+  aggregation: "min"              # or "mean"
+  criteria: >
+    Your evaluation criteria here.
+  evaluation_steps:
+    - "Step 1"
+    - "Step 2"
+  rubric:
+    - score_range: [8, 10]
+      expected_outcome: "Good behavior"
+    - score_range: [0, 3]
+      expected_outcome: "Bad behavior"
+```
+
+### Conversational Metric
+
+Add to `base_metrics` in `eval_config.yaml`:
+```yaml
+- name: "My Conversational Metric"
+  type: "geval"
+  threshold: 0.5
+  criteria: >
+    Criteria evaluated across the whole conversation.
+  evaluation_steps:
+    - "Step 1"
+```

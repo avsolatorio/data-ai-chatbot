@@ -54,34 +54,11 @@ PYTHONPATH=. uv run python -m pytest evals/test_tool_use_metrics.py -v
 | `.cache/` | Cached conversation data |
 | `_archive/` | Archived files and old runs |
 
-## How Metrics Work
+## Metrics
 
-### Conversational Metrics (ConversationalGEval)
+See [METRICS.md](METRICS.md) for the full list of metrics, pre-filter flags, thresholds, and how to add new ones.
 
-Evaluated across the entire conversation as a whole. Defined in `base_metrics` in `eval_config.yaml`.
-
-Example: **Conversation Completeness** -- scores whether the chatbot addressed all user questions.
-
-### Per-Turn Metrics (GEval)
-
-Evaluated on each assistant turn individually, then aggregated to conversation-level.
-
-Each per-turn metric has:
-- **`requires`** -- pre-filter flag (e.g., `tool_data`, `tool_calls`, `routing`). If the turn doesn't match, the metric auto-scores 1.0 without calling the LLM judge.
-- **`aggregates_to`** -- the conversation-level metric name it rolls up to.
-- **`aggregation`** -- `min` (strictest) or `mean` (average).
-
-### Pre-Filter Flags
-
-| Flag | Triggers When |
-|---|---|
-| `tool_data` | Response contains tool output markers |
-| `tool_calls` | Structured tool calls exist for this turn |
-| `data_gap` | Response mentions missing/unavailable data |
-| `comparison` | Multiple countries or time periods |
-| `technical_terms` | Response uses GDP, HDI, etc. |
-| `prior_context` | Turn index > 0 |
-| `routing` | Always (every turn) |
+In short: **conversational metrics** (ConversationalGEval) evaluate the whole conversation. **Per-turn metrics** (GEval) evaluate each assistant turn individually with pre-filtering to skip irrelevant turns, then aggregate via `min` or `mean`.
 
 ## Adding a New Persona
 
@@ -92,40 +69,3 @@ Each per-turn metric has:
    expected_outcome: "What a good conversation looks like"
    ```
 2. Run: `--persona <persona_key>`
-
-## Adding a New Metric
-
-### Per-Turn Metric
-
-Add to `per_turn_metrics` in `eval_config.yaml`:
-```yaml
-- name: "Per-Turn My Metric"
-  type: "geval"
-  threshold: 0.5
-  requires: "tool_data"           # pre-filter flag
-  aggregates_to: "My Metric"      # conversation-level name
-  aggregation: "min"              # or "mean"
-  criteria: >
-    Your evaluation criteria here.
-  evaluation_steps:
-    - "Step 1"
-    - "Step 2"
-  rubric:
-    - score_range: [8, 10]
-      expected_outcome: "Good behavior"
-    - score_range: [0, 3]
-      expected_outcome: "Bad behavior"
-```
-
-### Conversational Metric
-
-Add to `base_metrics` in `eval_config.yaml`:
-```yaml
-- name: "My Conversational Metric"
-  type: "geval"
-  threshold: 0.5
-  criteria: >
-    Criteria evaluated across the whole conversation.
-  evaluation_steps:
-    - "Step 1"
-```
