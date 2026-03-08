@@ -222,38 +222,6 @@ PYTHONPATH=. uv run python -m evals.compare_eval_runs <TIMESTAMP_A> <TIMESTAMP_B
 
 ---
 
-## Troubleshooting
-
-### Preflight fails: "Chatbot frontend unreachable"
-
-```bash
-# Local
-docker compose ps && docker compose logs -f
-
-# Production
-curl -I https://your-chatbot.example.org   # verify VPN access
-```
-
-### SSL errors against production
-
-```bash
-export SSL_CERT_FILE=./backend/certs/corp-root-ca.crt
-export REQUESTS_CA_BUNDLE=./backend/certs/corp-root-ca.crt
-```
-
-### Timeouts
-
-The streaming endpoint has a 300-second timeout. Check backend logs (`docker compose logs -f backend`) or the Data360 API status.
-
-### Guest auth fails
-
-```bash
-curl <CHATBOT_API_BASE>/health          # backend running?
-curl -X POST <CHATBOT_API_BASE>/api/auth/guest  # guest auth enabled?
-```
-
----
-
 ## Annex: In-Process Mode
 
 The eval framework also supports an **in-process** mode (the default when `--http` is omitted). This imports the Python pipeline directly and calls the LLM + MCP tools in the same process, bypassing the HTTP stack entirely.
