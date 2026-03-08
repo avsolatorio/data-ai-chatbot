@@ -145,7 +145,7 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval \
 
 ### Assumptions
 
-- You are connected to the company VPN
+- You are connected to the WBG VPN
 - The production chatbot is reachable (e.g., `https://your-chatbot.example.org`)
 - Guest auth (`POST /api/auth/guest`) is enabled on the production backend
 - The MCP server is already running inside the production environment -- the eval runner does not need access to it
