@@ -106,7 +106,6 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval [OPTIONS]
 | `docs/` | Planning docs (MVP features, user stories, findings) |
 | `conversations/` | Generated conversation markdown files |
 | `.results/` | Evaluation result JSON files |
-| `_archive/` | Superseded scripts and reports |
 
 ## Adding a New Persona
 
