@@ -4,16 +4,9 @@ How to run DeepEval against the live chatbot -- locally or against a production 
 
 ---
 
-## Architecture Overview
+## Architecture
 
-The eval framework supports two execution modes:
-
-| Mode | Flag | What it hits | MCP required on host? |
-|---|---|---|---|
-| **In-Process** (default) | _(none)_ | Imports the Python pipeline directly; calls the LLM + MCP tools in the same process | Yes (`MCP_SERVER_URL`) |
-| **HTTP E2E** | `--http` | Sends real HTTP requests to the running chatbot (FastAPI backend + Next.js frontend) | No (chatbot connects to MCP internally) |
-
-HTTP E2E is the "true" end-to-end mode. It exercises the full stack: FastAPI backend, streaming response assembly, LLM calls, and MCP tool execution.
+The eval runner sends real HTTP requests through the full chatbot stack: FastAPI backend, streaming response assembly, LLM calls, and MCP tool execution.
 
 ```
  ┌──────────────────────────────────────────────────────────┐
@@ -41,15 +34,15 @@ HTTP E2E is the "true" end-to-end mode. It exercises the full stack: FastAPI bac
 
 ---
 
-## Authentication Flow
+## Authentication
 
-The eval runner authenticates as a **guest user** -- no real credentials or MSAL tokens needed.
+The eval runner authenticates as a **guest user** -- no MSAL tokens or manual login needed.
 
-### Step-by-step (handled automatically by `_http_model_callback`)
+This is handled automatically by `_http_model_callback` in `run_conversation_eval.py`:
 
 1. **Create a session** -- `POST <CHATBOT_API_BASE>/api/auth/guest`
    - Returns `{ "access_token": "<JWT>" }`
-   - The runner caches this per simulated thread (one session per persona)
+   - One session per persona, reused across turns
 
 2. **Send messages** -- `POST <CHATBOT_API_BASE>/api/chat`
    - Headers: `Authorization: Bearer <JWT>`
@@ -66,34 +59,36 @@ The eval runner authenticates as a **guest user** -- no real credentials or MSAL
        "selectedVisibilityType": "private"
      }
      ```
-   - The `chat_id` is reused across turns so the backend loads conversation history from the database.
+   - The `chat_id` is reused across turns so the backend loads history from the database.
 
-3. **Parse streaming response** -- the backend returns a streaming response in SSE format (`data: {...}\n` lines). The eval runner parses these events to extract:
-   - `text-delta` events --> final assistant text
-   - `data-thinking` events --> routing reasoning, planner reasoning, tool calls, tool outputs
-   - `data-stage` events --> stage transitions (routing, executing, interpreting)
+3. **Parse streaming response** -- the backend returns `data: {...}\n` lines (SSE format). The eval runner extracts:
+   - `text-delta` -- final assistant text
+   - `data-thinking` -- routing reasoning, planner reasoning, tool calls, tool outputs
+   - `data-stage` -- stage transitions (routing, executing, interpreting)
 
-> **Note:** The SSE format here is the **chat API response format**, not the MCP transport. The backend connects to the MCP server using Streamable HTTP transport (see `backend/app/ai/mcp_tools/_client.py`).
+> **Note:** The SSE format here is the **chat API response format**, not the MCP transport. The backend connects to the MCP server using Streamable HTTP transport (`backend/app/ai/mcp_tools/_client.py`).
 
 ---
 
 ## Environment Setup
 
-Copy the template and fill in values:
-
 ```bash
 cp backend/evals/.env.example backend/evals/.env
+# Edit values, then source before running:
+set -a; source backend/evals/.env; set +a
 ```
 
-See `.env.example` for all available variables. The key ones are:
+Key variables:
 
 | Variable | Local | Production |
 |---|---|---|
 | `CHATBOT_URL` | `http://localhost:3001` | `https://your-chatbot.example.org` |
 | `CHATBOT_API_BASE` | `http://localhost:8001` | `https://your-chatbot.example.org` |
-| `MCP_SERVER_URL` | `http://host.docker.internal:8021/mcp` | _(not needed -- backend handles it)_ |
+| `MCP_SERVER_URL` | `http://host.docker.internal:8021/mcp` | _(not needed)_ |
 | `OPENAI_API_KEY` | _(your key)_ | _(your key)_ |
-| `SSL_CERT_FILE` | _(not needed)_ | `/path/to/corp-root-ca.crt` _(if behind corporate proxy)_ |
+| `SSL_CERT_FILE` | _(not needed)_ | `/path/to/corp-root-ca.crt` |
+
+See `.env.example` for the full list.
 
 ---
 
@@ -102,22 +97,20 @@ See `.env.example` for all available variables. The key ones are:
 ### Assumptions
 
 - Docker Compose stack is running (`docker compose up -d`)
-- MCP server is running on the host (e.g., `./run_server.sh` in the data360-mcp repo)
+- MCP server is running on the host (`./run_server.sh` in the data360-mcp repo)
 - Backend `.env` has `MCP_SERVER_URL=http://host.docker.internal:8021/mcp`
 
 ### Prerequisites
 
 | Service | Container | Port |
 |---|---|---|
-| PostgreSQL | `chatbot-db` | 5433 (host) → 5432 (container) |
+| PostgreSQL | `chatbot-db` | 5433 → 5432 |
 | FastAPI backend | `chatbot-backend` | 8001 |
 | Next.js frontend | `chatbot-frontend` | 3001 |
 
 ```bash
-# Start the stack
 docker compose up -d
-
-# Start MCP server (in the data360-mcp repo)
+# In the data360-mcp repo:
 ./run_server.sh
 ```
 
@@ -134,7 +127,7 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval \
 PYTHONPATH=. uv run python -m evals.run_conversation_eval \
   --http --persona all
 
-# Skip evaluation (simulation only)
+# Simulation only (no scoring)
 PYTHONPATH=. uv run python -m evals.run_conversation_eval \
   --http --persona all --no-eval
 
@@ -156,7 +149,7 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval \
 - You are connected to the company VPN
 - The production chatbot is reachable (e.g., `https://your-chatbot.example.org`)
 - Guest auth (`POST /api/auth/guest`) is enabled on the production backend
-- The MCP server is already configured and running inside the production environment -- the eval runner does not need access to it
+- The MCP server is already running inside the production environment -- the eval runner does not need access to it
 
 ### Setup
 
@@ -170,8 +163,6 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval \
 
 2. **Corporate SSL certificates** (if applicable):
 
-   If the VPN uses a corporate root CA, set:
-
    ```bash
    SSL_CERT_FILE=/path/to/corp-root-ca.crt
    REQUESTS_CA_BUNDLE=/path/to/corp-root-ca.crt
@@ -179,21 +170,14 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval \
 
    The certificate file is typically at `backend/certs/corp-root-ca.crt` in this repo.
 
-3. **MCP_SERVER_URL** is optional for production HTTP E2E. The eval runner only checks
-   that the backend API is reachable. If `MCP_SERVER_URL` is not set (or not reachable
-   from your machine), the preflight check will log a warning but will **not** block the run.
+3. **MCP_SERVER_URL** is optional. If not set (or not reachable from your machine), the preflight check logs a warning but does **not** block the run.
 
 ### Commands
 
-Same as local, but the env vars point at production:
-
 ```bash
 cd backend
-
-# Load env vars
 set -a; source evals/.env; set +a
 
-# Run against production
 PYTHONPATH=. uv run python -m evals.run_conversation_eval \
   --http --persona student_learning_and_exploration
 ```
@@ -202,36 +186,32 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval \
 
 ## Preflight Checks
 
-The `--http` flag triggers automatic preflight checks before simulation:
+The `--http` flag runs automatic checks before simulation:
 
-| Check | Required | Failure behavior |
+| Check | Required | On failure |
 |---|---|---|
-| Chatbot frontend (`CHATBOT_URL`) | Yes | Hard failure -- exits |
-| Backend API (`CHATBOT_API_BASE/health`) | Yes | Hard failure -- exits |
-| MCP server (`MCP_SERVER_URL`) | No | Warning only (in HTTP E2E mode, the backend connects to MCP internally) |
+| Chatbot frontend (`CHATBOT_URL`) | Yes | Exits |
+| Backend API (`CHATBOT_API_BASE/health`) | Yes | Exits |
+| MCP server (`MCP_SERVER_URL`) | No | Warning only |
 
 ---
 
 ## Output Files
 
-Each run produces:
-
 | File | Location | Content |
 |---|---|---|
-| Conversations JSON | `evals/.results/conversations_<timestamp>.json` | Full conversation data with pipeline details |
-| Eval results JSON | `evals/.results/conversation_eval_<timestamp>.json` | Metric scores, thresholds, judge reasoning |
-| Per-persona markdown | `evals/conversations/<persona>.md` | Human-readable transcript + eval results |
+| Conversations JSON | `evals/.results/conversations_<timestamp>.json` | Full conversation + pipeline details |
+| Eval results JSON | `evals/.results/conversation_eval_<timestamp>.json` | Scores, thresholds, judge reasoning |
+| Per-persona markdown | `evals/conversations/<persona>.md` | Transcript + eval results |
 
 ### Replaying a previous run
-
-Re-evaluate saved conversations without re-running the simulation:
 
 ```bash
 PYTHONPATH=. uv run python -m evals.run_conversation_eval \
   --replay <TIMESTAMP> --persona all
 ```
 
-The timestamp comes from the filename, e.g., `conversations_20260305_210102.json` → `20260305_210102`.
+Timestamp from the filename: `conversations_20260305_210102.json` -> `20260305_210102`.
 
 ### Comparing two runs
 
@@ -247,8 +227,7 @@ PYTHONPATH=. uv run python -m evals.compare_eval_runs <TIMESTAMP_A> <TIMESTAMP_B
 
 ```bash
 # Local
-docker compose ps
-docker compose logs -f
+docker compose ps && docker compose logs -f
 
 # Production
 curl -I https://your-chatbot.example.org   # verify VPN access
@@ -261,27 +240,38 @@ export SSL_CERT_FILE=/path/to/corp-root-ca.crt
 export REQUESTS_CA_BUNDLE=/path/to/corp-root-ca.crt
 ```
 
-### HTTP callback errors (timeouts)
+### Timeouts
 
-The streaming endpoint has a 300-second timeout. If the MCP server or LLM is slow:
-- Check backend logs: `docker compose logs -f backend` (local) or production logs
-- The Data360 API occasionally times out on large queries
+The streaming endpoint has a 300-second timeout. Check backend logs (`docker compose logs -f backend`) or the Data360 API status.
 
 ### Guest auth fails
 
-The `POST /api/auth/guest` endpoint creates an ephemeral user. If it fails:
-- Verify the backend is running: `curl <CHATBOT_API_BASE>/health`
-- Check that guest auth is enabled on the target environment
+```bash
+curl <CHATBOT_API_BASE>/health          # backend running?
+curl -X POST <CHATBOT_API_BASE>/api/auth/guest  # guest auth enabled?
+```
 
 ---
 
-## In-Process vs HTTP E2E: When to Use Each
+## Annex: In-Process Mode
 
-| Use case | Mode |
-|---|---|
-| Quick iteration on prompts/rubrics | In-process (faster, no Docker needed) |
-| Testing the full deployed stack (local) | HTTP E2E |
-| Testing against production behind VPN | HTTP E2E |
-| Validating streaming, auth, DB persistence | HTTP E2E |
-| CI/CD pipeline against staging | HTTP E2E |
-| Debugging a specific metric | In-process + `--replay` |
+The eval framework also supports an **in-process** mode (the default when `--http` is omitted). This imports the Python pipeline directly and calls the LLM + MCP tools in the same process, bypassing the HTTP stack entirely.
+
+This mode is useful for:
+- Quick iteration on prompts or rubrics (faster, no Docker needed)
+- Debugging a specific metric with `--replay`
+
+```bash
+cd backend
+
+# In-process mode (requires MCP_SERVER_URL on host)
+MCP_SERVER_URL=http://localhost:8021/mcp \
+PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+  --persona student_learning_and_exploration
+
+# Replay + in-process (no MCP needed)
+PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+  --replay <TIMESTAMP> --persona all
+```
+
+**Requirements:** `MCP_SERVER_URL` must be set and reachable from the host (not via Docker). The MCP server runs directly on your machine, not in a container.
