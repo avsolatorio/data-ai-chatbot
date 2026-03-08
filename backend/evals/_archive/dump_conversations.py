@@ -1,5 +1,10 @@
 """Dump conversation results to individual persona .md files with insights."""
-import json, os, glob, sys, re
+
+import glob
+import json
+import os
+import re
+import sys
 
 PERSONA_CONTEXT = {
     "student": "University student writing a thesis on economic growth in East Africa",
@@ -55,16 +60,24 @@ def analyze_conversation(persona, turns, metrics):
 
     content_strengths = []
     if "<claim" in all_assistant:
-        content_strengths.append("Properly used `<claim>` tags with PCN protocol for data traceability")
+        content_strengths.append(
+            "Properly used `<claim>` tags with PCN protocol for data traceability"
+        )
     if "Sources:" in all_assistant or "Source:" in all_assistant:
         content_strengths.append("Included source citations with database and indicator references")
     if "follow-up" in all_assistant.lower() or "suggested" in all_assistant.lower():
-        content_strengths.append("Provided actionable follow-up suggestions to guide the conversation")
+        content_strengths.append(
+            "Provided actionable follow-up suggestions to guide the conversation"
+        )
     if "|" in all_assistant and "---" in all_assistant:
         content_strengths.append("Used markdown tables for structured data presentation")
     if "View Chart" in all_assistant or "viz_specs" in all_assistant:
-        content_strengths.append("Generated visualizations via `get_viz_spec` with clickable chart links")
-    if persona == "data_engineer" and ("api" in all_assistant.lower() or "requests" in all_assistant.lower()):
+        content_strengths.append(
+            "Generated visualizations via `get_viz_spec` with clickable chart links"
+        )
+    if persona == "data_engineer" and (
+        "api" in all_assistant.lower() or "requests" in all_assistant.lower()
+    ):
         content_strengths.append("Provided direct API URLs with Python code examples as requested")
     if "Note:" in all_assistant or "Limitations:" in all_assistant:
         content_strengths.append("Added contextual notes and limitations for data transparency")
@@ -102,39 +115,45 @@ def _get_failure_explanation(name):
             "The chatbot complied with out-of-scope requests "
             "(e.g., creative writing, fictional entities) instead of "
             "refusing. This is a prompt-level issue — the model is too "
-            "helpful and needs explicit refusal instructions in `prompts.py`."),
+            "helpful and needs explicit refusal instructions in `prompts.py`."
+        ),
         "Guided Discovery": (
             "The chatbot dumped data on vague queries instead of "
             "asking a clarifying question first. The prompt says to ask "
             '"ONE short, focused CLARIFYING QUESTION" but the model '
-            "biases toward answering over asking."),
+            "biases toward answering over asking."
+        ),
         "Completeness": (
             "Not all user requests were fully addressed. This may "
             "be due to conversation complexity exceeding the turn limit, "
-            "or the chatbot losing track of multi-part requests."),
+            "or the chatbot losing track of multi-part requests."
+        ),
         "Context Retention": (
             "The chatbot re-searched data it had already retrieved "
             "in prior turns instead of reusing cached results. This wastes "
-            "tool calls and slows the conversation."),
+            "tool calls and slows the conversation."
+        ),
         "Tool Call Appropriateness": (
             "The chatbot made unnecessary or incorrect tool calls. "
             "The 8-step workflow was not followed correctly — some required "
-            "steps were skipped or optional steps were treated as required."),
+            "steps were skipped or optional steps were treated as required."
+        ),
         "Tool Argument Quality": (
             "Tool arguments were incorrect — possibly raw country "
             "names instead of ISO codes, or indicators not from search results. "
             "The chatbot should use `find_codelist_value` for country codes and "
-            "`search_indicators` before `get_data`."),
+            "`search_indicators` before `get_data`."
+        ),
         "Latest Data Note": (
             'The chatbot added "(using latest available data)" '
             "even when the user specified a year, or omitted it when no "
-            "specific year was requested."),
+            "specific year was requested."
+        ),
         "Claim Tagging": (
             "Claim tags were missing, malformed, or had missing "
-            "`policy` attributes on some data values."),
-        "PCN": (
-            "Claim tags were missing `policy` attributes or had "
-            "untraceable claim_ids."),
+            "`policy` attributes on some data values."
+        ),
+        "PCN": ("Claim tags were missing `policy` attributes or had untraceable claim_ids."),
     }
     for key, explanation in explanations.items():
         if key in name:
@@ -149,28 +168,34 @@ def _get_next_steps(failures, scores):
     if "Scope Guard" in failure_keys:
         next_steps.append(
             "Add explicit creative content refusal to `prompts.py` scope guard: "
-            '"NEVER generate poems, haikus, stories, songs, jokes, or other creative content"')
+            '"NEVER generate poems, haikus, stories, songs, jokes, or other creative content"'
+        )
     if "Guided Discovery" in failure_keys:
         next_steps.append(
             "Strengthen planner disambiguation trigger: prioritize "
             "asking ONE clarifying question over answering when the query is vague "
-            "(no specific country, indicator, or time period mentioned)")
+            "(no specific country, indicator, or time period mentioned)"
+        )
     if "Completeness" in failure_keys:
         next_steps.append(
             "Consider increasing the turn limit for complex personas, or improve "
-            "the chatbot's ability to track multi-part requests across turns")
+            "the chatbot's ability to track multi-part requests across turns"
+        )
     if "Context Retention" in failure_keys:
         next_steps.append(
             "Review planner prompt for data reuse: ensure the chatbot checks "
-            "conversation history before making duplicate tool calls")
+            "conversation history before making duplicate tool calls"
+        )
     if any("Tool" in k for k in failures.keys()):
         next_steps.append(
             "Reinforce the 8-step tool workflow in the planner prompt, especially "
-            "the REQUIRED steps and the use of `find_codelist_value` for country codes")
+            "the REQUIRED steps and the use of `find_codelist_value` for country codes"
+        )
     if "Latest Data Note" in failure_keys:
         next_steps.append(
             'Clarify the Latest Data Note rule: only add "(using latest available data)" '
-            "when the user did NOT specify a year")
+            "when the user did NOT specify a year"
+        )
 
     if not next_steps:
         if all(v >= 0.90 for v in scores.values()):
@@ -180,7 +205,8 @@ def _get_next_steps(failures, scores):
             clean = lowest[0].split("[")[0].strip()
             next_steps.append(
                 f"Monitor **{clean}** ({lowest[1]:.2f}) — "
-                "lowest score, may drift below threshold in future runs")
+                "lowest score, may drift below threshold in future runs"
+            )
     return next_steps
 
 
@@ -242,19 +268,21 @@ def dump_conversations(eval_file, conv_file, output_dir):
                 # Wrap legacy tool call / planner sections in <details>
                 if "<details>" not in content:
                     content = re.sub(
-                        r'(---\n)(📋 \*\*Tool Calls\*\*.*?)(\n---\n🧠|\n### |\Z)',
-                        r'\1<details>\n<summary>📋 <b>Tool Calls</b> (click to expand)</summary>\n\n\2\n</details>\n\3',
-                        content, flags=re.DOTALL,
+                        r"(---\n)(📋 \*\*Tool Calls\*\*.*?)(\n---\n🧠|\n### |\Z)",
+                        r"\1<details>\n<summary>📋 <b>Tool Calls</b> (click to expand)</summary>\n\n\2\n</details>\n\3",
+                        content,
+                        flags=re.DOTALL,
                     )
                     content = re.sub(
-                        r'(---\n)(🧠 \*\*Planner Reasoning\*\*.*?)(\n### |\Z)',
-                        r'\1<details>\n<summary>🧠 <b>Planner Reasoning</b> (click to expand)</summary>\n\n\2\n</details>\n\3',
-                        content, flags=re.DOTALL,
+                        r"(---\n)(🧠 \*\*Planner Reasoning\*\*.*?)(\n### |\Z)",
+                        r"\1<details>\n<summary>🧠 <b>Planner Reasoning</b> (click to expand)</summary>\n\n\2\n</details>\n\3",
+                        content,
+                        flags=re.DOTALL,
                     )
             if role == "user":
                 lines.append(f"### 👤 User (Turn {i // 2 + 1})\n")
             else:
-                lines.append(f"### 🤖 Assistant\n")
+                lines.append("### 🤖 Assistant\n")
             lines.append(content)
             lines.append("")
 

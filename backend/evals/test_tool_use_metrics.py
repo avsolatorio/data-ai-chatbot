@@ -73,7 +73,7 @@ def sample_per_turn_metric_defs():
 
 class TestBuildCondensedContext:
     def _call(self, **kwargs):
-        from evals.run_conversation_eval import _build_condensed_context
+        from evals.per_turn_eval import _build_condensed_context
 
         defaults = {
             "user_input": "What is the GDP of Kenya?",
@@ -135,7 +135,7 @@ class TestBuildCondensedContext:
 
 class TestSerializeCondensedContext:
     def test_includes_tool_sequence(self, sample_tool_calls_pipeline):
-        from evals.run_conversation_eval import (
+        from evals.per_turn_eval import (
             _build_condensed_context,
             _serialize_condensed_context,
         )
@@ -155,7 +155,7 @@ class TestSerializeCondensedContext:
         assert "Tool Call 2: data360_get_data(" in serialized
 
     def test_no_tool_data_no_tool_section(self):
-        from evals.run_conversation_eval import (
+        from evals.per_turn_eval import (
             _build_condensed_context,
             _serialize_condensed_context,
         )
@@ -175,7 +175,7 @@ class TestSerializeCondensedContext:
 
 class TestSelectMetricsForTurn:
     def _call(self, ctx, defs):
-        from evals.run_conversation_eval import _select_metrics_for_turn
+        from evals.per_turn_eval import _select_metrics_for_turn
 
         return _select_metrics_for_turn(ctx, defs)
 
