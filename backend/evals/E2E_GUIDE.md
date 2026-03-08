@@ -85,7 +85,7 @@ Key variables:
 | `CHATBOT_URL` | `http://localhost:3001` | `https://your-chatbot.example.org` |
 | `CHATBOT_API_BASE` | `http://localhost:8001` | `https://your-chatbot.example.org` |
 | `OPENAI_API_KEY` | _(your key)_ | _(your key)_ |
-| `SSL_CERT_FILE` | _(not needed)_ | `/path/to/corp-root-ca.crt` |
+| `SSL_CERT_FILE` | _(not needed)_ | `./backend/certs/corp-root-ca.crt` |
 
 See `.env.example` for the full list.
 
@@ -162,12 +162,12 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval \
 
 2. **Corporate SSL certificates** (if applicable):
 
-   ```bash
-   SSL_CERT_FILE=/path/to/corp-root-ca.crt
-   REQUESTS_CA_BUNDLE=/path/to/corp-root-ca.crt
-   ```
+   The corporate root CA is already in the repo at `backend/certs/corp-root-ca.crt`. Point the env vars at it:
 
-   The certificate file is typically at `backend/certs/corp-root-ca.crt` in this repo.
+   ```bash
+   SSL_CERT_FILE=./backend/certs/corp-root-ca.crt
+   REQUESTS_CA_BUNDLE=./backend/certs/corp-root-ca.crt
+   ```
 
 3. **MCP connectivity** is validated automatically. The preflight authenticates as a guest and calls the backend's tool-listing endpoint (`GET /api/v1/mcp/tools`) to verify the backend can reach the MCP server. No `MCP_SERVER_URL` is needed on the eval runner's side.
 
@@ -237,8 +237,8 @@ curl -I https://your-chatbot.example.org   # verify VPN access
 ### SSL errors against production
 
 ```bash
-export SSL_CERT_FILE=/path/to/corp-root-ca.crt
-export REQUESTS_CA_BUNDLE=/path/to/corp-root-ca.crt
+export SSL_CERT_FILE=./backend/certs/corp-root-ca.crt
+export REQUESTS_CA_BUNDLE=./backend/certs/corp-root-ca.crt
 ```
 
 ### Timeouts
