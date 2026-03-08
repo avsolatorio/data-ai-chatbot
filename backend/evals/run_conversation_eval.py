@@ -942,10 +942,15 @@ def _load_replay(timestamp, persona_keys):
 
     conv_file = RESULTS_DIR / f"conversations_{timestamp}.json"
     if not conv_file.exists():
-        raise FileNotFoundError(
-            f"No conversation file found: {conv_file}\n"
-            f"Available: {sorted(RESULTS_DIR.glob('conversations_*.json'))}"
-        )
+        # Try new format with persona suffix
+        matches = sorted(RESULTS_DIR.glob(f"conversations_{timestamp}_*.json"))
+        if matches:
+            conv_file = matches[0]
+        else:
+            raise FileNotFoundError(
+                f"No conversation file found for timestamp: {timestamp}\n"
+                f"Available: {sorted(RESULTS_DIR.glob('conversations_*.json'))}"
+            )
 
     conversations = json.loads(conv_file.read_text())
     conv_by_persona = {c["persona"]: c for c in conversations}
@@ -1229,7 +1234,8 @@ def _print_and_save_results(
         print()
 
     # Save results JSON with exhaustive data
-    eval_file = RESULTS_DIR / f"conversation_eval_{timestamp}.json"
+    persona_suffix = persona_keys[0] if len(persona_keys) == 1 else "all"
+    eval_file = RESULTS_DIR / f"conversation_eval_{timestamp}_{persona_suffix}.json"
     eval_data = {
         "timestamp": timestamp,
         "personas": persona_keys,
