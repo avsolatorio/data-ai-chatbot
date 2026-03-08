@@ -84,7 +84,6 @@ Key variables:
 |---|---|---|
 | `CHATBOT_URL` | `http://localhost:3001` | `https://your-chatbot.example.org` |
 | `CHATBOT_API_BASE` | `http://localhost:8001` | `https://your-chatbot.example.org` |
-| `MCP_SERVER_URL` | `http://host.docker.internal:8021/mcp` | _(not needed)_ |
 | `OPENAI_API_KEY` | _(your key)_ | _(your key)_ |
 | `SSL_CERT_FILE` | _(not needed)_ | `/path/to/corp-root-ca.crt` |
 
@@ -170,9 +169,11 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval \
 
    The certificate file is typically at `backend/certs/corp-root-ca.crt` in this repo.
 
-3. **MCP_SERVER_URL** is optional. If not set (or not reachable from your machine), the preflight check logs a warning but does **not** block the run.
+3. **MCP connectivity** is validated automatically. The preflight authenticates as a guest and calls the backend's tool-listing endpoint (`GET /api/v1/mcp/tools`) to verify the backend can reach the MCP server. No `MCP_SERVER_URL` is needed on the eval runner's side.
 
 ### Commands
+
+Same as local, but the env vars point at production:
 
 ```bash
 cd backend
@@ -192,7 +193,7 @@ The `--http` flag runs automatic checks before simulation:
 |---|---|---|
 | Chatbot frontend (`CHATBOT_URL`) | Yes | Exits |
 | Backend API (`CHATBOT_API_BASE/health`) | Yes | Exits |
-| MCP server (`MCP_SERVER_URL`) | No | Warning only |
+| MCP tools (via backend `GET /api/v1/mcp/tools`) | Yes | Exits (backend cannot reach MCP) |
 
 ---
 

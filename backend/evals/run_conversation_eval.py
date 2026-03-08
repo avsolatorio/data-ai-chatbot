@@ -71,9 +71,10 @@ def _preflight_checks(config):
     """Verify that required services are reachable before running evals.
 
     Checks (when use_http_callback is True):
-    1. Docker chatbot frontend (chatbot_url, default localhost:3001)
+    1. Chatbot frontend (chatbot_url, default localhost:3001)
     2. Backend API (chatbot_api_base, default localhost:8001)
-    3. MCP server (MCP_SERVER_URL env var)
+    3. MCP tools via backend (GET /api/v1/mcp/tools — verifies the
+       backend can connect to MCP and list available tools)
 
     Raises SystemExit with actionable error messages on failure.
     """
@@ -128,30 +129,53 @@ def _preflight_checks(config):
         print(f"        ❌ {msg}")
         errors.append(msg)
 
-    # 3. MCP Server
-    mcp_url = os.environ.get("MCP_SERVER_URL", "")
-    print(f"  [3/3] MCP Server: {mcp_url or '(not set)'}")
-    if not mcp_url:
-        msg = (
-            "MCP_SERVER_URL is not set. The chatbot cannot access Data360 tools.\n"
-            "        Set it: export MCP_SERVER_URL=http://host.docker.internal:8021/mcp"
-        )
-        print(f"        ❌ {msg}")
-        errors.append("MCP_SERVER_URL is not set")
+    # 3. MCP tools via backend
+    # TODO: Replace with a proper /health endpoint that includes MCP
+    #       connectivity status, so no auth is needed for preflight.
+    #       For now we authenticate as guest and call the tools-listing
+    #       endpoint to verify the backend can reach MCP.
+    print(f"  [3/3] MCP tools (via backend): {api_base}/api/v1/mcp/tools")
+    if errors:
+        print("        ⏭️  Skipped (backend unreachable)")
     else:
-        # For host-side probing, translate host.docker.internal -> localhost
-        probe_url = mcp_url.replace("host.docker.internal", "localhost")
-        if probe_url != mcp_url:
-            print(f"        (probing via {probe_url})")
         try:
-            req = urllib.request.Request(probe_url, method="GET")
-            urllib.request.urlopen(req, timeout=5)
-            print("        ✅ Reachable")
+            # Get a guest token
+            auth_url = f"{api_base}/api/auth/guest"
+            auth_req = urllib.request.Request(auth_url, method="POST")
+            auth_req.add_header("Content-Type", "application/json")
+            with urllib.request.urlopen(auth_req, timeout=10) as auth_resp:
+                import json as _json
+
+                token = _json.loads(auth_resp.read())[  # noqa: S105
+                    "access_token"
+                ]
+
+            # Verify MCP tools are accessible
+            tools_url = f"{api_base}/api/v1/mcp/tools"
+            tools_req = urllib.request.Request(tools_url, method="GET")
+            tools_req.add_header("Authorization", f"Bearer {token}")
+            with urllib.request.urlopen(tools_req, timeout=30) as tools_resp:
+                tools_data = _json.loads(tools_resp.read())
+                count = tools_data.get("count", 0)
+                if count > 0:
+                    print(f"        ✅ {count} MCP tools available")
+                else:
+                    msg = "Backend returned 0 MCP tools — MCP server may be misconfigured"
+                    print(f"        ❌ {msg}")
+                    errors.append(msg)
         except urllib.error.HTTPError as e:
-            # Any HTTP response means the server process is running
-            print(f"        ✅ Reachable (HTTP {e.code})")
+            if e.code == 503:
+                msg = (
+                    f"Backend cannot reach MCP server (HTTP {e.code}). "
+                    "Check that the MCP server is running and MCP_SERVER_URL "
+                    "is correct in the backend's .env."
+                )
+            else:
+                msg = f"MCP tools check failed: HTTP {e.code}"
+            print(f"        ❌ {msg}")
+            errors.append(msg)
         except Exception as e:
-            msg = f"MCP Server unreachable at {probe_url}: {e}"
+            msg = f"MCP tools check failed: {e}"
             print(f"        ❌ {msg}")
             errors.append(msg)
 
@@ -163,8 +187,8 @@ def _preflight_checks(config):
         print()
         print("  Hints:")
         print("    • Start the chatbot: docker compose up -d")
-        print("    • Start the MCP server: ./run_server.sh")
-        print("    • Set MCP URL: export MCP_SERVER_URL=http://host.docker.internal:8021/mcp")
+        print("    • Check MCP server is running and backend can reach it")
+        print("    • Check backend logs: docker compose logs -f backend")
         print("=" * 72)
         raise SystemExit(1)
 
