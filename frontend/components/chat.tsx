@@ -200,6 +200,9 @@ export function Chat({
       },
     }),
     onData: (dataPart) => {
+      // Guard: SDK may occasionally call onData with undefined or non-object (e.g. parse edge cases)
+      if (dataPart == null || typeof dataPart !== "object") return;
+
       // Handle data-thinking events - accumulate them and add to message parts
       // Note: useChat's onData type doesn't include data-thinking, so we use a type assertion
       // with runtime validation for safety
@@ -246,30 +249,33 @@ export function Chat({
         "data-finish"?: { messageMetadata?: { usage?: unknown } };
       };
       if (partWithFinish.type === "data-usage" && "data" in dataPart) {
-        const payload = (dataPart as { data: AppUsage }).data;
-        latestUsageRef.current = payload;
-        setUsage(payload);
-      } else {
-        const finishPayload =
-          partWithFinish["data-finish"] ??
-          (partWithFinish.type === "finish" ? partWithFinish : null);
-        const meta = finishPayload?.messageMetadata;
-        if (
-          meta &&
-          typeof meta === "object" &&
-          "usage" in meta &&
-          meta.usage != null
-        ) {
-          const raw = meta.usage as
-            | AppUsage
-            | { type?: string; data?: AppUsage };
-          const usagePayload =
-            typeof raw === "object" && "data" in raw && raw.data != null
-              ? raw.data
-              : raw;
-          const payload = usagePayload as AppUsage;
-          latestUsageRef.current = payload;
-          setUsage(payload);
+        const rawData = (dataPart as { data?: AppUsage }).data;
+        if (rawData != null && typeof rawData === "object") {
+          latestUsageRef.current = rawData;
+          setUsage(rawData);
+        }
+        return;
+      }
+      const finishPayload =
+        partWithFinish["data-finish"] ??
+        (partWithFinish.type === "finish" ? partWithFinish : null);
+      const meta = finishPayload?.messageMetadata;
+      if (
+        meta &&
+        typeof meta === "object" &&
+        "usage" in meta &&
+        meta.usage != null
+      ) {
+        const raw = meta.usage as
+          | AppUsage
+          | { type?: string; data?: AppUsage };
+        const usagePayload =
+          typeof raw === "object" && "data" in raw && raw.data != null
+            ? raw.data
+            : raw;
+        if (usagePayload != null && typeof usagePayload === "object") {
+          latestUsageRef.current = usagePayload as AppUsage;
+          setUsage(usagePayload as AppUsage);
         }
       }
     },

@@ -99,6 +99,8 @@ function ResponseParagraph({ children, ...props }: ComponentProps<"p">) {
     return <p {...props}>{children}</p>;
   }
   const labelKey = label.toLowerCase() as Lowercase<DataLabel>;
+  // Use div for inner wrapper to avoid invalid HTML: <p> must not contain block elements.
+  // Markdown/rehype can pass block children here, causing React hydration error #418.
   return (
     <div
       className={cn(
@@ -109,9 +111,9 @@ function ResponseParagraph({ children, ...props }: ComponentProps<"p">) {
       )}
       data-result-label={labelKey}
     >
-      <p className="mb-0 mt-0" {...props}>
+      <div className="mb-0 mt-0" {...props}>
         {children}
-      </p>
+      </div>
     </div>
   );
 }
