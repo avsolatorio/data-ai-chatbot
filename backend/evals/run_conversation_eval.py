@@ -1286,7 +1286,8 @@ def _save_conversations_exhaustive(
     Saves: routing intent/reasoning, planner output, writer output,
     structured tool calls + results, model used, system prompt hash.
     """
-    conversations_file = RESULTS_DIR / f"conversations_{timestamp}.json"
+    persona_suffix = persona_keys[0] if len(persona_keys) == 1 else "all"
+    conversations_file = RESULTS_DIR / f"conversations_{timestamp}_{persona_suffix}.json"
     hyper = config.get("hyperparameters", {})
 
     conversations_data = []
