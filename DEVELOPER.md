@@ -2,6 +2,8 @@
 
 This guide contains all the technical information you need to set up, run, and contribute to the Data Chatbot project.
 
+**Full documentation** (user guide, architecture, infrastructure, deployment, operations, security) is available at the [documentation site](https://avsolatorio.github.io/vercel-ai-chatbot/). The docs are built from the `docs/` folder with MkDocs and published via GitHub Actions.
+
 ## Table of Contents
 
 - [Architecture](#architecture)
@@ -356,6 +358,7 @@ uv run pytest tests/
 
 ## Additional Resources
 
+- [Data360 Chat Documentation](https://avsolatorio.github.io/vercel-ai-chatbot/) — Architecture, deployment, operations, user guide
 - [Next.js Documentation](https://nextjs.org/docs)
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [Vercel AI SDK](https://ai-sdk.dev/)

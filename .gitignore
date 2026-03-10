@@ -45,6 +45,13 @@ yarn-error.log*
 .vercel
 .env*.local
 
+# MkDocs
+site/
+.venv-docs/
+
+# Word temp files
+~$*
+
 # Playwright
 /test-results/
 /playwright-report/

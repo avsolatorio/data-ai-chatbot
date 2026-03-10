@@ -7,7 +7,8 @@
   <p>
     <a href="#what-can-it-do">Features</a> ·
     <a href="#getting-started">Getting Started</a> ·
-    <a href="DEVELOPER.md">Developer Guide</a>
+    <a href="DEVELOPER.md">Developer Guide</a> ·
+    <a href="https://avsolatorio.github.io/vercel-ai-chatbot/">Documentation</a>
   </p>
   <img alt="AI Chatbot" src="docs/img/chat-preview.png" width="600">
 </div>
@@ -108,6 +109,7 @@ The chatbot supports multiple AI models, including:
 
 ## Need Help?
 
+- **Documentation** — Full docs (user guide, architecture, deployment): [docs site](https://avsolatorio.github.io/vercel-ai-chatbot/)
 - **Technical questions?** See [DEVELOPER.md](DEVELOPER.md)
 - **Found a bug?** Open an issue on GitHub
 - **Have a feature request?** We'd love to hear from you!
