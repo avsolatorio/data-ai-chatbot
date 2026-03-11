@@ -19,11 +19,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       />
       <DataStreamProvider>
         <PcnProviderClient>
-          <HomeConfigProvider>
-            <Suspense fallback={<div className="flex h-dvh" />}>
+          <Suspense fallback={<div className="flex h-dvh" />}>
+            <HomeConfigProvider>
               <SidebarWrapper>{children}</SidebarWrapper>
-            </Suspense>
-          </HomeConfigProvider>
+            </HomeConfigProvider>
+          </Suspense>
         </PcnProviderClient>
       </DataStreamProvider>
     </>
