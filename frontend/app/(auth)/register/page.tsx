@@ -6,6 +6,7 @@ import { useActionState, useEffect, useState } from "react";
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
 import { toast } from "@/components/toast";
+import { authProvider } from "@/lib/auth/config";
 import { type RegisterActionState, register } from "../actions";
 
 export default function Page() {
@@ -21,7 +22,14 @@ export default function Page() {
     }
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: router is a stable ref
+  // Register is only for credentials-based auth (user mode). MSAL and guest modes don't support registration.
+  const isRegistrationDisabled = authProvider === "msal" || authProvider === "guest";
+  useEffect(() => {
+    if (isRegistrationDisabled) {
+      router.replace("/");
+    }
+  }, [isRegistrationDisabled, router]);
+
   useEffect(() => {
     if (state.status === "user_exists") {
       toast({ type: "error", description: "Account already exists!" });
@@ -49,6 +57,10 @@ export default function Page() {
     setEmail(formData.get("email") as string);
     formAction(formData);
   };
+
+  if (isRegistrationDisabled) {
+    return null;
+  }
 
   return (
     <div className="flex h-dvh w-screen items-start justify-center bg-background pt-12 md:items-center md:pt-0">

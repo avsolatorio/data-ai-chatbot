@@ -187,10 +187,18 @@ export function proxy(request: NextRequest) {
     return nextWithCsp(request);
   }
 
-  // Allow login/register pages to be accessed without authentication
-  // This prevents redirect loops when users try to login after logout
+  // Allow login page without authentication (prevents redirect loops when users try to login after logout)
   // IMPORTANT: Return early to prevent any user lookup or guest creation
-  if ([`${BASE_PATH}/login`, `${BASE_PATH}/register`].includes(pathname)) {
+  if (pathname === `${BASE_PATH}/login`) {
+    return nextWithCsp(request);
+  }
+
+  // Register is only for credentials-based auth (user mode). Redirect to home when msal or guest.
+  if (pathname === `${BASE_PATH}/register`) {
+    if (authProvider === "msal" || authProvider === "guest") {
+      const baseOrigin = getRequestOrigin(request);
+      return NextResponse.redirect(new URL(`${BASE_PATH}/`, baseOrigin));
+    }
     return nextWithCsp(request);
   }
 
