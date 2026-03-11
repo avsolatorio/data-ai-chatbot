@@ -11,16 +11,23 @@ const nextConfig: NextConfig = {
   async headers() {
     // Note: Full CSP with script-src (nonce-based) is set by proxy.ts for document routes.
     // Static assets get this minimal CSP; proxy adds script-src, style-src, etc. for pages.
+    // CSP disabled by default. Set CSP_ENABLED=true or 1 to enable (proxy + config).
+    const cspEnabled =
+      process.env.CSP_ENABLED === "true" || process.env.CSP_ENABLED === "1";
     const securityHeaders = [
       { key: "X-Frame-Options", value: "DENY" },
-      {
-        key: "Content-Security-Policy",
-        value: [
-          "frame-ancestors 'none'",
-          "form-action 'self'",
-          "base-uri 'self'",
-        ].join("; "),
-      },
+      ...(cspEnabled
+        ? [
+            {
+              key: "Content-Security-Policy",
+              value: [
+                "frame-ancestors 'none'",
+                "form-action 'self'",
+                "base-uri 'self'",
+              ].join("; "),
+            },
+          ]
+        : []),
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
     ];

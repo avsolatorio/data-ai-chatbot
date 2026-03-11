@@ -44,11 +44,19 @@ function buildCspWithNonce(nonce: string): string {
  * Create NextResponse.next() with CSP headers and nonce for XSS protection.
  * The nonce is passed in request headers so Next.js can apply it to inline scripts.
  */
+const CSP_ENABLED =
+  process.env.CSP_ENABLED === "true" || process.env.CSP_ENABLED === "1";
+
 const CSP_REPORT_ENABLED =
+  CSP_ENABLED &&
   process.env.CSP_REPORT_ENABLED !== "false" &&
   process.env.CSP_REPORT_ENABLED !== "0";
 
 function nextWithCsp(request: NextRequest): NextResponse {
+  if (!CSP_ENABLED) {
+    return NextResponse.next();
+  }
+
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const csp = buildCspWithNonce(nonce)
     .replace(/\s{2,}/g, " ")
