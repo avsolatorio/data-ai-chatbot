@@ -13,19 +13,21 @@ import { getBasePath } from "@/lib/config";
 import { ChatSDKError } from "@/lib/errors";
 import { serverApiFetch } from "@/lib/server-api-client";
 
-// Note: This page is automatically dynamic because it uses cookies() and serverApiFetch()
-// No need to export dynamic = "force-dynamic" as it conflicts with cacheComponents config
+// Note: With cacheComponents, params are runtime data. Resolve params inside Suspense
+// so uncached data access (params, cookies, serverApiFetch) is properly deferred.
+// See: https://nextjs.org/docs/app/api-reference/file-conventions/dynamic-routes#with-cache-components
 
 export default function Page(props: { params: Promise<{ id: string }> }) {
   return (
     <Suspense fallback={<div className="flex h-dvh" />}>
-      <ChatPage params={props.params} />
+      {props.params.then(({ id }) => (
+        <ChatPage id={id} />
+      ))}
     </Suspense>
   );
 }
 
-async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+async function ChatPage({ id }: { id: string }) {
 
   // MSAL: token is in session storage only; server has no cookie. Fetch chat on the client
   // so the request includes Authorization header from session storage.
