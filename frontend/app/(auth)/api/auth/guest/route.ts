@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { getBasePath } from "@/lib/config";
 
 /**
  * Derive the client-facing origin from the request.
@@ -68,9 +69,11 @@ function isInternalOrigin(origin: string): boolean {
 function safeRedirectTarget(
   redirectUrl: string,
   baseOrigin: string,
+  basePath: string,
 ): string {
   if (!redirectUrl || redirectUrl.startsWith("/")) {
-    return new URL(redirectUrl || "/", baseOrigin).toString();
+    const path = basePath + (redirectUrl || "/");
+    return new URL(path, baseOrigin).toString();
   }
   try {
     const parsed = new URL(redirectUrl);
@@ -86,7 +89,7 @@ function safeRedirectTarget(
     }
     return redirectUrl;
   } catch {
-    return new URL("/", baseOrigin).toString();
+    return new URL(basePath + "/", baseOrigin).toString();
   }
 }
 
@@ -94,7 +97,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const redirectUrlParam = searchParams.get("redirectUrl") || "/";
   const baseOrigin = getRequestOrigin(request);
-  const redirectTarget = safeRedirectTarget(redirectUrlParam, baseOrigin);
+  const basePath = getBasePath();
+  const redirectTarget = safeRedirectTarget(redirectUrlParam, baseOrigin, basePath);
 
   // Get cookies to forward to FastAPI
   // FastAPI will validate them and create a new guest user if they're invalid/stale
@@ -127,7 +131,7 @@ export async function GET(request: Request) {
     const headers: HeadersInit = {
       "Content-Type": "application/json",
       Origin: baseOrigin,
-      Referer: `${baseOrigin}/`,
+      Referer: `${baseOrigin}${basePath}/`,
       ...(cookieHeader && { Cookie: cookieHeader }),
       ...(token && { Authorization: `Bearer ${token}` }),
     };
@@ -148,7 +152,7 @@ export async function GET(request: Request) {
 
       // Handle rate limiting (429) - redirect to login page with error message
       if (response.status === 429) {
-        const loginUrl = new URL("/login", baseOrigin);
+        const loginUrl = new URL(`${basePath}/login`, baseOrigin);
         loginUrl.searchParams.set("error", "rate_limit");
         loginUrl.searchParams.set(
           "message",
@@ -159,7 +163,7 @@ export async function GET(request: Request) {
 
       // For other errors, redirect to login page instead of home to break the redirect loop
       // Home page would trigger proxy middleware again, causing infinite loop
-      const loginUrl = new URL("/login", baseOrigin);
+      const loginUrl = new URL(`${basePath}/login`, baseOrigin);
       loginUrl.searchParams.set("error", "guest_creation_failed");
       return NextResponse.redirect(loginUrl);
     }
@@ -197,7 +201,8 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error creating guest user:", error);
     // Redirect to login page instead of home to break redirect loop
-    const loginUrl = new URL("/login", baseOrigin);
+    const basePath = getBasePath();
+    const loginUrl = new URL(`${basePath}/login`, baseOrigin);
     loginUrl.searchParams.set("error", "guest_creation_error");
     return NextResponse.redirect(loginUrl);
   }

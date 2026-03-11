@@ -11,6 +11,7 @@ import type {
 } from "@azure/msal-browser";
 import { LogLevel } from "@azure/msal-browser";
 import { sessionStorageKeys } from "@/lib/constants";
+import { getBasePath } from "@/lib/config";
 
 const isDev =
   typeof process !== "undefined" && process.env.NODE_ENV === "development";
@@ -26,7 +27,9 @@ export function devLog(level: "info" | "warn", ...args: unknown[]): void {
 }
 
 /** Path to validate token and clear guest cookies; client stores token in session storage only. */
-const MSAL_SET_TOKEN_PATH = "/api/auth/msal/set-token";
+function getMsalSetTokenPath(): string {
+  return `${getBasePath()}/api/auth/msal/set-token`;
+}
 
 export const loginRequest = {
   scopes: ["User.Read", "openid", "profile"],
@@ -36,8 +39,12 @@ const authority =
   process.env.NEXT_PUBLIC_MSAL_AUTHORITY?.trim() || "https://login.microsoftonline.com/common";
 const clientId = process.env.NEXT_PUBLIC_MSAL_CLIENT_ID?.trim() || "";
 const redirectUriRaw = process.env.NEXT_PUBLIC_MSAL_REDIRECT_URI?.trim() || "";
+/** When unset, default to login page so Azure redirects there after auth. Must match Azure AD app registration. */
 const redirectUri =
-  redirectUriRaw || (typeof window !== "undefined" ? window.location.origin : "");
+  redirectUriRaw ||
+  (typeof window !== "undefined"
+    ? `${window.location.origin}${getBasePath()}/login`
+    : "");
 const userImpersonationScope = process.env.NEXT_PUBLIC_MSAL_USER_IMPERSONATION_SCOPE?.trim();
 
 export const msalConfig: Configuration = {
@@ -93,7 +100,7 @@ export async function fetchUserImpersonationToken(
     devLog("info", "[MSAL] acquireTokenSilent success; token length:", accessToken.length, "expiresOn:", response?.expiresOn ?? null);
 
     if (typeof window !== "undefined") {
-      const res = await fetch(MSAL_SET_TOKEN_PATH, {
+      const res = await fetch(getMsalSetTokenPath(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: accessToken }),

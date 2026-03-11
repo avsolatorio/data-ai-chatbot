@@ -24,6 +24,7 @@ import { useChatVisibility } from "@/hooks/use-chat-visibility";
 import { useDataThinkingStream } from "@/hooks/use-data-thinking-stream";
 import { useHomeConfig } from "@/hooks/use-home-config";
 import { getApiUrl } from "@/lib/api-client";
+import { getBasePath } from "@/lib/config";
 import type { DBMessage, Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
 import type { Attachment, ChatMessage } from "@/lib/types";
@@ -334,7 +335,7 @@ export function Chat({
         refetchLatestTimeoutRef.current = null;
         try {
           const response = await fetchWithErrorHandlers(
-            getApiUrl(`/api/chat/${id}/messages/latest?limit=1`),
+            `/api/chat/${id}/messages/latest?limit=1`,
           );
           if (!response.ok) {
             isWaitingForSavedPartsRef.current = false;
@@ -396,7 +397,7 @@ export function Chat({
           });
           // Refetch chat so lastContext (latest + byMessageId) is up to date; use it as primary usage source
           try {
-            const chatRes = await fetchWithErrorHandlers(getApiUrl(`/api/chat/${id}`));
+            const chatRes = await fetchWithErrorHandlers(`/api/chat/${id}`);
             if (chatRes.ok) {
               const chatData = (await chatRes.json()) as {
                 chat?: { lastContext?: LastContext | null };
@@ -501,7 +502,7 @@ export function Chat({
       });
 
       setHasAppendedQuery(true);
-      window.history.replaceState({}, "", `/chat/${id}`);
+      window.history.replaceState({}, "", `${getBasePath()}/chat/${id}`);
     }
   }, [query, sendMessage, hasAppendedQuery, id]);
 
@@ -729,7 +730,7 @@ export function Chat({
                   "https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card",
                   "_blank",
                 );
-                window.location.href = "/";
+                window.location.href = `${getBasePath()}/`;
               }}
             >
               Activate

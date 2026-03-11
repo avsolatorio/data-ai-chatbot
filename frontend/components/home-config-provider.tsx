@@ -1,6 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { getBasePath } from "@/lib/config";
 
 export type HomeConfig = {
   greeting: {
@@ -96,14 +98,14 @@ export function useHomeConfig(): HomeConfig {
 
 export function HomeConfigProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<HomeConfig>(DEFAULT_CONFIG);
-  const fetchStartedRef = useRef(false);
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (fetchStartedRef.current) return;
-    fetchStartedRef.current = true;
+    if (pathname !== "/") return;
+
     let cancelled = false;
 
-    fetch("/json/home-config.json")
+    fetch(`${getBasePath()}/json/home-config.json`)
       .then((res) => {
         if (!res.ok) {
           throw new Error("Home config not found");
@@ -126,7 +128,7 @@ export function HomeConfigProvider({ children }: { children: React.ReactNode }) 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pathname]);
 
   return (
     <HomeConfigContext.Provider value={config}>

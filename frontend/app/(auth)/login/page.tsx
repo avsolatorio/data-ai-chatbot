@@ -11,6 +11,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { toast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
 import { authProvider } from "@/lib/auth/config";
+import { getBasePath } from "@/lib/config";
 import { loginRequest } from "@/lib/auth/msal/msal-config";
 import { type LoginActionState, login } from "../actions";
 
@@ -64,7 +65,9 @@ export default function Page() {
     setIsCreatingGuest(true);
 
     try {
-      window.location.href = `/api/auth/guest?redirectUrl=${encodeURIComponent(`${window.location.origin}/`)}`;
+      const basePath = getBasePath();
+      const redirectUrl = `${window.location.origin}${basePath}/`;
+      window.location.href = `${basePath}/api/auth/guest?redirectUrl=${encodeURIComponent(redirectUrl)}`;
     } catch (error) {
       console.error("Error creating guest session:", error);
       toast({

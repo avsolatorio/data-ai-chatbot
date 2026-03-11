@@ -10,6 +10,7 @@ import { MsalInstanceContext } from "@/components/auth/msal/msal-provider-wrappe
 import type { User } from "@/lib/auth-service-client";
 import { logoutClient } from "@/lib/auth-service-client";
 import { getApiUrl } from "@/lib/api-client";
+import { getBasePath } from "@/lib/config";
 import { authProvider } from "@/lib/auth/config";
 import {
   DropdownMenu,
@@ -120,7 +121,7 @@ export function SidebarUserNav({
                       });
                       if (!res.ok) throw new Error("Reset failed");
                       mutate(unstable_serialize(getChatHistoryPaginationKey));
-                      window.location.href = "/api/auth/guest";
+                      window.location.href = getApiUrl("/api/auth/guest");
                     } catch {
                       toast({
                         type: "error",
@@ -158,10 +159,11 @@ export function SidebarUserNav({
                       mutate(unstable_serialize(getChatHistoryPaginationKey));
                       // MSAL logout clears its cache and redirects to Azure logout, then to postLogoutRedirectUri.
                       // That ensures the next app load shows the Microsoft sign-in page instead of cached state.
+                      const basePath = getBasePath();
                       const postLogoutRedirectUri =
                         typeof window !== "undefined"
-                          ? `${window.location.origin}/login`
-                          : "/login";
+                          ? `${window.location.origin}${basePath}/login`
+                          : `${basePath}/login`;
                       await msalInstance.logoutRedirect({
                         postLogoutRedirectUri,
                       });
@@ -194,11 +196,12 @@ export function SidebarUserNav({
                         }
                       }
 
+                      const loginPath = `${getBasePath()}/login`;
                       if (isLoggedOut) {
-                        window.location.replace("/login");
+                        window.location.replace(loginPath);
                       } else {
                         console.warn("Logout verification failed, but proceeding with navigation");
-                        window.location.replace("/login");
+                        window.location.replace(loginPath);
                       }
                     } catch {
                       toast({

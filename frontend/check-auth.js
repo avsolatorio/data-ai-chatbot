@@ -1,9 +1,12 @@
 // Quick script to check auth status
 // Run in browser console
+// If app uses basePath (e.g. /mcp-chat), change BASE_PATH below before pasting
+const BASE_PATH = ""; // e.g. "/mcp-chat" for subpath deployment
 
 async function checkAuth() {
+  const basePath = BASE_PATH;
   try {
-    const response = await fetch('/api/auth/me', {
+    const response = await fetch(`${basePath}/api/auth/me`, {
       credentials: 'include'
     });
 

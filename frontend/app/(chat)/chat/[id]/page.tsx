@@ -9,6 +9,7 @@ import {
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
 import { normalizeMessagesFromApi } from "@/lib/chat-messages";
 import { authProvider } from "@/lib/auth/config";
+import { getBasePath } from "@/lib/config";
 import { ChatSDKError } from "@/lib/errors";
 import { serverApiFetch } from "@/lib/server-api-client";
 
@@ -41,7 +42,7 @@ async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
       // Handle authentication errors - redirect to guest creation
       if (response.status === 401) {
         // Not authenticated - redirect to guest creation
-        redirect("/api/auth/guest");
+        redirect(`${getBasePath()}/api/auth/guest`);
       }
 
       if (response.status === 404) {

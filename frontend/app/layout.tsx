@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { Figtree, Geist, Geist_Mono } from "next/font/google";
-import { headers } from "next/headers";
-import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { DataHeaderScript } from "@/components/data-header-script";
 import { DataStreamProvider } from "@/components/data-stream-provider";
+import { ThemeColorSync } from "@/components/theme-color-sync";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TokenLensProvider } from "@/components/tokenlens-provider";
 
@@ -51,41 +50,6 @@ const figtree = Figtree({
   fallback: ["system-ui", "arial"],
 });
 
-const LIGHT_THEME_COLOR = "hsl(0 0% 100%)";
-const DARK_THEME_COLOR = "hsl(240deg 10% 3.92%)";
-const THEME_COLOR_SCRIPT = `\
-(function() {
-  var html = document.documentElement;
-  var meta = document.querySelector('meta[name="theme-color"]');
-  if (!meta) {
-    meta = document.createElement('meta');
-    meta.setAttribute('name', 'theme-color');
-    document.head.appendChild(meta);
-  }
-  function updateThemeColor() {
-    var isDark = html.classList.contains('dark');
-    meta.setAttribute('content', isDark ? '${DARK_THEME_COLOR}' : '${LIGHT_THEME_COLOR}');
-  }
-  var observer = new MutationObserver(updateThemeColor);
-  observer.observe(html, { attributes: true, attributeFilter: ['class'] });
-  updateThemeColor();
-})();`;
-
-async function ThemeColorScript() {
-  const headerList = await headers();
-  const nonce = headerList.get("x-nonce");
-  return (
-    <script
-      nonce={nonce ?? undefined}
-      suppressHydrationWarning
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: "Required for theme-color; nonce applied for CSP"
-      dangerouslySetInnerHTML={{
-        __html: THEME_COLOR_SCRIPT,
-      }}
-    />
-  );
-}
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -101,11 +65,7 @@ export default async function RootLayout({
       lang="en"
       suppressHydrationWarning
     >
-      <head>
-        <Suspense fallback={null}>
-          <ThemeColorScript />
-        </Suspense>
-      </head>
+      <head />
       <body
         className={cn(
           "antialiased flex h-full flex-col overflow-hidden",
@@ -126,6 +86,7 @@ export default async function RootLayout({
               disableTransitionOnChange
               enableSystem
             >
+              <ThemeColorSync />
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <Toaster position="top-center" />
                 <DataStreamProvider>
