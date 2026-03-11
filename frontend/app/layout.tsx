@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Figtree, Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
+import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { DataHeaderScript } from "@/components/data-header-script";
@@ -69,7 +71,22 @@ const THEME_COLOR_SCRIPT = `\
   updateThemeColor();
 })();`;
 
-export default function RootLayout({
+async function ThemeColorScript() {
+  const headerList = await headers();
+  const nonce = headerList.get("x-nonce");
+  return (
+    <script
+      nonce={nonce ?? undefined}
+      suppressHydrationWarning
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: "Required for theme-color; nonce applied for CSP"
+      dangerouslySetInnerHTML={{
+        __html: THEME_COLOR_SCRIPT,
+      }}
+    />
+  );
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -85,12 +102,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: "Required"
-          dangerouslySetInnerHTML={{
-            __html: THEME_COLOR_SCRIPT,
-          }}
-        />
+        <Suspense fallback={null}>
+          <ThemeColorScript />
+        </Suspense>
       </head>
       <body
         className={cn(
