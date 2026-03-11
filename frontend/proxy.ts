@@ -72,18 +72,12 @@ function nextWithCsp(request: NextRequest): NextResponse {
 }
 
 /**
- * Derive the client-facing origin so redirects and redirectUrl param use the host the user sees,
+ * Derive the client-facing origin so redirects use the host the user sees,
  * not the internal host (e.g. in Azure/Docker, request.url can be https://container-id:8080).
+ * Prefer Referer (browser page URL, closest to window.origin) so redirects stay on the
+ * user-facing domain when behind a proxy that forwards to an internal host.
  */
 function getRequestOrigin(request: NextRequest): string {
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  if (forwardedHost && forwardedProto) {
-    const host = forwardedHost.split(",")[0]?.trim() ?? "";
-    const proto = forwardedProto.split(",")[0]?.trim() ?? "https";
-    if (host) return `${proto}://${host}`;
-  }
-
   const referer = request.headers.get("referer");
   if (referer) {
     try {
@@ -97,6 +91,14 @@ function getRequestOrigin(request: NextRequest): string {
     } catch {
       // Ignore invalid Referer
     }
+  }
+
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedHost && forwardedProto) {
+    const host = forwardedHost.split(",")[0]?.trim() ?? "";
+    const proto = forwardedProto.split(",")[0]?.trim() ?? "https";
+    if (host) return `${proto}://${host}`;
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();

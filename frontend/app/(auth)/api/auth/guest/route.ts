@@ -5,20 +5,12 @@ import { getBasePath } from "@/lib/config";
 /**
  * Derive the client-facing origin from the request.
  * When behind a reverse proxy, request.url may be the internal host. We use, in order:
- * 1. X-Forwarded-Host + X-Forwarded-Proto (when the proxy sets them)
- * 2. Referer header (the browser sends the page URL, so we get the client's origin)
+ * 1. Referer (browser page URL, closest to window.origin—keeps redirects on user-facing domain)
+ * 2. X-Forwarded-Host + X-Forwarded-Proto (when the proxy sets them)
  * 3. NEXT_PUBLIC_APP_URL (configured public URL)
  * 4. Request host + protocol (last resort)
  */
 function getRequestOrigin(request: Request): string {
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  if (forwardedHost && forwardedProto) {
-    const host = forwardedHost.split(",")[0]?.trim() ?? "";
-    const proto = forwardedProto.split(",")[0]?.trim() ?? "https";
-    if (host) return `${proto}://${host}`;
-  }
-
   const referer = request.headers.get("referer");
   if (referer) {
     try {
@@ -29,6 +21,14 @@ function getRequestOrigin(request: Request): string {
     } catch {
       // Ignore invalid Referer
     }
+  }
+
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedHost && forwardedProto) {
+    const host = forwardedHost.split(",")[0]?.trim() ?? "";
+    const proto = forwardedProto.split(",")[0]?.trim() ?? "https";
+    if (host) return `${proto}://${host}`;
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();

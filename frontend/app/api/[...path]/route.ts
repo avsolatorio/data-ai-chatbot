@@ -16,17 +16,10 @@ const API_URL =
 
 /**
  * Derive the client-facing origin from the request so redirects stay on the host the user used.
- * Uses, in order: X-Forwarded-* headers, Referer (browser page URL), NEXT_PUBLIC_APP_URL, then request host.
+ * Prefer Referer (browser page URL, closest to window.origin) so redirects stay on the user-facing domain.
+ * Uses, in order: Referer, X-Forwarded-* headers, NEXT_PUBLIC_APP_URL, then request host.
  */
 function getRequestOrigin(request: NextRequest): string {
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  if (forwardedHost && forwardedProto) {
-    const host = forwardedHost.split(",")[0]?.trim() ?? "";
-    const proto = forwardedProto.split(",")[0]?.trim() ?? "https";
-    if (host) return `${proto}://${host}`;
-  }
-
   const referer = request.headers.get("referer");
   if (referer) {
     try {
@@ -37,6 +30,14 @@ function getRequestOrigin(request: NextRequest): string {
     } catch {
       // Ignore invalid Referer
     }
+  }
+
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedHost && forwardedProto) {
+    const host = forwardedHost.split(",")[0]?.trim() ?? "";
+    const proto = forwardedProto.split(",")[0]?.trim() ?? "https";
+    if (host) return `${proto}://${host}`;
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
