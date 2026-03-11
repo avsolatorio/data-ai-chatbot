@@ -1,7 +1,11 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
+/** When set (e.g. "/app"), the app is served under that path. Must match NEXT_PUBLIC_BASE_PATH for client fetches. Trailing slash is stripped (Next.js rejects it). */
+const basePath = (process.env.NEXT_PUBLIC_BASE_PATH?.trim() ?? "").replace(/\/+$/, "");
+
 const nextConfig: NextConfig = {
+  basePath: basePath || undefined,
   output: "standalone",
   cacheComponents: true,
   async headers() {

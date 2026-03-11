@@ -11,6 +11,7 @@
  */
 
 import { getAuthTokenFromDocument } from "@/lib/auth/cookies";
+import { getBasePath } from "@/lib/config";
 
 /**
  * Check if endpoint should use Next.js proxy (all endpoints now use proxy)
@@ -24,32 +25,41 @@ export function shouldUseNextJSProxy(_endpoint: string): boolean {
 }
 
 /**
- * Get the full URL for an API request
- *
- * All requests now use relative URLs to go through Next.js proxy
+ * Get the full URL for an API request (path with basePath when set).
+ * Idempotent: if the path already includes basePath, it is not added again.
+ * Use for: direct fetch(), window.location, or when passing to consumers that don't call getApiUrl.
+ * For apiFetch/fetchWithErrorHandlers: pass raw paths (e.g. "/api/models"); they call getApiUrl internally.
  */
 export function getApiUrl(endpoint: string): string {
+  const basePath = getBasePath();
+
   // If already absolute URL, extract the path and use relative
   if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
     try {
       const url = new URL(endpoint);
-      return url.pathname + url.search;
+      const path = url.pathname + url.search;
+      if (!basePath || path.startsWith(basePath)) return path;
+      return `${basePath}${path}`;
     } catch {
       // If URL parsing fails, fall through to relative handling
     }
   }
 
-  // All requests use relative URLs to go through Next.js proxy
-  // The proxy at /api/[...path] will forward to the backend
+  // Normalize relative path
   const normalizedEndpoint = endpoint.startsWith("/")
     ? endpoint
     : `/${endpoint}`;
 
+  // Idempotent: if path already starts with basePath, don't add again
+  if (basePath && !normalizedEndpoint.startsWith(basePath)) {
+    return `${basePath}${normalizedEndpoint}`;
+  }
   return normalizedEndpoint;
 }
 
 /**
- * Enhanced fetch that routes to FastAPI or Next.js proxies
+ * Enhanced fetch that routes to FastAPI or Next.js proxies.
+ * Pass raw paths (e.g. "/api/models", "/api/chat/123"); getApiUrl is applied internally.
  *
  * - Handles authentication automatically via cookies
  * - Routes to FastAPI by default

@@ -53,12 +53,20 @@ function getShowReasoningPartType(): boolean {
   return false;
 }
 
+/** When set (e.g. "/app"), the app is served under that path. Must match next.config basePath. Trailing slash is stripped. */
+export function getBasePath(): string {
+  return (process.env.NEXT_PUBLIC_BASE_PATH?.trim() ?? "").replace(/\/+$/, "");
+}
+
 export const appConfig = {
   /**
    * When set (e.g. "alpha", "beta"), a status badge is shown so users know the app is not stable.
    * Set via NEXT_PUBLIC_APPLICATION_STATUS.
    */
   applicationStatus: getApplicationStatus(),
+
+  /** Base path for subpath deployment (e.g. "/app"). Empty when served at root. */
+  basePath: getBasePath(),
 
   /**
    * When set, a "Give feedback" entry point and pop-up are shown.

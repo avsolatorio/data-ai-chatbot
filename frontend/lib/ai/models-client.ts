@@ -3,7 +3,6 @@
  * Uses static list as fallback when the API is unavailable.
  */
 
-import { getApiUrl } from "@/lib/api-client";
 import { apiFetch } from "@/lib/api-client";
 import type { ChatModel } from "./models";
 import { chatModels as fallbackModels } from "./models";
@@ -29,8 +28,7 @@ export async function fetchAvailableChatModels(): Promise<ChatModel[]> {
   }
 
   try {
-    const url = getApiUrl("/api/models");
-    const response = await apiFetch(url, { method: "GET" });
+    const response = await apiFetch("/api/models", { method: "GET" });
 
     if (!response.ok) {
       throw new Error(`Models API returned ${response.status}`);

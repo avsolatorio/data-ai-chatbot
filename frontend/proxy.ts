@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { authProvider } from "@/lib/auth/config";
 import { hasAuthCookies } from "@/lib/auth/cookies";
+import { getBasePath } from "@/lib/config";
+
+const BASE_PATH = getBasePath();
 
 /** Vega theme URL for connect-src (charts fetch JSON from worldbank.github.io). */
 const VEGA_THEME_ORIGIN = "https://worldbank.github.io";
@@ -42,11 +45,14 @@ function buildCspWithNonce(nonce: string): string {
  * The nonce is passed in request headers so Next.js can apply it to inline scripts.
  */
 const CSP_REPORT_ENABLED =
-  process.env.CSP_REPORT_ENABLED !== "false" && process.env.CSP_REPORT_ENABLED !== "0";
+  process.env.CSP_REPORT_ENABLED !== "false" &&
+  process.env.CSP_REPORT_ENABLED !== "0";
 
 function nextWithCsp(request: NextRequest): NextResponse {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-  const csp = buildCspWithNonce(nonce).replace(/\s{2,}/g, " ").trim();
+  const csp = buildCspWithNonce(nonce)
+    .replace(/\s{2,}/g, " ")
+    .trim();
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
@@ -58,7 +64,7 @@ function nextWithCsp(request: NextRequest): NextResponse {
   if (CSP_REPORT_ENABLED) {
     response.headers.set(
       "Content-Security-Policy-Report-Only",
-      `${csp}; report-uri /api/csp-report`,
+      `${csp}; report-uri ${BASE_PATH}/api/csp-report`,
     );
   }
 
@@ -127,15 +133,16 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (isMaintenanceMode() && !isMaintenanceBypass(request)) {
+    const maintenancePath = `${BASE_PATH}/maintenance`;
     if (
-      pathname !== "/maintenance" &&
-      !pathname.startsWith("/_next") &&
-      !pathname.startsWith("/api") &&
+      pathname !== maintenancePath &&
+      !pathname.startsWith(`${BASE_PATH}/_next`) &&
+      !pathname.startsWith(`${BASE_PATH}/api`) &&
       !pathname.includes(".")
     ) {
-      return NextResponse.redirect(new URL("/maintenance", request.url));
+      return NextResponse.redirect(new URL(maintenancePath, request.url));
     }
-    if (pathname === "/maintenance") {
+    if (pathname === maintenancePath) {
       return nextWithCsp(request);
     }
   }
@@ -144,11 +151,19 @@ export function proxy(request: NextRequest) {
    * Playwright starts the dev server and requires a 200 status to
    * begin the tests, so this ensures that the tests can start
    */
-  if (pathname.startsWith("/ping")) {
+  if (pathname.startsWith(`${BASE_PATH}/ping`)) {
     return new Response("pong", { status: 200 });
   }
 
-  if (pathname.startsWith("/api/auth")) {
+  if (pathname.startsWith(`${BASE_PATH}/api/auth`)) {
+    return nextWithCsp(request);
+  }
+
+  // Static public assets: bypass auth so home-config.json, images, etc. load without redirect
+  if (
+    pathname.startsWith(`${BASE_PATH}/json/`) ||
+    pathname.startsWith(`${BASE_PATH}/images/`)
+  ) {
     return nextWithCsp(request);
   }
 
@@ -165,7 +180,7 @@ export function proxy(request: NextRequest) {
   // Allow login/register pages to be accessed without authentication
   // This prevents redirect loops when users try to login after logout
   // IMPORTANT: Return early to prevent any user lookup or guest creation
-  if (["/login", "/register"].includes(pathname)) {
+  if ([`${BASE_PATH}/login`, `${BASE_PATH}/register`].includes(pathname)) {
     return nextWithCsp(request);
   }
 
@@ -176,9 +191,9 @@ export function proxy(request: NextRequest) {
   // When msal provider: do not redirect; client-side MSAL handles unauthenticated users.
   if (authProvider === "guest" && !authenticated) {
     const baseOrigin = getRequestOrigin(request);
-    const redirectTarget = `${baseOrigin}/`;
+    const redirectTarget = `${baseOrigin}${BASE_PATH}/`;
     const guestUrl = new URL(
-      `/api/auth/guest?redirectUrl=${encodeURIComponent(redirectTarget)}`,
+      `${BASE_PATH}/api/auth/guest?redirectUrl=${encodeURIComponent(redirectTarget)}`,
       baseOrigin,
     );
     return NextResponse.redirect(guestUrl);
@@ -197,10 +212,11 @@ export const config = {
 
     /*
      * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico, sitemap.xml, robots.txt (metadata files)
+     * - _next/static, _next/image (Next.js internals)
+     * - favicon.ico, sitemap.xml, robots.txt (metadata)
+     * - images/, json/ (public/ static assets)
+     * - pdf.worker.min.mjs (PDF.js worker at public root)
      */
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|images/|json/).*)",
   ],
 };

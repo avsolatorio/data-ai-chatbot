@@ -119,16 +119,14 @@ export function MsalProviderWrapper({ children }: { children: React.ReactNode })
     runInit().then((shouldRefresh) => {
       if (shouldRefresh) {
         router.refresh();
-        // If user returned from MSAL redirect while on /login or /register, send them to home
-        if (
-          typeof window !== "undefined" &&
-          UNAUTHENTICATED_ALLOWED_PATHS.includes(window.location.pathname)
-        ) {
+        // If user returned from MSAL redirect while on /login or /register, send them to home.
+        // Use pathname (Next.js strips basePath) so this works with subpath deployment.
+        if (pathname && UNAUTHENTICATED_ALLOWED_PATHS.includes(pathname)) {
           router.replace("/");
         }
       }
     });
-  }, [msalInstance, router]);
+  }, [msalInstance, router, pathname]);
 
   if (!initialized) {
     return (

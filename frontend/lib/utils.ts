@@ -16,6 +16,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Fetcher for useSWR; pass raw paths (e.g. "/api/vote?chatId=123"). Uses apiFetch which applies basePath. */
 export const fetcher = async (url: string) => {
   const response = await apiFetch(url);
 
@@ -27,6 +28,7 @@ export const fetcher = async (url: string) => {
   return response.json();
 };
 
+/** Like apiFetch but throws ChatSDKError on non-ok. Pass raw paths (e.g. "/api/chat/123"). */
 export async function fetchWithErrorHandlers(
   input: RequestInfo | URL,
   init?: RequestInit,
