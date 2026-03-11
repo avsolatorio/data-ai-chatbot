@@ -7,8 +7,8 @@ import {
   ChatPageContent,
 } from "@/app/(chat)/chat/[id]/chat-page-shared";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
-import { normalizeMessagesFromApi } from "@/lib/chat-messages";
 import { authProvider } from "@/lib/auth/config";
+import { normalizeMessagesFromApi } from "@/lib/chat-messages";
 import { getBasePath } from "@/lib/config";
 import { ChatSDKError } from "@/lib/errors";
 import { serverApiFetch } from "@/lib/server-api-client";
@@ -28,7 +28,6 @@ export default function Page(props: { params: Promise<{ id: string }> }) {
 }
 
 async function ChatPage({ id }: { id: string }) {
-
   // MSAL: token is in session storage only; server has no cookie. Fetch chat on the client
   // so the request includes Authorization header from session storage.
   if (authProvider === "msal") {
