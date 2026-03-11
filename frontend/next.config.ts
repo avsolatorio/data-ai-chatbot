@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   cacheComponents: true,
   async headers() {
+    // Note: Full CSP with script-src (nonce-based) is set by proxy.ts for document routes.
+    // Static assets get this minimal CSP; proxy adds script-src, style-src, etc. for pages.
     const securityHeaders = [
       { key: "X-Frame-Options", value: "DENY" },
       {

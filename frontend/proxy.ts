@@ -2,6 +2,69 @@ import { type NextRequest, NextResponse } from "next/server";
 import { authProvider } from "@/lib/auth/config";
 import { hasAuthCookies } from "@/lib/auth/cookies";
 
+/** Vega theme URL for connect-src (charts fetch JSON from worldbank.github.io). */
+const VEGA_THEME_ORIGIN = "https://worldbank.github.io";
+
+/** MSAL/Azure AD: token endpoint and silent-auth iframe. */
+const MSAL_ORIGIN = "https://login.microsoftonline.com";
+
+/** Data header service (CSS, script, content API). Covers QA, prod, etc. via NEXT_PUBLIC_DATA_HEADER_* env. */
+const DATA_HEADER_ORIGIN = "https://*.worldbank.org";
+
+/** Images (Data360 logo, etc.). */
+const IMG_ORIGIN = "https://*.worldbank.org";
+
+/**
+ * Build CSP header with nonce for XSS protection. Only inline scripts with the nonce can run.
+ * Next.js applies the nonce to its own scripts when it sees the CSP in the request.
+ * style-src uses 'unsafe-inline' (no nonce) because React/CSS-in-JS use inline styles; nonce would ignore unsafe-inline.
+ */
+function buildCspWithNonce(nonce: string): string {
+  const isDev = process.env.NODE_ENV === "development";
+  const parts = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    `img-src 'self' blob: data: ${IMG_ORIGIN}`,
+    "font-src 'self' data: https://fonts.gstatic.com https://*.worldbank.org",
+    `connect-src 'self' ${VEGA_THEME_ORIGIN} ${MSAL_ORIGIN} ${DATA_HEADER_ORIGIN}`,
+    `frame-src 'self' ${MSAL_ORIGIN}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ];
+  return parts.join("; ");
+}
+
+/**
+ * Create NextResponse.next() with CSP headers and nonce for XSS protection.
+ * The nonce is passed in request headers so Next.js can apply it to inline scripts.
+ */
+const CSP_REPORT_ENABLED =
+  process.env.CSP_REPORT_ENABLED !== "false" && process.env.CSP_REPORT_ENABLED !== "0";
+
+function nextWithCsp(request: NextRequest): NextResponse {
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const csp = buildCspWithNonce(nonce).replace(/\s{2,}/g, " ").trim();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+  response.headers.set("Content-Security-Policy", csp);
+
+  if (CSP_REPORT_ENABLED) {
+    response.headers.set(
+      "Content-Security-Policy-Report-Only",
+      `${csp}; report-uri /api/csp-report`,
+    );
+  }
+
+  return response;
+}
+
 /**
  * Derive the client-facing origin so redirects and redirectUrl param use the host the user sees,
  * not the internal host (e.g. in Azure/Docker, request.url can be https://container-id:8080).
@@ -73,7 +136,7 @@ export function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL("/maintenance", request.url));
     }
     if (pathname === "/maintenance") {
-      return NextResponse.next();
+      return nextWithCsp(request);
     }
   }
 
@@ -86,7 +149,7 @@ export function proxy(request: NextRequest) {
   }
 
   if (pathname.startsWith("/api/auth")) {
-    return NextResponse.next();
+    return nextWithCsp(request);
   }
 
   // Check for internal API secret (from FastAPI backend)
@@ -96,14 +159,14 @@ export function proxy(request: NextRequest) {
 
   if (internalSecret && expectedSecret && internalSecret === expectedSecret) {
     // Internal request from FastAPI - allow through without auth check
-    return NextResponse.next();
+    return nextWithCsp(request);
   }
 
   // Allow login/register pages to be accessed without authentication
   // This prevents redirect loops when users try to login after logout
   // IMPORTANT: Return early to prevent any user lookup or guest creation
   if (["/login", "/register"].includes(pathname)) {
-    return NextResponse.next();
+    return nextWithCsp(request);
   }
 
   // Check for auth cookies (guest: auth_token/session ids; msal: UIT)
@@ -121,7 +184,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(guestUrl);
   }
 
-  return NextResponse.next();
+  return nextWithCsp(request);
 }
 
 export const config = {
