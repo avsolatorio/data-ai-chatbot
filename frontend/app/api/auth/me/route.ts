@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { type NextRequest, NextResponse } from "next/server";
+import { connection, type NextRequest, NextResponse } from "next/server";
 import { getBearerTokenFromRequest } from "@/lib/auth/cookies";
 import { cookiesKey, getAuthProxyTimeoutMs } from "@/lib/constants";
 
@@ -10,6 +10,7 @@ import { cookiesKey, getAuthProxyTimeoutMs } from "@/lib/constants";
  * or (2) cookies (auth_token / UIT / guest_session_id / user_session_id).
  */
 export async function GET(request: NextRequest) {
+  await connection();
   try {
     const bearerFromHeader = getBearerTokenFromRequest(request);
 
