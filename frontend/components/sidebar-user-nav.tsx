@@ -11,7 +11,8 @@ import type { User } from "@/lib/auth-service-client";
 import { logoutClient } from "@/lib/auth-service-client";
 import { getApiUrl } from "@/lib/api-client";
 import { getBasePath } from "@/lib/config";
-import { authProvider } from "@/lib/auth/config";
+import { authProvider, skipLoginPage } from "@/lib/auth/config";
+import { loginRequest } from "@/lib/auth/msal/msal-config";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -152,7 +153,23 @@ export function SidebarUserNav({
                   }
 
                   if (isGuest) {
-                    router.push("/login");
+                    if (
+                      skipLoginPage &&
+                      authProvider === "msal" &&
+                      msalInstance
+                    ) {
+                      try {
+                        await msalInstance.loginRedirect(loginRequest);
+                      } catch {
+                        toast({
+                          type: "error",
+                          description:
+                            "Failed to start sign in. Please try again.",
+                        });
+                      }
+                    } else {
+                      router.push("/login");
+                    }
                   } else if (authProvider === "msal" && msalInstance) {
                     try {
                       await logoutClient();

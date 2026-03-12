@@ -79,6 +79,9 @@ const rawEnvSchema = z.object({
     if (s && ["guest", "user", "msal"].includes(s)) return s as "guest" | "user" | "msal";
     return undefined;
   }),
+  NEXT_PUBLIC_SKIP_LOGIN_PAGE: booleanEnv.describe(
+    "When true, skip login page in guest/MSAL modes (redirect or trigger sign-in directly). Default: true.",
+  ),
   NEXT_PUBLIC_MSAL_CLIENT_ID: optionalString.describe("Azure AD app (client) ID"),
   NEXT_PUBLIC_MSAL_REDIRECT_URI: optionalString.describe("MSAL redirect URI; must match Azure AD app registration"),
   NEXT_PUBLIC_MSAL_AUTHORITY: optionalString.describe("MSAL authority URL (e.g. https://login.microsoftonline.com/<tenant>)"),
@@ -143,6 +146,7 @@ export type Env = RawEnv & {
   NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR: "bottom" | "trigger";
   NEXT_PUBLIC_SHOW_REASONING_PART_TYPE: boolean;
   NEXT_PUBLIC_DATA_HEADER_ENABLED: boolean;
+  NEXT_PUBLIC_SKIP_LOGIN_PAGE: boolean;
   MAINTENANCE_MODE: boolean;
   CSP_ENABLED: boolean;
   CSP_REPORT_ENABLED: boolean;
@@ -163,6 +167,7 @@ export type PublicEnv = Pick<
   | "NEXT_PUBLIC_SHOW_REASONING_PART_TYPE"
   | "NEXT_PUBLIC_DATA_HEADER_ENABLED"
   | "NEXT_PUBLIC_AUTH_PROVIDER"
+  | "NEXT_PUBLIC_SKIP_LOGIN_PAGE"
   | "NEXT_PUBLIC_MSAL_CLIENT_ID"
   | "NEXT_PUBLIC_MSAL_REDIRECT_URI"
   | "NEXT_PUBLIC_MSAL_AUTHORITY"
