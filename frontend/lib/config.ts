@@ -3,6 +3,10 @@
  *
  * This file contains all configurable metadata and settings for the application.
  * Modify these values to customize your application's metadata.
+ *
+ * IMPORTANT: Client components import this module. Next.js only inlines process.env.NEXT_PUBLIC_*
+ * when explicitly referenced (not via spread). Use direct process.env.X references here so
+ * values are correctly inlined at build time for client bundles.
  */
 
 import { getEnv } from "@/lib/env";
@@ -17,18 +21,24 @@ export type FeedbackContact = {
 };
 
 function getApplicationStatus(): ApplicationStatus | null {
-  const v = getEnv().NEXT_PUBLIC_APPLICATION_STATUS;
-  if (v) return v;
+  const v =
+    process.env.NEXT_PUBLIC_APPLICATION_STATUS?.trim() ||
+    getEnv().NEXT_PUBLIC_APPLICATION_STATUS;
+  if (v && ["pre-alpha", "alpha", "beta"].includes(v)) return v as ApplicationStatus;
   // Show banner in development when not set so you can verify placement
   if (process.env.NODE_ENV === "development") return "alpha";
   return null;
 }
 
 function getFeedbackContact(): FeedbackContact | null {
-  const url = getEnv().NEXT_PUBLIC_FEEDBACK_CONTACT_URL;
+  const url =
+    process.env.NEXT_PUBLIC_FEEDBACK_CONTACT_URL?.trim() ||
+    getEnv().NEXT_PUBLIC_FEEDBACK_CONTACT_URL;
   const label =
-    getEnv().NEXT_PUBLIC_FEEDBACK_CONTACT_LABEL || "Contact us for feedback";
-  if (url && url.trim().length > 0) {
+    process.env.NEXT_PUBLIC_FEEDBACK_CONTACT_LABEL?.trim() ||
+    getEnv().NEXT_PUBLIC_FEEDBACK_CONTACT_LABEL ||
+    "Contact us for feedback";
+  if (url && url.length > 0) {
     return { label: label.trim(), url: url.trim() };
   }
   return null;
@@ -43,16 +53,25 @@ function getFeedbackContact(): FeedbackContact | null {
 export type ArtifactScrollBehavior = "bottom" | "trigger";
 
 function getArtifactScrollBehavior(): ArtifactScrollBehavior {
-  return getEnv().NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR;
+  const v =
+    process.env.NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR?.trim() ||
+    getEnv().NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR;
+  return v === "trigger" ? "trigger" : "bottom";
 }
 
 function getShowReasoningPartType(): boolean {
-  return getEnv().NEXT_PUBLIC_SHOW_REASONING_PART_TYPE;
+  const v = process.env.NEXT_PUBLIC_SHOW_REASONING_PART_TYPE?.trim().toLowerCase();
+  const fromEnv = getEnv().NEXT_PUBLIC_SHOW_REASONING_PART_TYPE;
+  return v === "true" || v === "1" || v === "yes" || fromEnv === true;
 }
 
 /** When set (e.g. "/app"), the app is served under that path. Must match next.config basePath. Trailing slash is stripped. */
 export function getBasePath(): string {
-  return getEnv().NEXT_PUBLIC_BASE_PATH;
+  const v =
+    process.env.NEXT_PUBLIC_BASE_PATH?.trim() ||
+    getEnv().NEXT_PUBLIC_BASE_PATH ||
+    "";
+  return v.replace(/\/+$/, "");
 }
 
 export const appConfig = {
@@ -81,7 +100,10 @@ export const appConfig = {
      * - Development: "http://localhost:3000"
      * - Vercel: "https://your-app.vercel.app"
      */
-    baseUrl: getEnv().NEXT_PUBLIC_APP_URL,
+    baseUrl:
+      process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+      getEnv().NEXT_PUBLIC_APP_URL ||
+      "https://data360chat.worldbank.org",
 
     /**
      * The title of your application.

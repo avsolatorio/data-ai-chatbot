@@ -9,7 +9,11 @@ import { envDefaults, environmentPresets } from "./presets";
 
 let cachedEnv: Env | null = null;
 
-/** Build raw env input merged with presets and defaults. */
+/**
+ * Build raw env input merged with presets and defaults.
+ * Note: Spreading process.env does NOT trigger Next.js inlining for client bundles.
+ * Client-facing vars must be directly referenced (e.g. in lib/config.ts, lib/auth/config.ts).
+ */
 function buildRawInput(): Record<string, string | undefined> {
   const envName = process.env.NEXT_PUBLIC_APP_ENV?.trim().toLowerCase() as
     | EnvironmentName

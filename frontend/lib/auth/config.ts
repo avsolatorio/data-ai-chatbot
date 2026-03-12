@@ -11,9 +11,16 @@ import { getEnv } from "@/lib/env";
 
 export type AuthProviderType = "guest" | "msal" | "user";
 
+// Direct reference required: Next.js only inlines process.env.NEXT_PUBLIC_* when explicitly
+// referenced. Spread ({ ...process.env }) does NOT trigger inlining, so client bundle would
+// miss the value. Server uses getEnv() for validation; client needs this direct reference.
 const AUTH_PROVIDER_ENV =
   typeof process !== "undefined"
-    ? getEnv().NEXT_PUBLIC_AUTH_PROVIDER
+    ? (process.env.NEXT_PUBLIC_AUTH_PROVIDER?.trim().toLowerCase() as
+        | "guest"
+        | "user"
+        | "msal"
+        | undefined) ?? getEnv().NEXT_PUBLIC_AUTH_PROVIDER
     : undefined;
 
 /** Current auth mode: "msal" | "user" | "guest" (default). */
