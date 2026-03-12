@@ -7,12 +7,13 @@
  */
 
 import { cookiesKey } from "@/lib/constants";
+import { getEnv } from "@/lib/env";
 
 export type AuthProviderType = "guest" | "msal" | "user";
 
 const AUTH_PROVIDER_ENV =
   typeof process !== "undefined"
-    ? (process.env.NEXT_PUBLIC_AUTH_PROVIDER?.trim().toLowerCase() as AuthProviderType | undefined)
+    ? getEnv().NEXT_PUBLIC_AUTH_PROVIDER
     : undefined;
 
 /** Current auth mode: "msal" | "user" | "guest" (default). */

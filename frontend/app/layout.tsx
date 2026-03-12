@@ -9,14 +9,13 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TokenLensProvider } from "@/components/tokenlens-provider";
 
 import { cn } from "@/lib/utils";
+import { getEnv } from "@/lib/env";
 
 import "@pcn-js/ui/styles.css";
 import "./globals.css";
 import { appConfig } from "@/lib/config";
 
-const DATA_HEADER_ENABLED = /^(1|true|yes)$/i.test(
-  process.env.NEXT_PUBLIC_DATA_HEADER_ENABLED?.trim() ?? "",
-);
+const DATA_HEADER_ENABLED = getEnv().NEXT_PUBLIC_DATA_HEADER_ENABLED;
 
 export const metadata: Metadata = {
   metadataBase: new URL(appConfig.metadata.baseUrl),

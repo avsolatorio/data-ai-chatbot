@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getBasePath } from "@/lib/config";
+import { getEnv } from "@/lib/env";
 
 /**
  * Derive the client-facing origin from the request.
@@ -31,7 +32,7 @@ function getRequestOrigin(request: Request): string {
     if (host) return `${proto}://${host}`;
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const appUrl = getEnv().NEXT_PUBLIC_APP_URL?.trim();
   if (appUrl) {
     try {
       const appOrigin = new URL(appUrl).origin;
@@ -80,7 +81,7 @@ function safeRedirectTarget(
     if (parsed.origin && isInternalOrigin(parsed.origin)) {
       return new URL(parsed.pathname + parsed.search, baseOrigin).toString();
     }
-    const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    const appOrigin = getEnv().NEXT_PUBLIC_APP_URL?.trim();
     if (appOrigin) {
       const allowed = new URL(appOrigin).origin;
       if (parsed.origin !== allowed) {
@@ -119,11 +120,7 @@ export async function GET(request: Request) {
   // Create guest user by calling FastAPI directly
   // FastAPI will validate existing cookies and create a new guest user if needed
   try {
-    // Use SERVER_API_URL for Docker internal networking, fallback to NEXT_PUBLIC_API_URL
-    const API_URL =
-      process.env.SERVER_API_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      "http://localhost:8001";
+    const API_URL = getEnv().SERVER_API_URL;
     const fastApiUrl = `${API_URL}/api/auth/guest`;
 
     // Build headers with cookies. Forward Origin/Referer so FastAPI CSRF middleware

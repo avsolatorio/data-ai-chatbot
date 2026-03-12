@@ -5,6 +5,8 @@
  * Modify these values to customize your application's metadata.
  */
 
+import { getEnv } from "@/lib/env";
+
 /** Application lifecycle status shown in the UI when set. */
 export type ApplicationStatus = "pre-alpha" | "alpha" | "beta";
 
@@ -15,17 +17,17 @@ export type FeedbackContact = {
 };
 
 function getApplicationStatus(): ApplicationStatus | null {
-  const v = process.env.NEXT_PUBLIC_APPLICATION_STATUS;
-  if (v === "pre-alpha" || v === "alpha" || v === "beta") return v;
+  const v = getEnv().NEXT_PUBLIC_APPLICATION_STATUS;
+  if (v) return v;
   // Show banner in development when not set so you can verify placement
   if (process.env.NODE_ENV === "development") return "alpha";
   return null;
 }
 
 function getFeedbackContact(): FeedbackContact | null {
-  const url = process.env.NEXT_PUBLIC_FEEDBACK_CONTACT_URL;
+  const url = getEnv().NEXT_PUBLIC_FEEDBACK_CONTACT_URL;
   const label =
-    process.env.NEXT_PUBLIC_FEEDBACK_CONTACT_LABEL || "Contact us for feedback";
+    getEnv().NEXT_PUBLIC_FEEDBACK_CONTACT_LABEL || "Contact us for feedback";
   if (url && url.trim().length > 0) {
     return { label: label.trim(), url: url.trim() };
   }
@@ -41,21 +43,16 @@ function getFeedbackContact(): FeedbackContact | null {
 export type ArtifactScrollBehavior = "bottom" | "trigger";
 
 function getArtifactScrollBehavior(): ArtifactScrollBehavior {
-  const v = process.env.NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR;
-  if (v === "trigger" || v === "bottom") return v;
-  return "bottom";
+  return getEnv().NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR;
 }
 
 function getShowReasoningPartType(): boolean {
-  const v = process.env.NEXT_PUBLIC_SHOW_REASONING_PART_TYPE;
-  if (v === "true" || v === "1") return true;
-  if (v === "false" || v === "0") return false;
-  return false;
+  return getEnv().NEXT_PUBLIC_SHOW_REASONING_PART_TYPE;
 }
 
 /** When set (e.g. "/app"), the app is served under that path. Must match next.config basePath. Trailing slash is stripped. */
 export function getBasePath(): string {
-  return (process.env.NEXT_PUBLIC_BASE_PATH?.trim() ?? "").replace(/\/+$/, "");
+  return getEnv().NEXT_PUBLIC_BASE_PATH;
 }
 
 export const appConfig = {
@@ -84,8 +81,7 @@ export const appConfig = {
      * - Development: "http://localhost:3000"
      * - Vercel: "https://your-app.vercel.app"
      */
-    baseUrl:
-      process.env.NEXT_PUBLIC_APP_URL || "https://data360chat.worldbank.org",
+    baseUrl: getEnv().NEXT_PUBLIC_APP_URL,
 
     /**
      * The title of your application.

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { connection, type NextRequest, NextResponse } from "next/server";
 import { getBearerTokenFromRequest } from "@/lib/auth/cookies";
 import { cookiesKey, getAuthProxyTimeoutMs } from "@/lib/constants";
+import { getEnv } from "@/lib/env";
 
 /**
  * Proxy endpoint for /api/auth/me
@@ -45,10 +46,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const API_URL =
-      process.env.SERVER_API_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      "http://localhost:8001";
+    const API_URL = getEnv().SERVER_API_URL;
     const fastApiUrl = `${API_URL}/api/auth/me`;
 
     const headers: HeadersInit = {
