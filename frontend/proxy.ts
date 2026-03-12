@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { authProvider } from "@/lib/auth/config";
 import { hasAuthCookies } from "@/lib/auth/cookies";
 import { getBasePath } from "@/lib/config";
+import { getEnv } from "@/lib/env";
 
 const BASE_PATH = getBasePath();
 
@@ -44,13 +45,8 @@ function buildCspWithNonce(nonce: string): string {
  * Create NextResponse.next() with CSP headers and nonce for XSS protection.
  * The nonce is passed in request headers so Next.js can apply it to inline scripts.
  */
-const CSP_ENABLED =
-  process.env.CSP_ENABLED === "true" || process.env.CSP_ENABLED === "1";
-
-const CSP_REPORT_ENABLED =
-  CSP_ENABLED &&
-  process.env.CSP_REPORT_ENABLED !== "false" &&
-  process.env.CSP_REPORT_ENABLED !== "0";
+const CSP_ENABLED = getEnv().CSP_ENABLED;
+const CSP_REPORT_ENABLED = getEnv().CSP_REPORT_ENABLED;
 
 function nextWithCsp(request: NextRequest): NextResponse {
   if (!CSP_ENABLED) {
@@ -109,7 +105,7 @@ function getRequestOrigin(request: NextRequest): string {
     if (host) return `${proto}://${host}`;
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const appUrl = getEnv().NEXT_PUBLIC_APP_URL?.trim();
   if (appUrl) {
     try {
       const appOrigin = new URL(appUrl).origin;
@@ -129,8 +125,7 @@ function getRequestOrigin(request: NextRequest): string {
  * redirect to /maintenance except for that page and static/API assets.
  */
 function isMaintenanceMode(): boolean {
-  const v = process.env.MAINTENANCE_MODE;
-  return v === "true" || v === "1";
+  return getEnv().MAINTENANCE_MODE;
 }
 
 /** Bypass maintenance redirect when this query param is present (e.g. ?nomaintenance=true). */
@@ -180,7 +175,7 @@ export function proxy(request: NextRequest) {
   // Check for internal API secret (from FastAPI backend)
   // If present and valid, skip authentication check
   const internalSecret = request.headers.get("x-internal-api-secret");
-  const expectedSecret = process.env.INTERNAL_API_SECRET;
+  const expectedSecret = getEnv().INTERNAL_API_SECRET;
 
   if (internalSecret && expectedSecret && internalSecret === expectedSecret) {
     // Internal request from FastAPI - allow through without auth check

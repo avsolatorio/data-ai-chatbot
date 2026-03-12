@@ -8,11 +8,9 @@
 
 import type { NextRequest, NextResponse } from "next/server";
 import { NextResponse as NextResponseValue } from "next/server";
+import { getEnv } from "@/lib/env";
 
-const API_URL =
-  process.env.SERVER_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:8001";
+const API_URL = getEnv().SERVER_API_URL;
 
 /**
  * Derive the client-facing origin from the request so redirects stay on the host the user used.
@@ -40,7 +38,7 @@ function getRequestOrigin(request: NextRequest): string {
     if (host) return `${proto}://${host}`;
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const appUrl = getEnv().NEXT_PUBLIC_APP_URL?.trim();
   if (appUrl) {
     try {
       const appOrigin = new URL(appUrl).origin;

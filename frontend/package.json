@@ -16,10 +16,12 @@
     "dev:local-pcn": "node scripts/dev-local-pcn.js",
     "prebuild": "node scripts/ensure-streamdown-for-tailwind.js",
     "build": "next build",
-    "build:dev": "node scripts/ensure-streamdown-for-tailwind.js && cross-env PHASE=dev next build && node scripts/postbuild.js",
-    "build:qa": "node scripts/ensure-streamdown-for-tailwind.js && cross-env PHASE=qa next build && node scripts/postbuild.js",
+    "build:dev": "node scripts/ensure-streamdown-for-tailwind.js && cross-env PHASE=dev NEXT_PUBLIC_APP_ENV=dev next build && node scripts/postbuild.js",
+    "build:qa": "node scripts/ensure-streamdown-for-tailwind.js && cross-env PHASE=qa NEXT_PUBLIC_APP_ENV=qa next build && node scripts/postbuild.js",
+    "build:uat": "node scripts/ensure-streamdown-for-tailwind.js && cross-env PHASE=uat NEXT_PUBLIC_APP_ENV=uat next build && node scripts/postbuild.js",
+    "build:prod": "node scripts/ensure-streamdown-for-tailwind.js && cross-env PHASE=prod NEXT_PUBLIC_APP_ENV=prod next build && node scripts/postbuild.js",
     "start": "next start",
-    "start:dev": "cross-env PHASE=dev next dev -p 4200",
+    "start:dev": "cross-env PHASE=dev NEXT_PUBLIC_APP_ENV=dev next dev -p 4200",
     "lint": "npx ultracite@latest check",
     "format": "npx ultracite@latest fix",
     "db:generate": "drizzle-kit generate",
@@ -28,6 +30,7 @@
     "db:pull": "drizzle-kit pull",
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
+    "env:check": "tsx scripts/env-check.ts",
     "test": "export PLAYWRIGHT=True && pnpm exec playwright test"
   },
   "dependencies": {
