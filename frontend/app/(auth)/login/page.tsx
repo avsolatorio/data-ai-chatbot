@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useActionState, useContext, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useActionState, useContext, useEffect, useState } from "react";
 
 import { MsalInstanceContext } from "@/components/auth/msal/msal-provider-wrapper";
 import { AuthForm } from "@/components/auth-form";
@@ -10,13 +10,14 @@ import { LoaderIcon } from "@/components/icons";
 import { SubmitButton } from "@/components/submit-button";
 import { toast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
-import { authProvider } from "@/lib/auth/config";
+import { authProvider, skipLoginPage } from "@/lib/auth/config";
 import { getBasePath } from "@/lib/config";
 import { loginRequest } from "@/lib/auth/msal/msal-config";
 import { type LoginActionState, login } from "../actions";
 
-export default function Page() {
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const msalInstance = useContext(MsalInstanceContext);
 
   const [email, setEmail] = useState("");
@@ -30,6 +31,15 @@ export default function Page() {
       status: "idle",
     },
   );
+
+  // When skipLoginPage is true and guest mode with no error: redirect to guest creation
+  useEffect(() => {
+    if (skipLoginPage && authProvider === "guest" && !searchParams.has("error")) {
+      const basePath = getBasePath();
+      const redirectUrl = `${window.location.origin}${basePath}/`;
+      window.location.href = `${basePath}/api/auth/guest?redirectUrl=${encodeURIComponent(redirectUrl)}`;
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (state.status === "failed") {
@@ -93,6 +103,20 @@ export default function Page() {
   };
 
   if (authProvider === "msal") {
+    if (skipLoginPage) {
+      return (
+        <div className="flex h-dvh w-screen items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-2">
+            <span className="mr-2 animate-spin">
+              <LoaderIcon />
+            </span>
+            <p className="text-muted-foreground text-sm">
+              Redirecting to sign in...
+            </p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex h-dvh w-screen items-start justify-center bg-background pt-12 md:items-center md:pt-0">
         <div className="flex w-full max-w-md flex-col gap-8 overflow-hidden rounded-2xl px-4 sm:px-16">
@@ -125,6 +149,41 @@ export default function Page() {
   }
 
   if (authProvider === "guest") {
+    if (skipLoginPage && searchParams.has("error")) {
+      return (
+        <div className="flex h-dvh w-screen items-start justify-center bg-background pt-12 md:items-center md:pt-0">
+          <div className="flex w-full max-w-md flex-col gap-8 overflow-hidden rounded-2xl px-4 sm:px-16">
+            <div className="flex flex-col items-center justify-center gap-2 text-center">
+              <h3 className="font-semibold text-xl dark:text-zinc-50">
+                Guest session could not be created
+              </h3>
+              <p className="text-gray-500 text-sm dark:text-zinc-400">
+                Please try again.
+              </p>
+            </div>
+            <Button type="button" className="w-full" asChild>
+              <Link
+                href={`${getBasePath()}/api/auth/guest?redirectUrl=${encodeURIComponent(`${window.location.origin}${getBasePath()}/`)}`}
+              >
+                Retry
+              </Link>
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    if (skipLoginPage) {
+      return (
+        <div className="flex h-dvh w-screen items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-2">
+            <span className="mr-2 animate-spin">
+              <LoaderIcon />
+            </span>
+            <p className="text-muted-foreground text-sm">Redirecting...</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex h-dvh w-screen items-start justify-center bg-background pt-12 md:items-center md:pt-0">
         <div className="flex w-full max-w-md flex-col gap-8 overflow-hidden rounded-2xl px-4 sm:px-16">
@@ -210,5 +269,24 @@ export default function Page() {
         </AuthForm>
       </div>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-dvh w-screen items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-2">
+            <span className="mr-2 animate-spin">
+              <LoaderIcon />
+            </span>
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   );
 }

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { authProvider } from "@/lib/auth/config";
+import { authProvider, skipLoginPage } from "@/lib/auth/config";
 import { hasAuthCookies } from "@/lib/auth/cookies";
 import { getBasePath } from "@/lib/config";
 import { getEnv } from "@/lib/env";
@@ -183,8 +183,23 @@ export function proxy(request: NextRequest) {
   }
 
   // Allow login page without authentication (prevents redirect loops when users try to login after logout)
-  // IMPORTANT: Return early to prevent any user lookup or guest creation
+  // When skipLoginPage is true and guest mode: redirect /login to guest creation (unless error params)
   if (pathname === `${BASE_PATH}/login`) {
+    const url = new URL(request.url);
+    const hasError = url.searchParams.has("error");
+    if (
+      skipLoginPage &&
+      authProvider === "guest" &&
+      !hasError
+    ) {
+      const baseOrigin = getRequestOrigin(request);
+      const redirectTarget = `${baseOrigin}${BASE_PATH}/`;
+      const guestUrl = new URL(
+        `${BASE_PATH}/api/auth/guest?redirectUrl=${encodeURIComponent(redirectTarget)}`,
+        baseOrigin,
+      );
+      return NextResponse.redirect(guestUrl);
+    }
     return nextWithCsp(request);
   }
 

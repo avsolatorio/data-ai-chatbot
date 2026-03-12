@@ -39,6 +39,7 @@ import {
   loginRequest,
   msalConfig,
 } from "@/lib/auth/msal/msal-config";
+import { skipLoginPage } from "@/lib/auth/config";
 
 /** Context so components like SidebarUserNav can call MSAL logoutRedirect on sign out. */
 export const MsalInstanceContext = createContext<IPublicClientApplication | null>(
@@ -46,7 +47,9 @@ export const MsalInstanceContext = createContext<IPublicClientApplication | null
 );
 
 /** Routes where unauthenticated users see the page (e.g. "Login with MSAL" button) instead of auto-redirect. */
-const UNAUTHENTICATED_ALLOWED_PATHS = ["/login", "/register"];
+const UNAUTHENTICATED_ALLOWED_PATHS = skipLoginPage
+  ? ["/register"]
+  : ["/login", "/register"];
 
 export function MsalProviderWrapper({ children }: { children: React.ReactNode }) {
   const [initialized, setInitialized] = useState(false);
@@ -120,8 +123,12 @@ export function MsalProviderWrapper({ children }: { children: React.ReactNode })
       if (shouldRefresh) {
         router.refresh();
         // If user returned from MSAL redirect while on /login or /register, send them to home.
-        // Use pathname (Next.js strips basePath) so this works with subpath deployment.
-        if (pathname && UNAUTHENTICATED_ALLOWED_PATHS.includes(pathname)) {
+        // Include /login explicitly since it may be excluded from allowed paths when skipLoginPage.
+        if (
+          pathname &&
+          (UNAUTHENTICATED_ALLOWED_PATHS.includes(pathname) ||
+            pathname === "/login")
+        ) {
           router.replace("/");
         }
       }

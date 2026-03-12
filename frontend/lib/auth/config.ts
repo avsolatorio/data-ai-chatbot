@@ -31,6 +31,26 @@ export const authProvider: AuthProviderType =
       ? "user"
       : "guest";
 
+// Direct reference for client inlining (same pattern as authProvider).
+const SKIP_LOGIN_PAGE_ENV =
+  typeof process !== "undefined"
+    ? process.env.NEXT_PUBLIC_SKIP_LOGIN_PAGE?.trim().toLowerCase()
+    : undefined;
+
+/** When true, skip login page in guest/MSAL modes (redirect or trigger sign-in directly). Default: true. */
+export const skipLoginPage: boolean =
+  SKIP_LOGIN_PAGE_ENV === "true" ||
+  SKIP_LOGIN_PAGE_ENV === "1" ||
+  SKIP_LOGIN_PAGE_ENV === "yes"
+    ? true
+    : SKIP_LOGIN_PAGE_ENV === "false" ||
+        SKIP_LOGIN_PAGE_ENV === "0" ||
+        SKIP_LOGIN_PAGE_ENV === "no"
+      ? false
+      : (typeof process !== "undefined"
+          ? getEnv().NEXT_PUBLIC_SKIP_LOGIN_PAGE ?? true
+          : true);
+
 /** Cookie name used for Bearer token in API requests (auth_token for guest, UIT for MSAL). */
 export function getBearerTokenCookieName(): string {
   return authProvider === "msal" ? cookiesKey.userImpersonationToken : cookiesKey.authToken;
