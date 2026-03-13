@@ -32,7 +32,7 @@ import {
 import { createContext } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { sessionStorageKeys } from "@/lib/constants";
+import { cookiesKey, sessionStorageKeys } from "@/lib/constants";
 import {
   devLog,
   fetchUserImpersonationToken,
@@ -40,6 +40,7 @@ import {
   msalConfig,
 } from "@/lib/auth/msal/msal-config";
 import { skipLoginPage } from "@/lib/auth/config";
+import { getApiUrl } from "@/lib/api-client";
 
 /** Context so components like SidebarUserNav can call MSAL logoutRedirect on sign out. */
 export const MsalInstanceContext = createContext<IPublicClientApplication | null>(
@@ -53,6 +54,8 @@ const UNAUTHENTICATED_ALLOWED_PATHS = skipLoginPage
 
 export function MsalProviderWrapper({ children }: { children: React.ReactNode }) {
   const [initialized, setInitialized] = useState(false);
+  const [authenticatedViaSearchToken, setAuthenticatedViaSearchToken] =
+    useState(false);
   const initStartedRef = useRef(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -71,6 +74,44 @@ export function MsalProviderWrapper({ children }: { children: React.ReactNode })
      * We refresh so the client sidebar can resolve the user via /api/auth/me.
      */
     async function runInit(): Promise<boolean> {
+      // Check for searchToken from parent app (integration flow) before MSAL.
+      if (typeof document !== "undefined") {
+        const cookies = document.cookie.split(";");
+        const searchTokenEntry = cookies.find((c) =>
+          c.trim().startsWith(`${cookiesKey.searchToken}=`),
+        );
+        const searchToken = searchTokenEntry
+          ? searchTokenEntry.split("=").slice(1).join("=").trim()
+          : "";
+        if (searchToken.length > 0) {
+          const meUrl = getApiUrl("/api/auth/me");
+          try {
+            const res = await fetch(meUrl, {
+              headers: { Authorization: `Bearer ${searchToken}` },
+              credentials: "include",
+            });
+            if (res.ok) {
+              devLog("info", "[MSAL] searchToken validated via /api/auth/me");
+              if (typeof sessionStorage !== "undefined") {
+                sessionStorage.setItem(
+                  sessionStorageKeys.msalUserImpersonationToken,
+                  searchToken,
+                );
+              }
+              setAuthenticatedViaSearchToken(true);
+              setInitialized(true);
+              return false;
+            }
+          } catch (e) {
+            devLog(
+              "warn",
+              "[MSAL] searchToken validation failed:",
+              e instanceof Error ? e.message : String(e),
+            );
+          }
+        }
+      }
+
       if (typeof sessionStorage !== "undefined") {
         sessionStorage.removeItem(sessionStorageKeys.userData);
       }
@@ -145,6 +186,14 @@ export function MsalProviderWrapper({ children }: { children: React.ReactNode })
 
   const showAuthPageWithoutRedirect =
     UNAUTHENTICATED_ALLOWED_PATHS.includes(pathname ?? "");
+
+  if (authenticatedViaSearchToken) {
+    return (
+      <MsalInstanceContext.Provider value={null}>
+        {children}
+      </MsalInstanceContext.Provider>
+    );
+  }
 
   return (
     <MsalInstanceContext.Provider value={msalInstance}>

@@ -4,14 +4,30 @@
  */
 
 import type { NextRequest } from "next/server";
-import { sessionStorageKeys } from "@/lib/constants";
+import { cookiesKey, sessionStorageKeys } from "@/lib/constants";
 import { authProvider, getAuthCookieNamesForProxy, getBearerTokenCookieName } from "./config";
+
+/** Client-side: read searchToken cookie (parent app integration). Returns null if not MSAL or cookie absent. */
+function getSearchTokenFromDocument(): string | null {
+  if (typeof document === "undefined" || authProvider !== "msal") return null;
+  try {
+    const cookies = document.cookie.split(";");
+    const entry = cookies.find((c) => c.trim().startsWith(`${cookiesKey.searchToken}=`));
+    if (!entry) return null;
+    const value = entry.split("=").slice(1).join("=").trim();
+    return value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Client-side: read Bearer token from session storage (MSAL) or document.cookie (guest). */
 export function getAuthTokenFromDocument(): string | null {
   if (typeof document === "undefined") return null;
   if (authProvider === "msal") {
     try {
+      const fromSearchToken = getSearchTokenFromDocument();
+      if (fromSearchToken) return fromSearchToken;
       const token = typeof sessionStorage !== "undefined"
         ? sessionStorage.getItem(sessionStorageKeys.msalUserImpersonationToken)
         : null;
@@ -31,7 +47,13 @@ export function getAuthTokenFromDocument(): string | null {
 /** Server-side: read Bearer token from request cookies. */
 export function getAuthTokenFromRequest(request: NextRequest): string | null {
   const name = getBearerTokenCookieName();
-  return request.cookies.get(name)?.value ?? null;
+  const fromStandard = request.cookies.get(name)?.value ?? null;
+  if (fromStandard) return fromStandard;
+  if (authProvider === "msal") {
+    const fromSearch = request.cookies.get(cookiesKey.searchToken)?.value ?? null;
+    if (fromSearch) return fromSearch;
+  }
+  return null;
 }
 
 /**
@@ -57,6 +79,7 @@ export function hasAuthCookies(request: NextRequest): boolean {
     if (authHeader?.startsWith("Bearer ") && authHeader.slice(7).trim().length > 0) {
       return true;
     }
+    if (request.cookies.get(cookiesKey.searchToken)?.value) return true;
   }
   return false;
 }

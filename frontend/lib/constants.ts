@@ -19,6 +19,8 @@ export const DUMMY_PASSWORD = generateDummyPassword();
 export const cookiesKey = {
   authToken: "auth_token",
   userImpersonationToken: "UIT",
+  /** Impersonation token from parent app when chat is embedded; checked before MSAL flow. */
+  searchToken: "searchToken",
 } as const;
 
 /** SessionStorage keys used by MSAL and auth. */
