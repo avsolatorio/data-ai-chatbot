@@ -43,7 +43,6 @@ import yaml
 
 from evals.metric_builder import (
     _build_conversational_metrics,
-    _build_edge_case_metrics,
     _get_threshold_map,
 )
 from evals.per_turn_eval import (
@@ -312,6 +311,7 @@ class TurnData:
     model: str = ""
     turns_used: int = 0
     error: str | None = None
+    warnings: list[str] = field(default_factory=list)
 
 
 # Global turn data store, keyed by thread_id
@@ -609,6 +609,8 @@ async def _http_model_callback(
                 agent_timeline = []  # sequential list of all events
                 _thinking_buf = ""  # accumulate thinking text before flushing
                 _thinking_stage = ""  # stage of current thinking buffer
+                _sse_event_count = 0  # total SSE events received
+                _finish_reason = ""  # captured finish/error reason
                 async for chunk in response.aiter_text():
                     buffer += chunk
                     while "\n" in buffer:
@@ -699,6 +701,19 @@ async def _http_model_callback(
                                         "output": output,
                                     }
                                 )
+                            elif inner_type == "error":
+                                _finish_reason = (
+                                    f"error: {inner.get('message', inner.get('data', str(inner)))}"
+                                )
+                        elif etype == "error":
+                            _finish_reason = f"stream-error: {event.get('data', event.get('message', str(event)))}"
+                        elif etype in ("finish", "done"):
+                            _finish_reason = (
+                                event.get("data", {}).get("finishReason", "done")
+                                if isinstance(event.get("data"), dict)
+                                else str(event.get("data", "done"))
+                            )
+                        _sse_event_count += 1
                 # Flush any remaining thinking text
                 if _thinking_buf.strip():
                     label = "routing" if _thinking_stage == "routing" else "thinking"
@@ -712,6 +727,27 @@ async def _http_model_callback(
 
         content = full_content or "(no response from HTTP endpoint)"
 
+        # Detect empty writer output with diagnostic context
+        turn_warnings = []
+        if not full_content:
+            diag_parts = [
+                f"turn={turn_index}",
+                f"sse_events={_sse_event_count}",
+                f"stages_seen={current_stage or 'none'}",
+                f"tool_calls={len(tool_calls_captured)}",
+                f"routing={'yes' if routing_text.strip() else 'no'}",
+                f"thinking={'yes' if planner_text.strip() else 'no'}",
+                f"finish_reason={_finish_reason or 'none'}",
+            ]
+            diag = ", ".join(diag_parts)
+            warning = f"Empty writer output ({diag})"
+            logger.warning(
+                "[%s] EMPTY RESPONSE DETECTED: %s",
+                thread_id[:8] if thread_id else "?",
+                warning,
+            )
+            turn_warnings.append(warning)
+
         # Store assistant turn data with routing/planner detail
         assistant_data = TurnData(
             role="assistant",
@@ -723,6 +759,7 @@ async def _http_model_callback(
             tool_calls=tool_calls_captured,
             agent_actions=agent_timeline,
             model=config.get("hyperparameters", {}).get("model", "unknown"),
+            warnings=turn_warnings,
         )
         _store_turn_data(thread_id, assistant_data)
 
@@ -831,6 +868,26 @@ def parse_args():
         help="Directory for markdown output (default: evals/conversations/). "
         "Use to write replay results to a versioned run directory, e.g. "
         "evals/conversations/run_20260305_210102_v2/",
+    )
+    parser.add_argument(
+        "--compose",
+        type=str,
+        default=None,
+        help="Compose a persona from BASE:TOPIC:COUNTRIES:PATTERN "
+        "(e.g., student:health_outcomes:south_asia:visualize).",
+    )
+    parser.add_argument(
+        "--compose-random",
+        type=str,
+        default=None,
+        metavar="BASE",
+        help="Compose a random persona for the given base profile on each "
+        "run. Use with --runs N for variation across runs.",
+    )
+    parser.add_argument(
+        "--list-facets",
+        action="store_true",
+        help="List available bases and facets for composition, then exit.",
     )
     return parser.parse_args()
 
@@ -1113,20 +1170,10 @@ def _evaluate_single_run(test_cases, persona_keys, config):
     all_scores = {}
 
     for tc, key in zip(test_cases, persona_keys):
-        edge_metrics = _build_edge_case_metrics(key, config)
-        combined = base_metrics + edge_metrics
-        if edge_metrics:
-            logger.info(
-                "  [%s] +%d edge-case metric(s): %s",
-                key,
-                len(edge_metrics),
-                [m.name if hasattr(m, "name") else type(m).__name__ for m in edge_metrics],
-            )
-
         try:
             results = evaluate(
                 test_cases=[tc],
-                metrics=combined,
+                metrics=base_metrics,
                 hyperparameters=hyperparams,
                 display_config=DisplayConfig(print_results=False, verbose_mode=False),
                 error_config=ErrorConfig(skip_on_missing_params=True, ignore_errors=True),
@@ -1134,7 +1181,7 @@ def _evaluate_single_run(test_cases, persona_keys, config):
             if results and results.test_results:
                 # Build metric-name → metric-object map for score_breakdown
                 metric_map = {
-                    (m.name if hasattr(m, "name") else type(m).__name__): m for m in combined
+                    (m.name if hasattr(m, "name") else type(m).__name__): m for m in base_metrics
                 }
                 # Extract exhaustive metric data including judge reasoning
                 all_scores[key] = {}
@@ -1166,6 +1213,31 @@ def _evaluate_single_run(test_cases, persona_keys, config):
             all_scores[key] = {}
 
     return all_scores
+
+
+def _get_persona_output_dir(convos_dir: Path, persona_key: str) -> Path:
+    """Return the output subdirectory for a persona.
+
+    Composed personas use ``<base>/<topic>_<countries>_<pattern>/``.
+    Flat personas use ``<persona_key>/``.
+    """
+    persona_data = PERSONAS.get(persona_key, {})
+    composed_from = persona_data.get("_composed_from", "")
+
+    if composed_from:
+        # composed_from = "student:health_outcomes:south_asia:visualize"
+        parts = composed_from.split(":")
+        if len(parts) == 4:
+            base, topic, countries, pattern = parts
+            facets_dir = f"{topic}_{countries}_{pattern}"
+            out_dir = convos_dir / base / facets_dir
+        else:
+            out_dir = convos_dir / persona_key
+    else:
+        out_dir = convos_dir / persona_key
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    return out_dir
 
 
 def _print_and_save_results(
@@ -1213,10 +1285,16 @@ def _print_and_save_results(
     # Print
     print("\n--- Conversational Metrics ---\n")
     for key in persona_keys:
-        if is_multi:
-            print(f"  [{key.upper()}] ({num_runs} runs)")
+        # Use the composed_from label if available for cleaner display
+        persona_data = PERSONAS.get(key, {})
+        display_label = persona_data.get("_composed_from", key).upper()
+        num_scores = len(
+            agg.get(key, {}).get(next(iter(agg.get(key, {})), ""), {}).get("scores", [1])
+        )  # how many scores for this key
+        if num_scores > 1:
+            print(f"  [{display_label}] ({num_scores} runs)")
         else:
-            print(f"  [{key.upper()}]")
+            print(f"  [{display_label}]")
 
         for metric, data in agg[key].items():
             scores = data["scores"]
@@ -1233,9 +1311,13 @@ def _print_and_save_results(
                 print(f"    {status} {metric}: {score:.2f}")
         print()
 
-    # Save results JSON with exhaustive data
-    persona_suffix = persona_keys[0] if len(persona_keys) == 1 else "all"
-    eval_file = RESULTS_DIR / f"conversation_eval_{timestamp}_{persona_suffix}.json"
+    # Save results JSON -- into persona output dir for composed, RESULTS_DIR for flat
+    convos_dir = Path(__file__).parent / "conversations"
+    if len(persona_keys) == 1:
+        out_dir = _get_persona_output_dir(convos_dir, persona_keys[0])
+        eval_file = out_dir / f"{timestamp}_results.json"
+    else:
+        eval_file = RESULTS_DIR / f"conversation_eval_{timestamp}_all.json"
     eval_data = {
         "timestamp": timestamp,
         "personas": persona_keys,
@@ -1275,6 +1357,52 @@ def _print_and_save_results(
     return eval_file
 
 
+def _print_base_summary(all_run_scores, all_persona_keys, base_name):
+    """Print an aggregated summary across all compositions for a base persona.
+
+    Collects every metric score from every composition and reports the
+    mean +/- std, giving a single "how does this base perform?" view.
+    """
+    import statistics
+
+    # Collect all scores per metric across every composition
+    merged = {}  # metric -> {scores: [...], threshold: ...}
+    for run_scores in all_run_scores:
+        for key in all_persona_keys:
+            metric_data = run_scores.get(key, {})
+            for metric, data in metric_data.items():
+                if metric not in merged:
+                    merged[metric] = {
+                        "scores": [],
+                        "threshold": data.get("threshold", 0.5),
+                    }
+                merged[metric]["scores"].append(data.get("score", 0.0))
+
+    if not merged:
+        return
+
+    n = len(all_persona_keys)
+    print(f"\n  [{base_name.upper()} -- OVERALL ({n} compositions)]")
+
+    pass_count = 0
+    total_count = 0
+    for metric, data in sorted(merged.items()):
+        scores = data["scores"]
+        threshold = data["threshold"]
+        mean = statistics.mean(scores) if scores else 0.0
+        total_count += 1
+        status = "PASS" if mean >= threshold else "FAIL"
+        if status == "PASS":
+            pass_count += 1
+        if len(scores) > 1:
+            std = statistics.stdev(scores)
+            print(f"    {status} {metric}: {mean:.2f} +/- {std:.2f}")
+        else:
+            print(f"    {status} {metric}: {mean:.2f}")
+    print(f"\n    Pass Rate: {pass_count}/{total_count}")
+    print()
+
+
 def _save_conversations_exhaustive(
     test_cases,
     persona_keys,
@@ -1286,8 +1414,12 @@ def _save_conversations_exhaustive(
     Saves: routing intent/reasoning, planner output, writer output,
     structured tool calls + results, model used, system prompt hash.
     """
-    persona_suffix = persona_keys[0] if len(persona_keys) == 1 else "all"
-    conversations_file = RESULTS_DIR / f"conversations_{timestamp}_{persona_suffix}.json"
+    convos_dir = Path(__file__).parent / "conversations"
+    if len(persona_keys) == 1:
+        out_dir = _get_persona_output_dir(convos_dir, persona_keys[0])
+        conversations_file = out_dir / f"{timestamp}_conversations.json"
+    else:
+        conversations_file = RESULTS_DIR / f"conversations_{timestamp}_all.json"
     hyper = config.get("hyperparameters", {})
 
     conversations_data = []
@@ -1414,7 +1546,7 @@ def _save_conversation_markdown(
             lines.append("|---|---|---|---|")
 
             # Get thresholds from config
-            threshold_map = _get_threshold_map(config, key)
+            threshold_map = _get_threshold_map(config)
 
             pass_count = 0
             fail_count = 0
@@ -1621,8 +1753,20 @@ def _save_conversation_markdown(
                     )
 
                 # Writer output (collapsible, open by default)
+                writer_content = turn.content
+                # Add warning banner for empty responses
+                if atd and atd.warnings:
+                    writer_content = (
+                        "> [!WARNING]\n"
+                        "> **Empty response detected.** The chatbot pipeline ran "
+                        "but the writer stage produced no text.\n"
+                        ">\n"
+                        "> Diagnostics:\n"
+                        + "".join(f"> {w}\n" for w in atd.warnings)
+                        + f"\n{turn.content}"
+                    )
                 lines.append(
-                    f"<details open>\n<summary>✍️ Writer</summary>\n\n{turn.content}\n\n</details>\n"
+                    f"<details open>\n<summary>✍️ Writer</summary>\n\n{writer_content}\n\n</details>\n"
                 )
 
                 # Per-turn scores (collapsible)
@@ -1678,9 +1822,10 @@ def _save_conversation_markdown(
 
                 lines.append("")
 
-        # Write file -- include run label in filename for multi-run
+        # Write file -- into persona subdirectory
+        out_dir = _get_persona_output_dir(convos_dir, key)
         suffix = f"_{run_label}" if run_label else ""
-        md_file = convos_dir / f"{key}{suffix}.md"
+        md_file = out_dir / f"{timestamp}{suffix}.md"
         md_file.write_text("\n".join(lines))
         logger.info("Conversation markdown saved: %s", md_file)
 
@@ -1713,8 +1858,30 @@ def main():
         )
         return
 
+    # ── Handle --list-facets ──────────────────────────────────────────────
+    if getattr(args, "list_facets", False):
+        from evals.persona_composer import list_available
+
+        available = list_available()
+        print("\n  Available facets for --compose:\n")
+        for dim, keys in available.items():
+            print(f"    {dim}: {', '.join(keys)}")
+        print("\n  Usage: --compose BASE:TOPIC:COUNTRIES:PATTERN")
+        print("  Example: --compose student:health_outcomes:south_asia:visualize\n")
+        return
+
+    # ── Handle --compose / --compose-random ─────────────────────────────
+    compose_mode = None
+    if getattr(args, "compose", None):
+        compose_mode = "fixed"
+    elif getattr(args, "compose_random", None):
+        compose_mode = "random"
+
     # Select personas
-    if args.persona == "all":
+    if compose_mode:
+        # persona_keys will be set per-run in the loop below
+        persona_keys = []
+    elif args.persona == "all":
         persona_keys = list(PERSONAS.keys())
     else:
         persona_keys = [args.persona]
@@ -1778,6 +1945,7 @@ def main():
     # -- Simulation mode ---------------------------------------------------
     all_run_scores = []
     all_run_test_cases = []  # Store test_cases from each run
+    all_persona_keys = []  # Accumulate unique persona keys across runs
     pt_scores = None  # Per-turn scores (from last run)
 
     for run_idx in range(args.runs):
@@ -1785,6 +1953,36 @@ def main():
             print(f"\n{'#' * 72}")
             print(f"  RUN {run_idx + 1}/{args.runs}")
             print(f"{'#' * 72}")
+
+        # ── Compose persona for this run ──────────────────────────────
+        if compose_mode:
+            from evals.persona_composer import compose, compose_random
+
+            if compose_mode == "fixed":
+                parts = args.compose.split(":")
+                if len(parts) != 4:
+                    print(
+                        "ERROR: --compose requires BASE:TOPIC:COUNTRIES:PATTERN "
+                        f"(got {len(parts)} parts: {args.compose})"
+                    )
+                    return
+                composed = compose(*parts)
+            else:
+                composed = compose_random(args.compose_random)
+
+            # Build a descriptive key for filenames and logs
+            composed_label = composed.get("_composed_from", "composed")
+            composed_key = "composed_" + composed_label.replace(":", "_")
+            PERSONAS[composed_key] = composed
+            persona_keys = [composed_key]
+            # Track across runs for aggregation
+            all_persona_keys.extend(persona_keys)
+
+            geo = composed.get("_geo", "")
+            logger.info("Composed persona: %s (geo: %s)", composed_label, geo)
+            print(f"\n  Composed: {composed_label}")
+            print(f"  Geography: {geo}")
+            print(f"  Scenario: {composed['scenario'][:120]}...\n")
 
         logger.info(
             "Running conversation simulation (run %d/%d): personas=%s, max_turns=%d",
@@ -1854,21 +2052,29 @@ def main():
 
     # Print and save aggregated results
     if not args.no_eval and all_run_scores:
+        # Use accumulated keys for compose-random, current keys otherwise
+        final_keys = all_persona_keys if all_persona_keys else persona_keys
+
         _print_and_save_results(
             all_run_scores,
-            persona_keys,
+            final_keys,
             timestamp,
             max_turns,
             len(all_run_scores),
             config,
         )
+
+        # Base-level summary for compose-random with multiple runs
+        if compose_mode == "random" and len(all_run_scores) > 1:
+            _print_base_summary(all_run_scores, final_keys, args.compose_random)
+
         # Save aggregated markdown (uses last run's conversations)
-        # Single run: <persona>.md
-        # Multi-run: <persona>.md (aggregated) + <persona>_r1.md, _r2.md, ...
+        # Single run: <timestamp>.md
+        # Multi-run: <timestamp>.md (aggregated) + <timestamp>_r1.md, ...
         _save_conversation_markdown(
             all_run_test_cases[-1],
-            persona_keys,
-            all_run_scores,
+            persona_keys,  # last run's keys for the markdown file
+            [all_run_scores[-1]],  # last run's scores for the markdown
             timestamp,
             config,
             per_turn_scores=pt_scores,

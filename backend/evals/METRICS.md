@@ -6,11 +6,42 @@ All metrics are defined in [`eval_config.yaml`](eval_config.yaml). This document
 
 ## How Scoring Works
 
-Each metric produces a score from **0.0 to 1.0**. A score at or above the **threshold** (0.5 for all metrics) is a pass.
+Each metric produces a score from **0.0 to 1.0**. A score at or above the **threshold** is a pass.
 
 - **Conversational metrics** are scored once across the entire conversation
 - **Per-turn metrics** are scored on each assistant turn individually, then aggregated to conversation-level using `min` (strictest turn wins) or `mean` (average)
-- **Pre-filtering** automatically skips metrics that don't apply to a given turn (e.g., _Tool Selection_ is skipped on turns where no tools were called)
+- **Pre-filtering** automatically skips metrics that don't apply to a given turn (e.g., *Tool Selection* is skipped on turns where no tools were called). Skipped metrics auto-score 1.0 and don't count toward aggregation.
+
+### Threshold Tiers
+
+| Tier | Threshold | Rationale |
+|------|-----------|-----------|
+| **Strict** | 0.8 | Hard accuracy requirements -- wrong numbers or missing claim tags are serious errors |
+| **Medium** | 0.5--0.6 | Core functionality -- tool use, context retention, routing, source citation |
+| **Lenient** | 0.4 | Quality and polish -- structure, formatting, follow-ups, disclosure |
+
+### Pre-Filter Flags
+
+A metric's `requires` field determines when it applies to a turn:
+
+| Flag | Turn qualifies when... |
+|------|------------------------|
+| *(none)* | Always evaluated |
+| `tool_data` | Response contains data from MCP tools (`<claim>` tags or data markers) |
+| `claim_data` | Response contains `<claim>` tags specifically |
+| `presented_data` | Response has numeric data (claim tags or numbers in markdown tables) |
+| `tool_calls` | Structured tool call trace exists for this turn |
+| `data_gap` | Response mentions missing or unavailable data |
+| `comparison` | Response contains multi-country or multi-year data |
+| `technical_terms` | Response contains technical terms (GDP, PPP, per capita, etc.) |
+| `prior_context` | Turn index > 0 (not the first turn) |
+| `routing` | Always evaluated (routing is available on every turn) |
+
+### Deliverable Detection
+
+Metrics with `skip_on_deliverable: true` are automatically skipped when the user requests a specific output format (bullet points, slide decks, summaries, drafts, etc.). Deliverable turns correctly omit structural elements like section labels and follow-up suggestions, so penalizing their absence would be a false failure.
+
+**Affected metrics:** Content Structure, Follow-up Suggestions, Data Formatting.
 
 ---
 
@@ -19,88 +50,46 @@ Each metric produces a score from **0.0 to 1.0**. A score at or above the **thre
 Evaluated across the full conversation using ConversationalGEval.
 
 | Metric | What It Measures | Threshold |
-|---|---|---|
-| **Conversation Completeness** | Did the chatbot address all of the persona's goals by the end of the conversation? Checks against the `expected_outcome` defined in the persona YAML. | 0.5 |
+|--------|------------------|-----------|
+| **Conversation Completeness** | Did the chatbot address all user intentions? Classifies each as MET, PARTIALLY MET (data unavailable but handled gracefully), or UNMET. | 0.5 |
 
 ---
 
 ## Per-Turn Metrics
 
-Scored on each assistant turn, then aggregated. Grouped by their pre-filter requirement.
+Scored on each assistant turn, then aggregated. Grouped by pre-filter requirement.
 
-### Always Evaluated (no pre-filter)
+### Data Trust (Strict Tier, threshold 0.8)
 
-These metrics apply to every assistant turn.
+| Metric | Pre-filter | Agg | What It Measures |
+|--------|------------|-----|------------------|
+| **Data Accuracy** | `tool_data` | min | Numbers match correct country/year from tool output. No fabrication. |
+| **Claim Tagging & PCN** | `claim_data` | min | All tool-retrieved values wrapped in `<claim>` tags with correct IDs. |
 
-| Metric | What It Measures | Agg | Threshold |
-|---|---|---|---|
-| **Follow-up Suggestions** | Does the assistant suggest relevant next questions or related indicators for the user to explore? | mean | 0.5 |
-| **Source Citation** | Does the assistant cite the data source (database name, indicator ID) when presenting data? | min | 0.5 |
-| **Data Formatting** | Is data presented in structured formats (tables, lists, labeled sections) rather than buried in prose? | min | 0.5 |
-| **Inline Explanations** | Does the assistant explain technical terms (e.g., "GDP per capita", "literacy rate") in plain language? | min | 0.5 |
-| **Progressive Disclosure** | Does the assistant present information in digestible chunks rather than dumping everything at once? | min | 0.5 |
+### Core Functionality (Medium Tier, threshold 0.5--0.6)
 
-### Requires: `tool_data`
+| Metric | Pre-filter | Agg | Threshold | What It Measures |
+|--------|------------|-----|-----------|------------------|
+| **Context Retention** | `prior_context` | min | 0.6 | Reuses indicator/database IDs and claim_ids from prior turns. |
+| **Source Citation** | `tool_calls` | min | 0.6 | Ends with `Sources:` section citing database, indicator, methodology. |
+| **Data Gap Handling** | `data_gap` | min | 0.5 | Explicitly states what's missing, suggests alternatives. |
+| **Tool Selection** | `tool_calls` | mean | 0.5 | Correct tools called for the query (no hallucinated or missing tools). |
+| **Tool Sequencing** | `tool_calls` | min | 0.5 | Tools called in logical order (search before data, codelist before data). |
+| **Argument Quality** | `tool_calls` | min | 0.5 | Valid ISO codes, correct indicator IDs, specific search queries. |
+| **Routing Correctness** | `routing` | min | 0.5 | Router correctly classified RESEARCH vs. DIRECT intent. |
+| **Visualization & API URLs** | `tool_calls` | min | 0.5 | `get_viz_spec` called for chart requests, URL appears in response. |
 
-Only scored when the turn contains data retrieved from MCP tools (detected by claim tags or data markers in the response).
+### Quality & Polish (Lenient Tier, threshold 0.4)
 
-| Metric | What It Measures | Agg | Threshold |
-|---|---|---|---|
-| **Data Accuracy** | Are the numbers in the response consistent with what the tools actually returned? Catches hallucinated or garbled values. | min | 0.5 |
-| **Claim Tagging & PCN** | Are all data values wrapped in `<claim>` tags with valid `id` and `policy` attributes for provenance tracking? | min | 0.5 |
-| **Latest Data Note** | When no specific year was requested, does the response include a "(using latest available data)" note? Conversely, it should not add this note when the user did specify a year. | min | 0.5 |
-| **Content Structure** | Is the response organized with clear labels (Data, Analysis, Note, Limitations, Sources) rather than unstructured prose? | mean | 0.5 |
-
-### Requires: `tool_calls`
-
-Only scored when structured tool call data exists for the turn (the pipeline traced which MCP tools were called and with what arguments).
-
-| Metric | What It Measures | Agg | Threshold |
-|---|---|---|---|
-| **Tool Selection** | Did the chatbot call the right tools for this query? E.g., using `search_indicators` before `get_data`, using `find_codelist_value` for country codes. | mean | 0.5 |
-| **Tool Sequencing** | Were tools called in the correct order? The expected pattern is: search -> codelist -> get_data -> get_viz_spec (not all steps are always needed). | min | 0.5 |
-| **Argument Quality** | Were tool arguments correct? Checks for proper ISO country codes (not raw names), valid indicator IDs from search results, and reasonable filter values. | min | 0.5 |
-| **Visualization & API URLs** | When the user asked for a chart, did the chatbot call `get_viz_spec` and include the returned URL in the response? Includes programmatic verification (not just LLM judgment). | min | 0.5 |
-
-### Requires: `data_gap`
-
-Only scored when the response mentions missing or unavailable data.
-
-| Metric | What It Measures | Agg | Threshold |
-|---|---|---|---|
-| **Data Gap Handling** | When data is unavailable, does the chatbot acknowledge it transparently, suggest alternatives (nearby years, similar indicators, different countries), and avoid guessing? | min | 0.5 |
-
-### Requires: `comparison`
-
-Only scored when multiple countries or time periods are present in the response.
-
-| Metric | What It Measures | Agg | Threshold |
-|---|---|---|---|
-| **Comparability Warnings** | When comparing data across countries or years, does the chatbot note potential comparability issues (different methodologies, different survey years, PPP vs. nominal)? | min | 0.5 |
-
-### Requires: `prior_context`
-
-Only scored on turns after the first (turn index > 0).
-
-| Metric | What It Measures | Agg | Threshold |
-|---|---|---|---|
-| **Context Retention** | Does the chatbot remember and reuse data from earlier turns rather than re-searching for information it already has? | min | 0.5 |
-
-### Requires: `routing`
-
-Scored on every turn (always applicable).
-
-| Metric | What It Measures | Agg | Threshold |
-|---|---|---|---|
-| **Routing Correctness** | Did the internal router classify the query correctly (RESEARCH vs. FOLLOWUP vs. CLARIFY)? Misrouting can cause the chatbot to skip tool calls or ignore conversation history. | min | 0.5 |
-
----
-
-## Edge-Case Metrics
-
-Persona-specific metrics defined in the `edge_case_metrics` section of `eval_config.yaml`. These are applied only to matching personas, in addition to the standard metrics above.
-
-Example: an adversarial persona might have a _Scope Guard_ metric that checks whether the chatbot correctly refuses out-of-scope requests.
+| Metric | Pre-filter | Agg | Deliverable-skip | What It Measures |
+|--------|------------|-----|------------------|------------------|
+| **Content Structure** | `tool_data` | mean | yes | Uses `Data:`, `Analysis:`, `Note:`, `Limitations:` labels. |
+| **Follow-up Suggestions** | `tool_data` | min | yes | Ends with `Suggested follow-ups:` section (user-phrased). |
+| **Data Formatting** | `tool_data` | min | yes | Units on numbers, markdown tables for 3+ values, no sci notation. |
+| **Latest Data Note** | `tool_data` | min | -- | Notes "latest available data" when user didn't specify a year. |
+| **Comparability Warnings** | `comparison` | min | -- | Flags year/methodology differences in cross-country comparisons. |
+| **Inline Explanations** | `technical_terms` | mean | -- | Technical terms explained in plain language on first use. |
+| **Progressive Disclosure** | `tool_data` | mean | -- | Leads with insight before details, doesn't dump data. |
 
 ---
 
@@ -117,6 +106,7 @@ Add to `per_turn_metrics` in `eval_config.yaml`:
   requires: "tool_data"           # pre-filter flag (see table above)
   aggregates_to: "My Metric"      # conversation-level display name
   aggregation: "min"              # "min" (strict) or "mean" (lenient)
+  skip_on_deliverable: false      # set true if metric doesn't apply to deliverables
   criteria: >
     Evaluate whether the assistant [does something specific].
     Consider [specific aspects to check].
@@ -146,17 +136,3 @@ Add to `base_metrics` in `eval_config.yaml`:
     - "Step 1"
     - "Step 2"
 ```
-
-### Pre-Filter Flags
-
-Available `requires` values and when a turn qualifies:
-
-| Flag | Turn qualifies when... |
-|---|---|
-| _(none)_ | Always evaluated |
-| `tool_data` | Response contains data from MCP tools (claim tags or data markers) |
-| `tool_calls` | Structured tool call trace exists for this turn |
-| `data_gap` | Response mentions missing or unavailable data |
-| `comparison` | Response contains multi-country or multi-year data |
-| `prior_context` | Turn index > 0 (not the first turn) |
-| `routing` | Always evaluated (routing is available for every turn) |

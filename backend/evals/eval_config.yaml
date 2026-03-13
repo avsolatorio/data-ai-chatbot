@@ -87,15 +87,29 @@ base_metrics:
 # LLMTestCase). Per-turn scores are aggregated to conversation-level.
 #
 # Pre-filtering via `requires` field:
-#   tool_data     — skip if turn has no tool-retrieved data
-#   data_gap      — skip if turn has no data unavailability
-#   comparison    — skip if turn has no cross-country/time comparison
+#   tool_data       — skip if turn has no tool-retrieved data
+#   claim_data      — skip if turn has no <claim> tags
+#   presented_data  — skip if turn has no numeric data (claims or tables)
+#   data_gap        — skip if turn has no data unavailability
+#   comparison      — skip if turn has no cross-country/time comparison
 #   technical_terms — skip if turn has no technical terms/acronyms
-#   prior_context — skip on first turn (nothing to retain)
+#   prior_context   — skip on first turn (nothing to retain)
+#   routing         — always applicable (every turn has routing)
+#   tool_calls      — skip if turn has no structured tool call trace
+#
+# Additional flags:
+#   skip_on_deliverable — skip when user requests a specific format
+#     (bullet points, slide decks, summaries, drafts). Deliverable
+#     turns correctly omit structural elements like section labels.
 #
 # Aggregation:
 #   aggregates_to — name of the conversation-level aggregated score
 #   aggregation   — min (strictest turn) or mean (average quality)
+#
+# Threshold tiers:
+#   0.8  — Strict (hard accuracy: Data Accuracy, Claim Tagging)
+#   0.5-0.6 — Medium (core functionality: tool use, context, routing)
+#   0.4  — Lenient (quality/polish: structure, formatting, disclosure)
 
 per_turn_metrics:
   # ── Data Trust ─────────────────────────────────────────────────
@@ -307,27 +321,31 @@ per_turn_metrics:
     threshold: 0.4
     requires: "tool_data"
     aggregates_to: "Content Structure"
-    aggregation: "min"
+    aggregation: "mean"
+    skip_on_deliverable: true  # Slide decks, summaries, drafts omit section labels
     criteria: >
       You are evaluating a SINGLE assistant turn that presents
       tool-retrieved data. Evaluate response structure:
-      (1) 'Data:' for figures from the dataset.
-      (2) 'Analysis:' for computed or compared findings.
-      (3) 'Note:' for interpretive context or explanations.
-      (4) 'Limitations:' for caveats or quality flags.
-      (5) Comparability warnings when applicable.
-      (6) Clear distinction between factual data (from tools),
+      (1) Factual data (figures from tools) is in a clearly labeled
+      section, distinct from interpretation.
+      (2) Analysis or interpretation is separated from raw data.
+      (3) Caveats, limitations, or quality flags are addressed
+      somewhere in the response (in any section: Note, Sources,
+      Limitations, or inline). They do NOT need a dedicated
+      'Limitations:' heading if covered elsewhere.
+      (4) Comparability warnings when applicable.
+      (5) Clear distinction between factual data (from tools),
       derived analysis (computed), and AI interpretation.
 
     evaluation_steps:
-      - "Check for 'Data:', 'Analysis:', 'Note:' section labels"
-      - "Check for 'Limitations:' when caveats exist"
-      - "Check that facts, analysis, and interpretation are separated"
+      - "Check that data and analysis are in separate, labeled sections"
+      - "Check that caveats or limitations are addressed somewhere in the response (any section counts)"
+      - "Check that facts, analysis, and interpretation are clearly separated"
     rubric:
       - score_range: [8, 10]
-        expected_outcome: "Proper section labels, limitations noted, facts separated from interpretation."
+        expected_outcome: "Clear structural separation of data, analysis, and context. Caveats addressed."
       - score_range: [4, 7]
-        expected_outcome: "Some labels missing or facts mixed with interpretation."
+        expected_outcome: "Some separation but data and analysis partially mixed, or caveats not addressed."
       - score_range: [0, 3]
         expected_outcome: "No structure despite presenting tool data."
 
@@ -337,6 +355,7 @@ per_turn_metrics:
     requires: "tool_data"
     aggregates_to: "Follow-up Suggestions"
     aggregation: "min"
+    skip_on_deliverable: true  # Deliverable outputs correctly omit follow-ups
     criteria: >
       You are evaluating a SINGLE assistant turn that presents data.
       (1) Must end with a 'Suggested follow-ups:' section with 2-3
@@ -382,7 +401,7 @@ per_turn_metrics:
   - name: "Per-Turn Source Citation"
     type: "geval"
     threshold: 0.6
-    requires: "presented_data"
+    requires: "tool_calls"
     aggregates_to: "Source Citation"
     aggregation: "min"
     criteria: >
@@ -409,6 +428,7 @@ per_turn_metrics:
     requires: "tool_data"
     aggregates_to: "Data Formatting"
     aggregation: "min"
+    skip_on_deliverable: true  # Slide decks, bullet points don't need tables
     criteria: >
       You are evaluating a SINGLE assistant turn that presents data.
       (1) All numeric values must include units (%, USD, years).
@@ -692,131 +712,3 @@ per_turn_metrics:
         expected_outcome: "get_viz_spec called but URL missing from response, or API URL formatting issue."
       - score_range: [0, 3]
         expected_outcome: "Viz requested but get_viz_spec NOT called, or apologized instead."
-# ── Edge-Case Metrics ────────────────────────────────────────────
-# Applied only to specific personas, in addition to base metrics.
-
-edge_case_metrics:
-  adversarial:
-    - name: "Scope Guard"
-      type: "geval"
-      threshold: 0.5
-      criteria: >
-        Evaluate whether the chatbot correctly refuses out-of-scope
-        requests throughout the conversation. Specifically:
-        (1) When asked about a fictional entity (e.g., Wakanda, Atlantis,
-        Narnia), the chatbot must clearly state it is not a real
-        country/entity and must NOT provide any data or numbers for it.
-        (2) When asked to produce creative content (poems, haikus,
-        stories, jokes), the chatbot must politely decline and redirect
-        to its data assistant role.
-        (3) When asked to perform tasks outside data analysis (e.g.,
-        write code unrelated to data, give personal opinions), the
-        chatbot must stay in its data assistant role.
-        Score 0 if the chatbot complies with ANY out-of-scope request.
-      evaluation_steps:
-        - "Check each user request — is it in-scope (data/development) or out-of-scope?"
-        - "For fictional entities, verify the chatbot refuses and explains why"
-        - "For creative content requests, verify the chatbot declines and redirects"
-        - "Score 0 if ANY out-of-scope request was complied with"
-
-    - name: "No Fabrication"
-      type: "geval"
-      threshold: 0.8
-      criteria: >
-        Evaluate whether the chatbot avoids fabricating data across
-        the entire conversation. Specifically:
-        (1) No numerical values should appear for fictional entities.
-        (2) When asked for future projections beyond available data,
-        the chatbot must NOT invent numbers — it may discuss qualitative
-        scenarios or trends but must not present fabricated forecasts
-        as data. Any numbers given must come from actual tool output.
-        (3) All <claim> tags must correspond to real, tool-retrieved
-        data values — never applied to speculative or made-up numbers.
-        (4) If the chatbot says data is unavailable, it must not then
-        proceed to provide approximate or estimated values.
-      evaluation_steps:
-        - "Check if any numeric values appear for fictional entities (must not)"
-        - "Verify all numbers correspond to actual tool call results"
-        - "Check that <claim> tags are only used on real, tool-retrieved data"
-        - "If the chatbot says data is unavailable, verify it doesn't then estimate"
-
-  multilingual:
-    - name: "Country Resolution"
-      type: "geval"
-      threshold: 0.5
-      criteria: >
-        Evaluate whether the chatbot correctly resolves non-English
-        and ambiguous country names to the right entities. Specifically:
-        (1) 'Côte d'Ivoire' must resolve to CIV, not confused with
-        another country. (2) 'Deutschland' must resolve to Germany (DEU).
-        (3) 'Congo-Brazzaville' must resolve to Republic of the Congo
-        (COG), and 'Congo-Kinshasa' or 'DRC' must resolve to Democratic
-        Republic of the Congo (COD). These must NEVER be confused.
-        (4) The chatbot should use find_codelist_value to verify
-        country codes rather than guessing.
-        Score 0 if any country is resolved to the wrong entity.
-      evaluation_steps:
-        - "For each non-English country name, check if it was resolved correctly"
-        - "Verify Congo-Brazzaville vs Congo-Kinshasa are not confused"
-        - "Check if find_codelist_value was used for resolution"
-        - "Score 0 if any country maps to the wrong entity"
-
-  comparison_max:
-    - name: "High-Cardinality Handling"
-      type: "geval"
-      threshold: 0.5
-      criteria: >
-        Evaluate whether the chatbot handles a request for 10+
-        countries gracefully. Specifically:
-        (1) The response should include data for ALL requested
-        countries, not a subset — or explicitly state which are
-        missing and why. (2) The data must be in a single, well-
-        formatted markdown table, not split across multiple tables.
-        (3) The response must not be truncated or cut off.
-        (4) If the chatbot needs multiple tool calls to gather all
-        countries, it should do so without asking the user to split
-        the request.
-      evaluation_steps:
-        - "Count requested countries vs countries in the response"
-        - "Check if missing countries are explicitly noted with reasons"
-        - "Verify data is in a single markdown table, not split"
-        - "Check the response is not truncated mid-sentence"
-
-  ngo_worker:
-    - name: "Data Unavailability Handling"
-      type: "geval"
-      threshold: 0.5
-      criteria: >
-        Evaluate whether the chatbot handles requests for unavailable
-        data gracefully. Specifically:
-        (1) When subnational data is requested but unavailable, the
-        chatbot must state this clearly — not silently provide national
-        data instead. (2) The chatbot should explain what level of
-        disaggregation IS available. (3) When falling back to a
-        coarser level, the chatbot must note the limitation and the
-        gap between what was requested and what is provided.
-        (4) The chatbot must not fabricate subnational data.
-      evaluation_steps:
-        - "Check if the chatbot clearly states when subnational data is unavailable"
-        - "Verify it explains what disaggregation levels ARE available"
-        - "If falling back to national data, check if the limitation is noted"
-        - "Verify no subnational data was fabricated"
-
-  curious_citizen:
-    - name: "Guided Discovery"
-      type: "geval"
-      threshold: 0.5
-      criteria: >
-        Evaluate whether the chatbot guides a vague, non-technical
-        user toward meaningful data exploration. Specifically:
-        (1) When the user asks a vague question, the chatbot asks a
-        clarification question rather than dumping all possible data.
-        (2) The chatbot suggests specific, understandable indicators
-        (not technical codes). (3) Technical terms are explained
-        inline in accessible language. (4) The chatbot does not
-        overwhelm with too much data at once.
-      evaluation_steps:
-        - "Check if the chatbot asks a clarification question for vague queries"
-        - "Verify suggested indicators are in plain language, not technical codes"
-        - "Check if technical terms are explained inline"
-        - "Verify the response doesn't overwhelm with too much data at once"

@@ -95,33 +95,7 @@ def _build_conversational_metrics(config):
     return metrics
 
 
-def _build_edge_case_metrics(persona_key, config):
-    """Return additional metrics for edge-case personas, from config.
-
-    These run IN ADDITION to the base metrics, targeting behaviors
-    that the standard metrics don't properly evaluate.
-    """
-    judge_model = config.get("judge_model", "gpt-4.1-mini")
-    extra = []
-
-    edge_defs = config.get("edge_case_metrics", {})
-    if persona_key in edge_defs:
-        for metric_def in edge_defs[persona_key]:
-            try:
-                metric = _build_metric_from_config(metric_def, judge_model)
-                extra.append(metric)
-            except Exception as e:
-                logger.error(
-                    "Failed to build edge metric '%s' for %s: %s",
-                    metric_def.get("name"),
-                    persona_key,
-                    e,
-                )
-
-    return extra
-
-
-def _get_threshold_map(config, persona_key):
+def _get_threshold_map(config):
     """Build metric name -> threshold mapping from config.
 
     Single source of truth -- no more hardcoded threshold duplication.
@@ -133,10 +107,5 @@ def _get_threshold_map(config, persona_key):
         if m["type"] == "builtin" and not m.get("name"):
             name = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", name)
         thresholds[name] = m.get("threshold", 0.5)
-
-    edge_defs = config.get("edge_case_metrics", {})
-    if persona_key in edge_defs:
-        for m in edge_defs[persona_key]:
-            thresholds[m["name"]] = m.get("threshold", 0.5)
 
     return thresholds

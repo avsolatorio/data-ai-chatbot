@@ -74,7 +74,7 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval [OPTIONS]
 | Flag | Default | Description |
 |---|---|---|
 | `--http` | off | Run against the live chatbot (E2E). Without this, runs in-process. |
-| `--persona <name>` | `all` | Which persona to simulate. Use `all` for all personas. |
+| `--persona <name>` | `all` | Which flat persona to simulate. Use `all` for all personas. |
 | `--turns <N>` | 5 | Maximum user-assistant turn cycles per persona. |
 | `--no-eval` | off | Simulate conversations but skip scoring. |
 | `--runs <N>` | 1 | Repeat each persona N times (reports mean +/- std). |
@@ -82,6 +82,9 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval [OPTIONS]
 | `--config <path>` | `eval_config.yaml` | Path to an alternate config file. |
 | `--goldens-file <path>` | -- | Use pre-generated golden test cases instead of personas. |
 | `--output-dir <path>` | `conversations/` | Custom output directory for markdown transcripts. |
+| `--compose BASE:TOPIC:COUNTRIES:PATTERN` | -- | Compose a persona from facets (see [PERSONAS.md](PERSONAS.md)). |
+| `--compose-random BASE` | -- | Random facets per run. Use with `--runs N` for variation. |
+| `--list-facets` | -- | Print available bases and facets, then exit. |
 
 ## File Layout
 
@@ -102,7 +105,9 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval [OPTIONS]
 
 | Directory | Contents |
 |---|---|
-| `personas/` | YAML persona definitions (10 personas) |
+| `personas/` | Flat YAML persona definitions (10 personas) |
+| `personas/bases/` | Composable base profiles (6 archetypes) |
+| `personas/facets/` | Composable facets: topics (10), countries (5), patterns (8) |
 | `docs/` | Planning docs (MVP features, user stories, findings) |
 | `conversations/` | Generated conversation markdown files |
 | `.results/` | Evaluation result JSON files |
@@ -137,6 +142,7 @@ See the [Adding a New Metric](METRICS.md#adding-a-new-metric) section in METRICS
 
 ## Related Docs
 
+- [PERSONAS.md](PERSONAS.md) -- composable persona system, E2E run playbook
 - [METRICS.md](METRICS.md) -- full metric catalog with descriptions
 - [E2E_GUIDE.md](E2E_GUIDE.md) -- setup, architecture, VPN, and preflight details
 - [.env.example](.env.example) -- environment variable template

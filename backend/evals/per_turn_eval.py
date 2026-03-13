@@ -141,6 +141,9 @@ def _build_condensed_context(
         r"write\s+(?:me\s+)?(?:a|the)",
         r"(?:create|compose|prepare)\s+(?:a|the)",
         r"give\s+me\s+(?:a|the)\s+(?:paragraph|summary|section|report|brief)",
+        r"(?:adapt|convert|transform)\s+.+?\s+(?:into|to)\b",
+        r"(?:turn|rewrite|rephrase|reformat)\s+.+?\s+(?:into|to|as|for)\b",
+        r"\b(?:bullet\s*points?|slide\s*deck|presentation)\b",
     ]
     is_deliverable_request = any(
         re.search(pat, user, re.IGNORECASE) for pat in deliverable_patterns
@@ -325,10 +328,18 @@ def _select_metrics_for_turn(ctx: dict, all_metric_defs: list) -> set:
         "routing": None,  # always applicable
     }
 
+    is_deliverable = ctx.get("is_deliverable_request", False)
+
     applicable = set()
     for metric_def in all_metric_defs:
         name = metric_def["name"]
         requires = metric_def.get("requires")
+
+        # Skip metrics that don't apply to deliverable-format turns
+        # (e.g., bullet points, summaries, drafts). These turns correctly
+        # omit structural elements like section labels and follow-ups.
+        if is_deliverable and metric_def.get("skip_on_deliverable", False):
+            continue
 
         if requires is None:
             # Legacy: requires_tool_data field
