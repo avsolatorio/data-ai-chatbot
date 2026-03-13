@@ -19,10 +19,12 @@ export async function GET(request: NextRequest) {
     let msalToken: string | undefined;
     let guestSessionId: string | undefined;
     let userSessionId: string | undefined;
+    let searchToken: string | undefined;
     try {
       const cookieStore = await cookies();
       authToken = cookieStore.get("auth_token")?.value;
       msalToken = cookieStore.get(cookiesKey.userImpersonationToken)?.value;
+      searchToken = cookieStore.get(cookiesKey.searchToken)?.value;
       guestSessionId = cookieStore.get("guest_session_id")?.value;
       userSessionId = cookieStore.get("user_session_id")?.value;
     } catch {
@@ -32,13 +34,15 @@ export async function GET(request: NextRequest) {
     const cookieHeader = [
       authToken && `auth_token=${authToken}`,
       msalToken && `${cookiesKey.userImpersonationToken}=${msalToken}`,
+      searchToken && `${cookiesKey.searchToken}=${searchToken}`,
       guestSessionId && `guest_session_id=${guestSessionId}`,
       userSessionId && `user_session_id=${userSessionId}`,
     ]
       .filter(Boolean)
       .join("; ");
 
-    const bearerToken = bearerFromHeader ?? authToken ?? msalToken;
+    const bearerToken =
+      bearerFromHeader ?? authToken ?? msalToken ?? searchToken;
     if (!bearerToken && !cookieHeader) {
       return NextResponse.json(
         { detail: "Not authenticated" },

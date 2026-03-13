@@ -12,6 +12,7 @@ import { logoutClient } from "@/lib/auth-service-client";
 import { getApiUrl } from "@/lib/api-client";
 import { getBasePath } from "@/lib/config";
 import { authProvider, skipLoginPage } from "@/lib/auth/config";
+import { sessionStorageKeys } from "@/lib/constants";
 import { loginRequest } from "@/lib/auth/msal/msal-config";
 import {
   DropdownMenu,
@@ -194,6 +195,18 @@ export function SidebarUserNav({
                     try {
                       await logoutClient();
                       mutate(unstable_serialize(getChatHistoryPaginationKey));
+
+                      // searchToken integration: clear cookie via API and redirect to login
+                      if (authProvider === "msal" && !msalInstance) {
+                        sessionStorage.removeItem(
+                          sessionStorageKeys.msalUserImpersonationToken,
+                        );
+                        const loginPath = `${getBasePath()}/login`;
+                        window.location.href = getApiUrl(
+                          `/api/auth/clear-search-token?redirect=${encodeURIComponent(loginPath)}`,
+                        );
+                        return;
+                      }
 
                       let isLoggedOut = false;
                       for (let i = 0; i < 5; i++) {
