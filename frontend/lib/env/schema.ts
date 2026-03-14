@@ -93,8 +93,10 @@ const rawEnvSchema = z.object({
   // --- Internal API secret (server-only) ---
   INTERNAL_API_SECRET: optionalString.describe("Secret for FastAPI → Next.js internal requests"),
 
-  // --- Database (server-only) ---
-  POSTGRES_URL: optionalString.describe("PostgreSQL connection string for migrations and queries"),
+  // --- Database (deprecated: frontend no longer connects to DB; backend owns DB) ---
+  POSTGRES_URL: optionalString.describe(
+    "Deprecated. Frontend no longer uses DB. Kept for backward compatibility only.",
+  ),
 
   // --- Feature flags / UI ---
   NEXT_PUBLIC_APPLICATION_STATUS: optionalString.transform((v) => {

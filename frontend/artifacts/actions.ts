@@ -1,8 +1,19 @@
 "use server";
 
-import { getSuggestionsByDocumentId } from "@/lib/db/queries";
+import { serverApiFetch } from "@/lib/server-api-client";
 
 export async function getSuggestions({ documentId }: { documentId: string }) {
-  const suggestions = await getSuggestionsByDocumentId({ documentId });
-  return suggestions ?? [];
+  try {
+    const response = await serverApiFetch(
+      `/api/chat/suggestions?documentId=${encodeURIComponent(documentId)}`,
+      { cache: "no-store" },
+    );
+    if (!response.ok) {
+      return [];
+    }
+    const suggestions = await response.json();
+    return Array.isArray(suggestions) ? suggestions : [];
+  } catch {
+    return [];
+  }
 }
