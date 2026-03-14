@@ -113,6 +113,8 @@ const rawEnvSchema = z.object({
 
   // --- Data header ---
   NEXT_PUBLIC_DATA_HEADER_ENABLED: booleanEnv.describe("Enable World Bank data header"),
+  NEXT_PUBLIC_DATA_HEADER_CSS_URL: optionalUrl.describe("Data header CSS URL; used when NEXT_PUBLIC_DATA_HEADER_ENABLED is true"),
+  NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: optionalUrl.describe("Data header script URL; used when NEXT_PUBLIC_DATA_HEADER_ENABLED is true"),
 
   // --- Maintenance ---
   MAINTENANCE_MODE: booleanEnv.describe("Redirect to maintenance page when true"),
@@ -148,6 +150,8 @@ export type Env = RawEnv & {
   NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR: "bottom" | "trigger";
   NEXT_PUBLIC_SHOW_REASONING_PART_TYPE: boolean;
   NEXT_PUBLIC_DATA_HEADER_ENABLED: boolean;
+  NEXT_PUBLIC_DATA_HEADER_CSS_URL: string;
+  NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: string;
   NEXT_PUBLIC_SKIP_LOGIN_PAGE: boolean;
   MAINTENANCE_MODE: boolean;
   CSP_ENABLED: boolean;
@@ -168,6 +172,8 @@ export type PublicEnv = Pick<
   | "NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR"
   | "NEXT_PUBLIC_SHOW_REASONING_PART_TYPE"
   | "NEXT_PUBLIC_DATA_HEADER_ENABLED"
+  | "NEXT_PUBLIC_DATA_HEADER_CSS_URL"
+  | "NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL"
   | "NEXT_PUBLIC_AUTH_PROVIDER"
   | "NEXT_PUBLIC_SKIP_LOGIN_PAGE"
   | "NEXT_PUBLIC_MSAL_CLIENT_ID"
