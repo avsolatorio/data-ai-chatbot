@@ -34,6 +34,9 @@ function buildRawInput(): Record<string, string | undefined> {
     SERVER_API_URL: pick("SERVER_API_URL"),
     NEXT_PUBLIC_API_URL: pick("NEXT_PUBLIC_API_URL"),
     NEXT_PUBLIC_BASE_URL: pick("NEXT_PUBLIC_BASE_URL"),
+    // Explicit refs so Next.js inlines these in client bundles
+    NEXT_PUBLIC_DATA_HEADER_CSS_URL: process.env.NEXT_PUBLIC_DATA_HEADER_CSS_URL?.trim() || undefined,
+    NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: process.env.NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL?.trim() || undefined,
   };
 }
 
@@ -77,6 +80,12 @@ function applyDefaults(raw: RawEnv): Env {
       raw.NEXT_PUBLIC_SHOW_REASONING_PART_TYPE ?? false,
     NEXT_PUBLIC_DATA_HEADER_ENABLED:
       raw.NEXT_PUBLIC_DATA_HEADER_ENABLED ?? false,
+    NEXT_PUBLIC_DATA_HEADER_CSS_URL:
+      raw.NEXT_PUBLIC_DATA_HEADER_CSS_URL?.trim() ||
+      "https://extdataportalqa.worldbank.org/qa/api/ext/header/webasset/data/dataheaderservice/clientlibs/site.css",
+    NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL:
+      raw.NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL?.trim() ||
+      "https://extdataportalqa.worldbank.org/qa/api/ext/header/webasset/data/dataheaderservice/clientlibs/site.js",
     NEXT_PUBLIC_SKIP_LOGIN_PAGE:
       raw.NEXT_PUBLIC_SKIP_LOGIN_PAGE ?? true,
     MAINTENANCE_MODE: raw.MAINTENANCE_MODE ?? false,
@@ -135,6 +144,8 @@ export function getPublicEnv(): PublicEnv {
     NEXT_PUBLIC_SHOW_REASONING_PART_TYPE:
       env.NEXT_PUBLIC_SHOW_REASONING_PART_TYPE,
     NEXT_PUBLIC_DATA_HEADER_ENABLED: env.NEXT_PUBLIC_DATA_HEADER_ENABLED,
+    NEXT_PUBLIC_DATA_HEADER_CSS_URL: env.NEXT_PUBLIC_DATA_HEADER_CSS_URL,
+    NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: env.NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL,
     NEXT_PUBLIC_AUTH_PROVIDER: env.NEXT_PUBLIC_AUTH_PROVIDER,
     NEXT_PUBLIC_SKIP_LOGIN_PAGE: env.NEXT_PUBLIC_SKIP_LOGIN_PAGE,
     NEXT_PUBLIC_MSAL_CLIENT_ID: env.NEXT_PUBLIC_MSAL_CLIENT_ID,

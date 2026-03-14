@@ -3,23 +3,14 @@
 import Script from "next/script";
 import { useEffect, useRef } from "react";
 
-const DEFAULT_HEADER_CSS_URL =
-  "https://extdataportalqa.worldbank.org/qa/api/ext/header/webasset/data/dataheaderservice/clientlibs/site.css";
-const DEFAULT_HEADER_SCRIPT_URL =
-  "https://extdataportalqa.worldbank.org/qa/api/ext/header/webasset/data/dataheaderservice/clientlibs/site.js";
+import { getPublicEnv } from "@/lib/env/config";
 
 function getDataHeaderCssUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_DATA_HEADER_CSS_URL?.trim() ||
-    DEFAULT_HEADER_CSS_URL
-  );
+  return getPublicEnv().NEXT_PUBLIC_DATA_HEADER_CSS_URL;
 }
 
 function getDataHeaderScriptUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL?.trim() ||
-    DEFAULT_HEADER_SCRIPT_URL
-  );
+  return getPublicEnv().NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL;
 }
 
 const HEADER_SCOPE_CLASS = "data-header-wrapper";
