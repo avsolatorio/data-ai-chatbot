@@ -102,18 +102,7 @@ export function validateEnv(): Env {
     );
   }
 
-  const env = applyDefaults(parsed.data);
-
-  // Production: require POSTGRES_URL when app uses DB
-  if (typeof window === "undefined" && process.env.NODE_ENV === "production") {
-    if (!env.POSTGRES_URL?.trim()) {
-      throw new Error(
-        "POSTGRES_URL is required in production. Set it in Azure App Service application settings.",
-      );
-    }
-  }
-
-  return env;
+  return applyDefaults(parsed.data);
 }
 
 /**
