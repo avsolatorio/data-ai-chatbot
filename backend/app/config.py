@@ -99,6 +99,16 @@ class Settings(BaseSettings):
     # AI Model Configuration - can be overridden via environment variables
     models: ModelSettings = ModelSettings()
 
+    # Azure OpenAI / APIM - Client credentials (alternative to AZURE_API_KEY)
+    # Used by LiteLLM and Azure Identity when AZURE_API_KEY is not set.
+    # Required together when using client credentials flow (e.g. via Azure APIM).
+    AZURE_CLIENT_ID: str = ""  # App registration client ID for Azure OpenAI/APIM
+    AZURE_CLIENT_SECRET: str = (
+        ""  # Client secret for service-to-service auth  # pragma: allowlist secret
+    )
+    AZURE_TENANT_ID: str = ""  # Azure AD tenant ID
+    AZURE_SCOPE: str = ""  # OAuth scope, e.g. "api://your-api-app-id/.default"
+
     # Routing Configuration
     ROUTING_MODEL: str = "gpt-4o-mini"
     ROUTING_HISTORY_LIMIT: int = 3
@@ -139,8 +149,9 @@ class Settings(BaseSettings):
         30  # Idle timeout: session invalid after this many days without use
     )
 
-    # Auth: backend tries JWT first, then Azure AD if JWT fails and AZURE_* are set (no AUTH_PROVIDER needed).
+    # Auth: backend tries JWT first, then Azure AD if JWT fails and AZURE_AD_* are set (no AUTH_PROVIDER needed).
     # AUTH_PROVIDER is optional/legacy; frontend can set NEXT_PUBLIC_AUTH_PROVIDER for UI only.
+    # Note: AZURE_AD_* = validate incoming user tokens. AZURE_CLIENT_* (above) = auth to Azure OpenAI/APIM.
     AUTH_PROVIDER: str = "guest"  # "guest" | "user" | "msal" (optional; auth inferred from token)
     MSAL_AUTH_COOKIE_NAME: str = "UIT"  # Cookie name for Azure AD token (must match frontend)
     AZURE_AD_TENANT_ID: str = (
