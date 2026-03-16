@@ -47,7 +47,7 @@ export type EnvironmentName = z.infer<typeof environmentNameSchema>;
 export const applicationStatusSchema = z.enum(["pre-alpha", "alpha", "beta"]);
 
 /** Auth provider type. */
-export const authProviderSchema = z.enum(["guest", "user", "msal"]);
+export const authProviderSchema = z.enum(["guest", "user", "msal", "data360"]);
 
 /** Artifact scroll behavior. */
 export const artifactScrollBehaviorSchema = z.enum(["bottom", "trigger"]);
@@ -76,7 +76,8 @@ const rawEnvSchema = z.object({
   // --- Auth ---
   NEXT_PUBLIC_AUTH_PROVIDER: optionalString.transform((v) => {
     const s = v?.trim().toLowerCase();
-    if (s && ["guest", "user", "msal"].includes(s)) return s as "guest" | "user" | "msal";
+    if (s && ["guest", "user", "msal", "data360"].includes(s))
+      return s as "guest" | "user" | "msal" | "data360";
     return undefined;
   }),
   NEXT_PUBLIC_SKIP_LOGIN_PAGE: booleanEnv.describe(
@@ -85,6 +86,9 @@ const rawEnvSchema = z.object({
   NEXT_PUBLIC_MSAL_CLIENT_ID: optionalString.describe("Azure AD app (client) ID"),
   NEXT_PUBLIC_MSAL_REDIRECT_URI: optionalString.describe("MSAL redirect URI; must match Azure AD app registration"),
   NEXT_PUBLIC_MSAL_AUTHORITY: optionalString.describe("MSAL authority URL (e.g. https://login.microsoftonline.com/<tenant>)"),
+  NEXT_PUBLIC_DATA360_AUTH_URL: optionalUrl.describe(
+    "Data360 auth URL for redirect when unauthenticated; required when NEXT_PUBLIC_AUTH_PROVIDER=data360",
+  ),
   AUTH_PROXY_TIMEOUT_MS: z
     .string()
     .optional()
@@ -179,6 +183,7 @@ export type PublicEnv = Pick<
   | "NEXT_PUBLIC_MSAL_CLIENT_ID"
   | "NEXT_PUBLIC_MSAL_REDIRECT_URI"
   | "NEXT_PUBLIC_MSAL_AUTHORITY"
+  | "NEXT_PUBLIC_DATA360_AUTH_URL"
   | "NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL"
   | "NEXT_PUBLIC_MAX_FILE_SIZE_BYTES"
   | "NEXT_PUBLIC_ALLOWED_IMAGE_TYPES"

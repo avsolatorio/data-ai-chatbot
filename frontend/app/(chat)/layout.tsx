@@ -31,9 +31,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 }
 
 async function SidebarWrapper({ children }: { children: React.ReactNode }) {
-  // MSAL: token is in session storage; server has no cookie. Skip server fetch to avoid a redundant 401 and let the client sidebar fetch once with the token.
+  // MSAL/data360: token is in session storage (MSAL) or cookie (data360); server may not have it. Skip server fetch and let the client sidebar fetch via /api/auth/me.
   const user =
-    authProvider === "msal" ? null : await getCurrentUser();
+    authProvider === "msal" || authProvider === "data360"
+      ? null
+      : await getCurrentUser();
 
   // Get sidebar state from cookies (handle prerendering gracefully)
   let isCollapsed = true; // Default to collapsed

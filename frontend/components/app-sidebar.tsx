@@ -52,15 +52,17 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const { mutate } = useSWRConfig();
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  // MSAL: token lives in session storage; server has no cookie, so resolve user client-side.
+  // MSAL/data360: token in session storage (MSAL) or cookie (data360); server may not have it. Resolve user client-side.
   const [msalUser, setMsalUser] = useState<User | null>(null);
-  // Only true while /api/auth/me is in flight for MSAL; false once we get 200 or 401 so we don't spin forever.
+  // Only true while /api/auth/me is in flight; false once we get 200 or 401 so we don't spin forever.
   const [msalAuthChecking, setMsalAuthChecking] = useState(false);
   const effectiveUser = user ?? msalUser ?? undefined;
 
   useEffect(() => {
-    // For MSAL we pass user=null/undefined from layout (no server cookie). Run fetch when we don't have a user yet.
-    if (authProvider !== "msal" || user != null) {
+    // For MSAL/data360 we pass user=null/undefined from layout (no server cookie). Run fetch when we don't have a user yet.
+    const needsClientFetch =
+      (authProvider === "msal" || authProvider === "data360") && user == null;
+    if (!needsClientFetch) {
       setMsalAuthChecking(false);
       return;
     }
@@ -197,9 +199,16 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               user={{
                 id: "guest-temp",
                 email: null,
-                type: authProvider === "msal" ? "regular" : "guest",
+                type:
+                  authProvider === "msal" || authProvider === "data360"
+                    ? "regular"
+                    : "guest",
               }}
-              placeholderLabel={authProvider === "msal" ? "Sign in" : undefined}
+              placeholderLabel={
+                authProvider === "msal" || authProvider === "data360"
+                  ? "Sign in"
+                  : undefined
+              }
               authProvider={authProvider}
             />
           )}

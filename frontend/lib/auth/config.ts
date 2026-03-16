@@ -9,7 +9,7 @@
 import { cookiesKey } from "@/lib/constants";
 import { getEnv } from "@/lib/env";
 
-export type AuthProviderType = "guest" | "msal" | "user";
+export type AuthProviderType = "guest" | "msal" | "user" | "data360";
 
 // Direct reference required: Next.js only inlines process.env.NEXT_PUBLIC_* when explicitly
 // referenced. Spread ({ ...process.env }) does NOT trigger inlining, so client bundle would
@@ -20,16 +20,19 @@ const AUTH_PROVIDER_ENV =
         | "guest"
         | "user"
         | "msal"
+        | "data360"
         | undefined) ?? getEnv().NEXT_PUBLIC_AUTH_PROVIDER
     : undefined;
 
-/** Current auth mode: "msal" | "user" | "guest" (default). */
+/** Current auth mode: "msal" | "user" | "guest" | "data360" (default: "guest"). */
 export const authProvider: AuthProviderType =
   AUTH_PROVIDER_ENV === "msal"
     ? "msal"
     : AUTH_PROVIDER_ENV === "user"
       ? "user"
-      : "guest";
+      : AUTH_PROVIDER_ENV === "data360"
+        ? "data360"
+        : "guest";
 
 // Direct reference for client inlining (same pattern as authProvider).
 const SKIP_LOGIN_PAGE_ENV =
@@ -51,15 +54,19 @@ export const skipLoginPage: boolean =
           ? getEnv().NEXT_PUBLIC_SKIP_LOGIN_PAGE ?? true
           : true);
 
-/** Cookie name used for Bearer token in API requests (auth_token for guest, UIT for MSAL). */
+/** Cookie name used for Bearer token in API requests (auth_token for guest, UIT for MSAL, searchToken for data360). */
 export function getBearerTokenCookieName(): string {
+  if (authProvider === "data360") return cookiesKey.searchToken;
   return authProvider === "msal" ? cookiesKey.userImpersonationToken : cookiesKey.authToken;
 }
 
-/** Cookie names that indicate an authenticated request (used by proxy). MSAL uses session storage + Authorization header only; no auth cookies. */
+/** Cookie names that indicate an authenticated request (used by proxy). MSAL uses session storage + Authorization header only; no auth cookies. data360 uses only searchToken. */
 export function getAuthCookieNamesForProxy(): string[] {
   if (authProvider === "msal") {
     return [];
+  }
+  if (authProvider === "data360") {
+    return [cookiesKey.searchToken];
   }
   return [
     cookiesKey.authToken,
