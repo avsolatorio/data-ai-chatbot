@@ -37,7 +37,7 @@ export type SidebarUserNavProps = {
   /** When set, show this label instead of Guest/email (e.g. "Sign in" for MSAL when not logged in). */
   placeholderLabel?: string;
   /** When "guest", do not show "Login to your account" for guest users (login page is Try as guest only). */
-  authProvider?: "guest" | "msal" | "user";
+  authProvider?: "guest" | "msal" | "user" | "data360";
 };
 
 export function SidebarUserNav({
@@ -46,7 +46,9 @@ export function SidebarUserNav({
   placeholderLabel,
   authProvider: authProviderProp,
 }: SidebarUserNavProps) {
-  const showLoginOption = authProviderProp !== "guest" || !(user.type === "guest");
+  const showLoginOption =
+    authProviderProp !== "data360" &&
+    (authProviderProp !== "guest" || !(user.type === "guest"));
   const router = useRouter();
   const { setTheme, resolvedTheme } = useTheme();
   const { mutate } = useSWRConfig();
@@ -196,7 +198,7 @@ export function SidebarUserNav({
                       await logoutClient();
                       mutate(unstable_serialize(getChatHistoryPaginationKey));
 
-                      // searchToken integration: clear cookie via API and redirect to login
+                      // searchToken integration (MSAL): clear cookie via API and redirect to login
                       if (authProvider === "msal" && !msalInstance) {
                         sessionStorage.removeItem(
                           sessionStorageKeys.msalUserImpersonationToken,

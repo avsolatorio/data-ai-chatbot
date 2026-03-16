@@ -70,6 +70,7 @@ export default async function RootLayout({
           "antialiased flex h-full flex-col overflow-hidden",
           !DATA_HEADER_ENABLED && "data-header-disabled",
         )}
+        suppressHydrationWarning
       >
         {DATA_HEADER_ENABLED && (
           <div className="data-header-wrapper shrink-0">

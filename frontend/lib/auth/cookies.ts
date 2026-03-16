@@ -7,9 +7,10 @@ import type { NextRequest } from "next/server";
 import { cookiesKey, sessionStorageKeys } from "@/lib/constants";
 import { authProvider, getAuthCookieNamesForProxy, getBearerTokenCookieName } from "./config";
 
-/** Client-side: read searchToken cookie (parent app integration). Returns null if not MSAL or cookie absent. */
+/** Client-side: read searchToken cookie (parent app integration). Returns null if not MSAL/data360 or cookie absent. */
 function getSearchTokenFromDocument(): string | null {
-  if (typeof document === "undefined" || authProvider !== "msal") return null;
+  if (typeof document === "undefined") return null;
+  if (authProvider !== "msal" && authProvider !== "data360") return null;
   try {
     const cookies = document.cookie.split(";");
     const entry = cookies.find((c) => c.trim().startsWith(`${cookiesKey.searchToken}=`));
@@ -21,9 +22,12 @@ function getSearchTokenFromDocument(): string | null {
   }
 }
 
-/** Client-side: read Bearer token from session storage (MSAL) or document.cookie (guest). */
+/** Client-side: read Bearer token from session storage (MSAL) or document.cookie (guest/data360). */
 export function getAuthTokenFromDocument(): string | null {
   if (typeof document === "undefined") return null;
+  if (authProvider === "data360") {
+    return getSearchTokenFromDocument();
+  }
   if (authProvider === "msal") {
     try {
       const fromSearchToken = getSearchTokenFromDocument();
@@ -49,7 +53,7 @@ export function getAuthTokenFromRequest(request: NextRequest): string | null {
   const name = getBearerTokenCookieName();
   const fromStandard = request.cookies.get(name)?.value ?? null;
   if (fromStandard) return fromStandard;
-  if (authProvider === "msal") {
+  if (authProvider === "msal" || authProvider === "data360") {
     const fromSearch = request.cookies.get(cookiesKey.searchToken)?.value ?? null;
     if (fromSearch) return fromSearch;
   }

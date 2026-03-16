@@ -26,8 +26,8 @@ export function useAutoRefreshToken() {
     }
 
     // MSAL: token is in session storage; refresh is handled by MSAL SDK.
-    // This hook only sends cookies, so it would always get 401 for MSAL.
-    if (authProvider === "msal") {
+    // data360: no /api/auth/refresh; 401 triggers redirect to DATA360_AUTH_URL.
+    if (authProvider === "msal" || authProvider === "data360") {
       return;
     }
 

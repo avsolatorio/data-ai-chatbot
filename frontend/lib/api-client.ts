@@ -10,8 +10,10 @@
  * over the catch-all proxy.
  */
 
+import { authProvider } from "@/lib/auth/config";
 import { getAuthTokenFromDocument } from "@/lib/auth/cookies";
 import { getBasePath } from "@/lib/config";
+import { getEnv } from "@/lib/env";
 
 /**
  * Check if endpoint should use Next.js proxy (all endpoints now use proxy)
@@ -65,7 +67,7 @@ export function getApiUrl(endpoint: string): string {
  * - Routes to FastAPI by default
  * - Uses Next.js proxies for special cases
  */
-export function apiFetch(
+export async function apiFetch(
   input: RequestInfo | URL,
   init?: RequestInit,
 ): Promise<Response> {
@@ -107,5 +109,21 @@ export function apiFetch(
     credentials: "include", // Always include cookies
   };
 
-  return fetch(fullUrl, newInit);
+  const response = await fetch(fullUrl, newInit);
+
+  // data360: on 401 (expired token), redirect to auth URL for refresh
+  if (
+    typeof window !== "undefined" &&
+    response.status === 401 &&
+    authProvider === "data360"
+  ) {
+    const authUrl = getEnv().NEXT_PUBLIC_DATA360_AUTH_URL;
+    if (authUrl) {
+      const returnTo = encodeURIComponent(window.location.href);
+      const redirectUrl = `${authUrl}${authUrl.includes("?") ? "&" : "?"}returnTo=${returnTo}`;
+      window.location.href = redirectUrl;
+    }
+  }
+
+  return response;
 }

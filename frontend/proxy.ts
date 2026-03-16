@@ -203,17 +203,27 @@ export function proxy(request: NextRequest) {
     return nextWithCsp(request);
   }
 
-  // Register is only for credentials-based auth (user mode). Redirect to home when msal or guest.
+  // Register is only for credentials-based auth (user mode). Redirect to home when msal, guest, or data360.
   if (pathname === `${BASE_PATH}/register`) {
-    if (authProvider === "msal" || authProvider === "guest") {
+    if (authProvider === "msal" || authProvider === "guest" || authProvider === "data360") {
       const baseOrigin = getRequestOrigin(request);
       return NextResponse.redirect(new URL(`${BASE_PATH}/`, baseOrigin));
     }
     return nextWithCsp(request);
   }
 
-  // Check for auth cookies (guest: auth_token/session ids; msal: UIT)
+  // Check for auth cookies (guest: auth_token/session ids; msal: UIT; data360: searchToken)
   const authenticated = hasAuthCookies(request);
+
+  // When data360 provider: redirect to DATA360_AUTH_URL if not authenticated.
+  if (authProvider === "data360" && !authenticated) {
+    const data360AuthUrl = getEnv().NEXT_PUBLIC_DATA360_AUTH_URL;
+    if (data360AuthUrl) {
+      const returnTo = encodeURIComponent(request.url);
+      const redirectUrl = `${data360AuthUrl}${data360AuthUrl.includes("?") ? "&" : "?"}returnTo=${returnTo}`;
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
 
   // When guest provider: redirect to guest creation if not authenticated.
   // When msal provider: do not redirect; client-side MSAL handles unauthenticated users.
