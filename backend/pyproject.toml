@@ -71,6 +71,7 @@ target-version = ["py311"]
 
 [dependency-groups]
 dev = [
+    "pip-licenses>=5.5.1",
     "pre-commit>=4.5.0",
     "ruff>=0.14.7",
 ]

@@ -1,0 +1,17 @@
+NOTICES AND ATTRIBUTIONS
+========================
+
+This software is based in part on work originally created by Vercel, Inc. and
+released under the Apache License, Version 2.0:
+
+  Vercel AI Chatbot
+  Copyright (c) 2024 Vercel, Inc.
+  https://github.com/vercel/ai-chatbot
+  Licensed under the Apache License, Version 2.0
+
+A copy of the Apache License 2.0 is available at:
+  https://www.apache.org/licenses/LICENSE-2.0
+
+Subsequent modifications, additions, and the overall World Bank integration
+are Copyright (c) 2024 The World Bank and are licensed under the MIT License.
+See LICENSE for the full MIT License text.
