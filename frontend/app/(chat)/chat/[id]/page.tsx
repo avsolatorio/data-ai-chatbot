@@ -30,7 +30,9 @@ export default function Page(props: { params: Promise<{ id: string }> }) {
 async function ChatPage({ id }: { id: string }) {
   // MSAL: token is in session storage only; server has no cookie. Fetch chat on the client
   // so the request includes Authorization header from session storage.
-  if (authProvider === "msal") {
+  // data360: searchToken is set by parent app; serverApiFetch does not read it. Fetch on client
+  // so apiFetch can add Authorization: Bearer <searchToken> from document.cookie.
+  if (authProvider === "msal" || authProvider === "data360") {
     return <ChatPageClient id={id} />;
   }
 
