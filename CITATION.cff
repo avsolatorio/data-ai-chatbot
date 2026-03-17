@@ -9,7 +9,7 @@ abstract: >
 authors:
   - name: "AI for Data — Data for AI Team"
     affiliation: "World Bank"
-    email: "opendata@worldbank.org"
+    email: "aifordata@worldbank.org"
 version: "1.0.0"
 date-released: "2025-01-01"
 license: MIT

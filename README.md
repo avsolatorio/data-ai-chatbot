@@ -510,8 +510,8 @@ Additional reference docs in this repository:
 
 This project is maintained by the **AI for Data — Data for AI** team in the World Bank's Development Data Group.
 
-- **GitHub Issues**: For bugs and feature requests, [open an issue](../../issues)
-- **Email**: [asolatorio@worldbank.org](mailto:asolatorio@worldbank.org)
+- **GitHub Issues**: For bugs and feature requests, [open an issue](https://github.com/worldbank/data-ai-chatbot/issues)
+- **Email**: [aifordata@worldbank.org](mailto:aifordata@worldbank.org)
 
 ## Contributing
 
@@ -526,7 +526,7 @@ If you use this software, please cite it using the metadata in [CITATION.cff](CI
   title  = {Data AI Chatbot},
   author = {{AI for Data — Data for AI Team, World Bank}},
   url    = {https://github.com/worldbank/data-ai-chatbot},
-  license = {MIT}
+  license = {MIT + World Bank IGO Rider}
 }
 ```
 
@@ -539,7 +539,7 @@ before using, distributing or contributing.
 
 See [LICENSE](LICENSE) and [WB-IGO-RIDER.md](WB-IGO-RIDER.md) for the full license texts.
 
-> **Attribution**: Portions of this codebase are derived from the [Vercel AI Chatbot](https://github.com/vercel/ai-chatbot) template, originally licensed under the Apache License 2.0 by Vercel, Inc. See [NOTICE](NOTICE) for details.
+> **Attribution**: Portions of this codebase are derived from the [Vercel AI Chatbot](https://github.com/vercel/ai-chatbot) template, originally licensed under the Apache License 2.0 by Vercel, Inc. See [NOTICE](NOTICE) and [LICENSE-APACHE](LICENSE-APACHE) for details.
 
 ---
 
