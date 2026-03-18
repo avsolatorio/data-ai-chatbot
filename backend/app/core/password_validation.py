@@ -10,8 +10,10 @@ from typing import Optional
 import httpx
 
 from app.config import settings
+from app.core._hibp_hash import hibp_hash as _hibp_hash
 
 logger = logging.getLogger(__name__)
+
 
 # Cache for HIBP results (in-memory, simple implementation)
 # In production, consider using Redis for distributed caching
@@ -116,18 +118,13 @@ async def check_password_breached_hibp(password: str) -> Optional[bool]:
         return _hibp_cache[cache_key]
 
     try:
-        # Hash password with SHA-1 (HIBP API requirement for k-anonymity protocol)
-        # SHA-1 is used ONLY for HIBP API communication and is never used for password storage.
-        # Actual password storage uses bcrypt (industry standard, 72-byte limit enforced elsewhere).
-        # This is a legitimate use case as per HIBP specification: https://haveibeenpwned.com/API/v3
-        # SHA-1 here is not for cryptographic security but for API protocol compliance.
-        # Veracode Exception: CWE-327 does not apply as SHA-1 is not used for security-sensitive operations.
-        # Bandit: B324 - SHA-1 required by HIBP API k-anonymity; see https://haveibeenpwned.com/API/v3
-        sha1_hash = hashlib.sha1(password.encode()).hexdigest().upper()  # nosec B324
+        # Compute SHA-1 via isolated helper (see _hibp_hash docstring for
+        # full CWE-327 mitigation rationale).
+        hash_digest = _hibp_hash(password)
 
         # Split hash: first 5 chars (sent to API), rest (checked locally)
-        prefix = sha1_hash[:5]
-        suffix = sha1_hash[5:]
+        prefix = hash_digest[:5]
+        suffix = hash_digest[5:]
 
         # Call HIBP API with k-anonymity
         async with httpx.AsyncClient(timeout=5.0) as client:
