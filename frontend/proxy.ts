@@ -6,6 +6,18 @@ import { getEnv } from "@/lib/env";
 
 const BASE_PATH = getBasePath();
 
+/**
+ * Check if pathname matches a path, accounting for Next.js basePath behavior.
+ * When basePath is set, request.nextUrl.pathname may or may not include it
+ * (behavior varies by Next.js version). Check both cases for reliability.
+ */
+function pathMatches(pathname: string, path: string): boolean {
+  if (pathname === path || pathname.startsWith(`${path}/`)) return true;
+  if (BASE_PATH && (pathname === `${BASE_PATH}${path}` || pathname.startsWith(`${BASE_PATH}${path}/`)))
+    return true;
+  return false;
+}
+
 /** Vega theme URL for connect-src (charts fetch JSON from worldbank.github.io). */
 const VEGA_THEME_ORIGIN = "https://worldbank.github.io";
 
@@ -139,15 +151,16 @@ export function proxy(request: NextRequest) {
 
   if (isMaintenanceMode() && !isMaintenanceBypass(request)) {
     const maintenancePath = `${BASE_PATH}/maintenance`;
-    if (
-      pathname !== maintenancePath &&
-      !pathname.startsWith(`${BASE_PATH}/_next`) &&
-      !pathname.startsWith(`${BASE_PATH}/api`) &&
-      !pathname.includes(".")
-    ) {
+    const isMaintenance =
+      pathMatches(pathname, "/maintenance") || pathname === maintenancePath;
+    const isNextOrApi =
+      pathMatches(pathname, "/_next") ||
+      pathMatches(pathname, "/api") ||
+      pathname.includes(".");
+    if (!isMaintenance && !isNextOrApi) {
       return NextResponse.redirect(new URL(maintenancePath, request.url));
     }
-    if (pathname === maintenancePath) {
+    if (isMaintenance) {
       return nextWithCsp(request);
     }
   }
@@ -156,19 +169,16 @@ export function proxy(request: NextRequest) {
    * Playwright starts the dev server and requires a 200 status to
    * begin the tests, so this ensures that the tests can start
    */
-  if (pathname.startsWith(`${BASE_PATH}/ping`)) {
+  if (pathMatches(pathname, "/ping")) {
     return new Response("pong", { status: 200 });
   }
 
-  if (pathname.startsWith(`${BASE_PATH}/api/auth`)) {
+  if (pathMatches(pathname, "/api/auth")) {
     return nextWithCsp(request);
   }
 
   // Static public assets: bypass auth so home-config.json, images, etc. load without redirect
-  if (
-    pathname.startsWith(`${BASE_PATH}/json/`) ||
-    pathname.startsWith(`${BASE_PATH}/images/`)
-  ) {
+  if (pathMatches(pathname, "/json") || pathMatches(pathname, "/images")) {
     return nextWithCsp(request);
   }
 
@@ -184,7 +194,7 @@ export function proxy(request: NextRequest) {
 
   // Allow login page without authentication (prevents redirect loops when users try to login after logout)
   // When skipLoginPage is true and guest mode: redirect /login to guest creation (unless error params)
-  if (pathname === `${BASE_PATH}/login`) {
+  if (pathMatches(pathname, "/login")) {
     const url = new URL(request.url);
     const hasError = url.searchParams.has("error");
     if (
@@ -204,7 +214,7 @@ export function proxy(request: NextRequest) {
   }
 
   // Register is only for credentials-based auth (user mode). Redirect to home when msal, guest, or data360.
-  if (pathname === `${BASE_PATH}/register`) {
+  if (pathMatches(pathname, "/register")) {
     if (authProvider === "msal" || authProvider === "guest" || authProvider === "data360") {
       const baseOrigin = getRequestOrigin(request);
       return NextResponse.redirect(new URL(`${BASE_PATH}/`, baseOrigin));
