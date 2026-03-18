@@ -122,7 +122,8 @@ async def check_password_breached_hibp(password: str) -> Optional[bool]:
         # This is a legitimate use case as per HIBP specification: https://haveibeenpwned.com/API/v3
         # SHA-1 here is not for cryptographic security but for API protocol compliance.
         # Veracode Exception: CWE-327 does not apply as SHA-1 is not used for security-sensitive operations.
-        sha1_hash = hashlib.sha1(password.encode()).hexdigest().upper()  # nosec - Required for HIBP k-anonymity
+        # Bandit: B324 - SHA-1 required by HIBP API k-anonymity; see https://haveibeenpwned.com/API/v3
+        sha1_hash = hashlib.sha1(password.encode()).hexdigest().upper()  # nosec B324
 
         # Split hash: first 5 chars (sent to API), rest (checked locally)
         prefix = sha1_hash[:5]

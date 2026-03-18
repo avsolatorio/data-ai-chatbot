@@ -13,14 +13,29 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.config import settings
 
 
+async def _get_allowed_tables(conn) -> set[str]:
+    """Fetch table names from public schema for whitelist validation (SQL injection prevention)."""
+    result = await conn.execute(
+        text("""
+            SELECT table_name FROM information_schema.tables
+            WHERE table_schema = 'public'
+        """)
+    )
+    return {row[0] for row in result.fetchall()}
+
+
 async def view_table(table_name: str = None, limit: int = 10):
     """View contents of a table or list all tables."""
     engine = create_async_engine(settings.POSTGRES_URL, echo=False)
 
     async with engine.connect() as conn:
         if table_name:
-            # View specific table
-            # Use identifier() method for safe table name handling to prevent SQL injection
+            # Whitelist validation: only allow table names from information_schema
+            allowed = await _get_allowed_tables(conn)
+            if table_name not in allowed:
+                raise ValueError(f"Table '{table_name}' not found in public schema")
+
+            # View specific table (table_name is now validated against whitelist)
             query = text(f"SELECT * FROM {chr(34)}{table_name}{chr(34)} LIMIT :limit")
             result = await conn.execute(query, {"limit": limit})
             rows = result.fetchall()
