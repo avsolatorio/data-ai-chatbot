@@ -172,7 +172,13 @@ export function proxy(request: NextRequest) {
       pathMatches(pathname, "/json") ||
       pathname.includes(".");
     /** Known app paths (pathname is stripped of basePath). Add new routes here when adding pages. This is to prevent redirects to the base path for known app paths. */
-    const isKnownAppPath = pathMatches(pathname, "/api");
+    const isKnownAppPath =
+      pathMatches(pathname, "/api") ||
+      pathMatches(pathname, "/chat") ||
+      pathMatches(pathname, "/login") ||
+      pathMatches(pathname, "/register") ||
+      pathMatches(pathname, "/maintenance") ||
+      pathMatches(pathname, "/ping");
     const shouldRedirectToBasePath =
       !isAppRoot && !isNextInternal && !isStaticAsset && !isKnownAppPath;
     if (shouldRedirectToBasePath) {
