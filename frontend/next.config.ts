@@ -7,6 +7,27 @@ const basePath = (process.env.NEXT_PUBLIC_BASE_PATH?.trim() ?? "").replace(/\/+$
 const nextConfig: NextConfig = {
   basePath: basePath || undefined,
   output: "standalone",
+  async redirects() {
+    const redirects: Array<{
+      source: string;
+      destination: string;
+      basePath?: false;
+      permanent: boolean;
+    }> = [];
+    if (basePath) {
+      const basePathSegment = basePath.replace(/^\/+/, "");
+      redirects.push(
+        { source: "/", destination: basePath, basePath: false, permanent: false },
+        {
+          source: `/:path((?!${basePathSegment}(?:/|$)).*)*`,
+          destination: basePath,
+          basePath: false,
+          permanent: false,
+        },
+      );
+    }
+    return redirects;
+  },
   cacheComponents: true,
   async headers() {
     // Note: Full CSP with script-src (nonce-based) is set by proxy.ts for document routes.
