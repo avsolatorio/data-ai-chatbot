@@ -1,0 +1,7 @@
+region: South Asia
+variants:
+  - { geo: "South Asia", scope: region }
+  - { geo: "India", scope: country }
+  - { geo: "Bangladesh", scope: country }
+  - { geo: "India and Bangladesh", scope: list }
+  - { geo: "Nepal, Sri Lanka, and Bangladesh", scope: list }

@@ -1,0 +1,7 @@
+region: Latin America
+variants:
+  - { geo: "Latin America", scope: region }
+  - { geo: "Brazil", scope: country }
+  - { geo: "Mexico", scope: country }
+  - { geo: "Brazil and Mexico", scope: list }
+  - { geo: "Colombia, Peru, and Chile", scope: list }

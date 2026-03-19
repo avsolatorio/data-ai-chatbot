@@ -10,6 +10,7 @@ Usage:
     PYTHONPATH=. .venv/bin/python -m evals.review_conversation --file .results/conversations_20260301_180454.json
     PYTHONPATH=. .venv/bin/python -m evals.review_conversation --file .results/conversations_20260301_180454.json --all
 """
+
 import argparse
 import json
 import logging
@@ -20,7 +21,9 @@ from pathlib import Path
 
 from openai import OpenAI
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%H:%M:%S")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%H:%M:%S"
+)
 logger = logging.getLogger("review_conversation")
 
 EVALS_DIR = Path(__file__).parent
@@ -28,7 +31,7 @@ RESULTS_DIR = EVALS_DIR / ".results"
 REVIEWS_DIR = EVALS_DIR / "reviews"
 REVIEW_MODEL = os.getenv("REVIEW_MODEL", "gpt-4.1-mini")
 
-REVIEW_SYSTEM_PROMPT = '''You are a senior QA engineer reviewing conversations between a simulated user and the Data360 Chatbot -- an MCP-powered assistant that retrieves World Bank development data, generates visualizations, and provides analysis.
+REVIEW_SYSTEM_PROMPT = """You are a senior QA engineer reviewing conversations between a simulated user and the Data360 Chatbot -- an MCP-powered assistant that retrieves World Bank development data, generates visualizations, and provides analysis.
 
 Your job is to produce a STRUCTURED, HONEST quality review. You are not trying to pass or fail the conversation -- you are identifying what went well and what could be improved.
 
@@ -92,7 +95,7 @@ You MUST output EXACTLY this JSON structure (no markdown fencing, just raw JSON)
 - If a check is not applicable (e.g., no visualization requested), mark it N/A with score 1.0
 - overall_score should be the WEIGHTED average: Data Traceability and Accuracy are 2x weight
 - Be critical but fair -- a "PARTIAL" is better than a charitable "PASS"
-'''
+"""
 
 
 def _find_latest_conversation_file(persona=None):
@@ -189,12 +192,14 @@ def _format_review_markdown(review):
     score = review.get("overall_score", 0)
     assessment = review.get("overall_assessment", "")
 
-    score_icon = "pass" if score >= 0.8 else "marginal" if score >= 0.6 else "fail"
     lines.append("# Conversation Review: %s" % persona.upper())
     lines.append("")
     lines.append("**Reviewed:** %s" % datetime.now().strftime("%Y-%m-%d %H:%M"))
     lines.append("**Model:** %s" % REVIEW_MODEL)
-    lines.append("**Overall Score:** %.2f / 1.00 %s" % (score, "[PASS]" if score >= 0.8 else "[MARGINAL]" if score >= 0.6 else "[FAIL]"))
+    lines.append(
+        "**Overall Score:** %.2f / 1.00 %s"
+        % (score, "[PASS]" if score >= 0.8 else "[MARGINAL]" if score >= 0.6 else "[FAIL]")
+    )
     lines.append("")
     lines.append("> %s" % assessment)
     lines.append("")
@@ -207,9 +212,16 @@ def _format_review_markdown(review):
         lines.append("|---|---|---|---|---|")
         for i, check in enumerate(checks, 1):
             status = check.get("status", "?")
-            lines.append("| %d | %s | %.2f | %s | %s |" % (
-                i, check.get("category", ""), check.get("score", 0), status, check.get("finding", ""),
-            ))
+            lines.append(
+                "| %d | %s | %.2f | %s | %s |"
+                % (
+                    i,
+                    check.get("category", ""),
+                    check.get("score", 0),
+                    status,
+                    check.get("finding", ""),
+                )
+            )
         lines.append("")
 
     if checks:
@@ -258,10 +270,18 @@ def _format_review_markdown(review):
 
 def main():
     parser = argparse.ArgumentParser(description="Post-hoc LLM review of saved conversations")
-    parser.add_argument("--persona", type=str, default=None, help="Persona to review (finds latest conversation)")
-    parser.add_argument("--file", type=str, default=None, help="Path to specific conversations JSON file")
-    parser.add_argument("--all", action="store_true", dest="review_all", help="Review all personas in the file")
-    parser.add_argument("--model", type=str, default=None, help="Model for review (default: %s)" % REVIEW_MODEL)
+    parser.add_argument(
+        "--persona", type=str, default=None, help="Persona to review (finds latest conversation)"
+    )
+    parser.add_argument(
+        "--file", type=str, default=None, help="Path to specific conversations JSON file"
+    )
+    parser.add_argument(
+        "--all", action="store_true", dest="review_all", help="Review all personas in the file"
+    )
+    parser.add_argument(
+        "--model", type=str, default=None, help="Model for review (default: %s)" % REVIEW_MODEL
+    )
     args = parser.parse_args()
 
     if not args.persona and not args.file:

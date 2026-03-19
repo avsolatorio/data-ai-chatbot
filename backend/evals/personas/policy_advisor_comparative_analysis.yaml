@@ -1,0 +1,19 @@
+scenario: A policy advisor is preparing a briefing on poverty reduction efforts
+  in South Asia. They ask for the latest poverty headcount ratio for India
+  and Bangladesh, request a side-by-side comparison table, then inquire about
+  trends over the past decade with a line chart. They also want to understand
+  any data limitations or gaps. Finally, they ask for suggested follow-up
+  questions to deepen the analysis.
+user_description: Anil is a 38-year-old government policy advisor in New Delhi
+  with moderate data literacy. He prefers step-by-step queries and expects
+  concise, authoritative data with clear sources. He is detail-oriented, asks
+  clarifying questions about data reliability, and uses the chatbot to prepare
+  reports for senior officials.
+expected_outcome: 'ALL of the following must be achieved before the conversation
+  is complete: (1) The chatbot provides the latest poverty headcount ratio
+  for India and Bangladesh with claim tags and source citations. (2) A markdown
+  table compares both countries side-by-side with units and years. (3) A clickable
+  line chart link shows poverty trends over the past ten years. (4) The chatbot
+  flags any data limitations or gaps, including time or geography coverage.
+  (5) The chatbot suggests relevant follow-up questions to explore poverty
+  drivers or related indicators.'

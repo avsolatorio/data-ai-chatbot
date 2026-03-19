@@ -1,0 +1,19 @@
+type: base
+persona_type: Technical Expert
+priority_ux_need: Depth and traceability
+scenario_template: >
+  A data analyst needs to investigate {topic_concept} in {geo}
+  for integration into an analytical pipeline. {pattern_description}
+user_description_template: >
+  {name} is a {age}-year-old technical data analyst with strong
+  programming and statistical skills. They interact in a precise,
+  technical manner, expecting API URLs, metadata, and raw data
+  for validation. They want full traceability from source to output.
+expected_outcome_template: >
+  ALL of the following must be achieved: (1) The chatbot searches
+  for and provides relevant data about {topic_concept} in {geo}
+  with claim tags and sources. (2) Metadata and data provenance
+  details are provided for validation. {pattern_outcomes}
+defaults:
+  name: Carlos
+  age: 33

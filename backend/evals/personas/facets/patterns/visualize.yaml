@@ -1,0 +1,7 @@
+pattern_description: >
+  They request data, then ask for a chart to visualize trends,
+  and finally ask for exportable citation details and a direct
+  chart link for publishing or presentation.
+pattern_outcomes: >
+  (3) A chart link visualizes relevant trends for {geo}.
+  (4) Citation details and chart links are provided for export.

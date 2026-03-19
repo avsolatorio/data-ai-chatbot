@@ -1,0 +1,19 @@
+type: base
+persona_type: General Public
+priority_ux_need: Accessibility and trust
+scenario_template: >
+  A curious citizen wants to learn about {topic_concept} in {geo}.
+  {pattern_description}
+user_description_template: >
+  {name} is a {age}-year-old with no formal data training. They
+  ask simple, direct questions and expect easy-to-understand
+  answers. They need reassurance that the data is trustworthy
+  and want minimal jargon.
+expected_outcome_template: >
+  ALL of the following must be achieved: (1) The chatbot searches
+  for and provides relevant data about {topic_concept} in {geo}
+  with claim tags and sources. (2) All responses use plain
+  language with no unexplained jargon. {pattern_outcomes}
+defaults:
+  name: Maria
+  age: 45

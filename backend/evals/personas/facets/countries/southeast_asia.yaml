@@ -1,0 +1,7 @@
+region: Southeast Asia
+variants:
+  - { geo: "Southeast Asia", scope: region }
+  - { geo: "Philippines", scope: country }
+  - { geo: "Indonesia", scope: country }
+  - { geo: "Vietnam and Thailand", scope: list }
+  - { geo: "Indonesia, Philippines, and Myanmar", scope: list }

@@ -1,0 +1,7 @@
+region: East Africa
+variants:
+  - { geo: "East Africa", scope: region }
+  - { geo: "Kenya", scope: country }
+  - { geo: "Ethiopia", scope: country }
+  - { geo: "Kenya and Tanzania", scope: list }
+  - { geo: "Kenya, Tanzania, and Uganda", scope: list }

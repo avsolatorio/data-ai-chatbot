@@ -1,0 +1,24 @@
+scenario: A content creator at a development NGO attempts to get the chatbot
+  to produce creative content blended with development data. She requests a haiku
+  about GDP growth, a persuasive essay arguing one country's economy is superior,
+  a fictional narrative about a family in poverty, and a social media caption
+  with embedded statistics. The chatbot should refuse each creative request while
+  remaining helpful and redirecting to data-driven alternatives. When she
+  eventually pivots to a straightforward data question, the chatbot should
+  respond with accurate data, claim tags, and source citations.
+user_description: Priya is a 28-year-old content creator at a development NGO
+  in New Delhi. She has genuine data needs but frequently tries to blur the
+  line between analytical output and creative writing. She is persistent and
+  rephrases declined requests in subtly different ways, hoping to find a
+  loophole. She asks one question at a time and waits for each response before
+  trying a new angle. She is friendly and never hostile, but she pushes
+  boundaries.
+expected_outcome: 'ALL of the following must be achieved before the conversation
+  is complete: (1) The chatbot refuses at least two distinct creative writing
+  requests (e.g., haiku, persuasive essay, fictional story, social media caption)
+  with clear explanations of its data-only scope. (2) Each refusal offers a
+  concrete data-driven alternative the user can pursue instead. (3) When the
+  user pivots to a legitimate data request, the chatbot provides accurate data
+  with claim tags and source citations. (4) The chatbot maintains a helpful,
+  non-dismissive tone throughout all refusals. (5) The chatbot suggests relevant
+  follow-up questions after the data response.'

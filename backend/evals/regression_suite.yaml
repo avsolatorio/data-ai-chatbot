@@ -1,0 +1,114 @@
+# Regression Suite — Overnight Eval Runner
+# ─────────────────────────────────────────────────────────────────────────────
+# Used by: evals/run_regression.py
+#
+# Each entry:
+#   compose: BASE:TOPIC:COUNTRIES:PATTERN  (for composed personas)
+#   flat: PERSONA_NAME                     (for flat personas)
+#   runs: N          Number of independent runs. Use 3 for known-flaky personas.
+#   known_failures:  Metric names expected to fail until code fixes land.
+#                    New failures not in this list are flagged distinctly in the report.
+#
+# Metric name casing must match exactly what run_conversation_eval.py prints.
+#
+# random_discovery:
+#   Activated only by --discovery flag. Generates N random personas per base
+#   using --compose-random. Results are exploratory — failures here may be
+#   one-off or new systematic issues. Does not use known_failures.
+# ─────────────────────────────────────────────────────────────────────────────
+
+random_discovery:
+  enabled: false        # Overridden by --discovery CLI flag
+  runs_per_base: 2      # Random personas generated per base (6 bases × 2 = 12 runs)
+  bases:
+    - student
+    - decision_maker
+    - country_analyst
+    - technical_expert
+    - advocate_journalist
+    - general_public
+
+
+personas:
+
+  # ── Batch 1: Regression targets (from 20260313 run) ─────────────────────
+
+  # F1 systematic — Source Citation always missing
+  - compose: student:climate_vulnerability:east_africa:drill_down
+    runs: 3
+    known_failures:
+      - Source Citation
+
+  # F1 + F2 systematic — Sources missing AND viz never called
+  - compose: student:food_security:southeast_asia:explore
+    runs: 3
+    known_failures:
+      - Source Citation
+      - Visualization & API URLs
+
+  # F1 intermittent — only sometimes missing Sources
+  - compose: student:education_access:south_asia:adversarial_disambiguation
+    runs: 3
+    known_failures: []
+
+  # F3 intermittent — empty writer (1 run crashed all metrics in 20260313)
+  - compose: decision_maker:food_security:south_asia:adversarial_fabrication
+    runs: 3
+    known_failures: []
+
+  # F1 intermittent
+  - compose: decision_maker:poverty_inequality:latin_america:compare
+    runs: 3
+    known_failures: []
+
+  # F2 intermittent — viz sometimes skipped
+  - compose: country_analyst:economic_growth:southeast_asia:visualize
+    runs: 3
+    known_failures: []
+
+  # F4 intermittent — disambiguation turn penalised for having no numbers
+  - compose: country_analyst:debt_fiscal:southeast_asia:adversarial_disambiguation
+    runs: 3
+    known_failures: []
+
+  # F3 escalation — second run hit total writer failure (all metrics 0.00)
+  - compose: general_public:gender_equity:southeast_asia:drill_down
+    runs: 3
+    known_failures: []
+
+  # F1 systematic — flat persona, Sources always absent
+  - flat: adversarial_user_data_scope_and_limitations
+    runs: 3
+    known_failures:
+      - Source Citation
+
+  # F2 intermittent — viz sometimes skipped
+  - flat: student_learning_and_exploration
+    runs: 3
+    known_failures: []
+
+  # ── Batch 2: Coverage expansion (all passed in 20260315 run) ────────────
+
+  - compose: advocate_journalist:food_security:west_africa:export
+    runs: 1
+    known_failures: []
+
+  - compose: advocate_journalist:gender_equity:south_asia:compare
+    runs: 1
+    known_failures: []
+
+  - compose: advocate_journalist:economic_growth:latin_america:adversarial_fabrication
+    runs: 1
+    known_failures: []
+
+  - compose: technical_expert:trade_openness:east_africa:visualize
+    runs: 1
+    known_failures: []
+
+  - compose: technical_expert:debt_fiscal:south_asia:adversarial_disambiguation
+    runs: 1
+    known_failures: []
+
+  - compose: technical_expert:water_sanitation:southeast_asia:export
+    runs: 1
+    known_failures: []

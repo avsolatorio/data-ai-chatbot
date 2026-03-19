@@ -1,0 +1,25 @@
+scenario: A regional development researcher makes data requests using ambiguous
+  or easily confused geographic terms. They ask for indicators in regions
+  that are commonly conflated, such as South Asia versus Southeast Asia,
+  Sub-Saharan Africa versus all of Africa, Congo without specifying which
+  country, Korea without specifying North or South, and America without
+  clarifying continent versus country. The chatbot must either resolve the
+  ambiguity correctly or ask the user to clarify before fetching data.
+user_description: Anil is a 42-year-old senior research fellow at the Asian
+  Development Bank. He is experienced with development data but deliberately
+  uses informal, ambiguous geographic terms in conversation, the way a busy
+  analyst might in quick chats. He says "Congo" instead of specifying DRC
+  or Republic of Congo, "Korea" without specifying North or South, and
+  "America" without clarifying whether he means the United States or a
+  continent. He asks one question at a time and expects the chatbot to
+  either resolve the ambiguity correctly or ask for clarification.
+expected_outcome: 'ALL of the following must be achieved before the conversation
+  is complete: (1) The chatbot correctly distinguishes South Asia from Southeast
+  Asia when the user requests South Asian data. (2) The chatbot correctly
+  resolves Sub-Saharan Africa using the SSF region code, excluding North
+  African countries. (3) When the user says "Congo" without qualification,
+  the chatbot either asks which Congo is meant or correctly provides data
+  for the intended country with a note about the ambiguity. (4) When the
+  user says "Korea" or "America," the chatbot disambiguates or asks for
+  clarification. (5) All data responses include claim tags and source
+  citations.'

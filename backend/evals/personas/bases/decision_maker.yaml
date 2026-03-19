@@ -1,0 +1,19 @@
+type: base
+persona_type: Decision Maker
+priority_ux_need: Confidence and simplicity
+scenario_template: >
+  A senior government official preparing a policy briefing on
+  {topic_concept} in {geo}. {pattern_description}
+user_description_template: >
+  {name} is a {age}-year-old senior policy advisor with limited
+  time and moderate data literacy. They expect concise, authoritative
+  answers backed by clear sources. They prefer summaries over raw
+  data dumps and need confidence that the numbers are trustworthy.
+expected_outcome_template: >
+  ALL of the following must be achieved: (1) The chatbot searches
+  for and provides relevant data about {topic_concept} in {geo}
+  with claim tags and sources. (2) Responses are concise and
+  suitable for a policy briefing. {pattern_outcomes}
+defaults:
+  name: Anil
+  age: 42

@@ -42,3 +42,13 @@ htmlcov/
 
 # Logs
 *.log
+
+# DeepEval cache
+.deepeval/
+
+# Old evals archive
+_old_evals/
+
+# Eval results cache
+evals/.results/
+evals/.cache/

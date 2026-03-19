@@ -1,0 +1,19 @@
+type: base
+persona_type: Advocate and Journalist
+priority_ux_need: Clarity and communicability
+scenario_template: >
+  A journalist writing an article about {topic_concept} in {geo}.
+  {pattern_description}
+user_description_template: >
+  {name} is a {age}-year-old journalist covering development
+  topics. They need clear, quotable data with proper attribution
+  for publication. They value visual exports, ready-to-use
+  citations, and narrative-friendly explanations.
+expected_outcome_template: >
+  ALL of the following must be achieved: (1) The chatbot searches
+  for and provides relevant data about {topic_concept} in {geo}
+  with claim tags and sources. (2) Explanations are clear and
+  suitable for a general audience. {pattern_outcomes}
+defaults:
+  name: Sophie
+  age: 29

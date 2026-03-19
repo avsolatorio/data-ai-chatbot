@@ -1,0 +1,20 @@
+type: base
+persona_type: Student
+priority_ux_need: Learning support
+scenario_template: >
+  A university student studying {field} wants to understand
+  {topic_concept} in {geo}. {pattern_description}
+user_description_template: >
+  {name} is a {age}-year-old undergraduate student with basic
+  data literacy. They interact patiently, asking one question
+  at a time. They value plain-language explanations, stepwise
+  guidance, and visual aids.
+expected_outcome_template: >
+  ALL of the following must be achieved: (1) The chatbot searches
+  for and provides relevant data about {topic_concept} in {geo}
+  with claim tags and sources. (2) Technical terms are explained
+  in plain language. {pattern_outcomes}
+defaults:
+  name: Lina
+  age: 21
+  field: international development

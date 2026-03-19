@@ -1,0 +1,9 @@
+pattern_description: >
+  They use ambiguous geographic names or colloquial references
+  that could map to multiple countries or regions, testing
+  whether the chatbot disambiguates correctly or asks for
+  clarification.
+pattern_outcomes: >
+  (3) The chatbot correctly disambiguates or asks for
+  clarification when geographic references are ambiguous.
+  (4) No data is returned for the wrong country or region.

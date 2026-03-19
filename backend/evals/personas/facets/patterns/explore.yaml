@@ -1,0 +1,8 @@
+pattern_description: >
+  They ask about key concepts, request the latest data, and then
+  ask follow-up questions to deepen their understanding. They want
+  suggestions for related indicators to explore next.
+pattern_outcomes: >
+  (3) The chatbot suggests relevant follow-up questions or related
+  indicators. (4) Follow-up questions are answered consistently
+  with prior data.

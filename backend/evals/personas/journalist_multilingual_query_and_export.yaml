@@ -1,0 +1,19 @@
+scenario: A French-speaking journalist covering health indicators in West
+  Africa requests child mortality rates for Senegal and Côte d'Ivoire. They
+  ask for definitions of the indicator in simple language. They then request
+  a chart to visualize the trend and ask for exportable citation details and
+  chart links for publishing. They also provide feedback on the clarity of
+  the explanation.
+user_description: Sophie is a 29-year-old French-speaking health journalist
+  with basic data skills. She asks questions in French and prefers clear,
+  plain-language explanations. She values quick access to visualizations and
+  exportable citations for her articles. She provides feedback to improve
+  chatbot responses.
+expected_outcome: 'ALL of the following must be achieved before the conversation
+  is complete: (1) The chatbot correctly interprets French queries and provides
+  child mortality data for Senegal and Côte d''Ivoire with source citations.
+  (2) The chatbot offers a plain-language explanation of the child mortality
+  indicator. (3) A chart link visualizes mortality trends for both countries.
+  (4) Citation details and export options are provided for publishing. (5)
+  The chatbot accepts and records user feedback (thumbs up/down and free text)
+  on explanation clarity.'

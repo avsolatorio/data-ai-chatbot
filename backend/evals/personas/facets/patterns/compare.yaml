@@ -1,0 +1,8 @@
+pattern_description: >
+  They request a side-by-side comparison of relevant indicators
+  across countries, ask about trends over recent years, and want
+  to understand any data limitations or gaps between the compared
+  entities.
+pattern_outcomes: >
+  (3) A comparison table or structured comparison is provided.
+  (4) Data limitations or comparability caveats are flagged.

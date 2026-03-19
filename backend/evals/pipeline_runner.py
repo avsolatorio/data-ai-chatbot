@@ -34,7 +34,9 @@ def _restore_mcp_env():
         os.environ["MCP_SERVER_URL"] = _MCP_URL_OVERRIDE
         # Clear the @cache on get_mcp_client so it picks up the new URL
         from app.ai.mcp_tools._client import get_mcp_client
+
         get_mcp_client.cache_clear()
+
 
 _TOOLS_CACHE = Path(__file__).parent / ".cache" / "tool_definitions.json"
 
@@ -61,8 +63,8 @@ class PipelineResult:
     routing_intent: str = ""
     routing_reasoning: str = ""
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
-    final_output: str = ""       # Writer output (Phase 2, after ^ANSWER^)
-    planner_output: str = ""     # Planner output (Phase 1, before ^ANSWER^)
+    final_output: str = ""  # Writer output (Phase 2, after ^ANSWER^)
+    planner_output: str = ""  # Planner output (Phase 1, before ^ANSWER^)
     model: str = ""
     turns_used: int = 0
     error: str | None = None
@@ -92,7 +94,7 @@ async def run_eval_pipeline(
     from app.ai.mcp_tools.data360_mcp import call_mcp_tool
     from app.ai.prompts import get_combined_system_prompt, get_direct_system_prompt
     from app.ai.routing import check_intent
-    from app.config import IntentType, ModelType
+    from app.config import ModelType
 
     # Restore MCP_SERVER_URL AFTER imports (load_dotenv(override=True) clobbers it)
     _restore_mcp_env()
@@ -180,9 +182,7 @@ async def run_eval_pipeline(
                     tool_name = tc.function.name
                     try:
                         arguments = (
-                            json.loads(tc.function.arguments)
-                            if tc.function.arguments
-                            else {}
+                            json.loads(tc.function.arguments) if tc.function.arguments else {}
                         )
                     except json.JSONDecodeError:
                         arguments = {}
@@ -208,9 +208,7 @@ async def run_eval_pipeline(
                     )
 
                     tool_result_str = (
-                        json.dumps(tool_result)
-                        if not isinstance(tool_result, str)
-                        else tool_result
+                        json.dumps(tool_result) if not isinstance(tool_result, str) else tool_result
                     )
                     conversation.append(
                         {
@@ -225,6 +223,7 @@ async def run_eval_pipeline(
                 content = getattr(message, "content", "") or ""
                 # Split on ^ANSWER^ token to separate Planner (Phase 1) from Writer (Phase 2)
                 from app.ai.prompts import THINKING_TO_ANSWER_TOKEN
+
                 if THINKING_TO_ANSWER_TOKEN in content:
                     parts = content.split(THINKING_TO_ANSWER_TOKEN, 1)
                     result.planner_output = parts[0].strip()

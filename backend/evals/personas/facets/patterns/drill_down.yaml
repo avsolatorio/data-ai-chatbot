@@ -1,0 +1,8 @@
+pattern_description: >
+  They start with a broad question, then drill into specific
+  indicators, ask for methodology details, and request metadata
+  to validate the data quality.
+pattern_outcomes: >
+  (3) Indicator metadata or methodology details are provided.
+  (4) The chatbot clearly distinguishes factual data from
+  derived analysis.

@@ -1,0 +1,7 @@
+region: West Africa
+variants:
+  - { geo: "West Africa", scope: region }
+  - { geo: "Senegal", scope: country }
+  - { geo: "Nigeria", scope: country }
+  - { geo: "Senegal and Côte d'Ivoire", scope: list }
+  - { geo: "Nigeria, Ghana, and Mali", scope: list }

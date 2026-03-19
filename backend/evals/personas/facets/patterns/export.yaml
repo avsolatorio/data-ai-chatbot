@@ -1,0 +1,7 @@
+pattern_description: >
+  They request data and then ask for API URLs, downloadable
+  formats, and structured citations suitable for integration
+  into reports or analytical pipelines.
+pattern_outcomes: >
+  (3) API URLs or structured data access details are provided.
+  (4) Citation details are formatted for direct use in reports.

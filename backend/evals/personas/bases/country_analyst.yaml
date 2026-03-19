@@ -1,0 +1,19 @@
+type: base
+persona_type: Country Analyst
+priority_ux_need: Contextual relevance
+scenario_template: >
+  A country economist researching {topic_concept} in {geo}
+  for a country diagnostic report. {pattern_description}
+user_description_template: >
+  {name} is a {age}-year-old country economist who specializes
+  in regional analysis. They need geography-specific data with
+  cross-country comparisons and contextual insights. They value
+  comparability warnings and data coverage information.
+expected_outcome_template: >
+  ALL of the following must be achieved: (1) The chatbot searches
+  for and provides relevant data about {topic_concept} in {geo}
+  with claim tags and sources. (2) Cross-country or regional
+  comparisons are provided with appropriate context. {pattern_outcomes}
+defaults:
+  name: Priya
+  age: 36
