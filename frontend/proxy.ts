@@ -137,6 +137,27 @@ function getRequestOrigin(request: NextRequest): string {
 }
 
 /**
+ * Public return URL for auth redirects. Use instead of request.url when behind a proxy
+ * (request.url can expose the internal container hostname).
+ */
+function getPublicReturnUrlFromRequest(request: NextRequest): string {
+  const appUrl = getEnv().NEXT_PUBLIC_APP_URL?.trim();
+  const { pathname, search } = request.nextUrl;
+  const path = pathname || "/";
+  const pathPart = path.startsWith("/") ? path : `/${path}`;
+
+  if (appUrl) {
+    const base = appUrl.replace(/\/+$/, "");
+    return `${base}${pathPart}${search}`;
+  }
+
+  const origin = getRequestOrigin(request);
+  const basePath = BASE_PATH ? `/${BASE_PATH.replace(/^\/+|\/+$/g, "")}` : "";
+  const fullPath = basePath === "/" ? pathPart : `${basePath}${pathPart}`;
+  return `${origin}${fullPath}${search}`;
+}
+
+/**
  * When MAINTENANCE_MODE is "true" or "1" (set in App Service / runtime env),
  * redirect to /maintenance except for that page and static/API assets.
  */
@@ -267,7 +288,7 @@ export function proxy(request: NextRequest) {
   if (authProvider === "data360" && !authenticated) {
     const data360AuthUrl = getEnv().NEXT_PUBLIC_DATA360_AUTH_URL;
     if (data360AuthUrl) {
-      const returnTo = encodeURIComponent(request.url);
+      const returnTo = encodeURIComponent(getPublicReturnUrlFromRequest(request));
       const redirectUrl = `${data360AuthUrl}${data360AuthUrl.includes("?") ? "&" : "?"}returnTo=${returnTo}`;
       return NextResponse.redirect(redirectUrl);
     }

@@ -14,6 +14,7 @@ import { getEnv } from '@/lib/env';
 import { ChatSDKError, type ErrorCode } from './errors';
 import type { ChatMessage, ChatTools, CustomUIDataTypes } from './types';
 import { apiFetch, getApiUrl } from './api-client';
+import { getPublicReturnUrl } from '@/lib/config';
 
 /** Redirect to Data360 auth URL on 401 (token refresh flow). Clears searchToken first. */
 async function redirectToData360AuthOn401(): Promise<void> {
@@ -27,7 +28,7 @@ async function redirectToData360AuthOn401(): Promise<void> {
     });
     clearAuthSessionStorage();
   } finally {
-    const returnTo = encodeURIComponent(window.location.href);
+    const returnTo = encodeURIComponent(getPublicReturnUrl());
     const redirectUrl = `${authUrl}${authUrl.includes('?') ? '&' : '?'}returnTo=${returnTo}`;
     window.location.replace(redirectUrl);
   }

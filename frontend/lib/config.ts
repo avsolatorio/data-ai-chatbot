@@ -74,6 +74,29 @@ export function getBasePath(): string {
   return v.replace(/\/+$/, "");
 }
 
+/**
+ * Public URL for the current page. Use for returnTo in auth redirects when behind a proxy
+ * (window.location.href can expose the internal container hostname).
+ * When NEXT_PUBLIC_APP_URL is set, builds URL from it + current path; else uses window.location.href.
+ */
+export function getPublicReturnUrl(): string {
+  if (typeof window === "undefined") return "";
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    getEnv().NEXT_PUBLIC_APP_URL ||
+    "";
+  if (!appUrl) return window.location.href;
+  const basePath = getBasePath();
+  const pathname = window.location.pathname;
+  const rest =
+    basePath && pathname.startsWith(basePath)
+      ? pathname.slice(basePath.length) || "/"
+      : pathname;
+  const base = appUrl.replace(/\/+$/, "");
+  const path = rest.startsWith("/") ? rest : `/${rest}`;
+  return `${base}${path}${window.location.search}${window.location.hash}`;
+}
+
 export const appConfig = {
   /**
    * When set (e.g. "alpha", "beta"), a status badge is shown so users know the app is not stable.
