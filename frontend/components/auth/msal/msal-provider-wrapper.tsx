@@ -29,6 +29,7 @@ import {
   MsalProvider,
   UnauthenticatedTemplate,
 } from "@azure/msal-react";
+import { MsalTokenRefresh } from "./msal-token-refresh";
 import { createContext } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -198,6 +199,7 @@ export function MsalProviderWrapper({ children }: { children: React.ReactNode })
   return (
     <MsalInstanceContext.Provider value={msalInstance}>
       <MsalProvider instance={msalInstance}>
+        <MsalTokenRefresh />
         <AuthenticatedTemplate>{children}</AuthenticatedTemplate>
         <UnauthenticatedTemplate>
           {showAuthPageWithoutRedirect ? (
