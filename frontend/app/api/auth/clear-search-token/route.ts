@@ -4,9 +4,18 @@ import { cookiesKey } from "@/lib/constants";
 
 const isProduction = process.env.NODE_ENV === "production";
 
-function getClearCookieHeader(): string {
-  const path = getBasePath() || "/";
+function buildClearCookieHeader(path: string): string {
   return `${cookiesKey.searchToken}=; Path=${path}; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${isProduction ? "; Secure" : ""}`;
+}
+
+/** Set-Cookie headers to clear searchToken at both / and basePath (parent may have set either). */
+function getClearCookieHeaders(): string[] {
+  const basePath = getBasePath();
+  const headers = [buildClearCookieHeader("/")];
+  if (basePath && basePath !== "/") {
+    headers.push(buildClearCookieHeader(basePath));
+  }
+  return headers;
 }
 
 /**
@@ -15,7 +24,11 @@ function getClearCookieHeader(): string {
  */
 export async function POST() {
   const response = NextResponse.json({ success: true });
-  response.headers.set("Set-Cookie", getClearCookieHeader());
+  const headers = getClearCookieHeaders();
+  response.headers.set("Set-Cookie", headers[0] ?? "");
+  for (let i = 1; i < headers.length; i++) {
+    response.headers.append("Set-Cookie", headers[i] ?? "");
+  }
   return response;
 }
 
@@ -31,6 +44,10 @@ export async function GET(request: NextRequest) {
     : new URL(redirect);
 
   const response = NextResponse.redirect(redirectUrl, 302);
-  response.headers.set("Set-Cookie", getClearCookieHeader());
+  const headers = getClearCookieHeaders();
+  response.headers.set("Set-Cookie", headers[0] ?? "");
+  for (let i = 1; i < headers.length; i++) {
+    response.headers.append("Set-Cookie", headers[i] ?? "");
+  }
   return response;
 }
