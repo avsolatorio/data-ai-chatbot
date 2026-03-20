@@ -143,23 +143,27 @@ export async function apiFetch(
     }
   }
 
-  // data360: on 401 (expired token), clear searchToken then redirect to auth URL
+  // data360 or msal+searchToken: on 401, clear searchToken then redirect to auth URL
+  // Also handle msal when using searchToken (no MSAL refresh available)
+  const isData360OrSearchToken =
+    authProvider === "data360" ||
+    (authProvider === "msal" && !getMsalRefresh());
   if (
     typeof window !== "undefined" &&
     response.status === 401 &&
-    authProvider === "data360"
+    isData360OrSearchToken
   ) {
-    const authUrl = getEnv().NEXT_PUBLIC_DATA360_AUTH_URL;
-    if (authUrl) {
-      const returnTo = encodeURIComponent(window.location.href);
-      const redirectUrl = `${authUrl}${authUrl.includes("?") ? "&" : "?"}returnTo=${returnTo}`;
-      try {
-        await fetch(getApiUrl("/api/auth/clear-search-token"), {
-          method: "POST",
-          credentials: "include",
-        });
-      } finally {
-        window.location.href = redirectUrl;
+    try {
+      await fetch(getApiUrl("/api/auth/clear-search-token"), {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      const authUrl = getEnv().NEXT_PUBLIC_DATA360_AUTH_URL;
+      if (authUrl) {
+        const returnTo = encodeURIComponent(window.location.href);
+        const redirectUrl = `${authUrl}${authUrl.includes("?") ? "&" : "?"}returnTo=${returnTo}`;
+        window.location.replace(redirectUrl);
       }
     }
   }

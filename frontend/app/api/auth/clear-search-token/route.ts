@@ -3,7 +3,11 @@ import { getBasePath } from "@/lib/config";
 import { cookiesKey } from "@/lib/constants";
 
 const isProduction = process.env.NODE_ENV === "production";
-const CLEAR_COOKIE_HEADER = `${cookiesKey.searchToken}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${isProduction ? "; Secure" : ""}`;
+
+function getClearCookieHeader(): string {
+  const path = getBasePath() || "/";
+  return `${cookiesKey.searchToken}=; Path=${path}; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${isProduction ? "; Secure" : ""}`;
+}
 
 /**
  * Clears the searchToken cookie and returns 200. Used before redirect on 401
@@ -11,7 +15,7 @@ const CLEAR_COOKIE_HEADER = `${cookiesKey.searchToken}=; Path=/; Max-Age=0; Expi
  */
 export async function POST() {
   const response = NextResponse.json({ success: true });
-  response.headers.set("Set-Cookie", CLEAR_COOKIE_HEADER);
+  response.headers.set("Set-Cookie", getClearCookieHeader());
   return response;
 }
 
@@ -27,6 +31,6 @@ export async function GET(request: NextRequest) {
     : new URL(redirect);
 
   const response = NextResponse.redirect(redirectUrl, 302);
-  response.headers.set("Set-Cookie", CLEAR_COOKIE_HEADER);
+  response.headers.set("Set-Cookie", getClearCookieHeader());
   return response;
 }

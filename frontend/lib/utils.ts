@@ -12,16 +12,23 @@ import { authProvider } from '@/lib/auth/config';
 import { getEnv } from '@/lib/env';
 import { ChatSDKError, type ErrorCode } from './errors';
 import type { ChatMessage, ChatTools, CustomUIDataTypes } from './types';
-import { apiFetch } from './api-client';
+import { apiFetch, getApiUrl } from './api-client';
 
-/** Redirect to Data360 auth URL on 401 (token refresh flow). */
-function redirectToData360AuthOn401(): void {
+/** Redirect to Data360 auth URL on 401 (token refresh flow). Clears searchToken first. */
+async function redirectToData360AuthOn401(): Promise<void> {
   if (typeof window === 'undefined' || authProvider !== 'data360') return;
   const authUrl = getEnv().NEXT_PUBLIC_DATA360_AUTH_URL;
   if (!authUrl) return;
-  const returnTo = encodeURIComponent(window.location.href);
-  const redirectUrl = `${authUrl}${authUrl.includes('?') ? '&' : '?'}returnTo=${returnTo}`;
-  window.location.href = redirectUrl;
+  try {
+    await fetch(getApiUrl('/api/auth/clear-search-token'), {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } finally {
+    const returnTo = encodeURIComponent(window.location.href);
+    const redirectUrl = `${authUrl}${authUrl.includes('?') ? '&' : '?'}returnTo=${returnTo}`;
+    window.location.replace(redirectUrl);
+  }
 }
 
 export function cn(...inputs: ClassValue[]) {
@@ -33,7 +40,7 @@ export const fetcher = async (url: string) => {
   const response = await apiFetch(url);
 
   if (!response.ok) {
-    if (response.status === 401) redirectToData360AuthOn401();
+    if (response.status === 401) void redirectToData360AuthOn401();
     const { code, cause } = await response.json();
     throw new ChatSDKError(code as ErrorCode, cause);
   }
@@ -50,7 +57,7 @@ export async function fetchWithErrorHandlers(
     const response = await apiFetch(input, init);
 
     if (!response.ok) {
-      if (response.status === 401) redirectToData360AuthOn401();
+      if (response.status === 401) void redirectToData360AuthOn401();
       const body = await response.json().catch(() => ({})) as {
         code?: string;
         cause?: string;
