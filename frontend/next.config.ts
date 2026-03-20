@@ -16,10 +16,14 @@ const nextConfig: NextConfig = {
     }> = [];
     if (basePath) {
       const basePathSegment = basePath.replace(/^\/+/, "");
+      // Redirect / and unknown paths to basePath. Exclude known app routes (chat, api, etc.)
+      // so that when an external proxy strips the path prefix, /chat/:id and /api/* still work.
+      const excludeAppRoutes =
+        "(?!chat/)(?!api/)(?!login)(?!register)(?!maintenance)(?!ping)(?!images/)(?!json/)(?!_next/)";
       redirects.push(
         { source: "/", destination: basePath, basePath: false, permanent: false },
         {
-          source: `/:path((?!${basePathSegment}(?:/|$)).*)*`,
+          source: `/:path((?!${basePathSegment}(?:/|$))${excludeAppRoutes}.*)*`,
           destination: basePath,
           basePath: false,
           permanent: false,
