@@ -106,8 +106,12 @@ async def stream_chat(
         client = get_async_ai_client()
         model = get_model_name(request.selectedChatModel)
 
-        # 5. Prepare tools
-        tools, tool_definitions = await prepare_tools(user_id, db)
+        # 5. Prepare tools (merge local + MCP; when ENABLE_LOCAL_TOOLS=false, local is empty)
+        tool_set = await prepare_tools(user_id, db)
+        tools = {**tool_set["mcp"]["tools"], **tool_set["local"]["tools"]}
+        tool_definitions = (
+            tool_set["mcp"]["tool_definitions"] + tool_set["local"]["tool_definitions"]
+        )
         logger.info("tool_definitions: %s", tool_definitions)
 
         # 6. Get or create stream ID for resumable streams

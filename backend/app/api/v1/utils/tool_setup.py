@@ -15,7 +15,7 @@ from app.ai.tools import (
     create_document_tool,
     update_document_tool,
 )
-from app.config import get_mcp_settings
+from app.config import get_mcp_settings, get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -63,30 +63,38 @@ async def create_tool_wrappers(user_id: UUID, db: AsyncSession) -> Dict[str, Dic
     }
 
 
-async def prepare_tools(
-    user_id: UUID, db: AsyncSession
-) -> tuple[Dict[str, Dict[str, Any]], list[Dict[str, Any]]]:
+async def prepare_tools(user_id: UUID, db: AsyncSession) -> Dict[str, Dict[str, Any]]:
     """
     Prepare tools and tool definitions for OpenAI streaming.
-    Returns (tools_dict, tool_definitions_list).
+    Returns tool_set: {"local": {tools, tool_definitions}, "mcp": {tools, tool_definitions}}.
+    When ENABLE_LOCAL_TOOLS=false, local tools/definitions are empty.
     MCP tool list is cached for 5 minutes to avoid calling list_tools on every chat.
     """
     global _mcp_tools_cache
-    logger.info("[tool_setup] create_tool_wrappers (local tools) start")
+    enable_local = get_settings().ENABLE_LOCAL_TOOLS
+    if enable_local:
+        logger.info("[tool_setup] create_tool_wrappers (local tools) start")
+        local_defs = [
+            CREATE_DOCUMENT_TOOL_DEFINITION,
+            UPDATE_DOCUMENT_TOOL_DEFINITION,
+        ]
+        local_tools = await create_tool_wrappers(user_id, db)
+        logger.info("[tool_setup] create_tool_wrappers done")
+    else:
+        local_defs = []
+        local_tools = {}
+        logger.info("[tool_setup] local tools disabled via ENABLE_LOCAL_TOOLS=false")
+
     tool_set = {
         "local": {
-            "tool_definitions": [
-                CREATE_DOCUMENT_TOOL_DEFINITION,
-                UPDATE_DOCUMENT_TOOL_DEFINITION,
-            ],
-            "tools": await create_tool_wrappers(user_id, db),
+            "tool_definitions": local_defs,
+            "tools": local_tools,
         },
         "mcp": {
             "tool_definitions": [],
             "tools": {},
         },
     }
-    logger.info("[tool_setup] create_tool_wrappers done")
 
     # Add MCP tools (with 5-minute cache; gracefully handle connection failures and timeouts)
     mcp_tools: list = []
