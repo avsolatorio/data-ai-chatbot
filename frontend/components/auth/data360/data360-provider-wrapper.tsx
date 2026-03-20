@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from "react";
 import { getAuthTokenFromDocument } from "@/lib/auth/cookies";
+import { getPublicReturnUrl } from "@/lib/config";
 import { getEnv } from "@/lib/env";
 
 export function Data360ProviderWrapper({
@@ -33,7 +34,7 @@ export function Data360ProviderWrapper({
       return;
     }
 
-    const returnTo = encodeURIComponent(window.location.href);
+    const returnTo = encodeURIComponent(getPublicReturnUrl());
     const redirectUrl = `${authUrl}${authUrl.includes("?") ? "&" : "?"}returnTo=${returnTo}`;
     window.location.href = redirectUrl;
   }, []);
