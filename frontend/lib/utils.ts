@@ -9,6 +9,7 @@ import { formatISO } from 'date-fns';
 import { twMerge } from 'tailwind-merge';
 import type { DBMessage, Document } from '@/lib/db/schema';
 import { authProvider } from '@/lib/auth/config';
+import { clearAuthSessionStorage } from '@/lib/auth-service-client';
 import { getEnv } from '@/lib/env';
 import { ChatSDKError, type ErrorCode } from './errors';
 import type { ChatMessage, ChatTools, CustomUIDataTypes } from './types';
@@ -24,6 +25,7 @@ async function redirectToData360AuthOn401(): Promise<void> {
       method: 'POST',
       credentials: 'include',
     });
+    clearAuthSessionStorage();
   } finally {
     const returnTo = encodeURIComponent(window.location.href);
     const redirectUrl = `${authUrl}${authUrl.includes('?') ? '&' : '?'}returnTo=${returnTo}`;
