@@ -11,6 +11,7 @@
  */
 
 import { authProvider } from "@/lib/auth/config";
+import { clearAuthSessionStorage } from "@/lib/auth-service-client";
 import { getAuthTokenFromDocument } from "@/lib/auth/cookies";
 import { getBasePath } from "@/lib/config";
 import { getEnv } from "@/lib/env";
@@ -158,6 +159,7 @@ export async function apiFetch(
         method: "POST",
         credentials: "include",
       });
+      clearAuthSessionStorage();
     } finally {
       const authUrl = getEnv().NEXT_PUBLIC_DATA360_AUTH_URL;
       if (authUrl) {
