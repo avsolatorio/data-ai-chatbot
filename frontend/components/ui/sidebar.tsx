@@ -621,7 +621,7 @@ const SidebarMenuAction = React.forwardRef<
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[collapsible=icon]:hidden",
         showOnHover &&
-          "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
+          "group-focus-within/menu-item:opacity-100 group-focus-within/menu-item:pointer-events-auto group-hover/menu-item:opacity-100 group-hover/menu-item:pointer-events-auto data-[state=open]:opacity-100 data-[state=open]:pointer-events-auto peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0 md:pointer-events-none",
         className
       )}
       data-sidebar="menu-action"
