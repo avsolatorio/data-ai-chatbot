@@ -15,6 +15,57 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
+def _get_origin_from_headers(request: Request) -> str | None:
+    """
+    Extract client origin from request headers, in order of preference:
+    Origin, Referer, X-Forwarded-Host+Proto (when behind a trusted proxy).
+    """
+    origin = request.headers.get("Origin")
+    if origin:
+        return origin
+
+    referer = request.headers.get("Referer")
+    if referer:
+        try:
+            from urllib.parse import urlparse
+
+            parsed = urlparse(referer)
+            if parsed.scheme and parsed.netloc:
+                return f"{parsed.scheme}://{parsed.netloc}"
+        except Exception as e:
+            logger.warning("Failed to parse Referer header: %s", e)
+
+    # Fallback: X-Forwarded-Host + X-Forwarded-Proto (common when CDN/proxy strips Origin/Referer)
+    forwarded_host = request.headers.get("X-Forwarded-Host")
+    forwarded_proto = request.headers.get("X-Forwarded-Proto")
+    if forwarded_host and forwarded_proto:
+        host = forwarded_host.split(",")[0].strip()
+        proto = forwarded_proto.split(",")[0].strip().lower() or "https"
+        if host:
+            return f"{proto}://{host}"
+    return None
+
+
+def _normalize_origin(origin: str) -> str:
+    """Normalize origin for comparison: lowercase, no trailing slash, strip default ports."""
+    from urllib.parse import urlparse
+
+    origin = origin.rstrip("/").lower()
+    try:
+        parsed = urlparse(origin if "://" in origin else f"https://{origin}")
+        if parsed.hostname:
+            # Strip default ports (443 for https, 80 for http) so https://x:443 matches https://x
+            port = parsed.port
+            if port in (443, 80):
+                return f"{parsed.scheme}://{parsed.hostname}"
+            if port is not None:
+                return f"{parsed.scheme}://{parsed.hostname}:{port}"
+            return f"{parsed.scheme}://{parsed.hostname}"
+    except Exception:
+        pass
+    return origin
+
+
 def validate_csrf(request: Request, require_origin: bool = True) -> None:
     """
     Validate CSRF protection using Origin header.
@@ -22,6 +73,7 @@ def validate_csrf(request: Request, require_origin: bool = True) -> None:
     For state-changing operations (POST, PUT, DELETE, PATCH), validates that:
     1. Origin header matches allowed CORS origins (if present)
     2. Or Referer header matches allowed origins (fallback)
+    3. Or X-Forwarded-Host+Proto when behind a proxy that strips Origin/Referer
 
     Args:
         request: FastAPI request object
@@ -34,22 +86,7 @@ def validate_csrf(request: Request, require_origin: bool = True) -> None:
     if request.method not in ("POST", "PUT", "DELETE", "PATCH"):
         return
 
-    # Get Origin header (preferred)
-    origin = request.headers.get("Origin")
-
-    # Fallback to Referer header if Origin is missing
-    if not origin:
-        referer = request.headers.get("Referer")
-        if referer:
-            # Extract origin from referer (e.g., "https://example.com/path" -> "https://example.com")
-            try:
-                from urllib.parse import urlparse
-
-                parsed = urlparse(referer)
-                origin = f"{parsed.scheme}://{parsed.netloc}"
-            except Exception as e:
-                logger.warning("Failed to parse Referer header: %s", e)
-                origin = None
+    origin = _get_origin_from_headers(request)
 
     # If no origin/referer and we require it, reject
     if not origin and require_origin:
@@ -65,15 +102,15 @@ def validate_csrf(request: Request, require_origin: bool = True) -> None:
         if isinstance(allowed_origins, str):
             allowed_origins = [allowed_origins]
 
-        # Normalize origins (remove trailing slashes, convert to lowercase for comparison)
-        origin_normalized = origin.rstrip("/").lower()
-        allowed_normalized = [o.rstrip("/").lower() for o in allowed_origins]
+        origin_normalized = _normalize_origin(origin)
+        allowed_normalized = [_normalize_origin(o) for o in allowed_origins]
 
         if origin_normalized not in allowed_normalized:
             logger.warning(
-                "CSRF validation failed: Origin %s not in allowed origins %s",
+                "CSRF validation failed: Origin %r (normalized %r) not in allowed %s",
                 origin,
-                allowed_origins,
+                origin_normalized,
+                allowed_normalized,
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
