@@ -56,15 +56,24 @@ async def get_current_user(
     )
 
     # Resolve token: auth_token cookie, then MSAL cookie, then Authorization header
+    token_source = "none"
     cookie_token = request.cookies.get("auth_token")
     if cookie_token:
         token = cookie_token
+        token_source = "auth_token"
     if not token:
         msal_cookie = request.cookies.get(msal_cookie_name)
         if msal_cookie:
             token = msal_cookie
+            token_source = msal_cookie_name
     if not token and credentials:
         token = credentials.credentials
+        token_source = "Authorization"
+    logger.debug(
+        "get_current_user: token_source=%s path=%s",
+        token_source,
+        request.url.path,
+    )
 
     # Try JWT first; if decode fails and Azure AD is configured, try Azure AD token
     if token:
