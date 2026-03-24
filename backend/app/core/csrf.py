@@ -141,10 +141,44 @@ class CSRFMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        if request.method not in ("POST", "PUT", "DELETE", "PATCH"):
+            return await call_next(request)
+
+        # Debug: log CSRF validation attempt for state-changing requests
+        has_cookie = "cookie" in request.headers
+        origin_raw = request.headers.get("Origin")
+        referer_raw = request.headers.get("Referer")
+        forwarded_host = request.headers.get("X-Forwarded-Host")
+        forwarded_proto = request.headers.get("X-Forwarded-Proto")
+        logger.debug(
+            "CSRF check: method=%s path=%s cookie=%s origin=%s referer=%s x-forwarded-host=%s x-forwarded-proto=%s",
+            request.method,
+            request.url.path,
+            has_cookie,
+            "present" if origin_raw else "absent",
+            "present" if referer_raw else "absent",
+            "present" if forwarded_host else "absent",
+            "present" if forwarded_proto else "absent",
+        )
+
         try:
             require_origin = _require_origin_for_request(request)
+            origin = _get_origin_from_headers(request)
+            logger.debug(
+                "CSRF check: require_origin=%s origin=%s",
+                require_origin,
+                origin or "absent",
+            )
             validate_csrf(request, require_origin=require_origin)
+            logger.debug("CSRF check passed: method=%s path=%s", request.method, request.url.path)
         except HTTPException as exc:
+            logger.debug(
+                "CSRF check failed: method=%s path=%s status=%s detail=%s",
+                request.method,
+                request.url.path,
+                exc.status_code,
+                exc.detail,
+            )
             return JSONResponse(
                 status_code=exc.status_code,
                 content={"detail": exc.detail},

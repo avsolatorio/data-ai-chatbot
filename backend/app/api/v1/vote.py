@@ -123,13 +123,13 @@ async def vote(
     # - Public chats: Anyone can vote (no ownership check)
     # - Private chats: Only the owner can vote (enforce ownership)
     if chat.visibility == "private":
-        current_user_id_uuid = get_user_id_uuid(current_user["id"])
         if not user_ids_match(current_user["id"], chat.userId):
             logger.warning(
-                "Vote access denied: current_user_id=%s (uuid=%s), chat.userId=%s, visibility=%s",
+                "Vote access denied (ownership mismatch): current_user_id=%s, chat.userId=%s, chatId=%s, visibility=%s. "
+                "Chat may have been created before login (guest) or under different session.",
                 current_user["id"],
-                current_user_id_uuid,
                 chat.userId,
+                request.chatId,
                 chat.visibility,
             )
             raise ChatSDKError("forbidden:vote", status_code=status.HTTP_403_FORBIDDEN)
