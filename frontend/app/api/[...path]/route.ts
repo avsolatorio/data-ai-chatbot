@@ -123,12 +123,22 @@ async function proxyRequest(
     "x-requested-with",
     "origin",
     "referer",
+    "x-forwarded-host",
+    "x-forwarded-proto",
   ];
 
   for (const headerName of headersToForward) {
     const headerValue = request.headers.get(headerName);
     if (headerValue) {
       headers.set(headerName, headerValue);
+    }
+  }
+
+  // Same-origin requests often omit Origin; backend CSRF needs it. Inject client origin when missing.
+  if (!headers.has("origin")) {
+    const clientOrigin = getRequestOrigin(request);
+    if (clientOrigin) {
+      headers.set("origin", clientOrigin);
     }
   }
 
