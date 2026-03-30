@@ -24,6 +24,7 @@ import { saveChatModelAsCookie } from "@/app/(chat)/actions";
 import { useAvailableChatModels } from "@/hooks/use-available-chat-models";
 import { SelectItem } from "@/components/ui/select";
 import { apiFetch } from "@/lib/api-client";
+import { getBasePath } from "@/lib/config";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
 import { cn } from "@/lib/utils";
@@ -183,7 +184,7 @@ const PureMultimodalInput = forwardRef<
   const [uploadQueue, setUploadQueue] = useState<string[]>([]);
 
   const submitForm = useCallback(() => {
-    window.history.pushState({}, "", `/chat/${chatId}`);
+    window.history.pushState({}, "", `${getBasePath()}/chat/${chatId}`);
 
     const hasQuoted = quotedText != null && quotedText.trim().length > 0;
     const messageText = hasQuoted

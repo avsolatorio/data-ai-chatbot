@@ -3,6 +3,7 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { motion } from "framer-motion";
 import { memo } from "react";
+import { getBasePath } from "@/lib/config";
 import type { ChatMessage } from "@/lib/types";
 import { Suggestion } from "./elements/suggestion";
 import type { VisibilityType } from "./visibility-selector";
@@ -57,7 +58,11 @@ function PureSuggestedActions({
             <Suggestion
               className="home-suggestion-chip h-auto w-full whitespace-normal rounded-lg border py-3 text-center text-sm transition-colors"
               onClick={(suggestion) => {
-                window.history.pushState({}, "", `/chat/${chatId}`);
+                window.history.pushState(
+                  {},
+                  "",
+                  `${getBasePath()}/chat/${chatId}`,
+                );
                 sendMessage({
                   role: "user",
                   parts: [{ type: "text", text: suggestion }],
