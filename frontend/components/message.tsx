@@ -13,6 +13,7 @@ import {
   isIndicatorUrl,
 } from "@/lib/data360";
 import type { Vote } from "@/lib/db/schema";
+import { getBasePath } from "@/lib/config";
 import { parseFollowUps } from "@/lib/parse-follow-ups";
 import type { ChatMessage, StreamingThinkingPart } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
@@ -1036,7 +1037,11 @@ const PurePreviewMessage = ({
                           key={suggestion}
                           className="h-auto whitespace-normal px-3 py-1.5 text-left text-sm"
                           onClick={() => {
-                            window.history.pushState({}, "", `/chat/${chatId}`);
+                            window.history.pushState(
+                              {},
+                              "",
+                              `${getBasePath()}/chat/${chatId}`,
+                            );
                             if (
                               followUpSuggestionsPopulateInput &&
                               onFollowUpPopulateInput
