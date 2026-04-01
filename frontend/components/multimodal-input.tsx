@@ -24,7 +24,7 @@ import { saveChatModelAsCookie } from "@/app/(chat)/actions";
 import { useAvailableChatModels } from "@/hooks/use-available-chat-models";
 import { SelectItem } from "@/components/ui/select";
 import { apiFetch } from "@/lib/api-client";
-import { getBasePath } from "@/lib/config";
+import { appConfig, getBasePath } from "@/lib/config";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
 import { cn } from "@/lib/utils";
@@ -122,6 +122,7 @@ const PureMultimodalInput = forwardRef<
   },
   ref,
 ) {
+  const imageUploadEnabled = appConfig.enableImageUpload;
   const suggestions = suggestionsProp ?? [];
   const clearQuoted = onAskAboutClear ?? (() => setQuotedText(null));
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -193,15 +194,19 @@ const PureMultimodalInput = forwardRef<
         : `Regarding: "${quotedText.trim()}"\n\n${input}`
       : input;
 
-    sendMessage({
-      role: "user",
-      parts: [
-        ...attachments.map((attachment) => ({
+    const fileParts = imageUploadEnabled
+      ? attachments.map((attachment) => ({
           type: "file" as const,
           url: attachment.url,
           name: attachment.name,
           mediaType: attachment.contentType,
-        })),
+        }))
+      : [];
+
+    sendMessage({
+      role: "user",
+      parts: [
+        ...fileParts,
         {
           type: "text",
           text: messageText,
@@ -233,6 +238,7 @@ const PureMultimodalInput = forwardRef<
     width,
     chatId,
     resetHeight,
+    imageUploadEnabled,
   ]);
 
   const uploadFile = useCallback(
@@ -346,6 +352,9 @@ const PureMultimodalInput = forwardRef<
 
   const handlePaste = useCallback(
     async (event: ClipboardEvent) => {
+      if (!imageUploadEnabled) {
+        return;
+      }
       const items = event.clipboardData?.items;
       if (!items) {
         return;
@@ -389,11 +398,14 @@ const PureMultimodalInput = forwardRef<
         setUploadQueue([]);
       }
     },
-    [setAttachments, uploadFile],
+    [setAttachments, uploadFile, imageUploadEnabled],
   );
 
   // Add paste event listener to textarea
   useEffect(() => {
+    if (!imageUploadEnabled) {
+      return;
+    }
     const textarea = textareaRef.current;
     if (!textarea) {
       return;
@@ -401,25 +413,27 @@ const PureMultimodalInput = forwardRef<
 
     textarea.addEventListener("paste", handlePaste);
     return () => textarea.removeEventListener("paste", handlePaste);
-  }, [handlePaste]);
+  }, [handlePaste, imageUploadEnabled]);
 
   const showSuggestions =
     messages.length === 0 &&
-    attachments.length === 0 &&
+    (!imageUploadEnabled || attachments.length === 0) &&
     uploadQueue.length === 0;
 
   return (
     <div className={cn("relative flex w-full flex-col gap-4", className)}>
-      <input
-        accept="image/jpeg,image/png,.jpg,.jpeg,.png"
-        aria-label="Upload image (JPEG or PNG, max 5MB)"
-        className="-top-4 -left-4 pointer-events-none fixed size-0.5 opacity-0"
-        multiple
-        onChange={handleFileChange}
-        ref={fileInputRef}
-        tabIndex={-1}
-        type="file"
-      />
+      {imageUploadEnabled ? (
+        <input
+          accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+          aria-label="Upload image (JPEG or PNG, max 5MB)"
+          className="-top-4 -left-4 pointer-events-none fixed size-0.5 opacity-0"
+          multiple
+          onChange={handleFileChange}
+          ref={fileInputRef}
+          tabIndex={-1}
+          type="file"
+        />
+      ) : null}
 
       <PromptInput
         className={cn(
@@ -443,7 +457,8 @@ const PureMultimodalInput = forwardRef<
             quotedText={quotedText.trim()}
           />
         )}
-        {(attachments.length > 0 || uploadQueue.length > 0) && (
+        {imageUploadEnabled &&
+          (attachments.length > 0 || uploadQueue.length > 0) && (
           <div
             className="flex flex-row items-end gap-2 overflow-x-scroll"
             data-testid="attachments-preview"
@@ -475,7 +490,7 @@ const PureMultimodalInput = forwardRef<
               />
             ))}
           </div>
-        )}
+          )}
         <div className="flex flex-row items-start gap-1 sm:gap-2">
           <PromptInputTextarea
             autoFocus
@@ -498,11 +513,13 @@ const PureMultimodalInput = forwardRef<
         </div>
         <PromptInputToolbar className="!border-top-0 border-t-0! p-0 shadow-none dark:border-0 dark:border-transparent!">
           <PromptInputTools className="gap-0 sm:gap-0.5">
-            <AttachmentsButton
-              fileInputRef={fileInputRef}
-              selectedModelId={selectedModelId}
-              status={status}
-            />
+            {imageUploadEnabled ? (
+              <AttachmentsButton
+                fileInputRef={fileInputRef}
+                selectedModelId={selectedModelId}
+                status={status}
+              />
+            ) : null}
             <ModelSelectorCompact
               onModelChange={onModelChange}
               selectedModelId={selectedModelId}

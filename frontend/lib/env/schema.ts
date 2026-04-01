@@ -131,6 +131,9 @@ const rawEnvSchema = z.object({
   NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL: optionalUrl.describe("Custom Vega theme JSON URL"),
 
   // --- File upload ---
+  NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD: booleanEnv.describe(
+    "When true, users can attach images via the paperclip and paste. Default false; set true or 1 to enable.",
+  ),
   NEXT_PUBLIC_MAX_FILE_SIZE_BYTES: z
     .string()
     .optional()
@@ -153,6 +156,7 @@ export type Env = RawEnv & {
   NEXT_PUBLIC_APPLICATION_STATUS: "pre-alpha" | "alpha" | "beta" | undefined;
   NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR: "bottom" | "trigger";
   NEXT_PUBLIC_SHOW_REASONING_PART_TYPE: boolean;
+  NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD: boolean;
   NEXT_PUBLIC_DATA_HEADER_ENABLED: boolean;
   NEXT_PUBLIC_DATA_HEADER_CSS_URL: string;
   NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: string;
@@ -185,6 +189,7 @@ export type PublicEnv = Pick<
   | "NEXT_PUBLIC_MSAL_AUTHORITY"
   | "NEXT_PUBLIC_DATA360_AUTH_URL"
   | "NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL"
+  | "NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD"
   | "NEXT_PUBLIC_MAX_FILE_SIZE_BYTES"
   | "NEXT_PUBLIC_ALLOWED_IMAGE_TYPES"
 >;

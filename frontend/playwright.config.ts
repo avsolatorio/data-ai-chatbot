@@ -115,5 +115,10 @@ export default defineConfig({
     url: `${baseURL}/ping`,
     timeout: 120 * 1000,
     reuseExistingServer: !process.env.CI,
+    env: {
+      ...process.env,
+      NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD:
+        process.env.NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD ?? "true",
+    },
   },
 });
