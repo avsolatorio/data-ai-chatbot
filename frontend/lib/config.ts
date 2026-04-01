@@ -65,6 +65,19 @@ function getShowReasoningPartType(): boolean {
   return v === "true" || v === "1" || v === "yes" || fromEnv === true;
 }
 
+/** When true, show image attach UI and allow pasted images. Default false. */
+function getEnableImageUpload(): boolean {
+  const v = process.env.NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD?.trim().toLowerCase();
+  const fromEnv = getEnv().NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD;
+  if (v === "false" || v === "0" || v === "no") {
+    return false;
+  }
+  if (v === "true" || v === "1" || v === "yes") {
+    return true;
+  }
+  return fromEnv;
+}
+
 /** When set (e.g. "/app"), the app is served under that path. Must match next.config basePath. Trailing slash is stripped. */
 export function getBasePath(): string {
   const v =
@@ -169,4 +182,10 @@ export const appConfig = {
    * Default false. Set via NEXT_PUBLIC_SHOW_REASONING_PART_TYPE=true.
    */
   showReasoningPartType: getShowReasoningPartType(),
+
+  /**
+   * When true, image upload (paperclip, paste) is enabled. Default false.
+   * Set via NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD=true.
+   */
+  enableImageUpload: getEnableImageUpload(),
 };
