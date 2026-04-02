@@ -2,7 +2,7 @@
 id: FE-001
 repo: vercel-ai-chatbot
 title: Follow-ups — parser hardening and chip affordance
-status: pending
+status: done
 priority: medium
 depends_on: []
 blocks: []
@@ -29,9 +29,9 @@ Make suggested follow-ups reliably interactive and visually obvious: parsing rob
 
 ## Acceptance criteria
 
-- [ ] Parser tolerates minor heading variants **or** tests document the exact required string aligned with BE-001.
-- [ ] Unit tests cover edge cases (empty section, extra blank lines, numbered lists).
-- [ ] Chips read as buttons (outline/icon optional per design system); no accessibility regressions.
+- [x] Parser tolerates minor heading variants **or** tests document the exact required string aligned with BE-001.
+- [x] Unit tests cover edge cases (empty section, extra blank lines, numbered lists).
+- [x] Chips read as buttons (outline/icon optional per design system); no accessibility regressions.
 
 ## Dependencies
 
