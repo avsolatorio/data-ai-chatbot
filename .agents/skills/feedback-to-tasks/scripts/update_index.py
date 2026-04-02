@@ -29,7 +29,6 @@ SKIP_FILES = {"README.md", "CROSS-REPO-GRAPH.md", "tasks.json"}
 STATUS_ICON = {
     "pending": "",
     "in_progress": "🔄 ",
-    "done": "✅ ",
     "cancelled": "~~",
     "duplicate": "~~",
 }
@@ -147,35 +146,65 @@ def build_cross_repo_mermaid(all_tasks_by_repo: dict[str, list[dict]], configs: 
     return "\n".join(lines)
 
 
+def build_task_row(t: dict) -> str:
+    status = t.get("status", "pending")
+    icon = STATUS_ICON.get(status, "")
+    fname = t["_path"].name
+    tid = t["id"]
+    summary = t.get("_summary", "")
+    if status in ("cancelled", "duplicate"):
+        return f"| ~~{tid}~~ | [{fname}](./{fname}) | ~~{summary}~~ |"
+    suffix = " ✓ done" if status == "done" else ""
+    return f"| {icon}{tid} | [{fname}](./{fname}) | {summary}{suffix} |"
+
+
 def build_readme(repo_name: str, tasks: list[dict], config: dict, peer_configs: dict) -> str:
-    active = [t for t in tasks if t.get("status") not in ("cancelled", "duplicate")]
-    done = [t for t in tasks if t.get("status") == "done"]
+    TERMINAL = ("done", "cancelled", "duplicate")
+    active = [t for t in tasks if t.get("status") not in TERMINAL]
+    completed = [t for t in tasks if t.get("status") in TERMINAL]
 
     peers_line = ""
     if config.get("peers"):
-        peer_links = []
-        for peer_name in config["peers"]:
-            peer_links.append(f"[{peer_name}/TODO](../{peer_name}/TODO/README.md)")
+        peer_links = [
+            f"[{peer_name}/TODO](../{peer_name}/TODO/README.md)"
+            for peer_name in config["peers"]
+        ]
         peers_line = f"\n**Sibling repos:** {', '.join(peer_links)}\n"
 
-    # Task table
-    table_rows = []
-    for t in sorted(tasks, key=lambda x: x["id"]):
-        status = t.get("status", "pending")
-        icon = STATUS_ICON.get(status, "")
-        fname = t["_path"].name
-        tid = t["id"]
-        summary = t.get("_summary", "")
-        if status in ("cancelled", "duplicate"):
-            table_rows.append(f"| ~~{tid}~~ | [{fname}](./{fname}) | ~~{summary}~~ |")
-        else:
-            table_rows.append(f"| {icon}{tid} | [{fname}](./{fname}) | {summary} |")
+    TABLE_HEADER = "| ID | File | Summary |\n|----|------|---------|"
 
-    table = "| ID | File | Summary |\n|----|------|---------|"
-    if table_rows:
-        table += "\n" + "\n".join(table_rows)
+    # Active task table
+    active_rows = [build_task_row(t) for t in sorted(active, key=lambda x: x["id"])]
+    active_table = TABLE_HEADER
+    if active_rows:
+        active_table += "\n" + "\n".join(active_rows)
+    else:
+        active_table += "\n| — | — | No active tasks |"
 
-    # Mermaid graph
+    # Completed tasks — collapsed details block
+    completed_section = ""
+    if completed:
+        done_count = sum(1 for t in completed if t.get("status") == "done")
+        other_count = len(completed) - done_count
+        label_parts = []
+        if done_count:
+            label_parts.append(f"{done_count} done")
+        if other_count:
+            label_parts.append(f"{other_count} cancelled/duplicate")
+        label = ", ".join(label_parts)
+
+        completed_rows = [build_task_row(t) for t in sorted(completed, key=lambda x: x["id"])]
+        completed_table = TABLE_HEADER + "\n" + "\n".join(completed_rows)
+        completed_section = f"""
+<details>
+<summary>{label}</summary>
+
+{completed_table}
+
+</details>
+"""
+
+    # Mermaid graph (active tasks only)
     mermaid = build_local_mermaid(active)
 
     cross_repo_section = ""
@@ -183,8 +212,8 @@ def build_readme(repo_name: str, tasks: list[dict], config: dict, peer_configs: 
         cross_repo_section = "\n## Cross-repo dependencies\n\nSee **[CROSS-REPO-GRAPH.md](./CROSS-REPO-GRAPH.md)** for edges across all sibling repos and suggested execution order.\n"
 
     stats = f"{len(active)} active"
-    if done:
-        stats += f", {len(done)} done"
+    if completed:
+        stats += f", {len(completed)} completed"
 
     return f"""# {repo_name} — task index
 
@@ -192,8 +221,8 @@ Agent-oriented work items. Each task is a standalone `.md` file with context, ac
 {peers_line}
 ## Task IDs
 
-{table}
-
+{active_table}
+{completed_section}
 ## Dependency graph (this repo)
 
 ```mermaid
