@@ -109,8 +109,8 @@ def _cmd_suite(argv: list[str]) -> None:
         "--output",
         "-o",
         type=str,
-        default=str(EVALS_DIR / "suite.yaml"),
-        help="Output file (default: evals/suite.yaml)",
+        default=str(EVALS_DIR / "configs" / "suite.yaml"),
+        help="Output file (default: evals/configs/suite.yaml)",
     )
     parser.add_argument("--seed", type=int, default=None, help="Random seed for --sample")
     parser.add_argument(

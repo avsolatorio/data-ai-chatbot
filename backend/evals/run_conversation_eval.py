@@ -58,7 +58,7 @@ logger = logging.getLogger("conversation_eval")
 
 RESULTS_DIR = Path(__file__).parent / ".results"
 PERSONAS_DIR = Path(__file__).parent / "personas"
-CONFIG_PATH = Path(__file__).parent / "eval_config.yaml"
+CONFIG_PATH = Path(__file__).parent / "configs" / "eval_config.yaml"
 
 
 # ---------------------------------------------------------------------------

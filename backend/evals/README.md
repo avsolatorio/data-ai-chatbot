@@ -101,7 +101,7 @@ For full setup instructions (Docker, MCP, VPN, SSL), see [E2E_GUIDE.md](E2E_GUID
 3. Run a quick test        python -m evals run --http --persona <name> --turns 2 --no-eval
 4. Run a full eval         python -m evals run --http --persona all
 5. Compare with baseline   python -m evals compare <old_ts> <new_ts>
-6. Tweak prompts/rubrics   edit eval_config.yaml or system prompts
+6. Tweak prompts/rubrics   edit configs/eval_config.yaml or system prompts
 7. Scale up                python -m evals suite --sample 50 && python -m evals batch --http
 ```
 
@@ -120,7 +120,7 @@ Aggregation methods:
 - **min** -- the conversation score is the _worst_ per-turn score (strict: one bad turn fails the metric)
 - **mean** -- the conversation score is the _average_ across turns (lenient)
 
-See [eval_config.yaml](eval_config.yaml) for the full metric definitions and rubrics.
+See [configs/eval_config.yaml](configs/eval_config.yaml) for the full metric definitions and rubrics.
 
 ## CLI Reference
 
@@ -175,8 +175,8 @@ Run `python -m evals <command> --help` for command-specific options.
 | `metric_builder.py` | Metric construction from `eval_config.yaml` |
 | `pipeline_runner.py` | In-process eval pipeline wrapper |
 | `persona_composer.py` | Composable persona assembly from YAML facets |
-| `eval_config.yaml` | All metric definitions, thresholds, and rubrics |
-| `suite.yaml` | Default batch suite configuration |
+| `eval_config.yaml` | All metric definitions, thresholds, and rubrics (moved to `configs/`) |
+| `suite.yaml` | Default batch suite configuration (moved to `configs/`) |
 | `run_regression.py` | Batch runner with retry and checkpoint support |
 | `compare_eval_runs.py` | Diff two evaluation runs |
 | `generate_personas.py` | Persona generation from templates or descriptions |
@@ -191,6 +191,7 @@ Run `python -m evals <command> --help` for command-specific options.
 | `personas/facets/` | Composable facets: topics (10), countries (5), patterns (8) |
 | `docs/findings/` | Evaluation findings and technical implementation reference |
 | `docs/mvp/` | MVP feature specification and user stories |
+| `configs/` | YAML configurations and environment templates |
 | `conversations/` | Generated conversation markdown files |
 | `tests/` | Unit tests (persona composer, per-turn evaluation) |
 | `.results/` | Evaluation result JSON files |
@@ -235,4 +236,4 @@ See [Adding or Modifying a Metric](docs/findings/DEEPEVAL_IMPLEMENTATION.md#13-a
 - [E2E_GUIDE.md](E2E_GUIDE.md) -- setup, architecture, VPN, and preflight details
 - [DEEPEVAL_IMPLEMENTATION.md](docs/findings/DEEPEVAL_IMPLEMENTATION.md) -- technical implementation reference
 - [CONSOLIDATED_FINDING.md](docs/findings/CONSOLIDATED_FINDING.md) -- evaluation findings and recommendations
-- [.env.example](.env.example) -- environment variable template
+- [.env.example](configs/.env.example) -- environment variable template

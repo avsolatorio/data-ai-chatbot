@@ -32,7 +32,7 @@ import yaml
 
 EVALS_DIR = Path(__file__).parent
 BACKEND_DIR = EVALS_DIR.parent
-SUITE_FILE = EVALS_DIR / "suite.yaml"
+SUITE_FILE = EVALS_DIR / "configs" / "suite.yaml"
 CHECKPOINT_FILE = EVALS_DIR / ".regression_checkpoint.json"
 
 # ── Retry configuration ───────────────────────────────────────────────────────

@@ -42,7 +42,9 @@ def _load_synthesizer_config(config_path: str | None = None) -> dict:
     """Load synthesizer settings from eval config."""
     import yaml
 
-    path = Path(config_path) if config_path else Path(__file__).parent / "eval_config.yaml"
+    path = (
+        Path(config_path) if config_path else Path(__file__).parent / "configs" / "eval_config.yaml"
+    )
     if not path.exists():
         return {}
 
@@ -84,9 +86,7 @@ def generate_goldens(
         valid_paths.append(str(path))
 
     if not valid_paths:
-        raise FileNotFoundError(
-            f"No valid documents found. Checked: {document_paths}"
-        )
+        raise FileNotFoundError(f"No valid documents found. Checked: {document_paths}")
 
     logger.info("Generating goldens from %d document(s):", len(valid_paths))
     for p in valid_paths:
@@ -122,7 +122,8 @@ def generate_goldens(
         }
         results.append(entry)
         logger.info(
-            "  Golden %d: %s", i + 1,
+            "  Golden %d: %s",
+            i + 1,
             (entry["scenario"][:80] + "...") if len(entry["scenario"]) > 80 else entry["scenario"],
         )
 
@@ -204,7 +205,8 @@ def enrich_goldens_with_user_descriptions(
             enriched_count += 1
             logger.info(
                 "  Golden %d: %s",
-                i + 1, user_desc[:80] + "..." if len(user_desc) > 80 else user_desc,
+                i + 1,
+                user_desc[:80] + "..." if len(user_desc) > 80 else user_desc,
             )
         except Exception as e:
             logger.error("  Golden %d: enrichment failed: %s", i + 1, e)
@@ -277,7 +279,8 @@ def main():
         logger.info("Enriching %d goldens from %s", len(goldens), path)
 
         goldens = enrich_goldens_with_user_descriptions(
-            goldens, model=args.enrich_model,
+            goldens,
+            model=args.enrich_model,
         )
 
         # Save back
@@ -311,7 +314,8 @@ def main():
     if args.enrich:
         logger.info("Enriching goldens with user_description...")
         results = enrich_goldens_with_user_descriptions(
-            results, model=args.enrich_model,
+            results,
+            model=args.enrich_model,
         )
         # Re-save with enriched data
         if args.output:
@@ -322,4 +326,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
