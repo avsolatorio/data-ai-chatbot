@@ -28,7 +28,7 @@ Aggregation methods:
 - **min** -- the conversation score is the _worst_ per-turn score (strict: one bad turn fails the metric)
 - **mean** -- the conversation score is the _average_ across turns (lenient)
 
-See [METRICS.md](METRICS.md) for the full list with descriptions.
+See [eval_config.yaml](eval_config.yaml) for the full metric definitions and rubrics.
 
 ## Quick Start
 
@@ -96,7 +96,7 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval [OPTIONS]
 | `pipeline_runner.py` | In-process eval pipeline wrapper |
 | `eval_config.yaml` | All metric definitions, thresholds, and rubrics |
 | `compare_eval_runs.py` | Diff two evaluation runs |
-| `review_conversation.py` | LLM-powered manual review of conversations |
+
 | `generate_personas.py` | Persona generation from templates or descriptions |
 | `generate_goldens.py` | Golden test case generation from documents |
 | `test_tool_use_metrics.py` | Unit tests for per-turn evaluation plumbing |
@@ -108,7 +108,8 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval [OPTIONS]
 | `personas/` | Flat YAML persona definitions (10 personas) |
 | `personas/bases/` | Composable base profiles (6 archetypes) |
 | `personas/facets/` | Composable facets: topics (10), countries (5), patterns (8) |
-| `docs/` | Planning docs (MVP features, user stories, findings) |
+| `docs/findings/` | Evaluation findings and technical implementation reference |
+| `docs/mvp/` | MVP feature specification and user stories |
 | `conversations/` | Generated conversation markdown files |
 | `.results/` | Evaluation result JSON files |
 
@@ -138,11 +139,12 @@ Then run: `--persona <persona_key>`
 
 ## Adding a New Metric
 
-See the [Adding a New Metric](METRICS.md#adding-a-new-metric) section in METRICS.md.
+See [Adding or Modifying a Metric](docs/findings/DEEPEVAL_IMPLEMENTATION.md#13-adding-or-modifying-a-metric) in the implementation reference.
 
 ## Related Docs
 
 - [PERSONAS.md](PERSONAS.md) -- composable persona system, E2E run playbook
-- [METRICS.md](METRICS.md) -- full metric catalog with descriptions
 - [E2E_GUIDE.md](E2E_GUIDE.md) -- setup, architecture, VPN, and preflight details
+- [DEEPEVAL_IMPLEMENTATION.md](docs/findings/DEEPEVAL_IMPLEMENTATION.md) -- technical implementation reference
+- [CONSOLIDATED_FINDING.md](docs/findings/CONSOLIDATED_FINDING.md) -- evaluation findings and recommendations
 - [.env.example](.env.example) -- environment variable template
