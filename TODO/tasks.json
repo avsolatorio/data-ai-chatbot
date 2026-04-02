@@ -1,7 +1,7 @@
 {
   "name": "data-ai-chatbot",
   "domains": ["FE", "BE", "DESIGN"],
-  "github_repo": "",
+  "github_repo": "avsolatorio/data-ai-chatbot",
   "cross_repo_canonical": true,
   "peers": {
     "data360-mcp": "${DATA360_MCP_PATH}",
