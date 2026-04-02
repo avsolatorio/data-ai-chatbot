@@ -4,30 +4,31 @@ import { DATA360_GET_DATA_TOOL } from "@pcn-js/data360";
 import { IngestToolOutput } from "@pcn-js/ui";
 import type { ToolUIPart } from "ai";
 import equal from "fast-deep-equal";
+import { MessageSquare } from "lucide-react";
 import { type Dispatch, memo, type SetStateAction, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
 import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
+import { getBasePath } from "@/lib/config";
 import {
   type Data360SourceEntry,
   getData360SourcesFromParts,
   isIndicatorUrl,
 } from "@/lib/data360";
 import type { Vote } from "@/lib/db/schema";
-import { getBasePath } from "@/lib/config";
 import { parseFollowUps } from "@/lib/parse-follow-ups";
 import type { ChatMessage, StreamingThinkingPart } from "@/lib/types";
-import type { AppUsage } from "@/lib/usage";
 import { isNonRenderableStreamEvent } from "@/lib/types";
+import type { AppUsage } from "@/lib/usage";
 import { cn, sanitizeText } from "@/lib/utils";
 import { ASK_ABOUT_SELECTION_CONTEXT_ATTR } from "./ask-about-selection-toolbar";
 import { useDataStream } from "./data-stream-provider";
 import { ChartPreview } from "./data360/chart-preview";
 import { GetData, GetDataRequestSummary } from "./data360/get-data";
+import { GetWdiData } from "./data360/get-wdi-data";
 import {
   SearchIndicators,
   SearchIndicatorsRequestSummary,
 } from "./data360/search-indicators";
-import { GetWdiData } from "./data360/get-wdi-data";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
@@ -513,20 +514,26 @@ function renderMessagePart(
               | undefined;
             return {
               database_id:
-                typeof raw.database_id === "string" ? raw.database_id : undefined,
+                typeof raw.database_id === "string"
+                  ? raw.database_id
+                  : undefined,
               indicator_id:
-                typeof raw.indicator_id === "string" ? raw.indicator_id : undefined,
+                typeof raw.indicator_id === "string"
+                  ? raw.indicator_id
+                  : undefined,
               disaggregation_filters:
                 disaggregation_filters &&
                 typeof disaggregation_filters === "object"
                   ? disaggregation_filters
                   : undefined,
               start_year:
-                typeof raw.start_year === "number" && Number.isFinite(raw.start_year)
+                typeof raw.start_year === "number" &&
+                Number.isFinite(raw.start_year)
                   ? raw.start_year
                   : undefined,
               end_year:
-                typeof raw.end_year === "number" && Number.isFinite(raw.end_year)
+                typeof raw.end_year === "number" &&
+                Number.isFinite(raw.end_year)
                   ? raw.end_year
                   : undefined,
               limit:
@@ -601,8 +608,7 @@ function renderMessagePart(
         ? (() => {
             const raw = toolPart.input as Record<string, unknown>;
             return {
-              query:
-                typeof raw.query === "string" ? raw.query : undefined,
+              query: typeof raw.query === "string" ? raw.query : undefined,
               required_country:
                 typeof raw.required_country === "string"
                   ? raw.required_country
@@ -624,9 +630,7 @@ function renderMessagePart(
         <ToolContent>
           {toolPart.state === "input-available" &&
             (searchIndicatorsInput != null ? (
-              <SearchIndicatorsRequestSummary
-                input={searchIndicatorsInput}
-              />
+              <SearchIndicatorsRequestSummary input={searchIndicatorsInput} />
             ) : (
               <ToolInput input={toolPart.input} />
             ))}
@@ -1035,7 +1039,7 @@ const PurePreviewMessage = ({
                       {followUps.map((suggestion) => (
                         <Suggestion
                           key={suggestion}
-                          className="h-auto whitespace-normal px-3 py-1.5 text-left text-sm"
+                          className="h-auto gap-2 whitespace-normal px-3 py-1.5 text-left text-sm"
                           onClick={() => {
                             window.history.pushState(
                               {},
@@ -1056,7 +1060,13 @@ const PurePreviewMessage = ({
                           }}
                           suggestion={suggestion}
                         >
-                          {suggestion}
+                          <span className="inline-flex items-start gap-2">
+                            <MessageSquare
+                              aria-hidden
+                              className="mt-0.5 size-4 shrink-0 opacity-70"
+                            />
+                            <span>{suggestion}</span>
+                          </span>
                         </Suggestion>
                       ))}
                     </div>
