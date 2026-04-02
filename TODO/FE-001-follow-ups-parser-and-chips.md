@@ -3,6 +3,7 @@ id: FE-001
 repo: vercel-ai-chatbot
 title: Follow-ups — parser hardening and chip affordance
 status: done
+priority: medium
 depends_on: []
 blocks: []
 ---
