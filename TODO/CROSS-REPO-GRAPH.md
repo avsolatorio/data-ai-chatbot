@@ -3,7 +3,6 @@
 Tasks live in:
 - `data-ai-chatbot/TODO/`
 - `data360-mcp/TODO/`
-- `pcn/TODO/`
 
 ## Combined graph
 
@@ -18,13 +17,15 @@ flowchart TB
     FE004["FE-004 UI — return to thinking a"]
     FE005["FE-005 Markdown — visual hierarc"]
     FE006["FE-006 Optional “How to read” pr"]
+    FE007["FE-007 Mobile — chat input jumps"]
+    FE008["FE-008 Chat messages — skeleton "]
   end
   subgraph data360_mcp [data360-mcp]
     MCP001["MCP-001 SYSTEM_PROMPT — align wit"]
     MCP002["MCP-002 Vega-Lite — default toolt"]
     MCP003["MCP-003 Many countries — beeswarm"]
-  end
-  subgraph pcn [pcn]
+    MCP004["MCP-004 viz — guard against empty"]
+    MCP005["MCP-005 cache — make TTL configur"]
   end
   BE001 --> FE005
   FE005 --> FE006
@@ -43,6 +44,6 @@ flowchart TB
 
 ## Suggested batch order
 
-1. **BE-001, DESIGN-001, FE-001, FE-002, FE-003, FE-004, MCP-002, MCP-003** (data-ai-chatbot, data360-mcp)
+1. **BE-001, DESIGN-001, FE-001, FE-002, FE-003, FE-004, FE-007, FE-008, MCP-002, MCP-003, MCP-004, MCP-005** (data-ai-chatbot, data360-mcp)
 2. **FE-005, MCP-001** (data-ai-chatbot, data360-mcp)
 3. **FE-006** (data-ai-chatbot)
