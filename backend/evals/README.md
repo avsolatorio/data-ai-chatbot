@@ -181,8 +181,6 @@ Run `python -m evals <command> --help` for command-specific options.
 | `compare_eval_runs.py` | Diff two evaluation runs |
 | `generate_personas.py` | Persona generation from templates or descriptions |
 | `generate_goldens.py` | Golden test case generation from documents |
-| `test_persona_composer.py` | Unit tests for the persona composer |
-| `test_tool_use_metrics.py` | Unit tests for per-turn evaluation plumbing |
 
 ### Directories
 
@@ -194,6 +192,7 @@ Run `python -m evals <command> --help` for command-specific options.
 | `docs/findings/` | Evaluation findings and technical implementation reference |
 | `docs/mvp/` | MVP feature specification and user stories |
 | `conversations/` | Generated conversation markdown files |
+| `tests/` | Unit tests (persona composer, per-turn evaluation) |
 | `.results/` | Evaluation result JSON files |
 
 ## Adding a New Persona
