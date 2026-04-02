@@ -3,7 +3,7 @@ github_issue: 83
 id: FE-009
 repo: vercel-ai-chatbot
 title: Chart and visualization previews respect Next.js basePath
-status: pending
+status: done
 priority: medium
 depends_on: []
 blocks: []
@@ -22,6 +22,7 @@ When the app is deployed with a non-empty `NEXT_PUBLIC_BASE_PATH` (matching `nex
 - **Chart loading:** `frontend/components/data360/chart-preview.tsx` — `proxyChartUrl()` normalizes tool and markdown chart URLs to a path used in `fetch(proxiedUrl)` (see ~48–59, ~202–207). Root-relative paths are returned as-is (e.g. `/api/v1/charts/...`), which is incorrect under basePath.
 - **Call sites:** Inline chart URLs in assistant text (`frontend/components/message.tsx` — `CHART_URL_REGEX`, `ChartPreview`) and `tool-data360_get_viz_spec` output (`output.url` passed to `ChartPreview`) both funnel through the same component; fixing URL construction in one place should cover both.
 - **Prior art:** `message.tsx` already uses `` `${getBasePath()}/chat/${chatId}` `` for in-app links (~1043); the chart fetch path should follow the same prefixing rules.
+- **Shipped:** `frontend/lib/chart-url.ts` (`proxyChartUrlForFetch`, `applyBasePathToChartPath`, `buildChartUrlRegexes`); consumed by `chart-preview.tsx` and `message.tsx`.
 
 ## Implementation hints
 
@@ -33,10 +34,10 @@ When the app is deployed with a non-empty `NEXT_PUBLIC_BASE_PATH` (matching `nex
 
 ## Acceptance criteria
 
-- [ ] With `NEXT_PUBLIC_BASE_PATH` set (e.g. `/app`), `ChartPreview`’s chart JSON request URL is under that prefix (e.g. `/app/api/v1/charts/...`), not only `/api/v1/charts/...`, unless the incoming URL already includes the prefix.
-- [ ] With an empty base path, behavior matches current production (requests still go to `/api/v1/charts/...`).
-- [ ] `tool-data360_get_viz_spec` chart preview and inline markdown chart URLs both render when the app is served under a subpath.
-- [ ] No duplicate path segments when the model or API returns URLs that already contain the base path.
+- [x] With `NEXT_PUBLIC_BASE_PATH` set (e.g. `/app`), `ChartPreview`’s chart JSON request URL is under that prefix (e.g. `/app/api/v1/charts/...`), not only `/api/v1/charts/...`, unless the incoming URL already includes the prefix.
+- [x] With an empty base path, behavior matches current production (requests still go to `/api/v1/charts/...`).
+- [x] `tool-data360_get_viz_spec` chart preview and inline markdown chart URLs both render when the app is served under a subpath.
+- [x] No duplicate path segments when the model or API returns URLs that already contain the base path.
 
 ## Out of scope
 
