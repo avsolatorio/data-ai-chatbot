@@ -91,12 +91,14 @@ jobs:
 
 import os
 import re
+import subprocess
 import yaml
 from pathlib import Path
-from github import Github
+from github import Auth, Github
 
 REPO_SLUG = os.environ["GITHUB_REPOSITORY"]
 TOKEN = os.environ["GITHUB_TOKEN"]
+EVENT_NAME = os.environ.get("GITHUB_EVENT_NAME", "")
 
 STATUS_LABELS = {
     "pending": "status:pending",
@@ -190,8 +192,28 @@ def write_issue_number(path: Path, number: int):
     path.write_text(text)
 
 
+SKIP_FILES = {"README.md", "CROSS-REPO-GRAPH.md"}
+
+
+def get_changed_task_files(todo_dir: Path) -> list[Path] | None:
+    """Return task files touched in the last commit, or None to signal full sync."""
+    result = subprocess.run(
+        ["git", "diff", "--name-only", "HEAD~1", "HEAD", "--", str(todo_dir)],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    paths = [
+        Path(p.strip())
+        for p in result.stdout.splitlines()
+        if p.strip() and Path(p.strip()).name not in SKIP_FILES
+    ]
+    return paths if paths else []
+
+
 def main():
-    g = Github(TOKEN)
+    g = Github(auth=Auth.Token(TOKEN))
     repo = g.get_repo(REPO_SLUG)
     todo_dir = Path("TODO")
 
@@ -199,8 +221,21 @@ def main():
         print("No TODO directory found.")
         return
 
-    task_files = [f for f in todo_dir.glob("*.md") if f.name not in ("README.md", "CROSS-REPO-GRAPH.md")]
-    print(f"Found {len(task_files)} task files")
+    # workflow_dispatch has no meaningful HEAD~1 diff — always do full sync
+    if EVENT_NAME == "workflow_dispatch":
+        changed = None
+    else:
+        changed = get_changed_task_files(todo_dir)
+
+    if changed is None:
+        task_files = [f for f in todo_dir.glob("*.md") if f.name not in SKIP_FILES]
+        print(f"Full sync: {len(task_files)} task files")
+    elif not changed:
+        print("No task files changed — nothing to sync.")
+        return
+    else:
+        task_files = [f for f in changed if f.exists()]
+        print(f"Incremental sync: {len(task_files)} changed task file(s)")
 
     for path in sorted(task_files):
         task = parse_task_file(path)
