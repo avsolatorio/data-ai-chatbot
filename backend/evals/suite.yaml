@@ -1,6 +1,6 @@
-# Regression Suite — Overnight Eval Runner
+# Evaluation Suite — Batch Runner Configuration
 # ─────────────────────────────────────────────────────────────────────────────
-# Used by: evals/run_regression.py
+# Used by: python -m evals batch --suite suite.yaml
 #
 # Each entry:
 #   compose: BASE:TOPIC:COUNTRIES:PATTERN  (for composed personas)

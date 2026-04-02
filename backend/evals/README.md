@@ -13,6 +13,98 @@ Built on [DeepEval](https://deepeval.ai/) with LLM-as-judge scoring (default: `g
 3. **Scores the conversation** -- an LLM judge evaluates each turn against metrics defined in `eval_config.yaml`
 4. **Reports results** -- JSON results, per-persona markdown transcripts, and a pass/fail summary
 
+## Quick Start
+
+All commands assume you are in the `backend/` directory:
+
+```bash
+cd backend
+```
+
+### 1. Generate a persona
+
+```bash
+# From a text description
+PYTHONPATH=. uv run python -m evals generate \
+  --describe "A journalist asking about trade data in West Africa"
+
+# From product documents
+PYTHONPATH=. uv run python -m evals generate \
+  --from-docs evals/docs/mvp/mvp_features.md
+```
+
+### 2. Generate a suite
+
+```bash
+# See available facets
+PYTHONPATH=. uv run python -m evals suite --list-facets
+
+# Random 20 combinations
+PYTHONPATH=. uv run python -m evals suite --sample 20
+
+# All combinations for one base
+PYTHONPATH=. uv run python -m evals suite --base student
+
+# Adversarial patterns only
+PYTHONPATH=. uv run python -m evals suite --adversarial-only --sample 10
+
+# Full combinatorial (2,400 entries)
+PYTHONPATH=. uv run python -m evals suite --full
+```
+
+### 3. Run a single conversation
+
+```bash
+# Flat persona (HTTP mode, true E2E)
+PYTHONPATH=. uv run python -m evals run \
+  --http --persona student_learning_and_exploration
+
+# Composed persona
+PYTHONPATH=. uv run python -m evals run \
+  --compose student:health_outcomes:south_asia:visualize --http
+
+# Simulation only (no scoring)
+PYTHONPATH=. uv run python -m evals run \
+  --http --persona all --no-eval
+
+# Replay a previous run (re-score without re-simulating)
+PYTHONPATH=. uv run python -m evals run \
+  --replay <TIMESTAMP> --persona all
+```
+
+### 4. Run a batch
+
+```bash
+# Run the default suite
+PYTHONPATH=. uv run python -m evals batch --http
+
+# Resume an interrupted batch
+PYTHONPATH=. uv run python -m evals batch --http --resume
+
+# Use a custom suite file
+PYTHONPATH=. uv run python -m evals batch --suite my_suite.yaml --http
+```
+
+### 5. Compare runs
+
+```bash
+PYTHONPATH=. uv run python -m evals compare <TIMESTAMP_A> <TIMESTAMP_B>
+```
+
+For full setup instructions (Docker, MCP, VPN, SSL), see [E2E_GUIDE.md](E2E_GUIDE.md).
+
+## Typical Workflow
+
+```
+1. Start the stack         docker compose up -d && ./run_server.sh (MCP)
+2. Generate a persona      python -m evals generate --describe "..."
+3. Run a quick test        python -m evals run --http --persona <name> --turns 2 --no-eval
+4. Run a full eval         python -m evals run --http --persona all
+5. Compare with baseline   python -m evals compare <old_ts> <new_ts>
+6. Tweak prompts/rubrics   edit eval_config.yaml or system prompts
+7. Scale up                python -m evals suite --sample 50 && python -m evals batch --http
+```
+
 ## How Metrics Work
 
 There are two tiers of evaluation:
@@ -30,46 +122,23 @@ Aggregation methods:
 
 See [eval_config.yaml](eval_config.yaml) for the full metric definitions and rubrics.
 
-## Quick Start
-
-```bash
-cd backend
-
-# HTTP mode -- true E2E against the running chatbot (recommended)
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
-  --http --persona student_learning_and_exploration
-
-# All personas, simulation only (no scoring)
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
-  --http --persona all --no-eval
-
-# Replay a previous run (re-score without re-simulating)
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
-  --replay <TIMESTAMP> --persona all
-
-# Compare two runs side-by-side
-PYTHONPATH=. uv run python -m evals.compare_eval_runs <TIMESTAMP_A> <TIMESTAMP_B>
-```
-
-For full setup instructions (Docker, MCP, VPN, SSL), see [E2E_GUIDE.md](E2E_GUIDE.md).
-
-## Typical Workflow
-
-```
-1. Start the stack         docker compose up -d && ./run_server.sh (MCP)
-2. Run a quick test        --http --persona <name> --turns 2 --no-eval
-3. Run a full eval         --http --persona all
-4. Review results          open evals/conversations/<persona>.md
-5. Compare with baseline   compare_eval_runs.py <old_ts> <new_ts>
-6. Tweak prompts/rubrics   edit eval_config.yaml or system prompts
-7. Re-run and compare      repeat from step 3
-```
-
 ## CLI Reference
 
 ```
-PYTHONPATH=. uv run python -m evals.run_conversation_eval [OPTIONS]
+PYTHONPATH=. uv run python -m evals <command> [options]
 ```
+
+| Command | Description |
+|---|---|
+| `run` | Simulate and score a single conversation |
+| `batch` | Run a batch of personas from a suite file |
+| `generate` | Generate persona YAML files |
+| `suite` | Generate a suite.yaml from available facets |
+| `compare` | Compare two evaluation runs |
+
+Run `python -m evals <command> --help` for command-specific options.
+
+### `run` options
 
 | Flag | Default | Description |
 |---|---|---|
@@ -80,25 +149,39 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval [OPTIONS]
 | `--runs <N>` | 1 | Repeat each persona N times (reports mean +/- std). |
 | `--replay <TS>` | -- | Re-score a previous run without re-simulating. |
 | `--config <path>` | `eval_config.yaml` | Path to an alternate config file. |
-| `--goldens-file <path>` | -- | Use pre-generated golden test cases instead of personas. |
-| `--output-dir <path>` | `conversations/` | Custom output directory for markdown transcripts. |
-| `--compose BASE:TOPIC:COUNTRIES:PATTERN` | -- | Compose a persona from facets (see [PERSONAS.md](PERSONAS.md)). |
-| `--compose-random BASE` | -- | Random facets per run. Use with `--runs N` for variation. |
-| `--list-facets` | -- | Print available bases and facets, then exit. |
+| `--compose BASE:TOPIC:COUNTRIES:PATTERN` | -- | Compose a persona from facets. |
+| `--compose-random BASE` | -- | Random facets per run. Use with `--runs N`. |
+
+### `suite` options
+
+| Flag | Default | Description |
+|---|---|---|
+| `--full` | off | Generate all composed combinations. |
+| `--sample <N>` | -- | Random N combinations. |
+| `--base <name>` | -- | Filter by base (e.g. `student`). |
+| `--adversarial-only` | off | Only adversarial patterns. |
+| `--include-flat` | off | Include flat personas in the suite. |
+| `--runs <N>` | 1 | Runs per persona in the generated suite. |
+| `--output <path>` | `suite.yaml` | Output file path. |
+| `--list-facets` | off | Print available facets and exit. |
 
 ## File Layout
 
 | File | Purpose |
 |---|---|
-| `run_conversation_eval.py` | Main entry point: simulation, evaluation, reporting |
+| `__main__.py` | Unified CLI entry point |
+| `run_conversation_eval.py` | Simulation, evaluation, and reporting engine |
 | `per_turn_eval.py` | Per-turn context building, pre-filtering, GEval scoring |
 | `metric_builder.py` | Metric construction from `eval_config.yaml` |
 | `pipeline_runner.py` | In-process eval pipeline wrapper |
+| `persona_composer.py` | Composable persona assembly from YAML facets |
 | `eval_config.yaml` | All metric definitions, thresholds, and rubrics |
+| `suite.yaml` | Default batch suite configuration |
+| `run_regression.py` | Batch runner with retry and checkpoint support |
 | `compare_eval_runs.py` | Diff two evaluation runs |
-
 | `generate_personas.py` | Persona generation from templates or descriptions |
 | `generate_goldens.py` | Golden test case generation from documents |
+| `test_persona_composer.py` | Unit tests for the persona composer |
 | `test_tool_use_metrics.py` | Unit tests for per-turn evaluation plumbing |
 
 ### Directories
@@ -115,7 +198,13 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval [OPTIONS]
 
 ## Adding a New Persona
 
-Create `evals/personas/<persona_key>.yaml`:
+```bash
+# Quick: generate from a description
+PYTHONPATH=. uv run python -m evals generate \
+  --describe "A blind user using a screen reader who wants poverty data"
+```
+
+Or create `evals/personas/<persona_key>.yaml` manually:
 
 ```yaml
 scenario: >
@@ -135,7 +224,7 @@ expected_outcome: >
   (5) Suggest related indicators for further study.
 ```
 
-Then run: `--persona <persona_key>`
+Then run: `python -m evals run --persona <persona_key> --http`
 
 ## Adding a New Metric
 
@@ -143,7 +232,7 @@ See [Adding or Modifying a Metric](docs/findings/DEEPEVAL_IMPLEMENTATION.md#13-a
 
 ## Related Docs
 
-- [PERSONAS.md](PERSONAS.md) -- composable persona system, E2E run playbook
+- [PERSONAS.md](PERSONAS.md) -- composable persona system and facet architecture
 - [E2E_GUIDE.md](E2E_GUIDE.md) -- setup, architecture, VPN, and preflight details
 - [DEEPEVAL_IMPLEMENTATION.md](docs/findings/DEEPEVAL_IMPLEMENTATION.md) -- technical implementation reference
 - [CONSOLIDATED_FINDING.md](docs/findings/CONSOLIDATED_FINDING.md) -- evaluation findings and recommendations
