@@ -1,6 +1,6 @@
 # data-ai-chatbot — task index
 
-Agent-oriented work items. Each task is a standalone `.md` file with context, acceptance criteria, and dependency metadata. (9 active, 1 completed)
+Agent-oriented work items. Each task is a standalone `.md` file with context, acceptance criteria, and dependency metadata. (10 active, 1 completed)
 
 **Sibling repos:** [data360-mcp/TODO](../data360-mcp/TODO/README.md), [pcn/TODO](../pcn/TODO/README.md)
 
@@ -17,6 +17,7 @@ Agent-oriented work items. Each task is a standalone `.md` file with context, ac
 | FE-006 | [FE-006-how-to-read-disclosure.md](./FE-006-how-to-read-disclosure.md) | If the model emits How to read (or equivalent) per BE-001, present it as seco... |
 | FE-007 | [FE-007-mobile-keyboard-input-layout.md](./FE-007-mobile-keyboard-input-layout.md) | On iPhone (~390px viewport, iOS Safari), tapping the chat input field causes ... |
 | FE-008 | [FE-008-chat-list-skeleton-loader.md](./FE-008-chat-list-skeleton-loader.md) | When the sidebar chat history list is fetching its first page of data, it sho... |
+| FE-009 | [FE-009-chart-viz-urls-basepath.md](./FE-009-chart-viz-urls-basepath.md) | When the app is deployed with a non-empty `NEXT_PUBLIC_BASE_PATH` (matching `... |
 
 <details>
 <summary>1 done</summary>
@@ -40,6 +41,7 @@ flowchart TB
   FE006["FE-006 Optional “How to read” present"]
   FE007["FE-007 Mobile — chat input jumps behi"]
   FE008["FE-008 Chat messages — skeleton loade"]
+  FE009["FE-009 Chart and visualization previe"]
   BE001 --> FE005
   FE005 --> FE006
 ```
