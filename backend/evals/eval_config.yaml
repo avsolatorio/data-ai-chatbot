@@ -448,6 +448,41 @@ per_turn_metrics:
       - score_range: [0, 3]
         expected_outcome: "Poor formatting — no units, no tables, or scientific notation."
 
+  - name: "Per-Turn Derived Data Integrity"
+    type: "geval"
+    threshold: 0.8
+    requires: "presented_data" # Triggers when numeric data (claims or tables) is present
+    aggregates_to: "Derived Data Integrity"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn that performs math or
+      derives insights from tool-retrieved data. You are given the
+      raw tool values and the assistant's response.
+
+      Evaluate the mathematical accuracy of derived values:
+      (1) CALCULATIONS: If the assistant calculates growth rates,
+      differences, or sums (e.g., "This represents a 15% increase"),
+      the math must be correct based on the tool-retrieved numbers.
+      (2) PRECISION: Rounded values must be accurate to the specified
+      decimal places (default +/- 0.01 tolerance).
+      (3) LOGIC: Comparison logic (e.g., "X is higher than Y") must
+      be factually correct based on tool output.
+      (4) NO HALLUCINATION: The assistant must not "fabricate" a
+      calculation that isn't supported by the data.
+
+    evaluation_steps:
+      - "Re-calculate any growth rates, differences, or sums mentioned in the summary or analysis"
+      - "Verify the math matches the tool-retrieved numbers exactly"
+      - "Check that directional insights (higher/lower/increase) are correct"
+    rubric:
+      - score_range: [9, 10]
+        expected_outcome: "Perfectly accurate math and logical derivations."
+      - score_range: [6, 8]
+        expected_outcome: "Correct logic but minor rounding errors or lack of precision."
+      - score_range: [0, 5]
+        expected_outcome: "Significant mathematical errors, wrong directions, or fabricated calculations."
+
+
   # ── Accessibility & Learning ───────────────────────────────────
 
   - name: "Per-Turn Inline Explanations"
@@ -670,7 +705,7 @@ per_turn_metrics:
 
   - name: "Per-Turn Visualization & API URLs"
     type: "geval"
-    threshold: 0.5
+    threshold: 0.6
     requires: "tool_calls"
     aggregates_to: "Visualization & API URLs"
     aggregation: "min"
@@ -685,30 +720,35 @@ per_turn_metrics:
         * "Viz URL In Response: VERIFIED/MISSING" = whether the
           tool's URL appears in the assistant's response.
 
-      Rules for scoring:
+      Strict Evaluation Rules for scoring:
       (a) VISUALIZATION: When "Viz Request: YES" and "get_viz_spec
       Called: YES" and "Viz URL In Response: VERIFIED", score 10
-      -- the URL is confirmed valid by programmatic check.
-      (b) When "Viz Request: YES" but "get_viz_spec Called: NO",
-      score 0-3 -- the chatbot should have called get_viz_spec.
-      (c) When "Viz Request: YES" and "get_viz_spec Called: YES"
-      but "Viz URL In Response: MISSING", score 4-7 -- the tool
-      was called but the URL wasn't presented to the user.
-      (d) API URL: When the user asks for API access, verify
+      -- only if the chart configuration matches the request.
+      (b) INTENT MISMATCH: If the user asked for a "combined" or
+      "stacked" chart but the asssitant gave separate or wrong chart
+      types, score 4-6 -- even if URLs are present. Partial fulfillment
+      of a specific visualization requirement is NOT a perfect score.
+      (c) SILENT REJECTION / APOLOGY: When "Viz Request: YES" but the
+      assistant apologizes or claims it cannot generate the link
+      WITHOUT a clear technical error (e.g., get_viz_spec Called: NO),
+      score 0-3 -- this is a failure of intent fulfillment.
+      (d) TOOL ERROR: If get_viz_spec returned an error and the
+      assistant apologized correctly, score 5-7.
+      (e) API URL: When the user asks for API access, verify
       a URL under 'Direct API Access:'. Do not expect API URLs
       on every response -- only when explicitly requested.
-      (e) If the user did NOT ask for a chart or API URL on this
+      (f) If the user did NOT ask for a chart or API URL on this
       turn, this metric is trivially satisfied -- score 10.
 
     evaluation_steps:
       - "Check if 'Viz Request: YES' is present in the context"
-      - "If yes, check 'get_viz_spec Called' and 'Viz URL In Response'"
-      - "Use programmatic signals to determine score -- do NOT judge URL validity yourself"
-      - "If no viz request, check for API URL request; otherwise score 10"
+      - "If yes, verify 'get_viz_spec Called' and 'Viz URL In Response'"
+      - "Evaluate if the chart configuration (combined vs separate) matches the user intent"
+      - "Check for 'silent rejections' or apologies without technical cause"
     rubric:
       - score_range: [8, 10]
-        expected_outcome: "Viz request handled correctly (URL VERIFIED), or not applicable."
+        expected_outcome: "Viz request handled correctly (URL VERIFIED) with exact intent match."
       - score_range: [4, 7]
-        expected_outcome: "get_viz_spec called but URL missing from response, or API URL formatting issue."
+        expected_outcome: "Intent mismatch (separate charts for combined request), or get_viz_spec called but URL missing."
       - score_range: [0, 3]
-        expected_outcome: "Viz requested but get_viz_spec NOT called, or apologized instead."
+        expected_outcome: "Viz requested but ignored, apologized for, or get_viz_spec NOT called."

@@ -218,6 +218,27 @@ a short scope-guard response.
 
 ---
 
+### F6 — Visualization Intent Mismatch (NEW, 3 failures, MEDIUM)
+
+**What happens:** The user asks for a specific chart configuration (e.g., "combined chart", "dual-axis", "stacked bar"), but the chatbot provides separate charts or a simple line chart instead. The judge currently scores these loosely (~0.7-0.8), but they represent a failure of user intent fulfillment.
+
+**Affected personas:**
+- `student:food_security:explore` — 2 failures (combined data provided as separate charts)
+- `technical_expert:trade_openness:visualize` — 1 failure (multi-country comparison)
+
+---
+
+### F7 — Calculation & Derived Data Gaps (NEW, 2 failures, MEDIUM)
+
+**What happens:** The chatbot performs manual calculations (sums, growth rates, differences) on tool-retrieved data but introduces errors or lacks precision. These are currently hidden within its "Data Accuracy" score because the judge primarily checks if the raw tool inputs are correct, not the derived output.
+
+**Affected personas:**
+- `technical_expert:macro_fiscal:analyze` — 1 failure (incorrect debt-to-GDP growth math)
+- `general_public:poverty:summary` — 1 failure (rounding error in headcount difference)
+
+
+---
+
 ## Metric Reliability Tiers
 
 Based on the data, the 18 metrics fall into three reliability tiers:
@@ -372,6 +393,22 @@ but not as a mandatory section).
 
 **Expected impact:** Should reduce the 8 Follow-up Suggestions failures. Low risk — the
 writer already includes follow-ups on ~94% of turns.
+
+---
+
+## Next Iteration Focus (2026Q2)
+
+### P0 — Visualization Strictness (Silent Rejections)
+**Goal:** Tighten the `Visualization & API URLs` rubric to penalize apologies and intent mismatches.
+**Action:** Update `eval_config.yaml` to ensure score 0-3 for "I cannot provide a chart" and 4-6 for "Intent mismatch" (e.g., separate charts instead of combined).
+
+### P1 — Derived Data Integrity Metric
+**Goal:** Implement a dedicated metric for mathematical accuracy of chatbot-computed values.
+**Action:** Add `Derived Data Integrity` to `eval_config.yaml` with a rubric that rewards precision and penalizes even minor math errors in summaries.
+
+### P2 — Source Citation Enforcement (Code Fix)
+**Goal:** Apply the P0 recommendation for `Sources:` section enforcement in `app/ai/prompts.py`.
+
 
 ---
 
