@@ -1,4 +1,5 @@
 ---
+github_issue: 71
 id: FE-001
 repo: vercel-ai-chatbot
 title: Follow-ups — parser hardening and chip affordance
