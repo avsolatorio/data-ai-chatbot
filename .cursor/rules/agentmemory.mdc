@@ -1,0 +1,9 @@
+---
+description: Writing summary or documentation of the conversation as memory or as a reference for the user.
+alwaysApply: false
+---
+# Agent Memory
+
+If you choose to write a summary or documentation of the conversation as memory or as a reference for the user, you should save it as a markdown file in the `cursor-memory/` directory in the root of the project.
+
+If this directory does not exist, create it. Use descriptive file names that describe the conversation.
