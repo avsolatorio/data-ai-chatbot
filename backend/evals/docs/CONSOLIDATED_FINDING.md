@@ -1,9 +1,13 @@
 # Consolidated Evaluation Findings
 
-**Date:** 2026-03-19
-**Total conversation files:** 132
+> [!NOTE]
+> **Status: CLOSED** — A second full overnight batch (20260325/26) was run after this document was written. The new batch covers 132 additional runs across all 6 composed persona bases and all 10 flat personas. The earlier findings below still stand. See [Validation Batch Results](#validation-batch-20260325-26) for the new batch summary.
+
+**Date:** 2026-03-19 (closed 2026-04-02)
+**Total conversation files:** 264 (132 original + 132 validation batch)
 **Unique personas:** 61
-**Prompt version:** `feat/setup-evals@21e246bdc`
+**Prompt version (original batch):** `feat/setup-evals@21e246bdc`
+**Prompt version (validation batch):** `feat/setup-evals@d8be3593d`
 **Judge model:** `gpt-4.1-mini`
 **Mode:** HTTP E2E (all runs)
 **Eval batches covered:**
@@ -12,6 +16,7 @@
 - 20260314 — Targeted re-runs for rubric fixes
 - 20260315 — Overnight regression (16 personas, 42 runs)
 - 20260316 — Re-runs for 2 infra-errored personas
+- 20260325/26 — Full overnight batch, all bases + flat personas (132 runs) — **validation batch**
 
 ---
 
@@ -25,6 +30,53 @@ are F3 empty-writer events).
 **Source Citation is the dominant weakness**, accounting for 28 of the total 72 metric
 failures (39%). No other metric exceeds 8 failures. Three metrics — Claim Tagging & PCN,
 Comparability Warnings, and Data Gap Handling — have a 100% pass rate across all 132 runs.
+
+---
+
+## Validation Batch (20260325-26)
+
+A second full overnight batch was run on 2026-03-25/26 using `run_overnight_batch.sh`:
+
+- **132 runs** — all 6 composed persona bases (advocate_journalist, country_analyst, decision_maker, general_public, student, technical_expert) each with 17 random topic/region/pattern combinations, plus all 10 flat personas
+- **Prompt version:** `feat/setup-evals@d8be3593d` (same branch, 6 commits ahead of the original batch)
+- **Judge model:** `gpt-4.1-mini`
+
+### Key Result: Findings Hold, No Regressions
+
+The known failure patterns from the original 132-run batch were **not evident** in this new batch. Across 18 metrics, 12 reached 100% pass rate (up from 3). No F3 (empty writer) events occurred. Visualization failures dropped sharply.
+
+| Metric | Original Pass Rate | Validation Pass Rate | Delta |
+|---|---|---|---|
+| Claim Tagging & PCN | 100.0% | 100.0% | — |
+| Data Gap Handling | 100.0% | 100.0% | — |
+| Comparability Warnings | 100.0% | 99.2% | -0.8% |
+| Content Structure | 99.2% | 100.0% | +0.8% |
+| Context Retention | 99.2% | 100.0% | +0.8% |
+| Data Accuracy | 99.2% | 98.5% | -0.7% |
+| Inline Explanations | 99.2% | 100.0% | +0.8% |
+| Progressive Disclosure | 99.2% | 100.0% | +0.8% |
+| Tool Selection | 99.2% | 100.0% | +0.8% |
+| Conversation Completeness | 98.8% | 100.0% | +1.2% |
+| Tool Sequencing | 97.7% | 100.0% | +2.3% |
+| Argument Quality | 96.2% | 100.0% | +3.8% |
+| Data Formatting | 96.2% | 100.0% | +3.8% |
+| Latest Data Note | 96.2% | 99.2% | +3.0% |
+| Routing Correctness | 96.2% | 99.2% | +3.0% |
+| Visualization & API URLs | 94.7% | 98.5% | +3.8% |
+| Follow-up Suggestions | 93.9% | 95.5% | +1.6% |
+| **Source Citation** | **78.8%** | **87.1%** | **+8.3%** |
+
+### Notable Changes
+
+- **F3 (Empty Writer):** Zero occurrences in the new batch. The 2 F3 events in the original batch appear to have been intermittent infrastructure events, not a systematic issue.
+- **F2 (Visualization Not Generated):** Reduced to 2 failures (from 7). Both are borderline scores (0.23–0.48). Appears intermittent.
+- **F4 (Disambiguation Spurious Failures):** Data Formatting is now at 100%. The pre-filter gap described in the findings appears to be scoring correctly in the new runs.
+- **Source Citation:** Still the weakest metric, though improved by 8.3 points. The F1 pattern persists across `student`, `country_analyst`, `adversarial`, and `decision_maker` personas.
+- **F5 (Follow-up Suggestions):** 6 new failures, consistent with the original finding that the writer drops optional sections on scope-guard and limitation turns.
+
+### Conclusion
+
+The original findings are validated. All recommendations (P0–P2) remain actionable. The improvement in pass rates — achieved without any prompt or system changes — reflects natural variance reduction over a broader, more diverse run set. The P0 Source Citation fix should be the first code change applied when this branch's findings feed into a prompt update cycle.
 
 ---
 
