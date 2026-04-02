@@ -1,0 +1,23 @@
+{
+  "skill_name": "feedback-to-tasks",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have two issues in the data-ai-chatbot frontend that need to be tracked as tasks. First: on mobile (iPhone, ~390px) when you tap the chat input box, the keyboard pushes the whole layout up and the input field jumps behind the keyboard — it's basically unusable on iOS Safari. Second: when the chat list is loading the first set of messages there's no loading state, it just shows a blank white area for a second or two before messages appear. We need a skeleton loader there. These are both frontend issues in the vercel-ai-chatbot repo.",
+      "expected_output": "Two well-formed FE task files written to vercel-ai-chatbot/TODO/. Each should have: correct frontmatter (id, repo, status, priority explicitly set), a Goal section, a Context section with real file paths from the codebase, an Implementation hints section that names a specific function or line number (not just a placeholder), verifiable acceptance criteria with viewport sizes or test commands, and README updated. No dependencies between the two tasks.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Here's a PR review I got on the data360-mcp repo. Please convert the actionable items into tasks:\n\n---\n**Comment on `src/data360/mcp_server/viz.py` line 142:**\nThe `generate_vega_spec()` function doesn't handle the case where `data` is an empty list — it throws a KeyError on `data[0]['date']`. We should return a user-friendly error or empty chart spec instead of crashing.\n\n**Comment on `src/data360/mcp_server/viz.py` line 89:**\nNit: rename `d` to `dataset` for clarity.\n\n**Comment on `src/data360/mcp_server/cache.py` line 23:**\nThe TTL is hardcoded to 300 seconds. This should be configurable via an environment variable `MCP_CACHE_TTL` with 300 as the default.\n---",
+      "expected_output": "Two MCP task files (the rename nit should be skipped or noted as trivially inline). Each task should have implementation hints pointing to the specific file and line mentioned in the review. The empty-list crash should be high priority. The cache TTL task should reference the specific env var name. The rename nit should either be skipped with an explanation, or created as a very low-priority task.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Mark FE-001 as done in the vercel-ai-chatbot TODO. Then tell me: what tasks are now unblocked, and what's the full list of tasks I can start working on right now (nothing blocking them)?",
+      "expected_output": "FE-001 status updated to done in its task file. Response correctly identifies any tasks that depended on FE-001. Lists all pending tasks with no unmet dependencies (depends_on empty or all deps done). Acceptance criteria checkboxes in FE-001 should be ticked or noted. README should be regenerated to reflect the status change.",
+      "files": []
+    }
+  ]
+}
