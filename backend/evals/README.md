@@ -148,7 +148,7 @@ Run `python -m evals <command> --help` for command-specific options.
 | `--no-eval` | off | Simulate conversations but skip scoring. |
 | `--runs <N>` | 1 | Repeat each persona N times (reports mean +/- std). |
 | `--replay <TS>` | -- | Re-score a previous run without re-simulating. |
-| `--config <path>` | `eval_config.yaml` | Path to an alternate config file. |
+| `--config <path>` | `configs/eval_config.yaml` | Path to an alternate config file. |
 | `--compose BASE:TOPIC:COUNTRIES:PATTERN` | -- | Compose a persona from facets. |
 | `--compose-random BASE` | -- | Random facets per run. Use with `--runs N`. |
 
@@ -162,7 +162,7 @@ Run `python -m evals <command> --help` for command-specific options.
 | `--adversarial-only` | off | Only adversarial patterns. |
 | `--include-flat` | off | Include flat personas in the suite. |
 | `--runs <N>` | 1 | Runs per persona in the generated suite. |
-| `--output <path>` | `suite.yaml` | Output file path. |
+| `--output <path>` | `configs/suite.yaml` | Output file path. |
 | `--list-facets` | off | Print available facets and exit. |
 
 ## File Layout
@@ -175,8 +175,8 @@ Run `python -m evals <command> --help` for command-specific options.
 | `metric_builder.py` | Metric construction from `eval_config.yaml` |
 | `pipeline_runner.py` | In-process eval pipeline wrapper |
 | `persona_composer.py` | Composable persona assembly from YAML facets |
-| `eval_config.yaml` | All metric definitions, thresholds, and rubrics (moved to `configs/`) |
-| `suite.yaml` | Default batch suite configuration (moved to `configs/`) |
+| `configs/eval_config.yaml` | All metric definitions, thresholds, and rubrics |
+| `configs/suite.yaml` | Default batch suite configuration |
 | `run_regression.py` | Batch runner with retry and checkpoint support |
 | `compare_eval_runs.py` | Diff two evaluation runs |
 | `generate_personas.py` | Persona generation from templates or descriptions |

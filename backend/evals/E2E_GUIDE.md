@@ -10,7 +10,7 @@ The eval runner sends real HTTP requests through the full chatbot stack: FastAPI
 
 ```
  ┌──────────────────────────────────────────────────────────┐
- │  Eval Runner (run_conversation_eval.py --http)           │
+ │  Eval Runner (python -m evals run --http)                │
  │                                                          │
  │  1. POST /api/auth/guest  →  get JWT token               │
  │  2. POST /api/chat        →  stream response (SSE format) │
@@ -73,9 +73,9 @@ This is handled automatically by `_http_model_callback` in `run_conversation_eva
 ## Environment Setup
 
 ```bash
-cp backend/evals/.env.example backend/evals/.env
+cp evals/configs/.env.example evals/.env
 # Edit values, then source before running:
-set -a; source backend/evals/.env; set +a
+set -a; source evals/.env; set +a
 ```
 
 Key variables:
@@ -119,23 +119,23 @@ docker compose up -d
 cd backend
 
 # Single persona
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --http --persona student_learning_and_exploration
 
 # All personas
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --http --persona all
 
 # Simulation only (no scoring)
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --http --persona all --no-eval
 
 # Custom turn count
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --http --persona all --turns 3
 
 # Multiple runs (variance measurement)
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --http --persona all --runs 3
 ```
 
@@ -179,7 +179,7 @@ Same as local, but the env vars point at production:
 cd backend
 set -a; source evals/.env; set +a
 
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --http --persona student_learning_and_exploration
 ```
 
@@ -204,11 +204,12 @@ The `--http` flag runs automatic checks before simulation:
 | Conversations JSON | `evals/.results/conversations_<timestamp>.json` | Full conversation + pipeline details |
 | Eval results JSON | `evals/.results/conversation_eval_<timestamp>.json` | Scores, thresholds, judge reasoning |
 | Per-persona markdown | `evals/conversations/<persona>.md` | Transcript + eval results |
+| Logic & Rubrics | `evals/configs/eval_config.yaml` | Evaluation rules and GEval rubrics |
 
 ### Replaying a previous run
 
 ```bash
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --replay <TIMESTAMP> --persona all
 ```
 
@@ -217,7 +218,7 @@ Timestamp from the filename: `conversations_20260305_210102.json` -> `20260305_2
 ### Comparing two runs
 
 ```bash
-PYTHONPATH=. uv run python -m evals.compare_eval_runs <TIMESTAMP_A> <TIMESTAMP_B>
+PYTHONPATH=. uv run python -m evals compare <TIMESTAMP_A> <TIMESTAMP_B>
 ```
 
 ---
@@ -235,11 +236,11 @@ cd backend
 
 # In-process mode (requires MCP_SERVER_URL on host)
 MCP_SERVER_URL=http://localhost:8021/mcp \
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --persona student_learning_and_exploration
 
 # Replay + in-process (no MCP needed)
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --replay <TIMESTAMP> --persona all
 ```
 

@@ -13,14 +13,14 @@ The evaluation framework supports two persona modes:
 cd backend
 
 # List available facets
-PYTHONPATH=. uv run python -m evals.run_conversation_eval --list-facets
+PYTHONPATH=. uv run python -m evals run --list-facets
 
 # Fixed composition
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --compose student:health_outcomes:south_asia:visualize --http --turns 5
 
 # Random composition (different each run)
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --compose-random student --runs 3 --turns 5 --http
 ```
 
@@ -103,7 +103,7 @@ A complete evaluation sweep covers flat personas, composed random runs, and adve
 ### Phase 1 -- Flat personas (regression baseline)
 
 ```bash
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --persona all --turns 5 --http
 ```
 
@@ -116,7 +116,7 @@ Runs all 10 monolithic personas. Deterministic scenarios, reproducible results.
 ```bash
 for base in decision_maker technical_expert country_analyst \
             advocate_journalist student general_public; do
-  PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+  PYTHONPATH=. uv run python -m evals run \
     --compose-random $base --runs 2 --turns 5 --http
 done
 ```
@@ -128,15 +128,15 @@ Each base gets 2 runs with random topic/country/pattern combinations.
 ### Phase 3 -- Adversarial pinned (boundary testing)
 
 ```bash
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --compose student:health_outcomes:south_asia:adversarial_scope_guard \
   --turns 5 --http
 
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --compose technical_expert:economic_growth:east_africa:adversarial_fabrication \
   --turns 5 --http
 
-PYTHONPATH=. uv run python -m evals.run_conversation_eval \
+PYTHONPATH=. uv run python -m evals run \
   --compose country_analyst:trade_openness:southeast_asia:adversarial_disambiguation \
   --turns 5 --http
 ```
@@ -146,8 +146,8 @@ PYTHONPATH=. uv run python -m evals.run_conversation_eval \
 ### Phase 4 -- Review
 
 1. Check pass rates in the `.results/` JSON files
-2. For any metric < 0.7 or FAIL, run the manual review (see `eval-manual-review` skill or `review_conversation.py`)
-3. Compare against previous runs with `compare_eval_runs.py`
+2. For any metric < 0.7 or FAIL, run the manual review (see `eval-manual-review` skill)
+3. Compare against previous runs with `python -m evals compare`
 
 ### Coverage Summary
 
@@ -202,7 +202,7 @@ pattern_outcomes: >
 After adding any facet, run `--list-facets` to verify it loads, and run the unit tests:
 
 ```bash
-PYTHONPATH=. uv run python -m pytest evals/test_persona_composer.py -v
+PYTHONPATH=. uv run python -m pytest evals/tests/test_persona_composer.py -v
 ```
 
 ---
@@ -211,8 +211,9 @@ PYTHONPATH=. uv run python -m pytest evals/test_persona_composer.py -v
 
 | File | Purpose |
 |------|---------|
-| `persona_composer.py` | Compositor: `compose()`, `compose_random()`, `list_available()` |
-| `test_persona_composer.py` | 15 unit tests for the compositor |
+| `persona_composer.py` | Compositor logic |
+| `tests/test_persona_composer.py` | Unit tests for the compositor |
+| `configs/eval_config.yaml` | Persona generation prompts (under `personas:` section) |
 | `personas/bases/*.yaml` | 6 base profile templates |
 | `personas/facets/topics/*.yaml` | 10 topic facets |
 | `personas/facets/countries/*.yaml` | 5 country facets (with variants) |
