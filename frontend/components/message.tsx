@@ -8,6 +8,7 @@ import { MessageSquare } from "lucide-react";
 import { type Dispatch, memo, type SetStateAction, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
 import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
+import { buildChartUrlRegexes } from "@/lib/chart-url";
 import { getBasePath } from "@/lib/config";
 import {
   type Data360SourceEntry,
@@ -16,8 +17,11 @@ import {
 } from "@/lib/data360";
 import type { Vote } from "@/lib/db/schema";
 import { parseFollowUps } from "@/lib/parse-follow-ups";
-import type { ChatMessage, StreamingThinkingPart } from "@/lib/types";
-import { isNonRenderableStreamEvent } from "@/lib/types";
+import {
+  type ChatMessage,
+  isNonRenderableStreamEvent,
+  type StreamingThinkingPart,
+} from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
 import { cn, sanitizeText } from "@/lib/utils";
 import { ASK_ABOUT_SELECTION_CONTEXT_ATTR } from "./ask-about-selection-toolbar";
@@ -62,14 +66,8 @@ import {
 } from "./quoted-context-block";
 import { Weather } from "./weather";
 
-/** Bare chart URL (path or full URL). */
-const CHART_URL_REGEX =
-  /(?:\/api\/v1\/charts\/[^\s"'<>)\]]+|https?:\/\/[^\s]*\/api\/v1\/charts\/[^\s"'<>)\]]+)/;
-
-/** Markdown link whose href is a chart URL: [label](chartUrl). Group 1 = chartUrl, full match = whole link. */
-const CHART_MARKDOWN_LINK_REGEX = new RegExp(
-  `\\[[^\\]]*\\]\\s*\\(\\s*(${CHART_URL_REGEX.source})\\s*\\)`,
-);
+const { bare: CHART_URL_REGEX, markdownLink: CHART_MARKDOWN_LINK_REGEX } =
+  buildChartUrlRegexes();
 
 /** Splits text at the first chart URL (or markdown link with chart URL) so it can be replaced by ChartPreview inline. */
 function splitTextAtChartUrl(text: string): {

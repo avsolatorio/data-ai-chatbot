@@ -3,6 +3,8 @@
 import type { MouseEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
+import { proxyChartUrlForFetch } from "@/lib/chart-url";
+import { getBasePath } from "@/lib/config";
 import type { UIArtifact } from "../artifact";
 import { FullscreenIcon, LoaderIcon } from "../icons";
 
@@ -40,23 +42,6 @@ type ChartPreviewProps = {
   /** Message that contains this chart; used to scroll chat to it when artifact scroll behavior is "trigger". */
   messageId?: string;
 };
-
-/**
- * Normalize chart URL to same-origin so the request is proxied via Next.js
- * (app/api/[...path]) and avoids CORS / unreachable backend URLs.
- */
-function proxyChartUrl(url: string): string {
-  const trimmed = url.trim();
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    try {
-      const parsed = new URL(trimmed);
-      return `${parsed.pathname}${parsed.search}`;
-    } catch {
-      return trimmed;
-    }
-  }
-  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-}
 
 /** Aspect ratio for the chart preview (width / height). 16/9 is a good default for charts. */
 const PREVIEW_ASPECT_RATIO = 16 / 9;
@@ -180,7 +165,10 @@ function ChartThumbnail({ specJson }: { specJson: string }) {
   }, [specJson, themeConfig]);
 
   return (
-    <div className="relative w-full overflow-hidden bg-white dark:bg-zinc-900" style={{ aspectRatio: PREVIEW_ASPECT_RATIO }}>
+    <div
+      className="relative w-full overflow-hidden bg-white dark:bg-zinc-900"
+      style={{ aspectRatio: PREVIEW_ASPECT_RATIO }}
+    >
       <div ref={containerRef} className="absolute inset-0 size-full" />
     </div>
   );
@@ -199,7 +187,10 @@ export function ChartPreview({
   } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isOpening, setIsOpening] = useState(false);
-  const proxiedUrl = useMemo(() => proxyChartUrl(chartUrl), [chartUrl]);
+  const proxiedUrl = useMemo(
+    () => proxyChartUrlForFetch(chartUrl, getBasePath()),
+    [chartUrl],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -212,9 +203,7 @@ export function ChartPreview({
       .then((data) => {
         if (cancelled) return;
         const spec =
-          typeof data.spec === "object" && data.spec !== null
-            ? data.spec
-            : {};
+          typeof data.spec === "object" && data.spec !== null ? data.spec : {};
         const specJson = JSON.stringify(spec);
         setChartData({
           spec,
@@ -224,7 +213,9 @@ export function ChartPreview({
       })
       .catch((err) => {
         if (!cancelled) {
-          setLoadError(err instanceof Error ? err.message : "Failed to load chart");
+          setLoadError(
+            err instanceof Error ? err.message : "Failed to load chart",
+          );
         }
       });
     return () => {
@@ -256,7 +247,7 @@ export function ChartPreview({
       }));
       setIsOpening(false);
     },
-    [chartData, isReadonly, messageId, setArtifact]
+    [chartData, isReadonly, messageId, setArtifact],
   );
 
   if (loadError) {
