@@ -1,4 +1,5 @@
 ---
+github_issue: 83
 id: FE-009
 repo: vercel-ai-chatbot
 title: Chart and visualization previews respect Next.js basePath
