@@ -1,0 +1,146 @@
+{
+  "timestamp": "20260325_230613",
+  "personas": [
+    "adversarial_api_edge_cases"
+  ],
+  "max_turns": 5,
+  "num_runs": 1,
+  "config": {
+    "judge_model": "gpt-4.1-mini",
+    "use_http_callback": true,
+    "hyperparameters": {
+      "prompt_version": "feat/setup-evals@d8be3593d",
+      "system_prompt_hash": "ae5dd93d6480"
+    }
+  },
+  "results": {
+    "adversarial_api_edge_cases": {
+      "Conversation Completeness [Conversational GEval]": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "All user intentions were fully met with detailed, accurate data and explanations. The assistant identified and addressed each intention: explaining API handling of sparse microstate data, providing concrete cross-database comparisons for GDP per capita and population with example queries and analysis, and designing automated tests including coverage gap detection. The responses included precise data, clear methodology, practical code examples, and suggestions for follow-ups, fully aligning with the rubric and evaluation steps.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Accuracy": {
+        "score": 0.9679,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (min=0.97). Turn 2: All values correspond exactly to the correct country (Monaco) and years (2019\u20132023) as per the tool output. Entity names for indicators and databases match precisely, and no fabricated or guessed numbers are present. The response thoroughly aligns data points with their sources, highlights discrepancies accurately, and provides correct API queries and metadata references. | Turn 4: All population values for San Marino from WB_HNP and WB_WDI match the tool output exactly for the correct years (2019\u20132023) with no fabricated or guessed numbers. Entity names and years are consistent, and the response includes detailed comparison logic and coverage considerations aligned with the test case requirements. | Turn 5: The response accurately implements a test comparing population data for microstates between WB_HNP and WB_WDI, correctly matching countries and years. It precisely identifies coverage gaps by comparing year sets and flags value discrepancies only on overlapping years, avoiding fabricated or guessed numbers. Entity names and data keys match the tool output exactly, and the approach aligns fully with the evaluation steps and rubric.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Claim Tagging & PCN": {
+        "score": 1.0,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Context Retention": {
+        "score": 0.9438,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (min=0.94). Turn 2: The response correctly retains context by focusing on the same microstate (Monaco) and the same indicator (GDP per capita) across two databases, using consistent claim_ids for numeric values. It does not re-search resolved indicators and maintains consistency regarding data availability (e.g., noting Gender Statistics lacks 2023 data). Minor deductions reflect that while the response is thorough and consistent, it does not explicitly reference prior claim_ids from the initial context but aligns well with the evaluation criteria. | Turn 3: The response correctly retains prior context by reusing consistent claim_ids for population values from both WB_HNP and WB_WDI databases for San Marino, without inventing new claim_ids or contradicting previous assertions. It maintains consistency by acknowledging data availability for 2019\u20132023 and does not re-search resolved indicators. The detailed comparison aligns with prior data and metadata, demonstrating full context retention and accurate provenance. | Turn 4: The response correctly retains prior context by referencing the same claim_ids for San Marino population data from both WB_HNP and WB_WDI databases, demonstrating proper data provenance. It does not re-search or contradict previous assertions about data availability and coverage. The test design maintains consistency with prior context, including handling of missing data and coverage issues, and provides a detailed, coherent test plan aligned with earlier turns. | Turn 5: The response correctly extends prior context by reusing the same indicator IDs (WB_HNP_SP_POP_TOTL and WB_WDI_SP_POP_TOTL) and microstate country codes, maintaining data provenance. It does not re-search resolved indicators and maintains consistency with prior assertions about data availability. The test design explicitly detects coverage gaps without contradicting earlier information, fulfilling all evaluation criteria.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Gap Handling": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Comparability Warnings": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Content Structure": {
+        "score": 0.9007,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (mean=0.90). Turn 1: The response clearly separates data and analysis into labeled sections, with a distinct 'Data' section presenting example data and metadata, and an 'Analysis' section explaining API behavior for sparse microstate coverage. Caveats and limitations are addressed within the data metadata and analysis (e.g., modeling assumptions, missing data handling). Facts, analysis, and interpretation are well delineated, though the practical guidance and suggested follow-ups blend some interpretation with advice, preventing a perfect score. | Turn 2: The response clearly separates data and analysis into labeled sections ('Data', 'Example Data360 API queries', 'Analysis'), and it addresses caveats and limitations regarding discrepancies, metadata inconsistencies, and coverage differences. Facts, analysis, and interpretation are well delineated, with detailed tables and explanations. Minor structural blending occurs in the 'Direct comparison pattern' section, but overall the organization is strong and comprehensive. | Turn 3: The response clearly separates data and analysis into labeled sections, including a detailed 'Data' section with tables and API queries, and an 'Analysis' section discussing discrepancies, coverage, and methodology. Caveats and limitations are addressed explicitly in the analysis, noting potential causes of differences such as update timing and rounding. Facts, analysis, and interpretation are well distinguished, with data presented first and interpretation following. Minor structural mixing occurs in the 'Summary' and 'Analysis' overlap, preventing a perfect score. | Turn 4: The response clearly separates data and analysis into labeled sections ('Data:', numbered steps with headings), and explicitly addresses caveats such as handling missing or sparse data and threshold tuning. Facts, analysis, and interpretation are well delineated, with data presented first, followed by detailed test design and example code. Minor improvements could be made by more explicitly labeling the caveats section, but overall the structure and content meet the highest rubric standards. | Turn 5: The response clearly separates data (code fetching and sets of years), analysis (logic for coverage gaps and value discrepancies), and context (explanation of how coverage gaps help in practice). Caveats are addressed by noting that coverage gaps can be treated as warnings or failures and by mentioning the option to aggregate gaps for easier inspection. The only minor shortcoming is that the caveats and limitations are embedded within the analysis and context sections rather than explicitly labeled, but overall the structure is clear and comprehensive.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Follow-up Suggestions": {
+        "score": 0.9378,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (min=0.94). Turn 1: The response includes a clearly labeled 'Suggested follow-ups:' section with three user-phrased questions that are relevant and properly formatted, meeting all rubric criteria for the highest score. | Turn 2: The response includes a clearly labeled 'Suggested follow-ups:' section with three user-phrased questions that invite further exploration. The questions are phrased naturally from a user perspective, such as 'Can you show...' and 'How can I...,' meeting the rubric's criteria for proper user-phrased follow-ups. The only minor shortcoming is that the follow-ups could be slightly more explicitly framed as questions, but overall they are well-formed and relevant. | Turn 3: The response includes a clearly labeled 'Suggested follow-ups:' section with three user-phrased questions that directly relate to the data and analysis provided. The questions are properly phrased from the user's perspective, fulfilling the rubric criteria for the highest score. | Turn 4: The response includes a clear 'Suggested follow-ups:' section with properly phrased user questions, such as asking about variants of the test for coverage gaps and extending the pattern to other indicators. These follow-ups are explicitly labeled and phrased as user questions, fully meeting the rubric criteria for the highest score. | Turn 5: The response includes a clear 'Suggested follow-ups:' section with properly user-phrased questions, such as offering to show a variant that aggregates coverage gaps into a summary table. This meets the rubric criteria for follow-ups present and correctly phrased as user questions.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Latest Data Note": {
+        "score": 0.95,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (min=0.95). Turn 1: The response explicitly includes data for specific years (2020\u20132023) and mentions the global time coverage (1960\u20132023), fulfilling the requirement for a clear year context. It also provides a 'latest data' note by showing recent years and metadata indicating the latest available data, aligning with the highest rubric category. | Turn 2: The response explicitly includes a clear year range (2019\u20132023) for the data presented, with detailed year-by-year values and notes on coverage differences between databases, fulfilling the rubric's highest standard of specifying the latest data note or user-specified year. | Turn 3: The response explicitly specifies the years 2019\u20132023 for the population data comparison between the two databases, fulfilling the requirement to mention a clear year context. It also includes a 'latest available data' note by showing coverage up to 2023 and 2024, aligning with the rubric's highest category. The detailed year-by-year data, coverage notes, and analysis demonstrate a clear temporal framing, fully meeting the evaluation criteria. | Turn 4: The response explicitly includes a detailed year range (2019\u20132023) for population data comparison between WB_HNP and WB_WDI for San Marino, fulfilling the requirement for a specified year. It also provides a clear note on coverage parity and metadata context, demonstrating awareness of the latest available data and coverage differences, which aligns with the highest rubric category. | Turn 5: The response includes a clear year range (2015 to 2024) explicitly defined in the code, fulfilling the requirement for a specified or latest data year context. It also provides detailed logic for detecting coverage gaps by year, directly addressing the user's request to identify years where one database lacks data. The presence of the START_YEAR and END_YEAR constants and the explanation of coverage gaps in recent years demonstrate strong adherence to the rubric's highest category. The only minor shortcoming is the lack of an explicit note stating 'latest available data,' but the specified year range sufficiently grounds the data temporally.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Source Citation": {
+        "score": 0.9438,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (min=0.94). Turn 1: The response includes a clearly labeled 'Sources:' section at the end, which cites the World Bank Health, Nutrition and Population Statistics with proper formatting including the database name, indicator, and methodology details, fully meeting the rubric criteria for correct citation format. | Turn 2: The response includes a clearly labeled 'Sources:' section at the end, listing the World Bank Gender Statistics and World Development Indicators with relevant details. The citation format is consistent, properly formatted, and clearly distinguishes the sources, meeting the rubric criteria for a correct and complete sources section. | Turn 3: The response includes a clearly labeled 'Sources:' section at the end, listing both databases with appropriate descriptions. The citation format is consistent and informative, referencing the World Bank databases and their population estimates. However, the formatting is somewhat informal and could be more standardized (e.g., consistent use of italics or quotation marks), preventing a perfect score.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Formatting": {
+        "score": 0.9037,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (min=0.90). Turn 1: The response includes multiple values with appropriate units ('COUNT') clearly stated. It presents data for three microstates in a well-formatted markdown table with labeled columns and rows. There is no use of scientific notation, and the explanation is thorough and structured. Minor deductions are due to the absence of explicit units next to each numeric value in the table cells, though the unit is specified in the accompanying text. | Turn 2: The response includes units consistently with 'US$' and unit codes, presents multiple years of data in a well-formatted markdown table comparing two databases, and avoids scientific notation. It clearly aligns with the rubric's highest standard for formatting and clarity. | Turn 3: The response includes units clearly labeled as 'persons' in the markdown table, presents multiple years of data in a well-formatted markdown table, and avoids scientific notation. It thoroughly compares two databases for San Marino with detailed coverage, units, and methodology explanations, fully meeting the rubric criteria for well-formatted data with units and tables. | Turn 4: The response includes multiple population values with appropriate units ('Count'), presents data for multiple years (2019\u20132023) for San Marino from two databases, and uses clear markdown formatting with sections and code blocks. It avoids scientific notation and provides detailed comparison logic and example Python code in a well-structured manner. However, it does not present the data explicitly in a markdown table format for the 3+ values, which would have improved clarity and fully met the rubric's highest standard. | Turn 5: The response includes units (population counts) clearly implied by the context and variable names, uses a well-structured Python code block with clear variable names and comments, and presents coverage gap detection logic explicitly. It avoids scientific notation and uses sorted lists for years, but does not present the coverage gaps or discrepancies in a markdown table format, which would have improved clarity for 3+ values. Overall, formatting is strong with minor room for improvement in tabular presentation.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Inline Explanations": {
+        "score": 0.9349,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (mean=0.93). Turn 1: The response identifies multiple technical terms and acronyms such as 'REF_AREA', 'TIME_PERIOD', 'SEX', 'AGE', 'URBANISATION', and indicator codes like 'WB_HNP_SP_POP_TOTL'. Most terms are explained inline and concisely on first use, for example, the indicator name is given with its code and database, and disaggregation dimensions are clarified. The explanation of API behavior regarding missing data and coverage is clear and accessible. However, a few terms like 'failed_validation' and some dimension codes are mentioned without explicit plain-language definitions, preventing a perfect score. | Turn 2: The response identifies all key technical terms and acronyms such as API, indicator IDs, REF_AREA, UNIT_MEASURE, and database names, and provides clear, concise inline explanations on first use. It explains indicator codes, database differences, units metadata, and data discrepancies in plain language throughout, fulfilling the rubric's requirement for comprehensive inline explanations. | Turn 3: The response identifies key technical terms and acronyms such as WB_HNP, WB_WDI, UNIT_MEASURE, and REF_AREA, and provides clear, concise inline explanations for most of them on first use. It explains the meaning of measurement units, indicator definitions, and data coverage differences effectively. Minor terms like 'PS' and 'COUNT' are explained in context, and the methodology and discrepancies are well clarified. The only slight shortcoming is that some metadata terms like 'SEX=\"_T\"' and 'AGE=\"_T\"' are mentioned without explicit plain-language explanation, but overall the explanations are thorough and inline. | Turn 4: The response identifies key technical terms and acronyms such as WB_HNP, WB_WDI, and microstates, and provides clear, concise inline explanations for most of them on first use. The explanation of the test design steps, indicator codes, thresholds, and handling of missing data is thorough and well-integrated. Minor terms like REF_AREA and specific claim IDs are used without explicit definition, but these are contextually clear and do not hinder understanding, justifying a high but not perfect score. | Turn 5: The response identifies key technical terms such as 'coverage gap detection', 'WB_HNP', 'WB_WDI', and 'value discrepancy' and provides clear, concise inline explanations for these terms on first use. The explanation of coverage gaps and value discrepancies is integrated directly with the code and comments, making the concepts accessible without requiring external references. Minor terms like 'coverage gaps' and 'value discrepancies' are well contextualized, fulfilling the rubric's requirement for most terms to be explained inline.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Progressive Disclosure": {
+        "score": 0.9024,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (mean=0.90). Turn 1: The response begins with a clear summary that directly addresses how the API handles sparse microstate data, fulfilling the first evaluation step. It provides structured, progressive detail with labeled sections and practical guidance, avoiding excessive data dumping. Additionally, it offers multiple suggested follow-up questions to enable drill-down, meeting the highest rubric criteria. Minor deduction is due to the response being very detailed upfront, which could slightly overwhelm some users. | Turn 2: The response begins with a clear summary of the intent, providing immediate insight into the comparison of the same indicator across two databases for a microstate. It presents structured data with a concise table highlighting discrepancies without overwhelming with raw data dumps. The explanation of differences in coverage, units, and metadata is thorough and well-organized. Additionally, the response offers progressive structure by detailing example API queries, interpretation guidance, and a minimal Python script for automation. Suggested follow-ups invite further drill-down, fulfilling the rubric's highest criteria. The only minor shortcoming is that the summary could be slightly more explicit in framing the key insight upfront, but overall it strongly meets the rubric for leading with insight, structure, and drill-down options. | Turn 3: The response begins with a clear summary highlighting key insights about population data discrepancies for San Marino, fulfilling the first evaluation step. It provides structured data tables and detailed analysis without overwhelming with raw data, avoiding excessive data dumping. The response also offers suggested follow-up questions that enable drill-down, demonstrating progressive structure and engagement for further exploration. Minor deductions are due to the very dense data presentation, which could be slightly more concise, but overall it meets the rubric criteria for leading with insight, structured presentation, and offering drill-down. | Turn 4: The response begins with a clear summary that frames the problem as a consistency test between two data series for microstates, providing immediate insight. It presents a well-structured, stepwise test design that progressively builds from defining scope to detailed comparison rules, including handling missing data and optional refinements. The inclusion of example data and a Python test skeleton supports practical implementation without overwhelming with raw data. Finally, it offers relevant follow-up questions to enable drill-down, fulfilling the rubric's criteria for leading with insight, structured progression, and offering further exploration. | Turn 5: The response begins with a clear summary and core insight explaining how to detect coverage gaps alongside value discrepancies, fulfilling the requirement to start with an insight. It provides a well-structured, progressive explanation with a concise Python test skeleton that integrates coverage gap detection logically. The response avoids dumping excessive data by focusing on key code snippets and explanations rather than raw data. Additionally, it offers drill-down options by inviting the user to request a variant that aggregates coverage gaps into summary tables, supporting further exploration.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Selection": {
+        "score": 0.9887,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (mean=0.99). Turn 1: The response correctly references all relevant MCP tools: data360_get_disaggregation and data360_get_data, aligning with the user's intent to understand sparse coverage handling. No hallucinated or unnecessary tools are mentioned. The explanation thoroughly covers how to detect coverage gaps and handle microstate data, fulfilling the evaluation criteria for completeness and accuracy. | Turn 2: The response correctly calls only the two relevant MCP tools\u2014data360_get_metadata and data360_get_data\u2014aligned with the user's intent to compare the same indicator across two databases for a microstate. All tool names are valid MCP tools, no hallucinated or unnecessary tools are included, and the response thoroughly covers the comparison with detailed API queries, metadata checks, and interpretation of discrepancies, fully meeting the evaluation criteria. | Turn 3: The response correctly calls only the two relevant MCP tools\u2014data360_get_data for WB_HNP and WB_WDI population indicators\u2014and uses valid database and indicator IDs. It includes no hallucinated or unnecessary tools, fully addressing the user\u2019s request to compare population data for San Marino between two databases, highlighting discrepancies and coverage differences. The detailed analysis and example API queries align perfectly with the user intent and test case parameters.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Sequencing": {
+        "score": 0.9731,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (min=0.97). Turn 1: The response correctly follows the logical order by discussing discovery steps such as checking disaggregation coverage with data360_get_disaggregation before querying data with data360_get_data. It also implicitly addresses ambiguous country codes by referencing REF_AREA membership checks prior to data retrieval. There is no indication that data is fetched before discovery, and the explanation aligns well with the evaluation steps and rubric. | Turn 2: The response demonstrates the correct logical order of API calls: it starts with indicator discovery (search_indicators), then metadata and disaggregation retrieval, and finally data fetching (get_data). It explicitly references using data360_search_indicators before querying data, and the example queries show data fetched only after discovery steps. There is no evidence of data being fetched before discovery, and the explanation aligns well with the evaluation steps and rubric. | Turn 3: The response demonstrates correct logical ordering of tool calls: discovery steps such as searching indicators and getting disaggregation precede data retrieval. It explicitly references using data360_get_disaggregation to confirm country codes and coverage before querying data, fulfilling the rubric's requirements. There is no evidence of data fetched before discovery or ordering violations, and the detailed explanation aligns with the test case context involving microstates and sparse coverage.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Argument Quality": {
+        "score": 0.9269,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (min=0.93). Turn 1: The response uses valid 3-letter ISO country codes (MCO, LIE, SMR) and plausible indicator and database IDs (WB_HNP_SP_POP_TOTL, WB_HNP). The queries and explanations are specific to microstates and sparse coverage, addressing user intent clearly. Disaggregation filter values like SEX=\"_T\" and AGE=\"_T\" are valid and well-explained. Minor deduction for lack of explicit example API query URLs, but overall arguments are well-formed and specific. | Turn 2: The response uses a valid 3-letter ISO country code (MCO for Monaco), plausible and well-formed indicator and database IDs (e.g., WB_GS_NY_GDP_PCAP_CD, WB_WDI_NY_GDP_PCAP_CD, WB_GS, WB_WDI), and provides specific, concrete API queries aligned with the user's intent to compare the same indicator across two databases for a microstate. Disaggregation filters (REF_AREA=MCO) are valid, and the queries are precise and detailed, including time ranges and metadata interpretation, fully meeting the rubric criteria for well-formed, specific, and correct arguments. | Turn 3: All country codes (SMR) are valid ISO 3-letter codes; indicator and database IDs (WB_HNP_SP_POP_TOTL, WB_WDI_SP_POP_TOTL, WB_HNP, WB_WDI) follow plausible formats; the search queries and example API calls are specific and aligned with the user's intent to compare population data for San Marino across two databases; disaggregation filter values (REF_AREA=SMR) are valid and correctly used. The response thoroughly addresses discrepancies, coverage, units, and methodology, demonstrating a well-formed and precise answer.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Routing Correctness": {
+        "score": 0.9977,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (min=1.00). Turn 2: The response correctly identifies the user's intent as requiring data retrieval and provides detailed, consistent routing and tool usage aligned with that intent. It demonstrates how to query the Data360 API for two databases, compares data for a microstate (Monaco), and explains discrepancies with appropriate metadata references. The routing matches the intent, and the tool usage is consistent and well-documented, fulfilling all evaluation criteria.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Visualization & API URLs": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 5 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      }
+    }
+  }
+}

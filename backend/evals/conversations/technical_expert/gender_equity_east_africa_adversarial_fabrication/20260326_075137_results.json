@@ -1,0 +1,146 @@
+{
+  "timestamp": "20260326_075137",
+  "personas": [
+    "composed_technical_expert_gender_equity_east_africa_adversarial_fabrication"
+  ],
+  "max_turns": 5,
+  "num_runs": 1,
+  "config": {
+    "judge_model": "gpt-4.1-mini",
+    "use_http_callback": true,
+    "hyperparameters": {
+      "prompt_version": "feat/setup-evals@d8be3593d",
+      "system_prompt_hash": "ae5dd93d6480"
+    }
+  },
+  "results": {
+    "composed_technical_expert_gender_equity_east_africa_adversarial_fabrication": {
+      "Conversation Completeness [Conversational GEval]": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "The assistant fully met the user's intention by providing comprehensive, pipeline-ready datasets and metadata sources on gender equity and women's empowerment for Kenya and Tanzania. The response included precise indicator/database IDs, coverage details, data access links, and explanations suitable for integration, directly addressing the user's request as per the evaluation steps and rubric.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Accuracy": {
+        "score": 1.0,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Claim Tagging & PCN": {
+        "score": 1.0,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Context Retention": {
+        "score": 1.0,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Gap Handling": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Comparability Warnings": {
+        "score": 0.9321,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=0.93). Turn 1: The response provides extensive data sources covering Kenya and Tanzania with clear time coverage for each dataset, addressing cross-time differences. It flags methodology differences explicitly (e.g., modeled ILO estimates vs national figures, IMF GDI ending in 2013, survey-based violence data with limited years). However, while it notes these comparability issues well, it could be slightly more explicit in warning about cross-country comparability nuances beyond time and methodology, preventing a perfect score.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Content Structure": {
+        "score": 0.9095,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=0.91). Turn 1: The response demonstrates clear structural separation with distinct labeled sections for Data, Analysis, Sources, and Data gaps/limitations. Facts, analysis, and interpretation are well separated, with data presented first and analysis and caveats addressed later. The limitations section explicitly discusses data gaps and methodological caveats, fulfilling the requirement to address caveats. Minor improvements could be made in explicitly labeling the analysis section more prominently, but overall the structure and clarity meet the highest rubric standards.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Follow-up Suggestions": {
+        "score": 0.9977,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). Turn 1: The response includes a clearly labeled 'Suggested follow-ups:' section with three user-phrased questions that are relevant and directly address the user's needs. The questions are properly phrased from the user's perspective, fulfilling all rubric criteria for the highest score range.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Latest Data Note": {
+        "score": 0.9989,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). Turn 1: The response provides extensive data sources with explicit coverage years for each dataset, including the latest available data up to 2024 for multiple indicators relevant to Kenya and Tanzania. This meets the rubric criteria for including a clear year context and latest data notes, fully addressing the user's request.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Source Citation": {
+        "score": 1.0,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Formatting": {
+        "score": 0.9047,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=0.90). Turn 1: The response includes multiple values with appropriate units (e.g., percentages, index scales) clearly stated. It provides extensive structured data with clear headings and bullet points, though it does not use markdown tables for the many values presented, which would have improved readability given the 3+ values. No scientific notation is used. Overall, formatting is strong and units are consistently included, but the absence of tables for numerous indicators slightly limits the score.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Inline Explanations": {
+        "score": 0.9378,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=0.94). Turn 1: The response identifies numerous technical terms and acronyms such as 'V\u2011Dem', 'IMF GDI', 'WBL index', and 'ILO modeled' and provides clear, concise inline explanations for most of them on first use. The explanations are well integrated and help clarify the meaning and context of indicators and databases. A minor deduction is due because a few acronyms like 'DHS' and 'SDG' are mentioned without explicit plain-language definitions, but overall the coverage of explanations is thorough and inline.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Progressive Disclosure": {
+        "score": 0.9023,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=0.90). Turn 1: The response begins with a clear summary of the user's intent and provides a well-structured, progressive presentation of datasets categorized by theme. It avoids excessive raw data dumping by focusing on key indicators with metadata and API links. Additionally, it offers suggested follow-up questions to enable drill-down, demonstrating a thoughtful approach to guiding further exploration. The only minor shortcoming is the very detailed upfront content which might be slightly overwhelming, but overall it aligns well with the highest rubric tier.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Selection": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Sequencing": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Argument Quality": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Routing Correctness": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Visualization & API URLs": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      }
+    }
+  }
+}

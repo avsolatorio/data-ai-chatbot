@@ -1,0 +1,1053 @@
+[
+  {
+    "persona": "composed_student_debt_fiscal_east_africa_visualize",
+    "scenario": "A university student studying international development wants to understand government debt and fiscal sustainability in Ethiopia. They request data, then ask for a chart to visualize trends, and finally ask for exportable citation details and a direct chart link for publishing or presentation.",
+    "expected_outcome": "ALL of the following must be achieved: (1) The chatbot searches for and provides relevant data about government debt and fiscal sustainability in Ethiopia with claim tags and sources. (2) Technical terms are explained in plain language. (3) A chart link visualizes relevant trends for Ethiopia. (4) Citation details and chart links are provided for export.",
+    "num_turns": 6,
+    "model": "gpt-4.1-mini",
+    "prompt_version": "feat/setup-evals@d8be3593d",
+    "system_prompt_hash": "28c9d93b827c",
+    "use_http_callback": true,
+    "turns": [
+      {
+        "role": "user",
+        "content": "Hi! I'm trying to get a clear picture of Ethiopia's government debt and how sustainable it is. Could you help me find some recent data on this?",
+        "turn_index": 1
+      },
+      {
+        "role": "assistant",
+        "content": "**Intent:** You want a clear, up\u2011to\u2011date picture of Ethiopia\u2019s government debt and how sustainable it is.\n\n**Data (latest available from World Bank / Data360):**\n\n1. **Central government debt relative to GDP (domestic + external)**  \n   - In **2019**, Ethiopia\u2019s central government debt was about  \n     **<claim id=\"0374c501\" policy=\"auto\">31.45</claim>% of GDP**.  \n   - Definition: this is the **stock of central government debt** (all fixed\u2011term obligations, domestic and external) as a **percentage of GDP**.\n\n2. **Central government debt in local currency (stock)**  \n   - In **2019**, the stock of central government debt in **current Ethiopian birr (LCU)** was about  \n     **<claim id=\"deb2091b\" policy=\"auto\">846,210,210,200</claim> birr** (\u2248 846.2 billion birr).  \n\n3. **Total external debt (all sectors, not just central government)**  \n   Indicator: *External debt stocks, total (current US$)* \u2013 this includes public, publicly guaranteed, and private external debt.\n\n   | Year | Total external debt (current US$) |\n   |------|-----------------------------------|\n   | 2019 | <claim id=\"519b466e\" policy=\"auto\">30,377,335,498.2</claim> |\n   | 2020 | <claim id=\"d9e66410\" policy=\"auto\">32,364,057,104.1</claim> |\n   | 2021 | <claim id=\"75bb3654\" policy=\"auto\">32,000,197,807.2</claim> |\n   | 2022 | <claim id=\"140abed0\" policy=\"auto\">30,620,768,251.9</claim> |\n   | 2023 | <claim id=\"32b8088b\" policy=\"auto\">33,273,672,181.5</claim> |\n   | 2024 | <claim id=\"781afb9c\" policy=\"auto\">36,548,259,483.3</claim> |\n\n   So by **2024**, Ethiopia\u2019s total external debt stock had risen to about **<claim id=\"781afb9c\" policy=\"auto\">36.5 billion</claim> US$**.\n\n**Analysis (what this says about sustainability, with important caveats):**\n\n- **Debt size vs. economy (central government, 2019):**  \n  A central government debt ratio of **about one\u2011third of GDP** (<claim id=\"0374c501\" policy=\"auto\">31.45</claim>% in 2019) is **moderate by international standards**. Many advanced and emerging economies operate safely with higher ratios. On this metric alone, debt did not look excessive in 2019.\n\n- **External debt level and recent trend:**  \n  - External debt is in the **tens of billions of dollars**, reaching roughly **<claim id=\"781afb9c\" policy=\"auto\">36.5 billion</claim> US$ in 2024**.  \n  - Over 2019\u20132024, the stock **increased overall**, with some fluctuations. Rising external debt can be a concern if:\n    - GDP growth slows,\n    - a lot of the debt is **non\u2011concessional** (market\u2011rate),\n    - or if export earnings and foreign exchange reserves are weak.\n\n- **What we *cannot* see directly from these numbers (but matters for sustainability):**\n  - **Debt service burden** (interest + principal payments as % of exports, revenue, or GDP) \u2013 this is critical for assessing whether the government can comfortably meet payments.\n  - **Currency composition and maturity profile** \u2013 high foreign\u2011currency and short\u2011term debt makes a country more vulnerable to exchange\u2011rate and rollover risks.\n  - **Growth and fiscal balance outlook** \u2013 sustainability depends on whether growth and revenues outpace interest costs.\n\n- **Contextual interpretation (using the metadata and standard frameworks):**\n  - The central government debt indicator follows **IMF Government Finance Statistics** standards; the external debt indicator follows the **World Bank Debtor Reporting System (DRS)** methodology.  \n  - In low\u2011income, fragile settings like Ethiopia, even **moderate debt\u2011to\u2011GDP ratios** can become problematic if:\n    - revenues are low and volatile,\n    - there are large reconstruction, security, or social spending needs,\n    - access to concessional finance tightens.\n  - International institutions (IMF\u2013World Bank Debt Sustainability Framework for Low\u2011Income Countries) typically judge sustainability using:\n    - Present value of public and publicly guaranteed (PPG) external debt relative to **exports**, **GDP**, and **revenue**.\n    - Ratios of **debt service to exports** and **debt service to revenue**.\n  - Those detailed DSF results are not directly in the indicators above, but they often show Ethiopia in **heightened risk of debt distress** in recent years, driven by external and fiscal pressures (this is qualitative context, not from the numeric tools).\n\n**Limitations:**\n\n- The **central government debt\u2011to\u2011GDP series for Ethiopia currently has 2019 as the latest available year** in this dataset; newer years may not yet be reported or harmonized. So we cannot show how that ratio changed after the COVID\u201119 period with these exact indicators.\n- External debt figures are **total economy\u2011wide**, not just central government, and do not break out short\u2011 vs. long\u2011term or concessional vs. non\u2011concessional in this view.\n- To fully answer \u201chow sustainable\u201d in a technical sense, we would need:\n  - Debt service ratios,  \n  - Export and revenue data,  \n  - Medium\u2011term macro projections (which are usually in IMF/World Bank Debt Sustainability Analysis reports, not in this toolset).\n\n**Note (how to interpret all this in plain language):**\n\n- As of the latest comparable data:\n  - Central government debt was **moderate relative to GDP** in 2019.\n  - Overall external debt is **significant but not enormous in absolute terms** (tens of billions of dollars), and it has **grown** in recent years.\n- Whether this is \u201csustainable\u201d depends less on the raw stock and more on:\n  - Ethiopia\u2019s **growth prospects** and export performance,\n  - how much of the debt is **on concessional vs. market terms**,\n  - the government\u2019s **revenue base** and ability to adjust policy,\n  - ongoing **security, reconstruction, and social spending needs**.\n\nIf you tell me your angle (e.g., investor risk, policy work, academic research, or just general interest), I can tailor the interpretation and suggest what thresholds or benchmarks to look at.\n\n**Sources:**\n\n- **World Bank \u2014 World Development Indicators (WB_WDI)**  \n  - *Central government debt, total (% of GDP)* \u2014 methodology based on IMF Government Finance Statistics Manual 2014/2001.  \n  - *Central government debt, total (current LCU)* \u2014 same coverage, expressed in Ethiopian birr.  \n  - *External debt stocks, total (DOD, current US$)* \u2014 World Bank Debtor Reporting System; includes public, publicly guaranteed, and private external debt.\n\n**Suggested follow-ups:**\n\n1. \u201cCan you compare Ethiopia\u2019s debt ratios with those of a few peer countries (e.g., Kenya, Rwanda, Tanzania) over the last decade?\u201d  \n2. \u201cCan you show me how Ethiopia\u2019s external debt service payments have evolved and how large they are relative to exports or government revenue?\u201d  \n3. \u201cCan you summarize recent IMF/World Bank assessments of Ethiopia\u2019s risk of debt distress and key policy recommendations?\u201d",
+        "turn_index": 1,
+        "pipeline_result": {
+          "routing_intent": "(via HTTP)",
+          "routing_reasoning": "Understanding your question\u2026User is asking for recent data on Ethiopia\u2019s government debt and its sustainability, which involves development/economic indicators and likely World Bank/IMF-style debt statistics and metadata.",
+          "planner_output": "**Intent:** You want a clear, up\u2011to\u2011date picture of Ethiopia\u2019s government debt and how sustainable it is.\n\n**Data (latest available from World Bank / Data360):**\n\n1. **Central government debt relative to GDP (domestic + external)**  \n   - In **2019**, Ethiopia\u2019s central government debt was about  \n     **<claim id=\"0374c501\" policy=\"auto\">31.45</claim>% of GDP**.  \n   - Definition: this is the **stock of central government debt** (all fixed\u2011term obligations, domestic and external) as a **percentage of GDP**.\n\n2. **Central government debt in local currency (stock)**  \n   - In **2019**, the stock of central government debt in **current Ethiopian birr (LCU)** was about  \n     **<claim id=\"deb2091b\" policy=\"auto\">846,210,210,200</claim> birr** (\u2248 846.2 billion birr).  \n\n3. **Total external debt (all sectors, not just central government)**  \n   Indicator: *External debt stocks, total (current US$)* \u2013 this includes public, publicly guaranteed, and private external debt.\n\n   | Year | Total external debt (current US$) |\n   |------|-----------------------------------|\n   | 2019 | <claim id=\"519b466e\" policy=\"auto\">30,377,335,498.2</claim> |\n   | 2020 | <claim id=\"d9e66410\" policy=\"auto\">32,364,057,104.1</claim> |\n   | 2021 | <claim id=\"75bb3654\" policy=\"auto\">32,000,197,807.2</claim> |\n   | 2022 | <claim id=\"140abed0\" policy=\"auto\">30,620,768,251.9</claim> |\n   | 2023 | <claim id=\"32b8088b\" policy=\"auto\">33,273,672,181.5</claim> |\n   | 2024 | <claim id=\"781afb9c\" policy=\"auto\">36,548,259,483.3</claim> |\n\n   So by **2024**, Ethiopia\u2019s total external debt stock had risen to about **<claim id=\"781afb9c\" policy=\"auto\">36.5 billion</claim> US$**.\n\n**Analysis (what this says about sustainability, with important caveats):**\n\n- **Debt size vs. economy (central government, 2019):**  \n  A central government debt ratio of **about one\u2011third of GDP** (<claim id=\"0374c501\" policy=\"auto\">31.45</claim>% in 2019) is **moderate by international standards**. Many advanced and emerging economies operate safely with higher ratios. On this metric alone, debt did not look excessive in 2019.\n\n- **External debt level and recent trend:**  \n  - External debt is in the **tens of billions of dollars**, reaching roughly **<claim id=\"781afb9c\" policy=\"auto\">36.5 billion</claim> US$ in 2024**.  \n  - Over 2019\u20132024, the stock **increased overall**, with some fluctuations. Rising external debt can be a concern if:\n    - GDP growth slows,\n    - a lot of the debt is **non\u2011concessional** (market\u2011rate),\n    - or if export earnings and foreign exchange reserves are weak.\n\n- **What we *cannot* see directly from these numbers (but matters for sustainability):**\n  - **Debt service burden** (interest + principal payments as % of exports, revenue, or GDP) \u2013 this is critical for assessing whether the government can comfortably meet payments.\n  - **Currency composition and maturity profile** \u2013 high foreign\u2011currency and short\u2011term debt makes a country more vulnerable to exchange\u2011rate and rollover risks.\n  - **Growth and fiscal balance outlook** \u2013 sustainability depends on whether growth and revenues outpace interest costs.\n\n- **Contextual interpretation (using the metadata and standard frameworks):**\n  - The central government debt indicator follows **IMF Government Finance Statistics** standards; the external debt indicator follows the **World Bank Debtor Reporting System (DRS)** methodology.  \n  - In low\u2011income, fragile settings like Ethiopia, even **moderate debt\u2011to\u2011GDP ratios** can become problematic if:\n    - revenues are low and volatile,\n    - there are large reconstruction, security, or social spending needs,\n    - access to concessional finance tightens.\n  - International institutions (IMF\u2013World Bank Debt Sustainability Framework for Low\u2011Income Countries) typically judge sustainability using:\n    - Present value of public and publicly guaranteed (PPG) external debt relative to **exports**, **GDP**, and **revenue**.\n    - Ratios of **debt service to exports** and **debt service to revenue**.\n  - Those detailed DSF results are not directly in the indicators above, but they often show Ethiopia in **heightened risk of debt distress** in recent years, driven by external and fiscal pressures (this is qualitative context, not from the numeric tools).\n\n**Limitations:**\n\n- The **central government debt\u2011to\u2011GDP series for Ethiopia currently has 2019 as the latest available year** in this dataset; newer years may not yet be reported or harmonized. So we cannot show how that ratio changed after the COVID\u201119 period with these exact indicators.\n- External debt figures are **total economy\u2011wide**, not just central government, and do not break out short\u2011 vs. long\u2011term or concessional vs. non\u2011concessional in this view.\n- To fully answer \u201chow sustainable\u201d in a technical sense, we would need:\n  - Debt service ratios,  \n  - Export and revenue data,  \n  - Medium\u2011term macro projections (which are usually in IMF/World Bank Debt Sustainability Analysis reports, not in this toolset).\n\n**Note (how to interpret all this in plain language):**\n\n- As of the latest comparable data:\n  - Central government debt was **moderate relative to GDP** in 2019.\n  - Overall external debt is **significant but not enormous in absolute terms** (tens of billions of dollars), and it has **grown** in recent years.\n- Whether this is \u201csustainable\u201d depends less on the raw stock and more on:\n  - Ethiopia\u2019s **growth prospects** and export performance,\n  - how much of the debt is **on concessional vs. market terms**,\n  - the government\u2019s **revenue base** and ability to adjust policy,\n  - ongoing **security, reconstruction, and social spending needs**.\n\nIf you tell me your angle (e.g., investor risk, policy work, academic research, or just general interest), I can tailor the interpretation and suggest what thresholds or benchmarks to look at.\n\n**Sources:**\n\n- **World Bank \u2014 World Development Indicators (WB_WDI)**  \n  - *Central government debt, total (% of GDP)* \u2014 methodology based on IMF Government Finance Statistics Manual 2014/2001.  \n  - *Central government debt, total (current LCU)* \u2014 same coverage, expressed in Ethiopian birr.  \n  - *External debt stocks, total (DOD, current US$)* \u2014 World Bank Debtor Reporting System; includes public, publicly guaranteed, and private external debt.\n\n**Suggested follow-ups:**\n\n1. \u201cCan you compare Ethiopia\u2019s debt ratios with those of a few peer countries (e.g., Kenya, Rwanda, Tanzania) over the last decade?\u201d  \n2. \u201cCan you show me how Ethiopia\u2019s external debt service payments have evolved and how large they are relative to exports or government revenue?\u201d  \n3. \u201cCan you summarize recent IMF/World Bank assessments of Ethiopia\u2019s risk of debt distress and key policy recommendations?\u201d",
+          "writer_output": "",
+          "tool_calls": [
+            {
+              "name": "data360_search_indicators",
+              "args": {
+                "query": "central government debt Ethiopia",
+                "required_country": "Ethiopia",
+                "limit": 10,
+                "offset": 0
+              },
+              "output": {
+                "count": 10,
+                "total_count": 8002,
+                "offset": 0,
+                "has_more": true,
+                "next_offset": 10,
+                "indicators": [
+                  {
+                    "idno": "WB_IDS_DT_BLT_GG",
+                    "database_id": "WB_IDS",
+                    "name": "General Government Debt, bilateral",
+                    "truncated_definition": "General Government bilateral debt includes loans from governments and their agencies (including cent",
+                    "periodicity": "Annual",
+                    "latest_data": "2031",
+                    "time_period_range": "1970-2031",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_IDS_DT_INT",
+                    "database_id": "WB_IDS",
+                    "name": "Interest payments on external debt",
+                    "truncated_definition": "Interest payments are actual amounts of interest paid by the borrower in currency, goods, or service",
+                    "periodicity": "Annual",
+                    "latest_data": "2031",
+                    "time_period_range": "1970-2031",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_IDS_DT_AMT",
+                    "database_id": "WB_IDS",
+                    "name": "Principal repayments on external debt",
+                    "truncated_definition": "Principal repayments on long-term debt are actual amounts of principal (amortization) paid by the bo",
+                    "periodicity": "Annual",
+                    "latest_data": "2031",
+                    "time_period_range": "1970-2031",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_WDI_GC_DOD_TOTL_CN",
+                    "database_id": "WB_WDI",
+                    "name": "Central government debt, total (current LCU)",
+                    "truncated_definition": "Debt is the entire stock of direct government fixed-term contractual obligations to others outstandi",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1970-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                    "database_id": "WB_WDI",
+                    "name": "Central government debt, total (% of GDP)",
+                    "truncated_definition": "Debt is the entire stock of direct government fixed-term contractual obligations to others outstandi",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1970-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_WDI_DT_DOD_DECT_CD",
+                    "database_id": "WB_WDI",
+                    "name": "External debt stocks, total (DOD, current US$)",
+                    "truncated_definition": "Total external debt is debt owed to nonresidents repayable in currency, goods, or services. Total ex",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1970-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_WDI_DT_DOD_DSTC_ZS",
+                    "database_id": "WB_WDI",
+                    "name": "Short-term debt (% of total external debt)",
+                    "truncated_definition": "Short-term debt includes all debt having an original maturity of one year or less and interest in ar",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1970-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_IDS_DT_UND",
+                    "database_id": "WB_IDS",
+                    "name": "Undisbursed external debt creditors",
+                    "truncated_definition": "Undisbursed debt is the total public and publicly guaranteed debt undrawn at year end; data for priv",
+                    "periodicity": "Annual",
+                    "latest_data": "2023",
+                    "time_period_range": "1997-2023",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_IDS_DT_DOD_MLAT",
+                    "database_id": "WB_IDS",
+                    "name": "Multilateral debt",
+                    "truncated_definition": "Multilateral debt to total external debt stocks.",
+                    "periodicity": "Annual",
+                    "latest_data": "2023",
+                    "time_period_range": "2010-2023",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_CCDFS_DEBTDUEY",
+                    "database_id": "WB_CCDFS",
+                    "name": "Central government debt maturing in 12 months or less, % of GDP",
+                    "truncated_definition": "Central government debt maturing in 12 months or less, % of GDP",
+                    "periodicity": "Annual",
+                    "latest_data": "2022",
+                    "time_period_range": "2011-2022",
+                    "covers_country": true,
+                    "dimensions": null
+                  }
+                ],
+                "required_country": "ETH",
+                "error": null
+              }
+            },
+            {
+              "name": "data360_get_data",
+              "args": {
+                "database_id": "WB_WDI",
+                "indicator_id": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                "disaggregation_filters": {
+                  "REF_AREA": "ETH"
+                },
+                "start_year": 2019,
+                "end_year": 2024,
+                "limit": 50,
+                "offset": 0
+              },
+              "output": {
+                "count": 1,
+                "total_count": null,
+                "offset": 0,
+                "has_more": false,
+                "next_offset": null,
+                "data": [
+                  {
+                    "OBS_VALUE": "31.448845",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Central government debt, total (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                    "REF_AREA": "ETH",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "0374c501"
+                  }
+                ],
+                "metadata": {
+                  "idno": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                  "name": "Central government debt, total (% of GDP)",
+                  "database_id": "WB_WDI",
+                  "measurement_unit": "%",
+                  "periodicity": "Annual",
+                  "definition_short": null
+                },
+                "error": null,
+                "failed_validation": null
+              }
+            },
+            {
+              "name": "data360_get_data",
+              "args": {
+                "database_id": "WB_WDI",
+                "indicator_id": "WB_WDI_GC_DOD_TOTL_CN",
+                "disaggregation_filters": {
+                  "REF_AREA": "ETH"
+                },
+                "start_year": 2019,
+                "end_year": 2024,
+                "limit": 50,
+                "offset": 0
+              },
+              "output": {
+                "count": 1,
+                "total_count": null,
+                "offset": 0,
+                "has_more": false,
+                "next_offset": null,
+                "data": [
+                  {
+                    "OBS_VALUE": "846210210200",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Central government debt, total (current LCU)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_GC_DOD_TOTL_CN",
+                    "REF_AREA": "ETH",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "XDC",
+                    "UNIT_TYPE": null,
+                    "claim_id": "deb2091b"
+                  }
+                ],
+                "metadata": {
+                  "idno": "WB_WDI_GC_DOD_TOTL_CN",
+                  "name": "Central government debt, total (current LCU)",
+                  "database_id": "WB_WDI",
+                  "measurement_unit": "current LCU",
+                  "periodicity": "Annual",
+                  "definition_short": null
+                },
+                "error": null,
+                "failed_validation": null
+              }
+            },
+            {
+              "name": "data360_get_data",
+              "args": {
+                "database_id": "WB_WDI",
+                "indicator_id": "WB_WDI_DT_DOD_DECT_CD",
+                "disaggregation_filters": {
+                  "REF_AREA": "ETH"
+                },
+                "start_year": 2019,
+                "end_year": 2024,
+                "limit": 50,
+                "offset": 0
+              },
+              "output": {
+                "count": 6,
+                "total_count": null,
+                "offset": 0,
+                "has_more": false,
+                "next_offset": null,
+                "data": [
+                  {
+                    "OBS_VALUE": "36548259483.3",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "External debt stocks, total (DOD, current US$)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_DT_DOD_DECT_CD",
+                    "REF_AREA": "ETH",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2024",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "USD",
+                    "UNIT_TYPE": null,
+                    "claim_id": "781afb9c"
+                  },
+                  {
+                    "OBS_VALUE": "33273672181.5",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "External debt stocks, total (DOD, current US$)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_DT_DOD_DECT_CD",
+                    "REF_AREA": "ETH",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2023",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "USD",
+                    "UNIT_TYPE": null,
+                    "claim_id": "32b8088b"
+                  },
+                  {
+                    "OBS_VALUE": "30620768251.9",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "External debt stocks, total (DOD, current US$)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_DT_DOD_DECT_CD",
+                    "REF_AREA": "ETH",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2022",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "USD",
+                    "UNIT_TYPE": null,
+                    "claim_id": "140abed0"
+                  },
+                  {
+                    "OBS_VALUE": "32000197807.2",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "External debt stocks, total (DOD, current US$)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_DT_DOD_DECT_CD",
+                    "REF_AREA": "ETH",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2021",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "USD",
+                    "UNIT_TYPE": null,
+                    "claim_id": "75bb3654"
+                  },
+                  {
+                    "OBS_VALUE": "32364057104.1",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "External debt stocks, total (DOD, current US$)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_DT_DOD_DECT_CD",
+                    "REF_AREA": "ETH",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2020",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "USD",
+                    "UNIT_TYPE": null,
+                    "claim_id": "d9e66410"
+                  },
+                  {
+                    "OBS_VALUE": "30377335498.2",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "External debt stocks, total (DOD, current US$)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_DT_DOD_DECT_CD",
+                    "REF_AREA": "ETH",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "USD",
+                    "UNIT_TYPE": null,
+                    "claim_id": "519b466e"
+                  }
+                ],
+                "metadata": {
+                  "idno": "WB_WDI_DT_DOD_DECT_CD",
+                  "name": "External debt stocks, total (DOD, current US$)",
+                  "database_id": "WB_WDI",
+                  "measurement_unit": "current US$",
+                  "periodicity": "Annual",
+                  "definition_short": null
+                },
+                "error": null,
+                "failed_validation": null
+              }
+            },
+            {
+              "name": "data360_get_metadata",
+              "args": {
+                "database_id": "WB_WDI",
+                "indicator_id": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                "select_fields": [
+                  "definition_long",
+                  "methodology",
+                  "limitation",
+                  "periodicity",
+                  "time_periods"
+                ]
+              },
+              "output": {
+                "indicator_metadata": {
+                  "periodicity": "Annual",
+                  "definition_long": "Debt is the entire stock of direct government fixed-term contractual obligations to others outstanding on a particular date. It includes domestic and foreign liabilities such as currency and money deposits, securities other than shares, and loans. It is the gross amount of government liabilities reduced by the amount of equity and financial derivatives held by the government. Because debt is a stock rather than a flow, it is measured as of a given date, usually the last day of the fiscal year. Central government is the part of general government that includes all administrative departments of the national executive, legislative, and judicial functions, other central agencies and those non-market producers controlled by the central government, whose competence extends normally over the whole economic territory. This indicator is expressed as a percentage of Gross Domestic Product (GDP) which is the total income earned through the production of goods and services in an economic territory during an accounting period.",
+                  "methodology": "Government Finance statistics are compiled in accordance with international standards: Government Finance Statistics Manual, 2014 or 2001 editions. Specific information on how countries compile their Government Finance statistics can be found on the IMF website: https://dsbb.imf.org/",
+                  "limitation": "For most countries central government finance data have been consolidated into one account, but for others only budgetary central government accounts are available. Countries reporting budgetary data are noted in the country metadata. Because budgetary accounts may not include all central government units (such as social security funds), they usually provide an incomplete picture. In federal states the central government accounts provide an incomplete view of total public finance.\r\r\n\r\r\nData on government revenue and expense are collected by the IMF through questionnaires to member countries and by the Organisation for Economic Co-operation and Development (OECD). Despite IMF efforts to standardize data collection, statistics are often incomplete, untimely, and not comparable across countries.",
+                  "time_periods": [
+                    {
+                      "start": "1970",
+                      "end": "2024",
+                      "notes": null
+                    }
+                  ]
+                },
+                "disaggregation_options": [
+                  {
+                    "field_name": "FREQ",
+                    "label_name": "FREQ",
+                    "field_value": [
+                      "A"
+                    ]
+                  },
+                  {
+                    "field_name": "REF_AREA",
+                    "label_name": "REF_AREA",
+                    "field_value": [
+                      "ALB",
+                      "ARE",
+                      "ARM",
+                      "AUS",
+                      "AZE",
+                      "BFA",
+                      "BGD",
+                      "BHR",
+                      "BHS",
+                      "BIH",
+                      "BLR",
+                      "BLZ",
+                      "BOL",
+                      "BRA",
+                      "BRB",
+                      "BTN",
+                      "BWA",
+                      "CAN",
+                      "CHE",
+                      "CHL",
+                      "CIV",
+                      "CMR",
+                      "COD",
+                      "COG",
+                      "COL",
+                      "CRI",
+                      "CSS",
+                      "CYP",
+                      "CZE",
+                      "DEU",
+                      "DNK",
+                      "DOM",
+                      "ECA",
+                      "EGY",
+                      "ESP",
+                      "ETH",
+                      "FIN",
+                      "FJI",
+                      "FSM",
+                      "GBR",
+                      "GEO",
+                      "GTM",
+                      "HUN",
+                      "IDN",
+                      "IND",
+                      "IRQ",
+                      "ISL",
+                      "ISR",
+                      "ITA",
+                      "JAM",
+                      "JOR",
+                      "KAZ",
+                      "KGZ",
+                      "KHM",
+                      "KNA",
+                      "KOR",
+                      "LAC",
+                      "LBN",
+                      "LCA",
+                      "LCN",
+                      "LKA",
+                      "LSO",
+                      "LUX",
+                      "LVA",
+                      "MAR",
+                      "MDA",
+                      "MDV",
+                      "MEX",
+                      "MHL",
+                      "MLT",
+                      "MMR",
+                      "MNG",
+                      "MOZ",
+                      "MUS",
+                      "MWI",
+                      "MYS",
+                      "NAC",
+                      "NAM",
+                      "NLD",
+                      "NOR",
+                      "NPL",
+                      "NZL",
+                      "OED",
+                      "PAK",
+                      "PER",
+                      "PHL",
+                      "PLW",
+                      "PNG",
+                      "POL",
+                      "PRT",
+                      "PST",
+                      "RUS",
+                      "RWA",
+                      "SAS",
+                      "SDN",
+                      "SGP",
+                      "SLB",
+                      "SLV",
+                      "SMR",
+                      "SOM",
+                      "SVN",
+                      "SWZ",
+                      "SYC",
+                      "TEC",
+                      "THA",
+                      "TJK",
+                      "TLA",
+                      "TON",
+                      "TSA",
+                      "TTO",
+                      "TUN",
+                      "TUR",
+                      "UGA",
+                      "UKR",
+                      "URY",
+                      "USA",
+                      "VCT",
+                      "VUT",
+                      "ZAF",
+                      "ZMB"
+                    ]
+                  },
+                  {
+                    "field_name": "INDICATOR",
+                    "label_name": "INDICATOR",
+                    "field_value": [
+                      "WB_WDI_GC_DOD_TOTL_GD_ZS"
+                    ]
+                  },
+                  {
+                    "field_name": "SEX",
+                    "label_name": "SEX",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "AGE",
+                    "label_name": "AGE",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "URBANISATION",
+                    "label_name": "URBANISATION",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "UNIT_MEASURE",
+                    "label_name": "UNIT_MEASURE",
+                    "field_value": [
+                      "PT_GDP"
+                    ]
+                  },
+                  {
+                    "field_name": "TIME_PERIOD",
+                    "label_name": "TIME_PERIOD",
+                    "field_value": [
+                      "2015",
+                      "2006",
+                      "2004",
+                      "1996",
+                      "2014",
+                      "2009",
+                      "2020",
+                      "2007",
+                      "1991",
+                      "2013",
+                      "1989",
+                      "2019",
+                      "2024",
+                      "2008",
+                      "1998",
+                      "2018",
+                      "2012",
+                      "2021",
+                      "2001",
+                      "1993",
+                      "1995",
+                      "2011",
+                      "2022",
+                      "1990",
+                      "1992",
+                      "2016",
+                      "2003",
+                      "1997",
+                      "2010",
+                      "2017",
+                      "2002",
+                      "1994",
+                      "2000",
+                      "2005",
+                      "2023",
+                      "1999"
+                    ]
+                  }
+                ],
+                "error": null
+              }
+            },
+            {
+              "name": "data360_get_metadata",
+              "args": {
+                "database_id": "WB_WDI",
+                "indicator_id": "WB_WDI_DT_DOD_DECT_CD",
+                "select_fields": [
+                  "definition_long",
+                  "methodology",
+                  "limitation",
+                  "periodicity",
+                  "time_periods"
+                ]
+              },
+              "output": {
+                "indicator_metadata": {
+                  "periodicity": "Annual",
+                  "definition_long": "Total external debt is debt owed to nonresidents repayable in currency, goods, or services. Total external debt is the sum of public, publicly guaranteed, and private nonguaranteed long-term debt, use of IMF credit, and short-term debt. Short-term debt includes all debt having an original maturity of one year or less and interest in arrears on long-term debt. Data are in current U.S. dollars.",
+                  "methodology": "Data on external debt are gathered through the World Bank's Debtor Reporting System (DRS). Long term debt data are compiled using the countries report on public and publicly guaranteed borrowing on a loan-by-loan basis and private non guaranteed borrowing on an aggregate basis. These data are supplemented by information from major multilateral banks and official lending agencies in major creditor countries. Short-term debt data are gathered from the Quarterly External Debt Statistics (QEDS) database, jointly developed by the World Bank and the IMF and from creditors through the reporting systems of the Bank for International Settlements. Debt data are reported in the currency of repayment and compiled and published in U.S. dollars. End-of-period exchange rates are used for the compilation of stock figures (amount of debt outstanding), and projected debt service and annual average exchange rates are used for the flows. Exchange rates are taken from the IMF's International Financial Statistics. Debt repayable in multiple currencies, goods, or services and debt with a provision for maintenance of the value of the currency of repayment are shown at book value.",
+                  "limitation": null,
+                  "time_periods": [
+                    {
+                      "start": "1970",
+                      "end": "2024",
+                      "notes": null
+                    }
+                  ]
+                },
+                "disaggregation_options": [
+                  {
+                    "field_name": "FREQ",
+                    "label_name": "FREQ",
+                    "field_value": [
+                      "A"
+                    ]
+                  },
+                  {
+                    "field_name": "REF_AREA",
+                    "label_name": "REF_AREA",
+                    "field_value": [
+                      "AFG",
+                      "AGO",
+                      "ALB",
+                      "ARG",
+                      "ARM",
+                      "AZE",
+                      "BDI",
+                      "BEN",
+                      "BFA",
+                      "BGD",
+                      "BGR",
+                      "BIH",
+                      "BLR",
+                      "BLZ",
+                      "BOL",
+                      "BRA",
+                      "BTN",
+                      "BWA",
+                      "CAF",
+                      "CHN",
+                      "CIV",
+                      "CMR",
+                      "COD",
+                      "COG",
+                      "COL",
+                      "COM",
+                      "CPV",
+                      "DJI",
+                      "DMA",
+                      "DOM",
+                      "DZA",
+                      "EAP",
+                      "ECA",
+                      "ECU",
+                      "EGY",
+                      "ERI",
+                      "ETH",
+                      "FJI",
+                      "GAB",
+                      "GEO",
+                      "GHA",
+                      "GIN",
+                      "GMB",
+                      "GNB",
+                      "GRD",
+                      "GTM",
+                      "GUY",
+                      "HND",
+                      "HTI",
+                      "IDN",
+                      "IDX",
+                      "IND",
+                      "IRN",
+                      "IRQ",
+                      "JAM",
+                      "JOR",
+                      "KAZ",
+                      "KEN",
+                      "KGZ",
+                      "KHM",
+                      "LAC",
+                      "LAO",
+                      "LBN",
+                      "LBR",
+                      "LCA",
+                      "LIC",
+                      "LKA",
+                      "LMC",
+                      "LMY",
+                      "LSO",
+                      "MAR",
+                      "MDA",
+                      "MDG",
+                      "MDV",
+                      "MEX",
+                      "MIC",
+                      "MKD",
+                      "MLI",
+                      "MMR",
+                      "MNA",
+                      "MNE",
+                      "MNG",
+                      "MOZ",
+                      "MRT",
+                      "MUS",
+                      "MWI",
+                      "NER",
+                      "NGA",
+                      "NIC",
+                      "NPL",
+                      "PAK",
+                      "PER",
+                      "PHL",
+                      "PNG",
+                      "PRY",
+                      "RUS",
+                      "RWA",
+                      "SAS",
+                      "SDN",
+                      "SEN",
+                      "SLB",
+                      "SLE",
+                      "SLV",
+                      "SOM",
+                      "SRB",
+                      "SSA",
+                      "STP",
+                      "SUR",
+                      "SWZ",
+                      "SYR",
+                      "TCD",
+                      "TGO",
+                      "THA",
+                      "TJK",
+                      "TKM",
+                      "TLS",
+                      "TON",
+                      "TUN",
+                      "TUR",
+                      "TZA",
+                      "UGA",
+                      "UKR",
+                      "UMC",
+                      "UZB",
+                      "VCT",
+                      "VNM",
+                      "VUT",
+                      "WSM",
+                      "XKX",
+                      "YEM",
+                      "ZAF",
+                      "ZMB",
+                      "ZWE"
+                    ]
+                  },
+                  {
+                    "field_name": "INDICATOR",
+                    "label_name": "INDICATOR",
+                    "field_value": [
+                      "WB_WDI_DT_DOD_DECT_CD"
+                    ]
+                  },
+                  {
+                    "field_name": "SEX",
+                    "label_name": "SEX",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "AGE",
+                    "label_name": "AGE",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "URBANISATION",
+                    "label_name": "URBANISATION",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "UNIT_MEASURE",
+                    "label_name": "UNIT_MEASURE",
+                    "field_value": [
+                      "USD"
+                    ]
+                  },
+                  {
+                    "field_name": "TIME_PERIOD",
+                    "label_name": "TIME_PERIOD",
+                    "field_value": [
+                      "2015",
+                      "2006",
+                      "1979",
+                      "2004",
+                      "1977",
+                      "1996",
+                      "2014",
+                      "2009",
+                      "2020",
+                      "1982",
+                      "1988",
+                      "1986",
+                      "2007",
+                      "1973",
+                      "1991",
+                      "1976",
+                      "2013",
+                      "1989",
+                      "2019",
+                      "2024",
+                      "2008",
+                      "1975",
+                      "1998",
+                      "2012",
+                      "2018",
+                      "1984",
+                      "2021",
+                      "2001",
+                      "1978",
+                      "1993",
+                      "1995",
+                      "1971",
+                      "1983",
+                      "2011",
+                      "2022",
+                      "1992",
+                      "1990",
+                      "1972",
+                      "1980",
+                      "2016",
+                      "1987",
+                      "2003",
+                      "1997",
+                      "2010",
+                      "1981",
+                      "2017",
+                      "1985",
+                      "2002",
+                      "1994",
+                      "2000",
+                      "1970",
+                      "2005",
+                      "2023",
+                      "1974",
+                      "1999"
+                    ]
+                  }
+                ],
+                "error": null
+              }
+            }
+          ],
+          "model": "unknown",
+          "turns_used": 0,
+          "error": null
+        }
+      },
+      {
+        "role": "user",
+        "content": "Could you please create a simple chart showing Ethiopia's total external debt from 2019 to 2024 to help me visualize the trend?",
+        "turn_index": 2
+      },
+      {
+        "role": "assistant",
+        "content": "\n\n**Summary:** Here\u2019s a line chart you can use to visualize Ethiopia\u2019s total external debt from 2019\u20132024.\n\n**Data:**\n\nThe chart is based on the World Bank indicator **\u201cExternal debt stocks, total (DOD, current US$)\u201d** for Ethiopia, 2019\u20132024.\n\nYou can view the chart here:\n\n- [Line chart: Ethiopia \u2013 External debt stocks, total (current US$), 2019\u20132024](http://localhost:8000/static/viz_specs/f0d562b9-ebf6-45f4-a4cb-da7a2e62b41a_vega.json)\n\n**Analysis (reading the chart):**\n\n- The line rises from about **<claim id=\"519b466e\" policy=\"auto\">30.4 billion</claim> US$ in 2019** to roughly **<claim id=\"781afb9c\" policy=\"auto\">36.5 billion</claim> US$ in 2024**, with some fluctuation in between.  \n- This shows a **general upward trend** in Ethiopia\u2019s total external debt stock over the period.\n\n**Sources:**\n\n- **World Bank \u2014 World Development Indicators (WB_WDI)** \u2014 *External debt stocks, total (DOD, current US$)* \u2014 Debtor Reporting System (DRS) methodology.\n\n**Suggested follow-ups:**\n\n1. Could you plot Ethiopia\u2019s external debt as a percentage of GDP over the same period, if data are available?  \n2. Can you compare this external debt trend with Ethiopia\u2019s export earnings or GDP growth over 2019\u20132024?  \n3. Can you add peer countries (e.g., Kenya, Rwanda, Tanzania) to the same chart for comparison?",
+        "turn_index": 2,
+        "pipeline_result": {
+          "routing_intent": "(via HTTP)",
+          "routing_reasoning": "Understanding your question\u2026User wants a chart of Ethiopia\u2019s total external debt over time, which is a World Bank/Data360 indicator and should be answered using data tools.",
+          "planner_output": "",
+          "writer_output": "",
+          "tool_calls": [
+            {
+              "name": "data360_get_viz_spec",
+              "args": {
+                "database_id": "WB_WDI",
+                "indicator_id": "WB_WDI_DT_DOD_DECT_CD",
+                "country_code": "ETH",
+                "start_year": 2019,
+                "end_year": 2024,
+                "chart_type": "line chart"
+              },
+              "output": {
+                "url": "http://localhost:8000/static/viz_specs/f0d562b9-ebf6-45f4-a4cb-da7a2e62b41a_vega.json",
+                "error": null,
+                "warning": "Draco could not determine an optimal encoding; a default line chart was generated as fallback."
+              }
+            }
+          ],
+          "model": "unknown",
+          "turns_used": 0,
+          "error": null
+        }
+      },
+      {
+        "role": "user",
+        "content": "Yes, could you also provide the citation details for the data and a direct link to download the chart for my presentation?",
+        "turn_index": 3
+      },
+      {
+        "role": "assistant",
+        "content": "The chart and data already come from a standard World Bank source, so you can safely cite them and reuse the visualization.\n\n**Data:**\n\n- **Indicator:** External debt stocks, total (DOD, current US$)  \n- **Code:** WB_WDI_DT_DOD_DECT_CD  \n- **Country:** Ethiopia (ETH)  \n- **Years:** 2019\u20132024  \n\n**Formal citation (recommended):**\n\n> World Bank. World Development Indicators. *External debt stocks, total (DOD, current US$) [DT.DOD.DECT.CD]*, Ethiopia, 2019\u20132024.  \n> Washington, DC: World Bank. Accessed via Data360.\n\nIf your style guide needs a URL, you can add the generic WDI entry point, for example (adapt to your referencing style):\n\n> World Bank. World Development Indicators. Available at: https://datatopics.worldbank.org/world-development-indicators/ (accessed [insert date]).\n\n**Direct chart link (for download/use in slides):**\n\n- **Chart (Vega spec URL):**  \n  [http://localhost:8000/static/viz_specs/f0d562b9-ebf6-45f4-a4cb-da7a2e62b41a_vega.json](http://localhost:8000/static/viz_specs/f0d562b9-ebf6-45f4-a4cb-da7a2e62b41a_vega.json)\n\nHow to use it in a presentation:\n- Open the link in a Vega/Vega\u2011Lite viewer or compatible tool (or a browser environment that renders the spec).\n- Export as PNG/SVG from that viewer.\n- Insert the exported image into PowerPoint/Keynote/Google Slides.\n\n**Suggested follow-ups:**\n\n1. Can you help me add Ethiopia\u2019s GDP or exports to a second axis so I can show debt relative to economic size?  \n2. Can you provide a short speaking note to go with this chart in my presentation?  \n3. Can you generate a similar chart for another country so I can compare trends side by side?",
+        "turn_index": 3,
+        "pipeline_result": {
+          "routing_intent": "(via HTTP)",
+          "routing_reasoning": "Understanding your question\u2026User is asking for citation details and a direct download link for a chart that was generated from World Bank / Data360 data, so this clearly involves metadata and tool-based resources.",
+          "planner_output": "The chart and data already come from a standard World Bank source, so you can safely cite them and reuse the visualization.\n\n**Data:**\n\n- **Indicator:** External debt stocks, total (DOD, current US$)  \n- **Code:** WB_WDI_DT_DOD_DECT_CD  \n- **Country:** Ethiopia (ETH)  \n- **Years:** 2019\u20132024  \n\n**Formal citation (recommended):**\n\n> World Bank. World Development Indicators. *External debt stocks, total (DOD, current US$) [DT.DOD.DECT.CD]*, Ethiopia, 2019\u20132024.  \n> Washington, DC: World Bank. Accessed via Data360.\n\nIf your style guide needs a URL, you can add the generic WDI entry point, for example (adapt to your referencing style):\n\n> World Bank. World Development Indicators. Available at: https://datatopics.worldbank.org/world-development-indicators/ (accessed [insert date]).\n\n**Direct chart link (for download/use in slides):**\n\n- **Chart (Vega spec URL):**  \n  [http://localhost:8000/static/viz_specs/f0d562b9-ebf6-45f4-a4cb-da7a2e62b41a_vega.json](http://localhost:8000/static/viz_specs/f0d562b9-ebf6-45f4-a4cb-da7a2e62b41a_vega.json)\n\nHow to use it in a presentation:\n- Open the link in a Vega/Vega\u2011Lite viewer or compatible tool (or a browser environment that renders the spec).\n- Export as PNG/SVG from that viewer.\n- Insert the exported image into PowerPoint/Keynote/Google Slides.\n\n**Suggested follow-ups:**\n\n1. Can you help me add Ethiopia\u2019s GDP or exports to a second axis so I can show debt relative to economic size?  \n2. Can you provide a short speaking note to go with this chart in my presentation?  \n3. Can you generate a similar chart for another country so I can compare trends side by side?",
+          "writer_output": "",
+          "tool_calls": [],
+          "model": "unknown",
+          "turns_used": 0,
+          "error": null
+        }
+      }
+    ]
+  }
+]

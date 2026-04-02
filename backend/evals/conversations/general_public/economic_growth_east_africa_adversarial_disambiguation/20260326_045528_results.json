@@ -1,0 +1,146 @@
+{
+  "timestamp": "20260326_045528",
+  "personas": [
+    "composed_general_public_economic_growth_east_africa_adversarial_disambiguation"
+  ],
+  "max_turns": 5,
+  "num_runs": 1,
+  "config": {
+    "judge_model": "gpt-4.1-mini",
+    "use_http_callback": true,
+    "hyperparameters": {
+      "prompt_version": "feat/setup-evals@d8be3593d",
+      "system_prompt_hash": "ae5dd93d6480"
+    }
+  },
+  "results": {
+    "composed_general_public_economic_growth_east_africa_adversarial_disambiguation": {
+      "Conversation Completeness [Conversational GEval]": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "The assistant fully met the user's intention for a clear, big-picture explanation of Kenya's development by providing detailed, recent World Bank data on income, poverty, health, and access to services, along with a thorough analysis that clarifies the nuances behind headline growth claims. All data points are accurate and relevant, with no gaps or fabrications, aligning perfectly with the rubric's highest standard for fully met intentions.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Accuracy": {
+        "score": 1.0,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Claim Tagging & PCN": {
+        "score": 1.0,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Context Retention": {
+        "score": 1.0,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Gap Handling": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Comparability Warnings": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Content Structure": {
+        "score": 0.9818,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=0.98). Turn 1: The response clearly separates data and analysis into labeled sections, with a distinct 'Data' section presenting detailed statistics and an 'Analysis' section interpreting those figures. Caveats and limitations are addressed in the 'Note' section, explaining data sources, inflation adjustment, and poverty line context. Facts, analysis, and interpretation are well delineated, providing a structured, comprehensive, and transparent overview of Kenya's development.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Follow-up Suggestions": {
+        "score": 0.9971,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). Turn 1: The response includes a clearly labeled 'Suggested follow-ups:' section with three user-phrased questions that invite further exploration, meeting the rubric criteria for proper follow-ups and phrasing.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Latest Data Note": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). Turn 1: The response clearly includes a note specifying that all data are from the latest available World Bank data spanning 2019\u20132024, fulfilling the rubric criterion for presence of a latest data note. Additionally, the data points are presented with explicit years, providing clear temporal context.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Source Citation": {
+        "score": 0.9706,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=0.97). Turn 1: The response includes a clear 'Sources:' section labeled as 'Note' that specifies the data source as the latest available World Bank data from 2019\u20132024. The citation format is appropriate and complete, fulfilling the rubric criteria for a correct and present sources section.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Formatting": {
+        "score": 0.8982,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=0.90). Turn 1: The response includes units consistently for all values (e.g., US$, %, years), and presents multiple data points clearly. Although it uses bullet points rather than markdown tables for the 3+ values, the formatting remains clear and well-structured. No scientific notation is used, and the data is well contextualized with explanations, meeting most criteria for high-quality formatting.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Inline Explanations": {
+        "score": 0.9223,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=0.92). Turn 1: The response identifies key technical terms such as GDP per capita, poverty headcount ratio, and life expectancy, and provides clear, concise plain-language explanations inline on first use (e.g., explaining GDP per capita as income per person adjusted for inflation). Most terms are well contextualized and explained, aiding comprehension. Minor room for improvement exists in explicitly defining some terms like 'national poverty line' earlier, but overall explanations are thorough and integrated.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Progressive Disclosure": {
+        "score": 0.9,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=0.90). Turn 1: The response begins with a clear summary of the user's intent and provides a structured presentation of key economic and social indicators with concise analysis. It avoids excessive data dumping by summarizing trends and implications after each data section. Additionally, it offers relevant, specific follow-up questions to enable deeper exploration, demonstrating progressive structure and drill-down potential. Minor deduction is due to the somewhat dense data presentation, but overall it effectively leads with insight and invites further inquiry.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Selection": {
+        "score": 0.994,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=0.99). Turn 1: The response correctly uses relevant MCP tools to provide a comprehensive, data-driven overview of Kenya's development, including GDP per capita, poverty rates, life expectancy, and access to electricity. All tools referenced are real and appropriate, no hallucinated or unnecessary tools are present, and the analysis aligns well with the user's intent for a clear, big-picture explanation.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Sequencing": {
+        "score": 0.9881,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=0.99). Turn 1: The response follows the correct logical order: it first identifies relevant indicators (search_indicators), then retrieves data (get_data) for Kenya, and provides a clear, structured analysis. There is no evidence of data being fetched before discovery, and no ambiguous country handling or filtered query issues arise. The data presentation and analysis align well with the evaluation steps and rubric.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Argument Quality": {
+        "score": 0.9023,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=0.90). Turn 1: The response uses a valid 3-letter country code (Kenya), and the indicators (GDP per capita, poverty headcount ratio, life expectancy, access to electricity) are plausible and relevant to the user's intent. The queries and data presented are specific and well-aligned with the user's request for understanding Kenya's development, providing clear, recent, and contextualized data. There is no explicit mention of database_id or indicator_id formats, but the overall argumentation and data presentation are well-formed and specific. Minor deduction is due to lack of explicit code references for disaggregation filters.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Routing Correctness": {
+        "score": 0.9986,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). Turn 1: The user's intent clearly requires data retrieval to understand Kenya's development, and the response provides detailed, relevant data from the World Bank consistent with this intent. The routing matches the data-driven nature of the question, and the tool usage is fully aligned with delivering a comprehensive data snapshot and analysis, fulfilling the evaluation criteria for a perfect match.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Visualization & API URLs": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      }
+    }
+  }
+}

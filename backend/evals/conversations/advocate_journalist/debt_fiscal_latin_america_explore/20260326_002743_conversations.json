@@ -1,0 +1,4214 @@
+[
+  {
+    "persona": "composed_advocate_journalist_debt_fiscal_latin_america_explore",
+    "scenario": "A journalist writing an article about government debt and fiscal sustainability in Brazil. They ask about key concepts, request the latest data, and then ask follow-up questions to deepen their understanding. They want suggestions for related indicators to explore next.",
+    "expected_outcome": "ALL of the following must be achieved: (1) The chatbot searches for and provides relevant data about government debt and fiscal sustainability in Brazil with claim tags and sources. (2) Explanations are clear and suitable for a general audience. (3) The chatbot suggests relevant follow-up questions or related indicators. (4) Follow-up questions are answered consistently with prior data.",
+    "num_turns": 4,
+    "model": "gpt-4.1-mini",
+    "prompt_version": "feat/setup-evals@d8be3593d",
+    "system_prompt_hash": "ae5dd93d6480",
+    "use_http_callback": true,
+    "turns": [
+      {
+        "role": "user",
+        "content": "Hi, I'm working on an article about Brazil's government debt and fiscal sustainability. Could you help me understand the key concepts and provide the latest data on this topic?",
+        "turn_index": 1
+      },
+      {
+        "role": "assistant",
+        "content": "\n\n**Summary (for your article):**  \nBrazil\u2019s public debt is high by emerging\u2011market standards, with general government gross debt around the mid\u201180s percent of GDP in recent years and projected by the IMF to drift back toward the 90% range over the medium term. Central government debt alone is also above 80% of GDP. The COVID\u201119 shock pushed debt close to 100% of GDP in 2020, but a mix of recovery, inflation, and primary adjustment brought it down somewhat before a renewed upward trend in projections.\n\n---\n\n## Data\n\n### 1. General government gross debt, % of GDP (IMF WEO, Brazil)\n\nIndicator: *General government gross debt, Percent of GDP* (`IMF_WEO_GGXWDG_NGDP`), covers all levels of government.\n\n**Brazil, 2019\u20132029:**\n\n| Year | Debt-to-GDP (%) | Note |\n|------|------------------|------|\n| 2019 | <claim id=\"1857a3ed\" policy=\"auto\">87.118</claim> | Actual |\n| 2020 | <claim id=\"38474c7d\" policy=\"auto\">96.007</claim> | Actual (COVID peak) |\n| 2021 | <claim id=\"06ea2241\" policy=\"auto\">88.934</claim> | Actual |\n| 2022 | <claim id=\"47d1f108\" policy=\"auto\">83.939</claim> | Actual |\n| 2023 | <claim id=\"56d9a709\" policy=\"auto\">84.675</claim> | Estimate |\n| 2024 | <claim id=\"a035e2ed\" policy=\"auto\">86.724</claim> | Projection |\n| 2025 | <claim id=\"167ea433\" policy=\"auto\">89.306</claim> | Projection |\n| 2026 | <claim id=\"d4af073b\" policy=\"auto\">90.919</claim> | Projection |\n| 2027 | <claim id=\"f4c6727a\" policy=\"auto\">92.384</claim> | Projection |\n| 2028 | <claim id=\"7fd73e9d\" policy=\"auto\">93.406</claim> | Projection |\n| 2029 | <claim id=\"893540dc\" policy=\"auto\">93.934</claim> | Projection |\n\n*(using latest available IMF WEO vintage in Data360; values after 2024 are IMF forecasts)*\n\n---\n\n### 2. General government gross debt, % of GDP (World Bank Fiscal Space database)\n\nIndicator: *General government gross debt, % of GDP* (`WB_CCDFS_GGDY`). This is a research\u2011oriented harmonized series, useful for cross\u2011country comparisons of \u201cfiscal space.\u201d\n\n**Brazil, 2019\u20132022:**\n\n| Year | Debt-to-GDP (%) |\n|------|------------------|\n| 2019 | <claim id=\"48790d96\" policy=\"auto\">87.118</claim> |\n| 2020 | <claim id=\"32388ceb\" policy=\"auto\">96.007</claim> |\n| 2021 | <claim id=\"40324523\" policy=\"auto\">90.068</claim> |\n| 2022 | <claim id=\"49755d12\" policy=\"auto\">85.33</claim> |\n\nThese closely track the IMF WEO figures for the overlapping years.\n\n---\n\n### 3. Central government debt, % of GDP (World Bank WDI)\n\nIndicator: *Central government debt, total (% of GDP)* (`WB_WDI_GC_DOD_TOTL_GD_ZS`). This is narrower than general government: it focuses on the federal government.\n\n**Brazil, 2019\u20132024:**\n\n| Year | Central gov. debt (% of GDP) |\n|------|------------------------------|\n| 2019 | <claim id=\"a2338802\" policy=\"auto\">92.565253</claim> |\n| 2020 | <claim id=\"9e57442b\" policy=\"auto\">98.709882</claim> |\n| 2021 | <claim id=\"54b4ace2\" policy=\"auto\">85.011504</claim> |\n| 2022 | <claim id=\"abbac4eb\" policy=\"auto\">79.102322</claim> |\n| 2023 | <claim id=\"dde713c1\" policy=\"auto\">83.03175</claim> |\n| 2024 | <claim id=\"b541ff5c\" policy=\"auto\">81.855443</claim> |\n\nYou can round these for narrative purposes (e.g., \u201caround 82% of GDP in 2024\u201d), but if you quote specific numbers, you may prefer one or two decimal places.\n\n---\n\n## Analysis (concepts + how to use the numbers)\n\n### A. Key concepts to frame Brazil\u2019s debt story\n\n1. **Who\u2019s included: general vs. central government**\n\n- **General government debt** (IMF WEO, Fiscal Space DB):  \n  - Includes the federal government, state and municipal governments, and social security funds.  \n  - Better for assessing overall **fiscal sustainability** and comparing across countries.\n- **Central government debt** (WDI):  \n  - Only the federal level.  \n  - Useful when discussing **federal fiscal policy**, budget debates in Bras\u00edlia, and ratings focused on sovereign (central government) risk.\n\nFor your article, you can write something like:  \n> \u201cOn a general government basis, Brazil\u2019s gross public debt stands in the mid\u201180s percent of GDP, while central government debt alone is just above 80% of GDP.\u201d\n\n(Backing: IMF WEO ~<claim id=\"a035e2ed\" policy=\"auto\">86.7</claim>% in 2024; WDI central government ~<claim id=\"b541ff5c\" policy=\"auto\">81.9</claim>% in 2024.)\n\n---\n\n2. **Gross vs. net debt**\n\n- **Gross debt** (all series above):  \n  - Sum of all liabilities (bonds, loans, etc.), regardless of the assets the government holds.  \n  - Typically higher; used for cross\u2011country comparisons and in IMF/WB datasets.\n- **Net debt** (not in the tables above):  \n  - Gross debt minus liquid financial assets (e.g., Treasury cash, some public\u2011sector holdings).  \n  - Often used by Brazil\u2019s Treasury and Central Bank to assess sustainability.\n\nIf you want, I can help you bring in Brazilian national net\u2011debt figures conceptually (though not from these specific tools).\n\n---\n\n3. **Debt-to-GDP ratio and why it matters**\n\nThe **debt-to-GDP ratio** is the standard headline indicator because:\n\n- It scales debt by the size of the economy (income base).  \n- Sustainability is not just about the level, but about whether debt is **stable, falling, or rising** over time.\n\nFrom the data:\n\n- Pre\u2011COVID (2019): general government debt around the high\u201180s % of GDP (<claim id=\"1857a3ed\" policy=\"auto\">87.1</claim>%).  \n- COVID shock (2020): jumped to roughly **96% of GDP** (<claim id=\"38474c7d\" policy=\"auto\">96.0</claim>%), reflecting recession + emergency spending.  \n- Partial reversal (2021\u201322): down to the low\u2011mid\u201180s (<claim id=\"47d1f108\" policy=\"auto\">83.9</claim>\u2013<claim id=\"49755d12\" policy=\"auto\">85.3</claim>%).  \n- IMF outlook: drifting up again, toward the low\u201190s by 2029 (<claim id=\"893540dc\" policy=\"auto\">93.9</claim>%).\n\n---\n\n4. **What drives fiscal sustainability (qualitative)**\n\nFor your narrative, you can structure \u201cfiscal sustainability\u201d around:\n\n- **Primary balance:**  \n  - The fiscal balance excluding interest payments.  \n  - If Brazil runs a **primary surplus**, it helps stabilize or reduce the debt ratio; a persistent **primary deficit** pushes debt up, especially if interest rates are high.\n\n- **Interest\u2013growth differential (r \u2013 g):**  \n  - *r* = effective interest rate on government debt.  \n  - *g* = nominal GDP growth.  \n  - If *r > g*, debt tends to rise unless the primary balance is in surplus.  \n  - Brazil\u2019s relatively high domestic interest rates make this differential a key risk.\n\n- **Exchange rate and foreign\u2011currency exposure:**  \n  - A weaker real can raise the local\u2011currency value of foreign\u2011currency debt.  \n  - Brazil has reduced FX exposure over time (more local\u2011currency debt), which supports resilience.\n\n- **Maturity structure and rollover risk:**  \n  - Shorter maturities mean more frequent refinancing and greater vulnerability if markets lose confidence.\n\n- **Institutional anchors (fiscal rules):**  \n  - Brazil has experimented with spending caps and new fiscal frameworks; credibility of these rules shapes investor expectations and thus interest rates.\n\nYou can connect these to the numbers by saying, for example:\n\n> \u201cWith gross general government debt hovering around the mid\u201180s percent of GDP and projected to edge toward 90% of GDP over the next few years, Brazil\u2019s fiscal sustainability hinges on its ability to generate sustained primary surpluses in a high\u2011interest\u2011rate environment.\u201d\n\n---\n\n5. **How to interpret the recent trend in Brazil**\n\nUsing the three series together:\n\n- **Shock and recovery:**  \n  - All datasets show a **COVID\u2011era spike** (2019\u20132020) followed by a **decline** as growth resumed and temporary programs expired.  \n  - General government debt: from about <claim id=\"1857a3ed\" policy=\"auto\">87.1</claim>% (2019) to <claim id=\"38474c7d\" policy=\"auto\">96.0</claim>% (2020), then down to roughly <claim id=\"47d1f108\" policy=\"auto\">83.9</claim>\u2013<claim id=\"49755d12\" policy=\"auto\">85.3</claim>% (2022).  \n  - Central government debt: from about <claim id=\"a2338802\" policy=\"auto\">92.6</claim>% (2019) to <claim id=\"9e57442b\" policy=\"auto\">98.7</claim>% (2020), then down to about <claim id=\"abbac4eb\" policy=\"auto\">79.1</claim>% (2022) and around <claim id=\"b541ff5c\" policy=\"auto\">81.9</claim>% in 2024.\n\n- **Plateau and projected re\u2011accumulation:**  \n  - IMF projections show debt **rising again** in the medium term, from about <claim id=\"a035e2ed\" policy=\"auto\">86.7</claim>% in 2024 to around <claim id=\"893540dc\" policy=\"auto\">93.9</claim>% in 2029, suggesting that under current policies, Brazil\u2019s debt ratio is **not on a clearly declining path**.\n\nThat gives you an angle such as:  \n> \u201cBrazil has moved past the immediate COVID\u201119 debt shock, but absent stronger primary surpluses or faster growth, IMF projections suggest that debt will creep back toward the 90%\u2011of\u2011GDP mark by the end of the decade.\u201d\n\n---\n\n## Note (using this in your article)\n\nYou might consider:\n\n- **Lead paragraph:**  \n  - Use one or two rounded figures (e.g. \u201caround 85% of GDP today, projected near 90% by 2029\u201d) to anchor the reader.  \n- **Box or sidebar:**  \n  - Briefly define gross vs. net, general vs. central government, and why different sources give slightly different numbers.  \n- **Graph:**  \n  - Plot Brazil\u2019s general government debt\u2011to\u2011GDP from 2010\u20132029 (actual + IMF projections) with a visual break or shading for forecast years.\n\nIf you\u2019d like, I can next generate a chart specification or help you draft 1\u20132 paragraphs of narrative text you can drop directly into your article.\n\n---\n\n## Sources:\n\n- **IMF \u2014 World Economic Outlook (WEO)** \u2014 *General government gross debt, Percent of GDP* (`IMF_WEO_GGXWDG_NGDP`) \u2014 gross general government debt as % of GDP, annual, includes projections.  \n- **World Bank \u2014 A Cross-Country Database of Fiscal Space (CCDFS)** \u2014 *General government gross debt, % of GDP* (`WB_CCDFS_GGDY`) \u2014 harmonized general government gross debt series for research on fiscal space.  \n- **World Bank \u2014 World Development Indicators (WDI)** \u2014 *Central government debt, total (% of GDP)* (`WB_WDI_GC_DOD_TOTL_GD_ZS`) \u2014 central government gross debt as % of GDP, based on IMF Government Finance Statistics.\n\n---\n\n**Suggested follow-ups:**\n\n1. \u201cCan you help me draft a 2\u20133 paragraph section summarizing Brazil\u2019s recent debt trends and IMF projections in journalistic style?\u201d  \n2. \u201cHow does Brazil\u2019s debt level compare with other large emerging markets like Mexico, South Africa, and Turkey?\u201d  \n3. \u201cCan you explain Brazil\u2019s current fiscal rules and how they affect the debt sustainability outlook?\u201d",
+        "turn_index": 1,
+        "pipeline_result": {
+          "routing_intent": "(via HTTP)",
+          "routing_reasoning": "Understanding your question\u2026User requests latest data and conceptual explanation on Brazil\u2019s government debt and fiscal sustainability, which involves development/economic indicators and metadata that can be answered using Data360/World Bank tools.",
+          "planner_output": "- **Intent:** Explain key concepts around Brazil\u2019s public debt and fiscal sustainability, and provide up\u2011to\u2011date quantitative indicators for your article.\n\n- **Selection Logic:**  \n  - For overall government debt:  \n    - IMF World Economic Outlook \u2014 *General government gross debt, Percent of GDP* (`IMF_WEO_GGXWDG_NGDP`), which includes federal + states + municipalities + social security.  \n    - World Bank \u201cCross-Country Database of Fiscal Space\u201d \u2014 *General government gross debt, % of GDP* (`WB_CCDFS_GGDY`) for an alternative (research) series.  \n  - For a narrower measure:  \n    - World Bank WDI \u2014 *Central government debt, total (% of GDP)* (`WB_WDI_GC_DOD_TOTL_GD_ZS`) for debt of the federal government only.\n\n- **Data Gaps:**  \n  - IMF WEO series for Brazil runs to 2029, but values after 2024 are forecasts, not outcomes.  \n  - Fiscal Space database (WB_CCDFS) currently has Brazil only up to 2022.  \n  - WDI central government debt is available up to 2024.  \n  - I\u2019ll clearly distinguish between actual data and IMF projections.\n\n- **Key recent numbers (Brazil):**\n  - **General government gross debt, % of GDP (IMF WEO, actual + projections):**  \n    - 2019: <claim id=\"1857a3ed\" policy=\"auto\">87.118</claim>% of GDP  \n    - 2020: <claim id=\"38474c7d\" policy=\"auto\">96.007</claim>%  \n    - 2021: <claim id=\"06ea2241\" policy=\"auto\">88.934</claim>%  \n    - 2022: <claim id=\"47d1f108\" policy=\"auto\">83.939</claim>%  \n    - 2023: <claim id=\"56d9a709\" policy=\"auto\">84.675</claim>%  \n    - 2024 (IMF estimate): <claim id=\"a035e2ed\" policy=\"auto\">86.724</claim>%  \n    - 2025 (proj.): <claim id=\"167ea433\" policy=\"auto\">89.306</claim>%  \n    - 2026 (proj.): <claim id=\"d4af073b\" policy=\"auto\">90.919</claim>%  \n    - 2027 (proj.): <claim id=\"f4c6727a\" policy=\"auto\">92.384</claim>%  \n    - 2028 (proj.): <claim id=\"7fd73e9d\" policy=\"auto\">93.406</claim>%  \n    - 2029 (proj.): <claim id=\"893540dc\" policy=\"auto\">93.934</claim>%\n\n  - **General government gross debt, % of GDP (WB Fiscal Space database, Brazil):**  \n    - 2019: <claim id=\"48790d96\" policy=\"auto\">87.118</claim>%  \n    - 2020: <claim id=\"32388ceb\" policy=\"auto\">96.007</claim>%  \n    - 2021: <claim id=\"40324523\" policy=\"auto\">90.068</claim>%  \n    - 2022 (latest): <claim id=\"49755d12\" policy=\"auto\">85.33</claim>%\n\n  - **Central government debt, % of GDP (WDI, Brazil):**  \n    - 2019: <claim id=\"a2338802\" policy=\"auto\">92.565253</claim>%  \n    - 2020: <claim id=\"9e57442b\" policy=\"auto\">98.709882</claim>%  \n    - 2021: <claim id=\"54b4ace2\" policy=\"auto\">85.011504</claim>%  \n    - 2022: <claim id=\"abbac4eb\" policy=\"auto\">79.102322</claim>%  \n    - 2023: <claim id=\"dde713c1\" policy=\"auto\">83.03175</claim>%  \n    - 2024 (latest): <claim id=\"b541ff5c\" policy=\"auto\">81.855443</claim>%\n\n- **Conceptual anchors for your article (plain language):**\n  - **General vs. central government debt:**  \n    - *General government* = federal + state + municipal + social security.  \n    - *Central government* = federal level only (what Bras\u00edlia directly controls). WDI series is central government.\n  - **Gross vs. net debt:**  \n    - *Gross* = all liabilities (bonds, loans, etc.), ignoring government financial assets.  \n    - *Net* = gross debt minus liquid financial assets. Brazil\u2019s policy debate often focuses on net debt, but the main international databases here give gross debt.\n  - **Debt-to-GDP ratio:**  \n    - Main sustainability gauge. It captures the size of the debt relative to the economy\u2019s capacity to generate income.\n  - **Key drivers of debt sustainability:**  \n    - Primary balance (fiscal deficit/surplus excluding interest).  \n    - Interest-growth differential (interest rate on debt vs. GDP growth).  \n    - Exchange rate and share of foreign\u2011currency debt.  \n    - Maturity structure (how much debt rolls over each year).  \n    - Credibility of fiscal rules and institutions.\n\n- **Narrative you can build from the data (high\u2011level):**\n  - Debt jumped during COVID: general government debt rose from about <claim id=\"1857a3ed\" policy=\"auto\">87.1</claim>% of GDP in 2019 to about <claim id=\"38474c7d\" policy=\"auto\">96.0</claim>% in 2020 (IMF), driven by emergency spending and the recession.  \n  - Some post\u2011COVID improvement: by 2022, general government debt had fallen to roughly the mid\u201180s % of GDP (IMF: <claim id=\"47d1f108\" policy=\"auto\">83.9</claim>%; Fiscal Space DB: <claim id=\"49755d12\" policy=\"auto\">85.3</claim>%).  \n  - Recent uptick and projected drift: IMF sees debt edging back up, with estimates of around the high\u201180s % of GDP in 2024 (<claim id=\"a035e2ed\" policy=\"auto\">86.7</claim>%) and a gradual rise towards the low\u201190s by the end of the decade (<claim id=\"893540dc\" policy=\"auto\">93.9</claim>% in 2029).  \n  - Central government debt (WDI) shows a similar pattern but focuses on the federal level, with a peak near 100% of GDP in 2020 (<claim id=\"9e57442b\" policy=\"auto\">98.7</claim>%), then falling to about the low\u201180s by 2024 (<claim id=\"b541ff5c\" policy=\"auto\">81.9</claim>%).\n\n- **Limitations / caveats to flag in your article:**\n  - IMF WEO figures after 2023\u201324 are **projections**, not realized data.  \n  - Different datasets (IMF vs. WB vs. national authorities) may use slightly different coverage and accounting rules; small level differences are normal.  \n  - WDI is central government only; it omits subnational and some public entities.\n\n- **CLARIFYING QUESTION:**  \n  Would you like to focus mainly on (a) the **current level and recent trend**, or (b) a deeper dive into **debt sustainability mechanics** (primary balance, interest\u2013growth differential, Brazil\u2019s fiscal rules), so I can tailor the explanation and suggested angles for your article?",
+          "writer_output": "",
+          "tool_calls": [
+            {
+              "name": "data360_search_indicators",
+              "args": {
+                "query": "general government gross debt",
+                "required_country": "Brazil",
+                "limit": 10,
+                "offset": 0
+              },
+              "output": {
+                "count": 10,
+                "total_count": 3048,
+                "offset": 0,
+                "has_more": true,
+                "next_offset": 10,
+                "indicators": [
+                  {
+                    "idno": "WB_IDS_DT_BLT_GG",
+                    "database_id": "WB_IDS",
+                    "name": "General Government Debt, bilateral",
+                    "truncated_definition": "General Government bilateral debt includes loans from governments and their agencies (including cent",
+                    "periodicity": "Annual",
+                    "latest_data": "2031",
+                    "time_period_range": "1970-2031",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "IMF_WEO_GGXWDG",
+                    "database_id": "IMF_WEO",
+                    "name": "General government gross debt, National currency, Billions",
+                    "truncated_definition": "Gross debt consists of all liabilities that require payment or payments of interest and/or principal",
+                    "periodicity": "Annual",
+                    "latest_data": "2029",
+                    "time_period_range": "1980-2029",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "IMF_WEO_GGXWDG_NGDP",
+                    "database_id": "IMF_WEO",
+                    "name": "General government gross debt, Percent of GDP",
+                    "truncated_definition": "Gross debt consists of all liabilities that require payment or payments of interest and/or principal",
+                    "periodicity": "Annual",
+                    "latest_data": "2029",
+                    "time_period_range": "1980-2029",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "IMF_FM_G_XWDG_G01_GDP_PT",
+                    "database_id": "IMF_FM",
+                    "name": "Gross debt (% of GDP)",
+                    "truncated_definition": "Fiscal, Gross debt position, 2001 Manual, Percent (Unit - Units; Frequency - Annual)",
+                    "periodicity": "Annual",
+                    "latest_data": "2029",
+                    "time_period_range": "1991-2029",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_WDI_GC_DOD_TOTL_CN",
+                    "database_id": "WB_WDI",
+                    "name": "Central government debt, total (current LCU)",
+                    "truncated_definition": "Debt is the entire stock of direct government fixed-term contractual obligations to others outstandi",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1970-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                    "database_id": "WB_WDI",
+                    "name": "Central government debt, total (% of GDP)",
+                    "truncated_definition": "Debt is the entire stock of direct government fixed-term contractual obligations to others outstandi",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1970-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_WDI_DT_DOD_DECT_CD",
+                    "database_id": "WB_WDI",
+                    "name": "External debt stocks, total (DOD, current US$)",
+                    "truncated_definition": "Total external debt is debt owed to nonresidents repayable in currency, goods, or services. Total ex",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1970-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_CCDFS_GGDY",
+                    "database_id": "WB_CCDFS",
+                    "name": "General government gross debt, % of GDP",
+                    "truncated_definition": "General government gross debt, % of GDP",
+                    "periodicity": "Annual",
+                    "latest_data": "2022",
+                    "time_period_range": "1990-2022",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_CCDFS_DFGGD",
+                    "database_id": "WB_CCDFS",
+                    "name": "General government gross debt, % of average tax revenues",
+                    "truncated_definition": "General government gross debt, % of average tax revenues",
+                    "periodicity": "Annual",
+                    "latest_data": "2022",
+                    "time_period_range": "1990-2022",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_CCDFS_GGDMA",
+                    "database_id": "WB_CCDFS",
+                    "name": "General government gross debt, % of 10-year moving average GDP",
+                    "truncated_definition": "General government gross debt, % of 10-year moving average GDP",
+                    "periodicity": "Annual",
+                    "latest_data": "2022",
+                    "time_period_range": "1990-2022",
+                    "covers_country": true,
+                    "dimensions": null
+                  }
+                ],
+                "required_country": "BRA",
+                "error": null
+              }
+            },
+            {
+              "name": "data360_get_data",
+              "args": {
+                "database_id": "IMF_WEO",
+                "indicator_id": "IMF_WEO_GGXWDG_NGDP",
+                "disaggregation_filters": {
+                  "REF_AREA": "BRA"
+                },
+                "start_year": 2019,
+                "end_year": 2029,
+                "limit": 100,
+                "offset": 0
+              },
+              "output": {
+                "count": 11,
+                "total_count": null,
+                "offset": 0,
+                "has_more": false,
+                "next_offset": null,
+                "data": [
+                  {
+                    "OBS_VALUE": "93.934",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": "See notes for:  General government gross debt (National currency).",
+                    "OBS_STATUS": "F",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "IMF_WEO",
+                    "INDICATOR": "IMF_WEO_GGXWDG_NGDP",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2029",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "893540dc"
+                  },
+                  {
+                    "OBS_VALUE": "93.406",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": "See notes for:  General government gross debt (National currency).",
+                    "OBS_STATUS": "F",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "IMF_WEO",
+                    "INDICATOR": "IMF_WEO_GGXWDG_NGDP",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2028",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "7fd73e9d"
+                  },
+                  {
+                    "OBS_VALUE": "92.384",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": "See notes for:  General government gross debt (National currency).",
+                    "OBS_STATUS": "F",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "IMF_WEO",
+                    "INDICATOR": "IMF_WEO_GGXWDG_NGDP",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2027",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "f4c6727a"
+                  },
+                  {
+                    "OBS_VALUE": "90.919",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": "See notes for:  General government gross debt (National currency).",
+                    "OBS_STATUS": "F",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "IMF_WEO",
+                    "INDICATOR": "IMF_WEO_GGXWDG_NGDP",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2026",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "d4af073b"
+                  },
+                  {
+                    "OBS_VALUE": "89.306",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": "See notes for:  General government gross debt (National currency).",
+                    "OBS_STATUS": "F",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "IMF_WEO",
+                    "INDICATOR": "IMF_WEO_GGXWDG_NGDP",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2025",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "167ea433"
+                  },
+                  {
+                    "OBS_VALUE": "86.724",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": "See notes for:  General government gross debt (National currency).",
+                    "OBS_STATUS": "F",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "IMF_WEO",
+                    "INDICATOR": "IMF_WEO_GGXWDG_NGDP",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2024",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "a035e2ed"
+                  },
+                  {
+                    "OBS_VALUE": "84.675",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": "See notes for:  General government gross debt (National currency).",
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "IMF_WEO",
+                    "INDICATOR": "IMF_WEO_GGXWDG_NGDP",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2023",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "56d9a709"
+                  },
+                  {
+                    "OBS_VALUE": "83.939",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": "See notes for:  General government gross debt (National currency).",
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "IMF_WEO",
+                    "INDICATOR": "IMF_WEO_GGXWDG_NGDP",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2022",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "47d1f108"
+                  },
+                  {
+                    "OBS_VALUE": "88.934",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": "See notes for:  General government gross debt (National currency).",
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "IMF_WEO",
+                    "INDICATOR": "IMF_WEO_GGXWDG_NGDP",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2021",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "06ea2241"
+                  },
+                  {
+                    "OBS_VALUE": "96.007",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": "See notes for:  General government gross debt (National currency).",
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "IMF_WEO",
+                    "INDICATOR": "IMF_WEO_GGXWDG_NGDP",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2020",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "38474c7d"
+                  },
+                  {
+                    "OBS_VALUE": "87.118",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": "See notes for:  General government gross debt (National currency).",
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "IMF_WEO",
+                    "INDICATOR": "IMF_WEO_GGXWDG_NGDP",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "1857a3ed"
+                  }
+                ],
+                "metadata": {
+                  "idno": "IMF_WEO_GGXWDG_NGDP",
+                  "name": "General government gross debt, Percent of GDP",
+                  "database_id": "IMF_WEO",
+                  "measurement_unit": "Percentage of GDP",
+                  "periodicity": "Annual",
+                  "definition_short": "General government gross debt, Percent of GDP"
+                },
+                "error": null,
+                "failed_validation": null
+              }
+            },
+            {
+              "name": "data360_get_data",
+              "args": {
+                "database_id": "WB_CCDFS",
+                "indicator_id": "WB_CCDFS_GGDY",
+                "disaggregation_filters": {
+                  "REF_AREA": "BRA"
+                },
+                "start_year": 2019,
+                "end_year": 2024,
+                "limit": 100,
+                "offset": 0
+              },
+              "output": {
+                "count": 4,
+                "total_count": null,
+                "offset": 0,
+                "has_more": false,
+                "next_offset": null,
+                "data": [
+                  {
+                    "OBS_VALUE": "85.33",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WB_CCDFS",
+                    "INDICATOR": "WB_CCDFS_GGDY",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2022",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT",
+                    "UNIT_TYPE": null,
+                    "claim_id": "49755d12"
+                  },
+                  {
+                    "OBS_VALUE": "90.068",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_CCDFS",
+                    "INDICATOR": "WB_CCDFS_GGDY",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2021",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT",
+                    "UNIT_TYPE": null,
+                    "claim_id": "40324523"
+                  },
+                  {
+                    "OBS_VALUE": "96.007",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_CCDFS",
+                    "INDICATOR": "WB_CCDFS_GGDY",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2020",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT",
+                    "UNIT_TYPE": null,
+                    "claim_id": "32388ceb"
+                  },
+                  {
+                    "OBS_VALUE": "87.118",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_CCDFS",
+                    "INDICATOR": "WB_CCDFS_GGDY",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT",
+                    "UNIT_TYPE": null,
+                    "claim_id": "48790d96"
+                  }
+                ],
+                "metadata": {
+                  "idno": "WB_CCDFS_GGDY",
+                  "name": "General government gross debt, % of GDP",
+                  "database_id": "WB_CCDFS",
+                  "measurement_unit": "Percentage",
+                  "periodicity": "Annual",
+                  "definition_short": "General government gross debt, % of GDP"
+                },
+                "error": null,
+                "failed_validation": null
+              }
+            },
+            {
+              "name": "data360_get_data",
+              "args": {
+                "database_id": "WB_WDI",
+                "indicator_id": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                "disaggregation_filters": {
+                  "REF_AREA": "BRA"
+                },
+                "start_year": 2019,
+                "end_year": 2024,
+                "limit": 100,
+                "offset": 0
+              },
+              "output": {
+                "count": 6,
+                "total_count": null,
+                "offset": 0,
+                "has_more": false,
+                "next_offset": null,
+                "data": [
+                  {
+                    "OBS_VALUE": "81.855443",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Central government debt, total (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2024",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "b541ff5c"
+                  },
+                  {
+                    "OBS_VALUE": "83.03175",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Central government debt, total (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2023",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "dde713c1"
+                  },
+                  {
+                    "OBS_VALUE": "79.102322",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Central government debt, total (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2022",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "abbac4eb"
+                  },
+                  {
+                    "OBS_VALUE": "85.011504",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Central government debt, total (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2021",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "54b4ace2"
+                  },
+                  {
+                    "OBS_VALUE": "98.709882",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Central government debt, total (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2020",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "9e57442b"
+                  },
+                  {
+                    "OBS_VALUE": "92.565253",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Central government debt, total (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                    "REF_AREA": "BRA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": null,
+                    "claim_id": "a2338802"
+                  }
+                ],
+                "metadata": {
+                  "idno": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                  "name": "Central government debt, total (% of GDP)",
+                  "database_id": "WB_WDI",
+                  "measurement_unit": "%",
+                  "periodicity": "Annual",
+                  "definition_short": null
+                },
+                "error": null,
+                "failed_validation": null
+              }
+            },
+            {
+              "name": "data360_get_metadata",
+              "args": {
+                "database_id": "IMF_WEO",
+                "indicator_id": "IMF_WEO_GGXWDG_NGDP"
+              },
+              "output": {
+                "indicator_metadata": {
+                  "idno": "IMF_WEO_GGXWDG_NGDP",
+                  "doi": null,
+                  "name": "General government gross debt, Percent of GDP",
+                  "display_name": null,
+                  "database_id": "IMF_WEO",
+                  "database_name": "World Economic Outlook (WEO)",
+                  "date_last_update": null,
+                  "date_released": null,
+                  "measurement_unit": "Percentage of GDP",
+                  "release_calendar": "Annual",
+                  "periodicity": "Annual",
+                  "base_period": null,
+                  "definition_short": "General government gross debt, Percent of GDP",
+                  "definition_long": "Gross debt consists of all liabilities that require payment or payments of interest and/or principal by the debtor to the creditor at a date or dates in the future. This includes debt liabilities in the form of SDRs, currency and deposits, debt securities, loans, insurance, pensions and standardized guarantee schemes, and other accounts payable. Thus, all liabilities in the GFSM 2001 system are debt, except for equity and investment fund shares and financial derivatives and employee stock options. Debt can be valued at current market, nominal, or face values (GFSM 2001, paragraph 7.110).",
+                  "statistical_concept": null,
+                  "methodology": null,
+                  "derivation": null,
+                  "imputation": null,
+                  "missing": null,
+                  "quality_checks": null,
+                  "quality_note": null,
+                  "sources_discrepancies": null,
+                  "series_break": null,
+                  "limitation": null,
+                  "relevance": null,
+                  "aggregation_method": null,
+                  "disaggregation": null,
+                  "confidentiality": null,
+                  "confidentiality_status": "PU",
+                  "confidentiality_note": null,
+                  "citation_requirement": null,
+                  "sources_note": null,
+                  "acknowledgement_statement": null,
+                  "disclaimer": null,
+                  "economies_count": null,
+                  "csv_link": "https://data360files.worldbank.org/data360-data/data/IMF_WEO/IMF_WEO_GGXWDG_NGDP.csv",
+                  "excel_link": null,
+                  "json_link": "https://data360files.worldbank.org/data360-data/metadata/IMF_WEO/IMF_WEO_GGXWDG_NGDP.json",
+                  "api_link": "https://data360api.worldbank.org/data360/data?top=1000&skip=0&DATABASE_ID=IMF_WEO&INDICATOR=IMF_WEO_GGXWDG_NGDP",
+                  "indicator_count": null,
+                  "apiservice_link": null,
+                  "api_explorer_link": "http://datacatalog.worldbank.org/data360/api/execute?tab=Data&id=1&DATABASE_ID=IMF_WEO&INDICATOR=IMF_WEO_GGXWDG_NGDP",
+                  "authoring_entity": [
+                    {
+                      "name": "International Monetary Fund",
+                      "affiliation": null,
+                      "abbreviation": "IMF",
+                      "email": "publicaffairs@imf.org",
+                      "uri": "https://www.imf.org/"
+                    }
+                  ],
+                  "version_statement": {
+                    "version": null,
+                    "version_date": "2025-10-14",
+                    "version_resp": null,
+                    "version_notes": null
+                  },
+                  "aliases": [],
+                  "alternate_identifiers": [],
+                  "languages": [
+                    {
+                      "name": "English",
+                      "code": "EN"
+                    }
+                  ],
+                  "dimensions": [
+                    {
+                      "name": null,
+                      "label": "Geographic area",
+                      "description": "Country/economy, Region"
+                    }
+                  ],
+                  "definition_references": [
+                    {
+                      "source": "International Monetary Fund",
+                      "uri": "https://www.imf.org/en/publications/weo",
+                      "note": null
+                    }
+                  ],
+                  "statistical_concept_references": [],
+                  "methodology_references": [],
+                  "derivation_references": [],
+                  "imputation_references": [],
+                  "topics": [
+                    {
+                      "id": "P3",
+                      "name": "Prosperity",
+                      "parent_id": null,
+                      "vocabulary": "WB Practice Groups",
+                      "uri": null
+                    },
+                    {
+                      "id": "P3_000001",
+                      "name": "Economic Policy",
+                      "parent_id": "P3",
+                      "vocabulary": "Data360 Topic L1",
+                      "uri": null
+                    },
+                    {
+                      "id": "P3_000008",
+                      "name": "Fiscal Policy",
+                      "parent_id": "P3_000001",
+                      "vocabulary": "Data360 Topic L2",
+                      "uri": null
+                    }
+                  ],
+                  "time_periods": [
+                    {
+                      "start": "1980",
+                      "end": "2029",
+                      "notes": null
+                    }
+                  ],
+                  "ref_country": [
+                    {
+                      "name": "Afghanistan",
+                      "code": "AFG"
+                    },
+                    {
+                      "name": "Albania",
+                      "code": "ALB"
+                    },
+                    {
+                      "name": "Algeria",
+                      "code": "DZA"
+                    },
+                    {
+                      "name": "Andorra",
+                      "code": "AND"
+                    },
+                    {
+                      "name": "Angola",
+                      "code": "AGO"
+                    },
+                    {
+                      "name": "Antigua and Barbuda",
+                      "code": "ATG"
+                    },
+                    {
+                      "name": "Argentina",
+                      "code": "ARG"
+                    },
+                    {
+                      "name": "Armenia",
+                      "code": "ARM"
+                    },
+                    {
+                      "name": "Aruba",
+                      "code": "ABW"
+                    },
+                    {
+                      "name": "Australia",
+                      "code": "AUS"
+                    },
+                    {
+                      "name": "Austria",
+                      "code": "AUT"
+                    },
+                    {
+                      "name": "Azerbaijan",
+                      "code": "AZE"
+                    },
+                    {
+                      "name": "Bahamas, The",
+                      "code": "BHS"
+                    },
+                    {
+                      "name": "Bahrain",
+                      "code": "BHR"
+                    },
+                    {
+                      "name": "Bangladesh",
+                      "code": "BGD"
+                    },
+                    {
+                      "name": "Barbados",
+                      "code": "BRB"
+                    },
+                    {
+                      "name": "Belarus",
+                      "code": "BLR"
+                    },
+                    {
+                      "name": "Belgium",
+                      "code": "BEL"
+                    },
+                    {
+                      "name": "Belize",
+                      "code": "BLZ"
+                    },
+                    {
+                      "name": "Benin",
+                      "code": "BEN"
+                    },
+                    {
+                      "name": "Bhutan",
+                      "code": "BTN"
+                    },
+                    {
+                      "name": "Bolivia",
+                      "code": "BOL"
+                    },
+                    {
+                      "name": "Bosnia and Herzegovina",
+                      "code": "BIH"
+                    },
+                    {
+                      "name": "Botswana",
+                      "code": "BWA"
+                    },
+                    {
+                      "name": "Brazil",
+                      "code": "BRA"
+                    },
+                    {
+                      "name": "Brunei Darussalam",
+                      "code": "BRN"
+                    },
+                    {
+                      "name": "Bulgaria",
+                      "code": "BGR"
+                    },
+                    {
+                      "name": "Burkina Faso",
+                      "code": "BFA"
+                    },
+                    {
+                      "name": "Burundi",
+                      "code": "BDI"
+                    },
+                    {
+                      "name": "Cabo Verde",
+                      "code": "CPV"
+                    },
+                    {
+                      "name": "Cambodia",
+                      "code": "KHM"
+                    },
+                    {
+                      "name": "Cameroon",
+                      "code": "CMR"
+                    },
+                    {
+                      "name": "Canada",
+                      "code": "CAN"
+                    },
+                    {
+                      "name": "Central African Republic",
+                      "code": "CAF"
+                    },
+                    {
+                      "name": "Chad",
+                      "code": "TCD"
+                    },
+                    {
+                      "name": "Chile",
+                      "code": "CHL"
+                    },
+                    {
+                      "name": "China",
+                      "code": "CHN"
+                    },
+                    {
+                      "name": "Colombia",
+                      "code": "COL"
+                    },
+                    {
+                      "name": "Comoros",
+                      "code": "COM"
+                    },
+                    {
+                      "name": "Congo, Dem. Rep.",
+                      "code": "COD"
+                    },
+                    {
+                      "name": "Congo, Rep.",
+                      "code": "COG"
+                    },
+                    {
+                      "name": "Costa Rica",
+                      "code": "CRI"
+                    },
+                    {
+                      "name": "Cote d'Ivoire",
+                      "code": "CIV"
+                    },
+                    {
+                      "name": "Croatia",
+                      "code": "HRV"
+                    },
+                    {
+                      "name": "Cyprus",
+                      "code": "CYP"
+                    },
+                    {
+                      "name": "Czechia",
+                      "code": "CZE"
+                    },
+                    {
+                      "name": "Denmark",
+                      "code": "DNK"
+                    },
+                    {
+                      "name": "Djibouti",
+                      "code": "DJI"
+                    },
+                    {
+                      "name": "Dominica",
+                      "code": "DMA"
+                    },
+                    {
+                      "name": "Dominican Republic",
+                      "code": "DOM"
+                    },
+                    {
+                      "name": "Ecuador",
+                      "code": "ECU"
+                    },
+                    {
+                      "name": "Egypt, Arab Rep.",
+                      "code": "EGY"
+                    },
+                    {
+                      "name": "El Salvador",
+                      "code": "SLV"
+                    },
+                    {
+                      "name": "Equatorial Guinea",
+                      "code": "GNQ"
+                    },
+                    {
+                      "name": "Eritrea",
+                      "code": "ERI"
+                    },
+                    {
+                      "name": "Estonia",
+                      "code": "EST"
+                    },
+                    {
+                      "name": "Eswatini",
+                      "code": "SWZ"
+                    },
+                    {
+                      "name": "Ethiopia",
+                      "code": "ETH"
+                    },
+                    {
+                      "name": "Fiji",
+                      "code": "FJI"
+                    },
+                    {
+                      "name": "Finland",
+                      "code": "FIN"
+                    },
+                    {
+                      "name": "France",
+                      "code": "FRA"
+                    },
+                    {
+                      "name": "Gabon",
+                      "code": "GAB"
+                    },
+                    {
+                      "name": "Gambia, The",
+                      "code": "GMB"
+                    },
+                    {
+                      "name": "Georgia",
+                      "code": "GEO"
+                    },
+                    {
+                      "name": "Germany",
+                      "code": "DEU"
+                    },
+                    {
+                      "name": "Ghana",
+                      "code": "GHA"
+                    },
+                    {
+                      "name": "Greece",
+                      "code": "GRC"
+                    },
+                    {
+                      "name": "Grenada",
+                      "code": "GRD"
+                    },
+                    {
+                      "name": "Guatemala",
+                      "code": "GTM"
+                    },
+                    {
+                      "name": "Guinea",
+                      "code": "GIN"
+                    },
+                    {
+                      "name": "Guinea-Bissau",
+                      "code": "GNB"
+                    },
+                    {
+                      "name": "Guyana",
+                      "code": "GUY"
+                    },
+                    {
+                      "name": "Haiti",
+                      "code": "HTI"
+                    },
+                    {
+                      "name": "Honduras",
+                      "code": "HND"
+                    },
+                    {
+                      "name": "Hong Kong SAR, China",
+                      "code": "HKG"
+                    },
+                    {
+                      "name": "Hungary",
+                      "code": "HUN"
+                    },
+                    {
+                      "name": "Iceland",
+                      "code": "ISL"
+                    },
+                    {
+                      "name": "India",
+                      "code": "IND"
+                    },
+                    {
+                      "name": "Indonesia",
+                      "code": "IDN"
+                    },
+                    {
+                      "name": "Iran, Islamic Rep.",
+                      "code": "IRN"
+                    },
+                    {
+                      "name": "Iraq",
+                      "code": "IRQ"
+                    },
+                    {
+                      "name": "Ireland",
+                      "code": "IRL"
+                    },
+                    {
+                      "name": "Israel",
+                      "code": "ISR"
+                    },
+                    {
+                      "name": "Italy",
+                      "code": "ITA"
+                    },
+                    {
+                      "name": "Jamaica",
+                      "code": "JAM"
+                    },
+                    {
+                      "name": "Japan",
+                      "code": "JPN"
+                    },
+                    {
+                      "name": "Jordan",
+                      "code": "JOR"
+                    },
+                    {
+                      "name": "Kazakhstan",
+                      "code": "KAZ"
+                    },
+                    {
+                      "name": "Kenya",
+                      "code": "KEN"
+                    },
+                    {
+                      "name": "Kiribati",
+                      "code": "KIR"
+                    },
+                    {
+                      "name": "Korea, Rep.",
+                      "code": "KOR"
+                    },
+                    {
+                      "name": "Kosovo",
+                      "code": "XKX"
+                    },
+                    {
+                      "name": "Kuwait",
+                      "code": "KWT"
+                    },
+                    {
+                      "name": "Kyrgyz Republic",
+                      "code": "KGZ"
+                    },
+                    {
+                      "name": "Lao PDR",
+                      "code": "LAO"
+                    },
+                    {
+                      "name": "Latvia",
+                      "code": "LVA"
+                    },
+                    {
+                      "name": "Lebanon",
+                      "code": "LBN"
+                    },
+                    {
+                      "name": "Lesotho",
+                      "code": "LSO"
+                    },
+                    {
+                      "name": "Liberia",
+                      "code": "LBR"
+                    },
+                    {
+                      "name": "Libya",
+                      "code": "LBY"
+                    },
+                    {
+                      "name": "Lithuania",
+                      "code": "LTU"
+                    },
+                    {
+                      "name": "Luxembourg",
+                      "code": "LUX"
+                    },
+                    {
+                      "name": "Macao SAR, China",
+                      "code": "MAC"
+                    },
+                    {
+                      "name": "Madagascar",
+                      "code": "MDG"
+                    },
+                    {
+                      "name": "Malawi",
+                      "code": "MWI"
+                    },
+                    {
+                      "name": "Malaysia",
+                      "code": "MYS"
+                    },
+                    {
+                      "name": "Maldives",
+                      "code": "MDV"
+                    },
+                    {
+                      "name": "Mali",
+                      "code": "MLI"
+                    },
+                    {
+                      "name": "Malta",
+                      "code": "MLT"
+                    },
+                    {
+                      "name": "Marshall Islands",
+                      "code": "MHL"
+                    },
+                    {
+                      "name": "Mauritania",
+                      "code": "MRT"
+                    },
+                    {
+                      "name": "Mauritius",
+                      "code": "MUS"
+                    },
+                    {
+                      "name": "Mexico",
+                      "code": "MEX"
+                    },
+                    {
+                      "name": "Micronesia, Fed. Sts.",
+                      "code": "FSM"
+                    },
+                    {
+                      "name": "Moldova",
+                      "code": "MDA"
+                    },
+                    {
+                      "name": "Mongolia",
+                      "code": "MNG"
+                    },
+                    {
+                      "name": "Montenegro",
+                      "code": "MNE"
+                    },
+                    {
+                      "name": "Morocco",
+                      "code": "MAR"
+                    },
+                    {
+                      "name": "Mozambique",
+                      "code": "MOZ"
+                    },
+                    {
+                      "name": "Myanmar",
+                      "code": "MMR"
+                    },
+                    {
+                      "name": "Namibia",
+                      "code": "NAM"
+                    },
+                    {
+                      "name": "Nauru",
+                      "code": "NRU"
+                    },
+                    {
+                      "name": "Nepal",
+                      "code": "NPL"
+                    },
+                    {
+                      "name": "Netherlands",
+                      "code": "NLD"
+                    },
+                    {
+                      "name": "New Zealand",
+                      "code": "NZL"
+                    },
+                    {
+                      "name": "Nicaragua",
+                      "code": "NIC"
+                    },
+                    {
+                      "name": "Niger",
+                      "code": "NER"
+                    },
+                    {
+                      "name": "Nigeria",
+                      "code": "NGA"
+                    },
+                    {
+                      "name": "North Macedonia",
+                      "code": "MKD"
+                    },
+                    {
+                      "name": "Norway",
+                      "code": "NOR"
+                    },
+                    {
+                      "name": "Oman",
+                      "code": "OMN"
+                    },
+                    {
+                      "name": "Pakistan",
+                      "code": "PAK"
+                    },
+                    {
+                      "name": "Palau",
+                      "code": "PLW"
+                    },
+                    {
+                      "name": "Panama",
+                      "code": "PAN"
+                    },
+                    {
+                      "name": "Papua New Guinea",
+                      "code": "PNG"
+                    },
+                    {
+                      "name": "Paraguay",
+                      "code": "PRY"
+                    },
+                    {
+                      "name": "Peru",
+                      "code": "PER"
+                    },
+                    {
+                      "name": "Philippines",
+                      "code": "PHL"
+                    },
+                    {
+                      "name": "Poland",
+                      "code": "POL"
+                    },
+                    {
+                      "name": "Portugal",
+                      "code": "PRT"
+                    },
+                    {
+                      "name": "Puerto Rico",
+                      "code": "PRI"
+                    },
+                    {
+                      "name": "Qatar",
+                      "code": "QAT"
+                    },
+                    {
+                      "name": "Romania",
+                      "code": "ROU"
+                    },
+                    {
+                      "name": "Russian Federation",
+                      "code": "RUS"
+                    },
+                    {
+                      "name": "Rwanda",
+                      "code": "RWA"
+                    },
+                    {
+                      "name": "Samoa",
+                      "code": "WSM"
+                    },
+                    {
+                      "name": "San Marino",
+                      "code": "SMR"
+                    },
+                    {
+                      "name": "Sao Tome and Principe",
+                      "code": "STP"
+                    },
+                    {
+                      "name": "Saudi Arabia",
+                      "code": "SAU"
+                    },
+                    {
+                      "name": "Senegal",
+                      "code": "SEN"
+                    },
+                    {
+                      "name": "Serbia",
+                      "code": "SRB"
+                    },
+                    {
+                      "name": "Seychelles",
+                      "code": "SYC"
+                    },
+                    {
+                      "name": "Sierra Leone",
+                      "code": "SLE"
+                    },
+                    {
+                      "name": "Singapore",
+                      "code": "SGP"
+                    },
+                    {
+                      "name": "Slovak Republic",
+                      "code": "SVK"
+                    },
+                    {
+                      "name": "Slovenia",
+                      "code": "SVN"
+                    },
+                    {
+                      "name": "Solomon Islands",
+                      "code": "SLB"
+                    },
+                    {
+                      "name": "Somalia",
+                      "code": "SOM"
+                    },
+                    {
+                      "name": "South Africa",
+                      "code": "ZAF"
+                    },
+                    {
+                      "name": "South Sudan",
+                      "code": "SSD"
+                    },
+                    {
+                      "name": "Spain",
+                      "code": "ESP"
+                    },
+                    {
+                      "name": "Sri Lanka",
+                      "code": "LKA"
+                    },
+                    {
+                      "name": "St. Kitts and Nevis",
+                      "code": "KNA"
+                    },
+                    {
+                      "name": "St. Lucia",
+                      "code": "LCA"
+                    },
+                    {
+                      "name": "St. Vincent and the Grenadines",
+                      "code": "VCT"
+                    },
+                    {
+                      "name": "Sudan",
+                      "code": "SDN"
+                    },
+                    {
+                      "name": "Suriname",
+                      "code": "SUR"
+                    },
+                    {
+                      "name": "Sweden",
+                      "code": "SWE"
+                    },
+                    {
+                      "name": "Switzerland",
+                      "code": "CHE"
+                    },
+                    {
+                      "name": "Syrian Arab Republic",
+                      "code": "SYR"
+                    },
+                    {
+                      "name": "Taiwan, China",
+                      "code": "TWN"
+                    },
+                    {
+                      "name": "Tajikistan",
+                      "code": "TJK"
+                    },
+                    {
+                      "name": "Tanzania",
+                      "code": "TZA"
+                    },
+                    {
+                      "name": "Thailand",
+                      "code": "THA"
+                    },
+                    {
+                      "name": "Timor-Leste",
+                      "code": "TLS"
+                    },
+                    {
+                      "name": "Togo",
+                      "code": "TGO"
+                    },
+                    {
+                      "name": "Tonga",
+                      "code": "TON"
+                    },
+                    {
+                      "name": "Trinidad and Tobago",
+                      "code": "TTO"
+                    },
+                    {
+                      "name": "Tunisia",
+                      "code": "TUN"
+                    },
+                    {
+                      "name": "Turkiye",
+                      "code": "TUR"
+                    },
+                    {
+                      "name": "Turkmenistan",
+                      "code": "TKM"
+                    },
+                    {
+                      "name": "Tuvalu",
+                      "code": "TUV"
+                    },
+                    {
+                      "name": "Uganda",
+                      "code": "UGA"
+                    },
+                    {
+                      "name": "Ukraine",
+                      "code": "UKR"
+                    },
+                    {
+                      "name": "United Arab Emirates",
+                      "code": "ARE"
+                    },
+                    {
+                      "name": "United Kingdom",
+                      "code": "GBR"
+                    },
+                    {
+                      "name": "United States",
+                      "code": "USA"
+                    },
+                    {
+                      "name": "Uruguay",
+                      "code": "URY"
+                    },
+                    {
+                      "name": "Uzbekistan",
+                      "code": "UZB"
+                    },
+                    {
+                      "name": "Vanuatu",
+                      "code": "VUT"
+                    },
+                    {
+                      "name": "Venezuela, RB",
+                      "code": "VEN"
+                    },
+                    {
+                      "name": "Viet Nam",
+                      "code": "VNM"
+                    },
+                    {
+                      "name": "West Bank and Gaza",
+                      "code": "PSE"
+                    },
+                    {
+                      "name": "Yemen, Rep.",
+                      "code": "YEM"
+                    },
+                    {
+                      "name": "Zambia",
+                      "code": "ZMB"
+                    },
+                    {
+                      "name": "Zimbabwe",
+                      "code": "ZWE"
+                    }
+                  ],
+                  "geographic_units": [],
+                  "aggregation_method_references": [],
+                  "license": [
+                    {
+                      "name": "License Specified Externally",
+                      "uri": "https://www.imf.org/external/terms.htm",
+                      "note": "This material is being redistributed with the express permission of the copyright holder."
+                    }
+                  ],
+                  "links": [
+                    {
+                      "type": "website",
+                      "description": "World Economic Outlook",
+                      "uri": "https://www.imf.org/en/publications/weo",
+                      "image_uri": null
+                    }
+                  ],
+                  "api_documentation": [],
+                  "sources": [
+                    {
+                      "idno": null,
+                      "type": null,
+                      "name": "World Economic Outlook",
+                      "organization": "International Monetary Fund (IMF)",
+                      "publisher": null,
+                      "publication_date": null,
+                      "uri": "https://www.imf.org/en/publications/weo",
+                      "access_date": null,
+                      "note": null,
+                      "other_identifiers": [],
+                      "authors": [],
+                      "datasets": []
+                    }
+                  ],
+                  "notes": [],
+                  "related_indicators": []
+                },
+                "disaggregation_options": [
+                  {
+                    "field_name": "FREQ",
+                    "label_name": "Frequency of observation",
+                    "field_value": [
+                      "A"
+                    ]
+                  },
+                  {
+                    "field_name": "REF_AREA",
+                    "label_name": "Reference area",
+                    "field_value": [
+                      "ABW",
+                      "AFG",
+                      "AGO",
+                      "ALB",
+                      "AND",
+                      "ARE",
+                      "ARG",
+                      "ARM",
+                      "ATG",
+                      "AUS",
+                      "AUT",
+                      "AZE",
+                      "BDI",
+                      "BEL",
+                      "BEN",
+                      "BFA",
+                      "BGD",
+                      "BGR",
+                      "BHR",
+                      "BHS",
+                      "BIH",
+                      "BLR",
+                      "BLZ",
+                      "BOL",
+                      "BRA",
+                      "BRB",
+                      "BRN",
+                      "BTN",
+                      "BWA",
+                      "CAF",
+                      "CAN",
+                      "CHE",
+                      "CHL",
+                      "CHN",
+                      "CIV",
+                      "CMR",
+                      "COD",
+                      "COG",
+                      "COL",
+                      "COM",
+                      "CPV",
+                      "CRI",
+                      "CYP",
+                      "CZE",
+                      "DEU",
+                      "DJI",
+                      "DMA",
+                      "DNK",
+                      "DOM",
+                      "DZA",
+                      "ECU",
+                      "EGY",
+                      "ERI",
+                      "ESP",
+                      "EST",
+                      "ETH",
+                      "FIN",
+                      "FJI",
+                      "FRA",
+                      "FSM",
+                      "GAB",
+                      "GBR",
+                      "GEO",
+                      "GHA",
+                      "GIN",
+                      "GMB",
+                      "GNB",
+                      "GNQ",
+                      "GRC",
+                      "GRD",
+                      "GTM",
+                      "GUY",
+                      "HKG",
+                      "HND",
+                      "HRV",
+                      "HTI",
+                      "HUN",
+                      "IDN",
+                      "IND",
+                      "IRL",
+                      "IRN",
+                      "IRQ",
+                      "ISL",
+                      "ISR",
+                      "ITA",
+                      "JAM",
+                      "JOR",
+                      "JPN",
+                      "KAZ",
+                      "KEN",
+                      "KGZ",
+                      "KHM",
+                      "KIR",
+                      "KNA",
+                      "KOR",
+                      "KWT",
+                      "LAO",
+                      "LBN",
+                      "LBR",
+                      "LBY",
+                      "LCA",
+                      "LKA",
+                      "LSO",
+                      "LTU",
+                      "LUX",
+                      "LVA",
+                      "MAC",
+                      "MAR",
+                      "MDA",
+                      "MDG",
+                      "MDV",
+                      "MEX",
+                      "MHL",
+                      "MKD",
+                      "MLI",
+                      "MLT",
+                      "MMR",
+                      "MNE",
+                      "MNG",
+                      "MOZ",
+                      "MRT",
+                      "MUS",
+                      "MWI",
+                      "MYS",
+                      "NAM",
+                      "NER",
+                      "NGA",
+                      "NIC",
+                      "NLD",
+                      "NOR",
+                      "NPL",
+                      "NRU",
+                      "NZL",
+                      "OMN",
+                      "PAK",
+                      "PAN",
+                      "PER",
+                      "PHL",
+                      "PLW",
+                      "PNG",
+                      "POL",
+                      "PRI",
+                      "PRT",
+                      "PRY",
+                      "PSE",
+                      "QAT",
+                      "ROU",
+                      "RUS",
+                      "RWA",
+                      "SAU",
+                      "SDN",
+                      "SEN",
+                      "SGP",
+                      "SLB",
+                      "SLE",
+                      "SLV",
+                      "SMR",
+                      "SOM",
+                      "SRB",
+                      "SSD",
+                      "STP",
+                      "SUR",
+                      "SVK",
+                      "SVN",
+                      "SWE",
+                      "SWZ",
+                      "SYC",
+                      "SYR",
+                      "TCD",
+                      "TGO",
+                      "THA",
+                      "TJK",
+                      "TKM",
+                      "TLS",
+                      "TON",
+                      "TTO",
+                      "TUN",
+                      "TUR",
+                      "TUV",
+                      "TWN",
+                      "TZA",
+                      "UGA",
+                      "UKR",
+                      "URY",
+                      "USA",
+                      "UZB",
+                      "VCT",
+                      "VEN",
+                      "VNM",
+                      "VUT",
+                      "WSM",
+                      "XKX",
+                      "YEM",
+                      "ZAF",
+                      "ZMB",
+                      "ZWE"
+                    ]
+                  },
+                  {
+                    "field_name": "INDICATOR",
+                    "label_name": "Statistical indicator",
+                    "field_value": [
+                      "IMF_WEO_GGXWDG_NGDP"
+                    ]
+                  },
+                  {
+                    "field_name": "SEX",
+                    "label_name": "Sex",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "AGE",
+                    "label_name": "Age",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "URBANISATION",
+                    "label_name": "Degree of urbanisation",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "UNIT_MEASURE",
+                    "label_name": "Unit of measure",
+                    "field_value": [
+                      "PT_GDP"
+                    ]
+                  },
+                  {
+                    "field_name": "TIME_PERIOD",
+                    "label_name": "Time period",
+                    "field_value": [
+                      "1980",
+                      "1981",
+                      "1982",
+                      "1983",
+                      "1984",
+                      "1985",
+                      "1986",
+                      "1987",
+                      "1988",
+                      "1989",
+                      "1990",
+                      "1991",
+                      "1992",
+                      "1993",
+                      "1994",
+                      "1995",
+                      "1996",
+                      "1997",
+                      "1998",
+                      "1999",
+                      "2000",
+                      "2001",
+                      "2002",
+                      "2003",
+                      "2004",
+                      "2005",
+                      "2006",
+                      "2007",
+                      "2008",
+                      "2009",
+                      "2010",
+                      "2011",
+                      "2012",
+                      "2013",
+                      "2014",
+                      "2015",
+                      "2016",
+                      "2017",
+                      "2018",
+                      "2019",
+                      "2020",
+                      "2021",
+                      "2022",
+                      "2023",
+                      "2024",
+                      "2025",
+                      "2026",
+                      "2027",
+                      "2028",
+                      "2029"
+                    ]
+                  }
+                ],
+                "error": null
+              }
+            },
+            {
+              "name": "data360_get_metadata",
+              "args": {
+                "database_id": "WB_CCDFS",
+                "indicator_id": "WB_CCDFS_GGDY"
+              },
+              "output": {
+                "indicator_metadata": {
+                  "idno": "WB_CCDFS_GGDY",
+                  "doi": null,
+                  "name": "General government gross debt, % of GDP",
+                  "display_name": null,
+                  "database_id": "WB_CCDFS",
+                  "database_name": "A Cross-Country Database of Fiscal Space",
+                  "date_last_update": null,
+                  "date_released": null,
+                  "measurement_unit": "Percentage",
+                  "release_calendar": null,
+                  "periodicity": "Annual",
+                  "base_period": null,
+                  "definition_short": "General government gross debt, % of GDP",
+                  "definition_long": "General government gross debt, % of GDP",
+                  "statistical_concept": null,
+                  "methodology": "For a full description of the methodology: https://www.sciencedirect.com/science/article/pii/S0261560622000857?via%3Dihub",
+                  "derivation": null,
+                  "imputation": null,
+                  "missing": null,
+                  "quality_checks": null,
+                  "quality_note": null,
+                  "sources_discrepancies": null,
+                  "series_break": null,
+                  "limitation": null,
+                  "relevance": null,
+                  "aggregation_method": null,
+                  "disaggregation": null,
+                  "confidentiality": null,
+                  "confidentiality_status": "PU",
+                  "confidentiality_note": null,
+                  "citation_requirement": null,
+                  "sources_note": null,
+                  "acknowledgement_statement": null,
+                  "disclaimer": null,
+                  "economies_count": null,
+                  "csv_link": "https://data360files.worldbank.org/data360-data/data/WB_CCDFS/WB_CCDFS_GGDY.csv",
+                  "excel_link": null,
+                  "json_link": "https://data360files.worldbank.org/data360-data/metadata/WB_CCDFS/WB_CCDFS_GGDY.json",
+                  "api_link": "https://data360api.worldbank.org/data360/data?top=1000&skip=0&DATABASE_ID=WB_CCDFS&INDICATOR=WB_CCDFS_GGDY",
+                  "indicator_count": null,
+                  "apiservice_link": null,
+                  "api_explorer_link": "http://datacatalog.worldbank.org/data360/api/execute?tab=Data&id=1&DATABASE_ID=WB_CCDFS&INDICATOR=WB_CCDFS_GGDY",
+                  "authoring_entity": [],
+                  "version_statement": {
+                    "version": "Version 1.0",
+                    "version_date": "2025-07-03",
+                    "version_resp": null,
+                    "version_notes": null
+                  },
+                  "aliases": [],
+                  "alternate_identifiers": [],
+                  "languages": [
+                    {
+                      "name": "English",
+                      "code": "EN"
+                    }
+                  ],
+                  "dimensions": [
+                    {
+                      "name": null,
+                      "label": "Geographic area",
+                      "description": "Country/economy, Region"
+                    },
+                    {
+                      "name": null,
+                      "label": "Year",
+                      "description": null
+                    }
+                  ],
+                  "definition_references": [
+                    {
+                      "source": "A Cross-Country Database of Fiscal Space",
+                      "uri": "https://www.sciencedirect.com/science/article/pii/S0261560622000857?via%3Dihub",
+                      "note": null
+                    }
+                  ],
+                  "statistical_concept_references": [],
+                  "methodology_references": [],
+                  "derivation_references": [],
+                  "imputation_references": [],
+                  "topics": [
+                    {
+                      "id": "P3",
+                      "name": "Prosperity",
+                      "parent_id": null,
+                      "vocabulary": "WB Practice Groups",
+                      "uri": null
+                    },
+                    {
+                      "id": "P3_000001",
+                      "name": "Economic Policy",
+                      "parent_id": "P3",
+                      "vocabulary": "Data360 Topic L1",
+                      "uri": null
+                    },
+                    {
+                      "id": "P3_000009",
+                      "name": "Macro-financial Policies",
+                      "parent_id": "P3_000001",
+                      "vocabulary": "Data360 Topic L2",
+                      "uri": null
+                    }
+                  ],
+                  "time_periods": [
+                    {
+                      "start": "1990",
+                      "end": "2022",
+                      "notes": null
+                    }
+                  ],
+                  "ref_country": [
+                    {
+                      "name": "Afghanistan",
+                      "code": "AFG"
+                    },
+                    {
+                      "name": "Albania",
+                      "code": "ALB"
+                    },
+                    {
+                      "name": "Algeria",
+                      "code": "DZA"
+                    },
+                    {
+                      "name": "Andorra",
+                      "code": "AND"
+                    },
+                    {
+                      "name": "Angola",
+                      "code": "AGO"
+                    },
+                    {
+                      "name": "Antigua and Barbuda",
+                      "code": "ATG"
+                    },
+                    {
+                      "name": "Argentina",
+                      "code": "ARG"
+                    },
+                    {
+                      "name": "Armenia",
+                      "code": "ARM"
+                    },
+                    {
+                      "name": "Aruba",
+                      "code": "ABW"
+                    },
+                    {
+                      "name": "Australia",
+                      "code": "AUS"
+                    },
+                    {
+                      "name": "Austria",
+                      "code": "AUT"
+                    },
+                    {
+                      "name": "Azerbaijan",
+                      "code": "AZE"
+                    },
+                    {
+                      "name": "Bahamas, The",
+                      "code": "BHS"
+                    },
+                    {
+                      "name": "Bahrain",
+                      "code": "BHR"
+                    },
+                    {
+                      "name": "Bangladesh",
+                      "code": "BGD"
+                    },
+                    {
+                      "name": "Barbados",
+                      "code": "BRB"
+                    },
+                    {
+                      "name": "Belarus",
+                      "code": "BLR"
+                    },
+                    {
+                      "name": "Belgium",
+                      "code": "BEL"
+                    },
+                    {
+                      "name": "Belize",
+                      "code": "BLZ"
+                    },
+                    {
+                      "name": "Benin",
+                      "code": "BEN"
+                    },
+                    {
+                      "name": "Bhutan",
+                      "code": "BTN"
+                    },
+                    {
+                      "name": "Bolivia",
+                      "code": "BOL"
+                    },
+                    {
+                      "name": "Bosnia and Herzegovina",
+                      "code": "BIH"
+                    },
+                    {
+                      "name": "Botswana",
+                      "code": "BWA"
+                    },
+                    {
+                      "name": "Brazil",
+                      "code": "BRA"
+                    },
+                    {
+                      "name": "Brunei Darussalam",
+                      "code": "BRN"
+                    },
+                    {
+                      "name": "Bulgaria",
+                      "code": "BGR"
+                    },
+                    {
+                      "name": "Burkina Faso",
+                      "code": "BFA"
+                    },
+                    {
+                      "name": "Burundi",
+                      "code": "BDI"
+                    },
+                    {
+                      "name": "Cabo Verde",
+                      "code": "CPV"
+                    },
+                    {
+                      "name": "Cambodia",
+                      "code": "KHM"
+                    },
+                    {
+                      "name": "Cameroon",
+                      "code": "CMR"
+                    },
+                    {
+                      "name": "Canada",
+                      "code": "CAN"
+                    },
+                    {
+                      "name": "Central African Republic",
+                      "code": "CAF"
+                    },
+                    {
+                      "name": "Chad",
+                      "code": "TCD"
+                    },
+                    {
+                      "name": "Chile",
+                      "code": "CHL"
+                    },
+                    {
+                      "name": "China",
+                      "code": "CHN"
+                    },
+                    {
+                      "name": "Colombia",
+                      "code": "COL"
+                    },
+                    {
+                      "name": "Comoros",
+                      "code": "COM"
+                    },
+                    {
+                      "name": "Congo, Dem. Rep.",
+                      "code": "COD"
+                    },
+                    {
+                      "name": "Congo, Rep.",
+                      "code": "COG"
+                    },
+                    {
+                      "name": "Costa Rica",
+                      "code": "CRI"
+                    },
+                    {
+                      "name": "C\u00c3\u00b4te d\u00e2\u0080\u0099Ivoire",
+                      "code": "CIV"
+                    },
+                    {
+                      "name": "Croatia",
+                      "code": "HRV"
+                    },
+                    {
+                      "name": "Cyprus",
+                      "code": "CYP"
+                    },
+                    {
+                      "name": "Czechia",
+                      "code": "CZE"
+                    },
+                    {
+                      "name": "Denmark",
+                      "code": "DNK"
+                    },
+                    {
+                      "name": "Djibouti",
+                      "code": "DJI"
+                    },
+                    {
+                      "name": "Dominica",
+                      "code": "DMA"
+                    },
+                    {
+                      "name": "Dominican Republic",
+                      "code": "DOM"
+                    },
+                    {
+                      "name": "Ecuador",
+                      "code": "ECU"
+                    },
+                    {
+                      "name": "Egypt, Arab Rep.",
+                      "code": "EGY"
+                    },
+                    {
+                      "name": "El Salvador",
+                      "code": "SLV"
+                    },
+                    {
+                      "name": "Equatorial Guinea",
+                      "code": "GNQ"
+                    },
+                    {
+                      "name": "Eritrea",
+                      "code": "ERI"
+                    },
+                    {
+                      "name": "Estonia",
+                      "code": "EST"
+                    },
+                    {
+                      "name": "Eswatini",
+                      "code": "SWZ"
+                    },
+                    {
+                      "name": "Ethiopia",
+                      "code": "ETH"
+                    },
+                    {
+                      "name": "Fiji",
+                      "code": "FJI"
+                    },
+                    {
+                      "name": "Finland",
+                      "code": "FIN"
+                    },
+                    {
+                      "name": "France",
+                      "code": "FRA"
+                    },
+                    {
+                      "name": "Gabon",
+                      "code": "GAB"
+                    },
+                    {
+                      "name": "Gambia, The",
+                      "code": "GMB"
+                    },
+                    {
+                      "name": "Georgia",
+                      "code": "GEO"
+                    },
+                    {
+                      "name": "Germany",
+                      "code": "DEU"
+                    },
+                    {
+                      "name": "Ghana",
+                      "code": "GHA"
+                    },
+                    {
+                      "name": "Greece",
+                      "code": "GRC"
+                    },
+                    {
+                      "name": "Grenada",
+                      "code": "GRD"
+                    },
+                    {
+                      "name": "Guatemala",
+                      "code": "GTM"
+                    },
+                    {
+                      "name": "Guinea",
+                      "code": "GIN"
+                    },
+                    {
+                      "name": "Guinea-Bissau",
+                      "code": "GNB"
+                    },
+                    {
+                      "name": "Guyana",
+                      "code": "GUY"
+                    },
+                    {
+                      "name": "Haiti",
+                      "code": "HTI"
+                    },
+                    {
+                      "name": "Honduras",
+                      "code": "HND"
+                    },
+                    {
+                      "name": "Hong Kong SAR, China",
+                      "code": "HKG"
+                    },
+                    {
+                      "name": "Hungary",
+                      "code": "HUN"
+                    },
+                    {
+                      "name": "Iceland",
+                      "code": "ISL"
+                    },
+                    {
+                      "name": "India",
+                      "code": "IND"
+                    },
+                    {
+                      "name": "Indonesia",
+                      "code": "IDN"
+                    },
+                    {
+                      "name": "Iran, Islamic Rep.",
+                      "code": "IRN"
+                    },
+                    {
+                      "name": "Iraq",
+                      "code": "IRQ"
+                    },
+                    {
+                      "name": "Ireland",
+                      "code": "IRL"
+                    },
+                    {
+                      "name": "Israel",
+                      "code": "ISR"
+                    },
+                    {
+                      "name": "Italy",
+                      "code": "ITA"
+                    },
+                    {
+                      "name": "Jamaica",
+                      "code": "JAM"
+                    },
+                    {
+                      "name": "Japan",
+                      "code": "JPN"
+                    },
+                    {
+                      "name": "Jordan",
+                      "code": "JOR"
+                    },
+                    {
+                      "name": "Kazakhstan",
+                      "code": "KAZ"
+                    },
+                    {
+                      "name": "Kenya",
+                      "code": "KEN"
+                    },
+                    {
+                      "name": "Kiribati",
+                      "code": "KIR"
+                    },
+                    {
+                      "name": "Korea, Rep.",
+                      "code": "KOR"
+                    },
+                    {
+                      "name": "Kosovo",
+                      "code": "XKX"
+                    },
+                    {
+                      "name": "Kuwait",
+                      "code": "KWT"
+                    },
+                    {
+                      "name": "Kyrgyz Republic",
+                      "code": "KGZ"
+                    },
+                    {
+                      "name": "Lao PDR",
+                      "code": "LAO"
+                    },
+                    {
+                      "name": "Latvia",
+                      "code": "LVA"
+                    },
+                    {
+                      "name": "Lebanon",
+                      "code": "LBN"
+                    },
+                    {
+                      "name": "Lesotho",
+                      "code": "LSO"
+                    },
+                    {
+                      "name": "Liberia",
+                      "code": "LBR"
+                    },
+                    {
+                      "name": "Lithuania",
+                      "code": "LTU"
+                    },
+                    {
+                      "name": "Luxembourg",
+                      "code": "LUX"
+                    },
+                    {
+                      "name": "Madagascar",
+                      "code": "MDG"
+                    },
+                    {
+                      "name": "Malawi",
+                      "code": "MWI"
+                    },
+                    {
+                      "name": "Malaysia",
+                      "code": "MYS"
+                    },
+                    {
+                      "name": "Maldives",
+                      "code": "MDV"
+                    },
+                    {
+                      "name": "Mali",
+                      "code": "MLI"
+                    },
+                    {
+                      "name": "Malta",
+                      "code": "MLT"
+                    },
+                    {
+                      "name": "Marshall Islands",
+                      "code": "MHL"
+                    },
+                    {
+                      "name": "Mauritania",
+                      "code": "MRT"
+                    },
+                    {
+                      "name": "Mauritius",
+                      "code": "MUS"
+                    },
+                    {
+                      "name": "Mexico",
+                      "code": "MEX"
+                    },
+                    {
+                      "name": "Micronesia, Fed. Sts.",
+                      "code": "FSM"
+                    },
+                    {
+                      "name": "Moldova",
+                      "code": "MDA"
+                    },
+                    {
+                      "name": "Mongolia",
+                      "code": "MNG"
+                    },
+                    {
+                      "name": "Montenegro",
+                      "code": "MNE"
+                    },
+                    {
+                      "name": "Morocco",
+                      "code": "MAR"
+                    },
+                    {
+                      "name": "Mozambique",
+                      "code": "MOZ"
+                    },
+                    {
+                      "name": "Myanmar",
+                      "code": "MMR"
+                    },
+                    {
+                      "name": "Namibia",
+                      "code": "NAM"
+                    },
+                    {
+                      "name": "Nauru",
+                      "code": "NRU"
+                    },
+                    {
+                      "name": "Nepal",
+                      "code": "NPL"
+                    },
+                    {
+                      "name": "Netherlands",
+                      "code": "NLD"
+                    },
+                    {
+                      "name": "New Zealand",
+                      "code": "NZL"
+                    },
+                    {
+                      "name": "Nicaragua",
+                      "code": "NIC"
+                    },
+                    {
+                      "name": "Niger",
+                      "code": "NER"
+                    },
+                    {
+                      "name": "Nigeria",
+                      "code": "NGA"
+                    },
+                    {
+                      "name": "North Macedonia",
+                      "code": "MKD"
+                    },
+                    {
+                      "name": "Norway",
+                      "code": "NOR"
+                    },
+                    {
+                      "name": "Oman",
+                      "code": "OMN"
+                    },
+                    {
+                      "name": "Pakistan",
+                      "code": "PAK"
+                    },
+                    {
+                      "name": "Palau",
+                      "code": "PLW"
+                    },
+                    {
+                      "name": "Panama",
+                      "code": "PAN"
+                    },
+                    {
+                      "name": "Papua New Guinea",
+                      "code": "PNG"
+                    },
+                    {
+                      "name": "Paraguay",
+                      "code": "PRY"
+                    },
+                    {
+                      "name": "Peru",
+                      "code": "PER"
+                    },
+                    {
+                      "name": "Philippines",
+                      "code": "PHL"
+                    },
+                    {
+                      "name": "Poland",
+                      "code": "POL"
+                    },
+                    {
+                      "name": "Portugal",
+                      "code": "PRT"
+                    },
+                    {
+                      "name": "Puerto Rico",
+                      "code": "PRI"
+                    },
+                    {
+                      "name": "Qatar",
+                      "code": "QAT"
+                    },
+                    {
+                      "name": "Romania",
+                      "code": "ROU"
+                    },
+                    {
+                      "name": "Russian Federation",
+                      "code": "RUS"
+                    },
+                    {
+                      "name": "Rwanda",
+                      "code": "RWA"
+                    },
+                    {
+                      "name": "Samoa",
+                      "code": "WSM"
+                    },
+                    {
+                      "name": "San Marino",
+                      "code": "SMR"
+                    },
+                    {
+                      "name": "S\u00c3\u00a3o Tom\u00c3\u00a9 and Pr\u00c3\u00adncipe",
+                      "code": "STP"
+                    },
+                    {
+                      "name": "Saudi Arabia",
+                      "code": "SAU"
+                    },
+                    {
+                      "name": "Senegal",
+                      "code": "SEN"
+                    },
+                    {
+                      "name": "Serbia",
+                      "code": "SRB"
+                    },
+                    {
+                      "name": "Seychelles",
+                      "code": "SYC"
+                    },
+                    {
+                      "name": "Sierra Leone",
+                      "code": "SLE"
+                    },
+                    {
+                      "name": "Singapore",
+                      "code": "SGP"
+                    },
+                    {
+                      "name": "Slovak Republic",
+                      "code": "SVK"
+                    },
+                    {
+                      "name": "Slovenia",
+                      "code": "SVN"
+                    },
+                    {
+                      "name": "Solomon Islands",
+                      "code": "SLB"
+                    },
+                    {
+                      "name": "South Africa",
+                      "code": "ZAF"
+                    },
+                    {
+                      "name": "South Sudan",
+                      "code": "SSD"
+                    },
+                    {
+                      "name": "Spain",
+                      "code": "ESP"
+                    },
+                    {
+                      "name": "Sri Lanka",
+                      "code": "LKA"
+                    },
+                    {
+                      "name": "St. Kitts and Nevis",
+                      "code": "KNA"
+                    },
+                    {
+                      "name": "St. Lucia",
+                      "code": "LCA"
+                    },
+                    {
+                      "name": "St. Vincent and the Grenadines",
+                      "code": "VCT"
+                    },
+                    {
+                      "name": "Sudan",
+                      "code": "SDN"
+                    },
+                    {
+                      "name": "Suriname",
+                      "code": "SUR"
+                    },
+                    {
+                      "name": "Sweden",
+                      "code": "SWE"
+                    },
+                    {
+                      "name": "Switzerland",
+                      "code": "CHE"
+                    },
+                    {
+                      "name": "Syrian Arab Republic",
+                      "code": "SYR"
+                    },
+                    {
+                      "name": "Tajikistan",
+                      "code": "TJK"
+                    },
+                    {
+                      "name": "Tanzania",
+                      "code": "TZA"
+                    },
+                    {
+                      "name": "Thailand",
+                      "code": "THA"
+                    },
+                    {
+                      "name": "Timor-Leste",
+                      "code": "TLS"
+                    },
+                    {
+                      "name": "Togo",
+                      "code": "TGO"
+                    },
+                    {
+                      "name": "Tonga",
+                      "code": "TON"
+                    },
+                    {
+                      "name": "Trinidad and Tobago",
+                      "code": "TTO"
+                    },
+                    {
+                      "name": "Tunisia",
+                      "code": "TUN"
+                    },
+                    {
+                      "name": "T\u00c3\u00bcrkiye",
+                      "code": "TUR"
+                    },
+                    {
+                      "name": "Turkmenistan",
+                      "code": "TKM"
+                    },
+                    {
+                      "name": "Tuvalu",
+                      "code": "TUV"
+                    },
+                    {
+                      "name": "Uganda",
+                      "code": "UGA"
+                    },
+                    {
+                      "name": "Ukraine",
+                      "code": "UKR"
+                    },
+                    {
+                      "name": "United Arab Emirates",
+                      "code": "ARE"
+                    },
+                    {
+                      "name": "United Kingdom",
+                      "code": "GBR"
+                    },
+                    {
+                      "name": "United States",
+                      "code": "USA"
+                    },
+                    {
+                      "name": "Uruguay",
+                      "code": "URY"
+                    },
+                    {
+                      "name": "Uzbekistan",
+                      "code": "UZB"
+                    },
+                    {
+                      "name": "Vanuatu",
+                      "code": "VUT"
+                    },
+                    {
+                      "name": "Venezuela, RB",
+                      "code": "VEN"
+                    },
+                    {
+                      "name": "Vietnam",
+                      "code": "VNM"
+                    },
+                    {
+                      "name": "West Bank and Gaza",
+                      "code": "PSE"
+                    },
+                    {
+                      "name": "Yemen, Rep.",
+                      "code": "YEM"
+                    },
+                    {
+                      "name": "Zambia",
+                      "code": "ZMB"
+                    },
+                    {
+                      "name": "Zimbabwe",
+                      "code": "ZWE"
+                    }
+                  ],
+                  "geographic_units": [],
+                  "aggregation_method_references": [],
+                  "license": [
+                    {
+                      "name": "CC BY 4.0",
+                      "uri": "https://creativecommons.org/licenses/by/4.0/",
+                      "note": "This work is provided under a Creative Commons 4.0 Attribution International License, with the following mandatory and binding addition:i. Any and all disputes arising under this License that cannot be settled amicably shall be submitted to mediation in accordance with the WIPO Mediation Rules in effect at the time the work was published. If the request for mediation is not resolved within forty-five (45) days of the request, either You or the Licensor may, pursuant to a notice of arbitration communicated by reasonable means to the other party refer the dispute to final and binding arbitration to be conducted in accordance with UNCITRAL Arbitration Rules as then in force. The arbitral tribunal shall consist of a sole arbitrator and the language of the proceedings shall be English unless otherwise agreed. The place of arbitration shall be where the Licensor has its headquarters. The arbitral proceedings shall be conducted remotely (e.g., via telephone conference or written submissions) whenever practicable, or held at the World Bank headquarters in Washington DC."
+                    }
+                  ],
+                  "links": [],
+                  "api_documentation": [],
+                  "sources": [
+                    {
+                      "idno": null,
+                      "type": null,
+                      "name": "A Cross-Country Database of Fiscal Space",
+                      "organization": "World Bank (WB)",
+                      "publisher": null,
+                      "publication_date": null,
+                      "uri": "https://www.worldbank.org/en/research/brief/fiscal-space",
+                      "access_date": null,
+                      "note": null,
+                      "other_identifiers": [],
+                      "authors": [],
+                      "datasets": []
+                    }
+                  ],
+                  "notes": [],
+                  "related_indicators": []
+                },
+                "disaggregation_options": [
+                  {
+                    "field_name": "FREQ",
+                    "label_name": "Frequency of observation",
+                    "field_value": [
+                      "A"
+                    ]
+                  },
+                  {
+                    "field_name": "REF_AREA",
+                    "label_name": "Reference area",
+                    "field_value": [
+                      "EST",
+                      "VUT",
+                      "MNG",
+                      "DMA",
+                      "CHE",
+                      "BTN",
+                      "JOR",
+                      "THA",
+                      "MMR",
+                      "BHS",
+                      "LSO",
+                      "URY",
+                      "AZE",
+                      "ERI",
+                      "MNE",
+                      "TKM",
+                      "DZA",
+                      "MUS",
+                      "EGY",
+                      "LBN",
+                      "LIE",
+                      "HRV",
+                      "GRD",
+                      "KOR",
+                      "RUS",
+                      "CZE",
+                      "ESP",
+                      "ARG",
+                      "DOM",
+                      "ISL",
+                      "BLZ",
+                      "AGO",
+                      "CIV",
+                      "OMN",
+                      "BOL",
+                      "QAT",
+                      "SUR",
+                      "TCD",
+                      "ARM",
+                      "BFA",
+                      "IRL",
+                      "MEX",
+                      "POL",
+                      "SYR",
+                      "LAO",
+                      "TJK",
+                      "JPN",
+                      "ITA",
+                      "PNG",
+                      "LTU",
+                      "CPV",
+                      "LUX",
+                      "BDI",
+                      "CMR",
+                      "SWZ",
+                      "GRC",
+                      "AFG",
+                      "SVN",
+                      "PSE",
+                      "LBY",
+                      "STP",
+                      "BEN",
+                      "MDA",
+                      "PHL",
+                      "BHR",
+                      "GIN",
+                      "SRB",
+                      "SLB",
+                      "COL",
+                      "GAB",
+                      "KWT",
+                      "MRT",
+                      "MHL",
+                      "SOM",
+                      "ECU",
+                      "GNQ",
+                      "TZA",
+                      "HKG",
+                      "NRU",
+                      "HUN",
+                      "BGD",
+                      "YEM",
+                      "NPL",
+                      "TTO",
+                      "FSM",
+                      "RWA",
+                      "ALB",
+                      "NAM",
+                      "AUS",
+                      "JAM",
+                      "KAZ",
+                      "ETH",
+                      "IRN",
+                      "TUR",
+                      "FIN",
+                      "CAN",
+                      "MDV",
+                      "WSM",
+                      "CRI",
+                      "MAR",
+                      "TGO",
+                      "COG",
+                      "SLV",
+                      "NIC",
+                      "NER",
+                      "XKX",
+                      "MOZ",
+                      "ZWE",
+                      "TUV",
+                      "MWI",
+                      "BRN",
+                      "COD",
+                      "HND",
+                      "DEU",
+                      "PAN",
+                      "ZAF",
+                      "VEN",
+                      "BIH",
+                      "SAU",
+                      "UKR",
+                      "BLR",
+                      "FJI",
+                      "SDN",
+                      "ATG",
+                      "NGA",
+                      "VCT",
+                      "CAF",
+                      "PER",
+                      "CHL",
+                      "IMN",
+                      "TCA",
+                      "MDG",
+                      "UZB",
+                      "NOR",
+                      "TUN",
+                      "IRQ",
+                      "PAK",
+                      "LKA",
+                      "MKD",
+                      "TON",
+                      "GBR",
+                      "GMB",
+                      "KEN",
+                      "MLI",
+                      "SVK",
+                      "CUB",
+                      "USA",
+                      "TLS",
+                      "DNK",
+                      "FRA",
+                      "ZMB",
+                      "KHM",
+                      "IND",
+                      "KIR",
+                      "MLT",
+                      "ROU",
+                      "AUT",
+                      "BWA",
+                      "CUW",
+                      "GHA",
+                      "LBR",
+                      "GNB",
+                      "SMR",
+                      "HTI",
+                      "BRB",
+                      "ABW",
+                      "SYC",
+                      "SWE",
+                      "DJI",
+                      "PLW",
+                      "PRY",
+                      "VNM",
+                      "COM",
+                      "GTM",
+                      "BMU",
+                      "ISR",
+                      "ARE",
+                      "UGA",
+                      "CHN",
+                      "KNA",
+                      "SEN",
+                      "SSD",
+                      "NLD",
+                      "CYM",
+                      "BEL",
+                      "GEO",
+                      "PRI",
+                      "BGR",
+                      "GUY",
+                      "KGZ",
+                      "LVA",
+                      "SLE",
+                      "CYP",
+                      "MAC",
+                      "IDN",
+                      "SGP",
+                      "LCA",
+                      "MYS",
+                      "NZL",
+                      "AND",
+                      "PRT",
+                      "BRA"
+                    ]
+                  },
+                  {
+                    "field_name": "INDICATOR",
+                    "label_name": "Statistical indicator",
+                    "field_value": [
+                      "WB_CCDFS_GGDY"
+                    ]
+                  },
+                  {
+                    "field_name": "SEX",
+                    "label_name": "Sex",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "AGE",
+                    "label_name": "Age",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "URBANISATION",
+                    "label_name": "Degree of urbanisation",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "UNIT_MEASURE",
+                    "label_name": "Unit of measure",
+                    "field_value": [
+                      "PT"
+                    ]
+                  },
+                  {
+                    "field_name": "TIME_PERIOD",
+                    "label_name": "Time period",
+                    "field_value": [
+                      "1993",
+                      "2010",
+                      "2019",
+                      "1992",
+                      "2004",
+                      "2002",
+                      "2003",
+                      "2001",
+                      "1998",
+                      "2022",
+                      "2000",
+                      "2021",
+                      "1997",
+                      "2011",
+                      "2007",
+                      "2013",
+                      "2020",
+                      "1991",
+                      "2006",
+                      "2009",
+                      "1995",
+                      "2017",
+                      "1990",
+                      "2012",
+                      "1994",
+                      "2018",
+                      "1996",
+                      "2014",
+                      "2016",
+                      "2008",
+                      "1999",
+                      "2015",
+                      "2005"
+                    ]
+                  }
+                ],
+                "error": null
+              }
+            },
+            {
+              "name": "data360_get_metadata",
+              "args": {
+                "database_id": "WB_WDI",
+                "indicator_id": "WB_WDI_GC_DOD_TOTL_GD_ZS"
+              },
+              "output": {
+                "indicator_metadata": {
+                  "idno": "WB_WDI_GC_DOD_TOTL_GD_ZS",
+                  "doi": null,
+                  "name": "Central government debt, total (% of GDP)",
+                  "display_name": null,
+                  "database_id": "WB_WDI",
+                  "database_name": "World Development Indicators (WDI)",
+                  "date_last_update": null,
+                  "date_released": null,
+                  "measurement_unit": "%",
+                  "release_calendar": null,
+                  "periodicity": "Annual",
+                  "base_period": null,
+                  "definition_short": null,
+                  "definition_long": "Debt is the entire stock of direct government fixed-term contractual obligations to others outstanding on a particular date. It includes domestic and foreign liabilities such as currency and money deposits, securities other than shares, and loans. It is the gross amount of government liabilities reduced by the amount of equity and financial derivatives held by the government. Because debt is a stock rather than a flow, it is measured as of a given date, usually the last day of the fiscal year. Central government is the part of general government that includes all administrative departments of the national executive, legislative, and judicial functions, other central agencies and those non-market producers controlled by the central government, whose competence extends normally over the whole economic territory. This indicator is expressed as a percentage of Gross Domestic Product (GDP) which is the total income earned through the production of goods and services in an economic territory during an accounting period.",
+                  "statistical_concept": "Government Financial Statistics are compiled within a conceptual and reporting framework suitable for analyzing and evaluating fiscal policy, especially the performance of the general government sector and the broader public sector of any economy.",
+                  "methodology": "Government Finance statistics are compiled in accordance with international standards: Government Finance Statistics Manual, 2014 or 2001 editions. Specific information on how countries compile their Government Finance statistics can be found on the IMF website: https://dsbb.imf.org/",
+                  "derivation": null,
+                  "imputation": null,
+                  "missing": null,
+                  "quality_checks": null,
+                  "quality_note": null,
+                  "sources_discrepancies": null,
+                  "series_break": null,
+                  "limitation": "For most countries central government finance data have been consolidated into one account, but for others only budgetary central government accounts are available. Countries reporting budgetary data are noted in the country metadata. Because budgetary accounts may not include all central government units (such as social security funds), they usually provide an incomplete picture. In federal states the central government accounts provide an incomplete view of total public finance.\r\r\n\r\r\nData on government revenue and expense are collected by the IMF through questionnaires to member countries and by the Organisation for Economic Co-operation and Development (OECD). Despite IMF efforts to standardize data collection, statistics are often incomplete, untimely, and not comparable across countries.",
+                  "relevance": "This indicator is related to Government finance statistics. Government finance statistics provide a detailed snapshot of a government's fiscal operations and health. They encompass data on revenue, expenditures, deficits, and debt levels, which are essential for crafting fiscal policy, budget planning, and economic forecasting. These statistics help policymakers manage public finances effectively, make informed decisions on taxation and spending, and set priorities for resource allocation. For investors, analysts, and the international community, government finance statistics serve as key indicators of a country's economic stability and creditworthiness. They also play a crucial role in ensuring transparency and accountability, as they allow citizens and oversight bodies to track how public funds are managed and spent, fostering democratic engagement and governance. More specifically, this indicator is related to the government debt. Statistics on government debt provide essential information for economic planning, as they can influence a country's fiscal policies and spending. Government debt levels are also a key indicator for investors, who use this information to assess the risk of investing in a country's bonds. High debt levels can lead to lower investor confidence and higher interest rates. Furthermore, debt statistics are crucial for evaluating the sustainability of a government's fiscal policy. They help determine whether adjustments are needed to avoid potential default. These statistics also enable international comparisons, allowing for benchmarking against other countries and identifying potential issues. Accurate debt statistics are vital for the formulation of monetary and fiscal policies, including decisions on taxation and government spending. They also promote public awareness by providing transparency and accountability in how public funds are managed. Lastly, credit rating agencies use government debt statistics to assign credit ratings, which affect a country's borrowing costs and its ability to attract investment. Overall, government debt statistics are a key component of a country's economic analysis and are essential for informed decision-making by policymakers, investors, and the public.",
+                  "aggregation_method": "Weighted average",
+                  "disaggregation": null,
+                  "confidentiality": null,
+                  "confidentiality_status": "PU",
+                  "confidentiality_note": null,
+                  "citation_requirement": null,
+                  "sources_note": null,
+                  "acknowledgement_statement": null,
+                  "disclaimer": null,
+                  "economies_count": null,
+                  "csv_link": "https://data360files.worldbank.org/data360-data/data/WB_WDI/WB_WDI_GC_DOD_TOTL_GD_ZS.csv",
+                  "excel_link": null,
+                  "json_link": "https://data360files.worldbank.org/data360-data/metadata/WB_WDI/WB_WDI_GC_DOD_TOTL_GD_ZS.json",
+                  "api_link": "https://data360api.worldbank.org/data360/data?top=1000&skip=0&DATABASE_ID=WB_WDI&INDICATOR=WB_WDI_GC_DOD_TOTL_GD_ZS",
+                  "indicator_count": null,
+                  "apiservice_link": null,
+                  "api_explorer_link": "http://datacatalog.worldbank.org/data360/api/execute?tab=Data&id=1&DATABASE_ID=WB_WDI&INDICATOR=WB_WDI_GC_DOD_TOTL_GD_ZS",
+                  "authoring_entity": [
+                    {
+                      "name": "World Bank National Accounts Team",
+                      "affiliation": null,
+                      "abbreviation": null,
+                      "email": null,
+                      "uri": null
+                    }
+                  ],
+                  "version_statement": {
+                    "version": null,
+                    "version_date": "2024-11-13",
+                    "version_resp": null,
+                    "version_notes": null
+                  },
+                  "aliases": [
+                    {
+                      "alias": "GC.DOD.TOTL.GD.ZS"
+                    }
+                  ],
+                  "alternate_identifiers": [],
+                  "languages": [
+                    {
+                      "name": "English",
+                      "code": "EN"
+                    }
+                  ],
+                  "dimensions": [
+                    {
+                      "name": null,
+                      "label": "Year",
+                      "description": null
+                    },
+                    {
+                      "name": null,
+                      "label": "Geographic area",
+                      "description": "Country/economy, country group, region"
+                    }
+                  ],
+                  "definition_references": [
+                    {
+                      "source": "Inter-secretariat Working Group on National Accounts (ISWGNA) Glossary",
+                      "uri": "https://unstats.un.org/unsd/nationalaccount/SNAUpdate/2025/glossary.pdf",
+                      "note": null
+                    }
+                  ],
+                  "statistical_concept_references": [],
+                  "methodology_references": [
+                    {
+                      "source": "GFS",
+                      "uri": "https://www.imf.org/external/Pubs/FT/GFS/Manual/2014/gfsfinal.pdf",
+                      "note": null
+                    }
+                  ],
+                  "derivation_references": [],
+                  "imputation_references": [],
+                  "topics": [
+                    {
+                      "id": "P3",
+                      "name": "Prosperity",
+                      "parent_id": null,
+                      "vocabulary": "WB Practice Groups",
+                      "uri": null
+                    },
+                    {
+                      "id": "P3_000003",
+                      "name": "Institutions",
+                      "parent_id": "P3",
+                      "vocabulary": "Data360 Topic L1",
+                      "uri": null
+                    }
+                  ],
+                  "time_periods": [
+                    {
+                      "start": "1970",
+                      "end": "2024",
+                      "notes": null
+                    }
+                  ],
+                  "ref_country": [
+                    {
+                      "name": "Albania",
+                      "code": "ALB"
+                    },
+                    {
+                      "name": "United Arab Emirates",
+                      "code": "ARE"
+                    },
+                    {
+                      "name": "Armenia",
+                      "code": "ARM"
+                    },
+                    {
+                      "name": "Australia",
+                      "code": "AUS"
+                    },
+                    {
+                      "name": "Azerbaijan",
+                      "code": "AZE"
+                    },
+                    {
+                      "name": "Burkina Faso",
+                      "code": "BFA"
+                    },
+                    {
+                      "name": "Bangladesh",
+                      "code": "BGD"
+                    },
+                    {
+                      "name": "Bahrain",
+                      "code": "BHR"
+                    },
+                    {
+                      "name": "Bahamas, The",
+                      "code": "BHS"
+                    },
+                    {
+                      "name": "Belarus",
+                      "code": "BLR"
+                    },
+                    {
+                      "name": "Bosnia and Herzegovina",
+                      "code": "BIH"
+                    },
+                    {
+                      "name": "Belize",
+                      "code": "BLZ"
+                    },
+                    {
+                      "name": "Bolivia",
+                      "code": "BOL"
+                    },
+                    {
+                      "name": "Brazil",
+                      "code": "BRA"
+                    },
+                    {
+                      "name": "Barbados",
+                      "code": "BRB"
+                    },
+                    {
+                      "name": "Bhutan",
+                      "code": "BTN"
+                    },
+                    {
+                      "name": "Botswana",
+                      "code": "BWA"
+                    },
+                    {
+                      "name": "Canada",
+                      "code": "CAN"
+                    },
+                    {
+                      "name": "Switzerland",
+                      "code": "CHE"
+                    },
+                    {
+                      "name": "Chile",
+                      "code": "CHL"
+                    },
+                    {
+                      "name": "Cameroon",
+                      "code": "CMR"
+                    },
+                    {
+                      "name": "C\u00f4te d\u2019Ivoire",
+                      "code": "CIV"
+                    },
+                    {
+                      "name": "Congo, Rep.",
+                      "code": "COG"
+                    },
+                    {
+                      "name": "Congo, Dem. Rep.",
+                      "code": "COD"
+                    },
+                    {
+                      "name": "Colombia",
+                      "code": "COL"
+                    },
+                    {
+                      "name": "Costa Rica",
+                      "code": "CRI"
+                    },
+                    {
+                      "name": "Cyprus",
+                      "code": "CYP"
+                    },
+                    {
+                      "name": "Czechia",
+                      "code": "CZE"
+                    },
+                    {
+                      "name": "Germany",
+                      "code": "DEU"
+                    },
+                    {
+                      "name": "Denmark",
+                      "code": "DNK"
+                    },
+                    {
+                      "name": "Dominican Republic",
+                      "code": "DOM"
+                    },
+                    {
+                      "name": "Egypt, Arab Rep.",
+                      "code": "EGY"
+                    },
+                    {
+                      "name": "Ethiopia",
+                      "code": "ETH"
+                    },
+                    {
+                      "name": "Spain",
+                      "code": "ESP"
+                    },
+                    {
+                      "name": "Finland",
+                      "code": "FIN"
+                    },
+                    {
+                      "name": "Micronesia, Fed. Sts.",
+                      "code": "FSM"
+                    },
+                    {
+                      "name": "United Kingdom",
+                      "code": "GBR"
+                    },
+                    {
+                      "name": "Guatemala",
+                      "code": "GTM"
+                    },
+                    {
+                      "name": "Fiji",
+                      "code": "FJI"
+                    },
+                    {
+                      "name": "Hungary",
+                      "code": "HUN"
+                    },
+                    {
+                      "name": "Georgia",
+                      "code": "GEO"
+                    },
+                    {
+                      "name": "Indonesia",
+                      "code": "IDN"
+                    },
+                    {
+                      "name": "India",
+                      "code": "IND"
+                    },
+                    {
+                      "name": "Iran, Islamic Rep.",
+                      "code": "IRN"
+                    },
+                    {
+                      "name": "Jamaica",
+                      "code": "JAM"
+                    },
+                    {
+                      "name": "Iceland",
+                      "code": "ISL"
+                    },
+                    {
+                      "name": "Italy",
+                      "code": "ITA"
+                    },
+                    {
+                      "name": "Kazakhstan",
+                      "code": "KAZ"
+                    },
+                    {
+                      "name": "Jordan",
+                      "code": "JOR"
+                    },
+                    {
+                      "name": "Kyrgyz Republic",
+                      "code": "KGZ"
+                    },
+                    {
+                      "name": "St. Kitts and Nevis",
+                      "code": "KNA"
+                    },
+                    {
+                      "name": "Cambodia",
+                      "code": "KHM"
+                    },
+                    {
+                      "name": "Lebanon",
+                      "code": "LBN"
+                    },
+                    {
+                      "name": "Korea, Rep.",
+                      "code": "KOR"
+                    },
+                    {
+                      "name": "St. Lucia",
+                      "code": "LCA"
+                    },
+                    {
+                      "name": "Sri Lanka",
+                      "code": "LKA"
+                    },
+                    {
+                      "name": "Luxembourg",
+                      "code": "LUX"
+                    },
+                    {
+                      "name": "Iraq",
+                      "code": "IRQ"
+                    },
+                    {
+                      "name": "Lesotho",
+                      "code": "LSO"
+                    },
+                    {
+                      "name": "Israel",
+                      "code": "ISR"
+                    },
+                    {
+                      "name": "Latvia",
+                      "code": "LVA"
+                    },
+                    {
+                      "name": "Moldova",
+                      "code": "MDA"
+                    },
+                    {
+                      "name": "Morocco",
+                      "code": "MAR"
+                    },
+                    {
+                      "name": "Maldives",
+                      "code": "MDV"
+                    },
+                    {
+                      "name": "Mexico",
+                      "code": "MEX"
+                    },
+                    {
+                      "name": "Myanmar",
+                      "code": "MMR"
+                    },
+                    {
+                      "name": "Mongolia",
+                      "code": "MNG"
+                    },
+                    {
+                      "name": "Malta",
+                      "code": "MLT"
+                    },
+                    {
+                      "name": "Malawi",
+                      "code": "MWI"
+                    },
+                    {
+                      "name": "Malaysia",
+                      "code": "MYS"
+                    },
+                    {
+                      "name": "Mozambique",
+                      "code": "MOZ"
+                    },
+                    {
+                      "name": "Mauritius",
+                      "code": "MUS"
+                    },
+                    {
+                      "name": "Namibia",
+                      "code": "NAM"
+                    },
+                    {
+                      "name": "Nepal",
+                      "code": "NPL"
+                    },
+                    {
+                      "name": "Norway",
+                      "code": "NOR"
+                    },
+                    {
+                      "name": "Netherlands",
+                      "code": "NLD"
+                    },
+                    {
+                      "name": "New Zealand",
+                      "code": "NZL"
+                    },
+                    {
+                      "name": "Peru",
+                      "code": "PER"
+                    },
+                    {
+                      "name": "Philippines",
+                      "code": "PHL"
+                    },
+                    {
+                      "name": "Portugal",
+                      "code": "PRT"
+                    },
+                    {
+                      "name": "Palau",
+                      "code": "PLW"
+                    },
+                    {
+                      "name": "Papua New Guinea",
+                      "code": "PNG"
+                    },
+                    {
+                      "name": "Poland",
+                      "code": "POL"
+                    },
+                    {
+                      "name": "Marshall Islands",
+                      "code": "MHL"
+                    },
+                    {
+                      "name": "Russian Federation",
+                      "code": "RUS"
+                    },
+                    {
+                      "name": "Rwanda",
+                      "code": "RWA"
+                    },
+                    {
+                      "name": "Singapore",
+                      "code": "SGP"
+                    },
+                    {
+                      "name": "Solomon Islands",
+                      "code": "SLB"
+                    },
+                    {
+                      "name": "Sudan",
+                      "code": "SDN"
+                    },
+                    {
+                      "name": "San Marino",
+                      "code": "SMR"
+                    },
+                    {
+                      "name": "El Salvador",
+                      "code": "SLV"
+                    },
+                    {
+                      "name": "Slovenia",
+                      "code": "SVN"
+                    },
+                    {
+                      "name": "Eswatini",
+                      "code": "SWZ"
+                    },
+                    {
+                      "name": "Pakistan",
+                      "code": "PAK"
+                    },
+                    {
+                      "name": "Seychelles",
+                      "code": "SYC"
+                    },
+                    {
+                      "name": "Tajikistan",
+                      "code": "TJK"
+                    },
+                    {
+                      "name": "Tunisia",
+                      "code": "TUN"
+                    },
+                    {
+                      "name": "Thailand",
+                      "code": "THA"
+                    },
+                    {
+                      "name": "Trinidad and Tobago",
+                      "code": "TTO"
+                    },
+                    {
+                      "name": "Tonga",
+                      "code": "TON"
+                    },
+                    {
+                      "name": "T\u00fcrkiye",
+                      "code": "TUR"
+                    },
+                    {
+                      "name": "Uganda",
+                      "code": "UGA"
+                    },
+                    {
+                      "name": "St. Vincent and the Grenadines",
+                      "code": "VCT"
+                    },
+                    {
+                      "name": "Ukraine",
+                      "code": "UKR"
+                    },
+                    {
+                      "name": "Uruguay",
+                      "code": "URY"
+                    },
+                    {
+                      "name": "United States",
+                      "code": "USA"
+                    },
+                    {
+                      "name": "Vanuatu",
+                      "code": "VUT"
+                    },
+                    {
+                      "name": "Zambia",
+                      "code": "ZMB"
+                    },
+                    {
+                      "name": "South Africa",
+                      "code": "ZAF"
+                    },
+                    {
+                      "name": "Federal Republic of Somalia",
+                      "code": "SOM"
+                    }
+                  ],
+                  "geographic_units": [
+                    {
+                      "name": "Caribbean small states",
+                      "code": "CSS",
+                      "type": null
+                    },
+                    {
+                      "name": "Europe & Central Asia (excluding high income)",
+                      "code": "ECA",
+                      "type": null
+                    },
+                    {
+                      "name": "Latin America & Caribbean (excluding high income)",
+                      "code": "LAC",
+                      "type": null
+                    },
+                    {
+                      "name": "Latin America & Caribbean",
+                      "code": "LCN",
+                      "type": null
+                    },
+                    {
+                      "name": "North America",
+                      "code": "NAC",
+                      "type": null
+                    },
+                    {
+                      "name": "OECD members",
+                      "code": "OED",
+                      "type": null
+                    },
+                    {
+                      "name": "South Asia",
+                      "code": "SAS",
+                      "type": null
+                    },
+                    {
+                      "name": "Post-demographic dividend",
+                      "code": "PST",
+                      "type": null
+                    },
+                    {
+                      "name": "Europe & Central Asia (IDA & IBRD)",
+                      "code": "TEC",
+                      "type": null
+                    },
+                    {
+                      "name": "Latin America & Caribbean (IDA & IBRD)",
+                      "code": "TLA",
+                      "type": null
+                    },
+                    {
+                      "name": "South Asia (IDA & IBRD)",
+                      "code": "TSA",
+                      "type": null
+                    }
+                  ],
+                  "aggregation_method_references": [],
+                  "license": [
+                    {
+                      "name": "CC BY-4.0",
+                      "uri": "https://creativecommons.org/licenses/by/4.0/",
+                      "note": null
+                    }
+                  ],
+                  "links": [
+                    {
+                      "type": "WDI API",
+                      "description": "Data in JSON",
+                      "uri": "https://api.worldbank.org/v2/countries/all/indicators/gc.dod.totl.gd.zs?date=1970:2021&format=json",
+                      "image_uri": null
+                    },
+                    {
+                      "type": "WDI API",
+                      "description": "Data in XML",
+                      "uri": "https://api.worldbank.org/v2/countries/all/indicators/gc.dod.totl.gd.zs?date=1970:2021",
+                      "image_uri": null
+                    },
+                    {
+                      "type": "WDI API",
+                      "description": "Metadata in JSON",
+                      "uri": "https://api.worldbank.org/v2/sources/2/series/gc.dod.totl.gd.zs/metadata?format=json",
+                      "image_uri": null
+                    },
+                    {
+                      "type": "WDI API",
+                      "description": "Metadata in XML",
+                      "uri": "https://api.worldbank.org/v2/sources/2/series/gc.dod.totl.gd.zs/metadata",
+                      "image_uri": null
+                    }
+                  ],
+                  "api_documentation": [
+                    {
+                      "description": "Developer Information webpage (detailed documentation of the WDI API)",
+                      "uri": "https://datahelpdesk.worldbank.org/knowledgebase/topics/125589-developer-information"
+                    }
+                  ],
+                  "sources": [
+                    {
+                      "idno": null,
+                      "type": null,
+                      "name": "Government Finance Statistics Yearbook and data files",
+                      "organization": "International Monetary Fund (IMF)",
+                      "publisher": null,
+                      "publication_date": null,
+                      "uri": null,
+                      "access_date": null,
+                      "note": null,
+                      "other_identifiers": [],
+                      "authors": [],
+                      "datasets": []
+                    }
+                  ],
+                  "notes": [],
+                  "related_indicators": []
+                },
+                "disaggregation_options": [
+                  {
+                    "field_name": "FREQ",
+                    "label_name": "FREQ",
+                    "field_value": [
+                      "A"
+                    ]
+                  },
+                  {
+                    "field_name": "REF_AREA",
+                    "label_name": "REF_AREA",
+                    "field_value": [
+                      "ALB",
+                      "ARE",
+                      "ARM",
+                      "AUS",
+                      "AZE",
+                      "BFA",
+                      "BGD",
+                      "BHR",
+                      "BHS",
+                      "BIH",
+                      "BLR",
+                      "BLZ",
+                      "BOL",
+                      "BRA",
+                      "BRB",
+                      "BTN",
+                      "BWA",
+                      "CAN",
+                      "CHE",
+                      "CHL",
+                      "CIV",
+                      "CMR",
+                      "COD",
+                      "COG",
+                      "COL",
+                      "CRI",
+                      "CSS",
+                      "CYP",
+                      "CZE",
+                      "DEU",
+                      "DNK",
+                      "DOM",
+                      "ECA",
+                      "EGY",
+                      "ESP",
+                      "ETH",
+                      "FIN",
+                      "FJI",
+                      "FSM",
+                      "GBR",
+                      "GEO",
+                      "GTM",
+                      "HUN",
+                      "IDN",
+                      "IND",
+                      "IRQ",
+                      "ISL",
+                      "ISR",
+                      "ITA",
+                      "JAM",
+                      "JOR",
+                      "KAZ",
+                      "KGZ",
+                      "KHM",
+                      "KNA",
+                      "KOR",
+                      "LAC",
+                      "LBN",
+                      "LCA",
+                      "LCN",
+                      "LKA",
+                      "LSO",
+                      "LUX",
+                      "LVA",
+                      "MAR",
+                      "MDA",
+                      "MDV",
+                      "MEX",
+                      "MHL",
+                      "MLT",
+                      "MMR",
+                      "MNG",
+                      "MOZ",
+                      "MUS",
+                      "MWI",
+                      "MYS",
+                      "NAC",
+                      "NAM",
+                      "NLD",
+                      "NOR",
+                      "NPL",
+                      "NZL",
+                      "OED",
+                      "PAK",
+                      "PER",
+                      "PHL",
+                      "PLW",
+                      "PNG",
+                      "POL",
+                      "PRT",
+                      "PST",
+                      "RUS",
+                      "RWA",
+                      "SAS",
+                      "SDN",
+                      "SGP",
+                      "SLB",
+                      "SLV",
+                      "SMR",
+                      "SOM",
+                      "SVN",
+                      "SWZ",
+                      "SYC",
+                      "TEC",
+                      "THA",
+                      "TJK",
+                      "TLA",
+                      "TON",
+                      "TSA",
+                      "TTO",
+                      "TUN",
+                      "TUR",
+                      "UGA",
+                      "UKR",
+                      "URY",
+                      "USA",
+                      "VCT",
+                      "VUT",
+                      "ZAF",
+                      "ZMB"
+                    ]
+                  },
+                  {
+                    "field_name": "INDICATOR",
+                    "label_name": "INDICATOR",
+                    "field_value": [
+                      "WB_WDI_GC_DOD_TOTL_GD_ZS"
+                    ]
+                  },
+                  {
+                    "field_name": "SEX",
+                    "label_name": "SEX",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "AGE",
+                    "label_name": "AGE",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "URBANISATION",
+                    "label_name": "URBANISATION",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "UNIT_MEASURE",
+                    "label_name": "UNIT_MEASURE",
+                    "field_value": [
+                      "PT_GDP"
+                    ]
+                  },
+                  {
+                    "field_name": "TIME_PERIOD",
+                    "label_name": "TIME_PERIOD",
+                    "field_value": [
+                      "2015",
+                      "2006",
+                      "2004",
+                      "1996",
+                      "2014",
+                      "2009",
+                      "2020",
+                      "2007",
+                      "1991",
+                      "2013",
+                      "1989",
+                      "2019",
+                      "2024",
+                      "2008",
+                      "1998",
+                      "2018",
+                      "2012",
+                      "2021",
+                      "2001",
+                      "1993",
+                      "1995",
+                      "2011",
+                      "2022",
+                      "1990",
+                      "1992",
+                      "2016",
+                      "2003",
+                      "1997",
+                      "2010",
+                      "2017",
+                      "2002",
+                      "1994",
+                      "2000",
+                      "2005",
+                      "2023",
+                      "1999"
+                    ]
+                  }
+                ],
+                "error": null
+              }
+            }
+          ],
+          "model": "unknown",
+          "turns_used": 0,
+          "error": null
+        }
+      },
+      {
+        "role": "user",
+        "content": "Could you help me draft a 2\u20133 paragraph section summarizing Brazil\u2019s recent debt trends and IMF projections in a clear, journalistic style?",
+        "turn_index": 2
+      },
+      {
+        "role": "assistant",
+        "content": "Brazil\u2019s public debt remains high by emerging\u2011market standards, despite some post\u2011pandemic improvement. On a general government basis (which includes federal, state, and municipal governments plus social security), gross debt rose from about <claim id=\"1857a3ed\" policy=\"auto\">87.1</claim>% of GDP in 2019 to roughly <claim id=\"38474c7d\" policy=\"auto\">96.0</claim>% in 2020 as the government deployed large emergency packages and the economy contracted. As growth resumed and temporary measures were unwound, the ratio fell back to around the mid\u201180s percent of GDP, reaching about <claim id=\"83.939\" policy=\"auto\">83.9</claim>% in 2022 and an estimated <claim id=\"56d9a709\" policy=\"auto\">84.7</claim>% in 2023, according to the IMF\u2019s World Economic Outlook and a World Bank fiscal space database that closely tracks the same series.\n\nLooking ahead, however, the IMF does not see Brazil\u2019s debt on a firmly downward path. Under its latest baseline, general government gross debt is projected to edge up from around <claim id=\"a035e2ed\" policy=\"auto\">86.7</claim>% of GDP in 2024 to nearly <claim id=\"893540dc\" policy=\"auto\">93.9</claim>% by 2029. That gradual rise reflects the combination of still\u2011modest primary surpluses and relatively high domestic interest rates, which together make it difficult to stabilize the debt ratio, especially if growth underperforms. In parallel, World Bank data focusing on the federal government alone show central government debt hovering just above 80% of GDP in 2024, underscoring that even the narrower sovereign balance sheet is heavily leveraged.\n\nFor policymakers and investors, the message is that Brazil has moved past the acute COVID\u201119 shock but not the underlying fiscal challenge. The country enters the second half of the decade with debt levels well above most emerging\u2011market peers and with IMF projections pointing to renewed upward pressure rather than consolidation. Whether that trajectory proves sustainable will depend on the credibility of Brazil\u2019s fiscal framework, its ability to deliver lasting primary surpluses, and the evolution of growth and interest rates at home and abroad.",
+        "turn_index": 2,
+        "pipeline_result": {
+          "routing_intent": "(via HTTP)",
+          "routing_reasoning": "Understanding your question\u2026User is asking to turn previously retrieved World Bank/IMF debt data and projections for Brazil into a short narrative. This is a follow-up on development-data content, so it should stay in the RESEARCH flow, even though the task is stylistic.",
+          "planner_output": "Brazil\u2019s public debt remains high by emerging\u2011market standards, despite some post\u2011pandemic improvement. On a general government basis (which includes federal, state, and municipal governments plus social security), gross debt rose from about <claim id=\"1857a3ed\" policy=\"auto\">87.1</claim>% of GDP in 2019 to roughly <claim id=\"38474c7d\" policy=\"auto\">96.0</claim>% in 2020 as the government deployed large emergency packages and the economy contracted. As growth resumed and temporary measures were unwound, the ratio fell back to around the mid\u201180s percent of GDP, reaching about <claim id=\"83.939\" policy=\"auto\">83.9</claim>% in 2022 and an estimated <claim id=\"56d9a709\" policy=\"auto\">84.7</claim>% in 2023, according to the IMF\u2019s World Economic Outlook and a World Bank fiscal space database that closely tracks the same series.\n\nLooking ahead, however, the IMF does not see Brazil\u2019s debt on a firmly downward path. Under its latest baseline, general government gross debt is projected to edge up from around <claim id=\"a035e2ed\" policy=\"auto\">86.7</claim>% of GDP in 2024 to nearly <claim id=\"893540dc\" policy=\"auto\">93.9</claim>% by 2029. That gradual rise reflects the combination of still\u2011modest primary surpluses and relatively high domestic interest rates, which together make it difficult to stabilize the debt ratio, especially if growth underperforms. In parallel, World Bank data focusing on the federal government alone show central government debt hovering just above 80% of GDP in 2024, underscoring that even the narrower sovereign balance sheet is heavily leveraged.\n\nFor policymakers and investors, the message is that Brazil has moved past the acute COVID\u201119 shock but not the underlying fiscal challenge. The country enters the second half of the decade with debt levels well above most emerging\u2011market peers and with IMF projections pointing to renewed upward pressure rather than consolidation. Whether that trajectory proves sustainable will depend on the credibility of Brazil\u2019s fiscal framework, its ability to deliver lasting primary surpluses, and the evolution of growth and interest rates at home and abroad.",
+          "writer_output": "",
+          "tool_calls": [],
+          "model": "unknown",
+          "turns_used": 0,
+          "error": null
+        }
+      }
+    ]
+  }
+]

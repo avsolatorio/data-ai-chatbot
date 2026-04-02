@@ -1,0 +1,146 @@
+{
+  "timestamp": "20260326_071325",
+  "personas": [
+    "composed_technical_expert_gender_equity_southeast_asia_export"
+  ],
+  "max_turns": 5,
+  "num_runs": 1,
+  "config": {
+    "judge_model": "gpt-4.1-mini",
+    "use_http_callback": true,
+    "hyperparameters": {
+      "prompt_version": "feat/setup-evals@d8be3593d",
+      "system_prompt_hash": "ae5dd93d6480"
+    }
+  },
+  "results": {
+    "composed_technical_expert_gender_equity_southeast_asia_export": {
+      "Conversation Completeness [Conversational GEval]": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "The assistant fully met the single user intention by providing comprehensive, detailed datasets on gender equity and women's empowerment for Indonesia, including API endpoints, metadata, and validation information. The response covered all requested data types (datasets, APIs, metadata) with clear explanations and examples, aligning perfectly with the evaluation steps and rubric criteria for fully met intentions.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Accuracy": {
+        "score": 1.0,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Claim Tagging & PCN": {
+        "score": 1.0,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Context Retention": {
+        "score": 1.0,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Gap Handling": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Comparability Warnings": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Content Structure": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Follow-up Suggestions": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Latest Data Note": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Source Citation": {
+        "score": 1.0,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Formatting": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Inline Explanations": {
+        "score": 0.9924,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=0.99). Turn 1: The response identifies numerous technical terms and acronyms such as 'V-Dem', 'WBL', 'SSGD', 'WDI', and 'IMF GDI' and provides clear, concise inline explanations for each on first use. Concepts like composite indices, indicator IDs, units, coverage, and methodology are well explained in plain language immediately after the terms appear. The explanations are integrated throughout the text, enabling understanding without external references, fully meeting the rubric criteria for comprehensive inline explanations.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Progressive Disclosure": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Selection": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Sequencing": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Argument Quality": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Routing Correctness": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Visualization & API URLs": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      }
+    }
+  }
+}

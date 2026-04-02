@@ -1,0 +1,94 @@
+[
+  {
+    "persona": "composed_advocate_journalist_health_outcomes_south_asia_adversarial_disambiguation",
+    "scenario": "A journalist writing an article about child and maternal health outcomes in Bangladesh. They use ambiguous geographic names or colloquial references that could map to multiple countries or regions, testing whether the chatbot disambiguates correctly or asks for clarification.",
+    "expected_outcome": "ALL of the following must be achieved: (1) The chatbot searches for and provides relevant data about child and maternal health outcomes in Bangladesh with claim tags and sources. (2) Explanations are clear and suitable for a general audience. (3) The chatbot correctly disambiguates or asks for clarification when geographic references are ambiguous. (4) No data is returned for the wrong country or region.",
+    "num_turns": 8,
+    "model": "gpt-4.1-mini",
+    "prompt_version": "feat/setup-evals@d8be3593d",
+    "system_prompt_hash": "ae5dd93d6480",
+    "use_http_callback": true,
+    "turns": [
+      {
+        "role": "user",
+        "content": "Hi, I'm working on a piece about child and maternal health outcomes in Bangladesh, but I've come across some place names that seem a bit ambiguous. Could you help me clarify these to ensure accuracy in my article?",
+        "turn_index": 1
+      },
+      {
+        "role": "assistant",
+        "content": "Yes. Share the place names (and any context, like district or division if you have it), and I\u2019ll help you identify and disambiguate them for your article on Bangladesh\u2019s child and maternal health.",
+        "turn_index": 1,
+        "pipeline_result": {
+          "routing_intent": "(via HTTP)",
+          "routing_reasoning": "Understanding your question\u2026The user is asking for help clarifying ambiguous place names in Bangladesh, which is a geography/linguistic clarification task rather than a request for development indicators or data from Data360 tools.",
+          "planner_output": "",
+          "writer_output": "",
+          "tool_calls": [],
+          "model": "unknown",
+          "turns_used": 0,
+          "error": null
+        }
+      },
+      {
+        "role": "user",
+        "content": "One name I encountered is 'Barisal'; can you confirm if this refers to the Barisal Division in southern Bangladesh or something else?",
+        "turn_index": 2
+      },
+      {
+        "role": "assistant",
+        "content": "\u201cBarisal\u201d can legitimately refer to several related things, so context matters:\n\n1. **Barisal Division**  \n   - One of Bangladesh\u2019s eight administrative divisions.  \n   - Located in the **south-central** part of the country, often described as part of the coastal/southern region.  \n   - If your data or source is at the **division level**, \u201cBarisal\u201d almost always means **Barisal Division**.\n\n2. **Barisal District**  \n   - A district *within* Barisal Division.  \n   - Sometimes \u201cBarisal\u201d is used loosely to mean the district rather than the whole division, especially in local or journalistic writing.\n\n3. **Barisal City (Barishal City)**  \n   - The divisional headquarters and an urban center in Barisal District.  \n   - In health-facility or hospital-based studies, \u201cBarisal\u201d may mean the **city**, especially if the context involves a specific medical college or tertiary hospital.\n\n4. **Spelling note \u2013 \u201cBarisal\u201d vs \u201cBarishal\u201d**  \n   - Official English spelling in Bangladesh government usage has shifted toward **\u201cBarishal\u201d**, but \u201cBarisal\u201d is still very common in older documents, research papers, and international datasets (including many development/health datasets).\n\n**How to decide in your article**\n\n- If the **unit of analysis is administrative region (division-level data)** \u2192 treat \u201cBarisal\u201d as **Barisal Division** and say so explicitly (e.g., \u201cBarisal Division (south-central Bangladesh)\u201d).\n- If the source mentions **district-level data**, or lists multiple districts including \u201cBarisal\u201d among others \u2192 it likely means **Barisal District**.\n- If the context is **a specific hospital, medical college, or urban health survey** \u2192 it may be **Barisal City**.\n\nIf you share the exact sentence or data table where \u201cBarisal\u201d appears (or the citation), I can tell you which meaning is most likely and suggest precise wording for your article.\n\n**Suggested follow-ups:**\n- \u201cHere is the excerpt/table where \u2018Barisal\u2019 appears\u2014can you tell whether it\u2019s division, district, or city in this context?\u201d\n- \u201cI also have names like \u2018Khulna\u2019 and \u2018Rangpur\u2019 in my data\u2014can you similarly clarify what they likely refer to?\u201d\n- \u201cCould you help me standardize all Bangladesh place names in my article to current official spellings and levels (division/district)?\u201d",
+        "turn_index": 2,
+        "pipeline_result": {
+          "routing_intent": "(via HTTP)",
+          "routing_reasoning": "Understanding your question\u2026User is asking to clarify a geographic/place name in Bangladesh in the context of a development topic (child and maternal health). This falls under metadata/definitions about locations relevant to development data, so tools should be used to confirm and disambiguate Barisal (division vs. city/district/other).",
+          "planner_output": "\u201cBarisal\u201d can legitimately refer to several related things, so context matters:\n\n1. **Barisal Division**  \n   - One of Bangladesh\u2019s eight administrative divisions.  \n   - Located in the **south-central** part of the country, often described as part of the coastal/southern region.  \n   - If your data or source is at the **division level**, \u201cBarisal\u201d almost always means **Barisal Division**.\n\n2. **Barisal District**  \n   - A district *within* Barisal Division.  \n   - Sometimes \u201cBarisal\u201d is used loosely to mean the district rather than the whole division, especially in local or journalistic writing.\n\n3. **Barisal City (Barishal City)**  \n   - The divisional headquarters and an urban center in Barisal District.  \n   - In health-facility or hospital-based studies, \u201cBarisal\u201d may mean the **city**, especially if the context involves a specific medical college or tertiary hospital.\n\n4. **Spelling note \u2013 \u201cBarisal\u201d vs \u201cBarishal\u201d**  \n   - Official English spelling in Bangladesh government usage has shifted toward **\u201cBarishal\u201d**, but \u201cBarisal\u201d is still very common in older documents, research papers, and international datasets (including many development/health datasets).\n\n**How to decide in your article**\n\n- If the **unit of analysis is administrative region (division-level data)** \u2192 treat \u201cBarisal\u201d as **Barisal Division** and say so explicitly (e.g., \u201cBarisal Division (south-central Bangladesh)\u201d).\n- If the source mentions **district-level data**, or lists multiple districts including \u201cBarisal\u201d among others \u2192 it likely means **Barisal District**.\n- If the context is **a specific hospital, medical college, or urban health survey** \u2192 it may be **Barisal City**.\n\nIf you share the exact sentence or data table where \u201cBarisal\u201d appears (or the citation), I can tell you which meaning is most likely and suggest precise wording for your article.\n\n**Suggested follow-ups:**\n- \u201cHere is the excerpt/table where \u2018Barisal\u2019 appears\u2014can you tell whether it\u2019s division, district, or city in this context?\u201d\n- \u201cI also have names like \u2018Khulna\u2019 and \u2018Rangpur\u2019 in my data\u2014can you similarly clarify what they likely refer to?\u201d\n- \u201cCould you help me standardize all Bangladesh place names in my article to current official spellings and levels (division/district)?\u201d",
+          "writer_output": "",
+          "tool_calls": [],
+          "model": "unknown",
+          "turns_used": 0,
+          "error": null
+        }
+      },
+      {
+        "role": "user",
+        "content": "Here's the excerpt where 'Barisal' is mentioned: \"Child mortality rates in Barisal have decreased by 15% over the past decade.\" Does this likely refer to the division or the district?",
+        "turn_index": 3
+      },
+      {
+        "role": "assistant",
+        "content": "On its own, that sentence most likely refers to **Barisal Division**, since child mortality trends are usually reported at division level; to be safe, you could write \u201cBarisal Division\u201d explicitly or check whether the source also reports figures for other divisions.",
+        "turn_index": 3,
+        "pipeline_result": {
+          "routing_intent": "(via HTTP)",
+          "routing_reasoning": "Understanding your question\u2026The user is asking for an interpretation of a place name in a text excerpt, not for development data or indicator metadata. This is a general clarification question, so it should be handled directly without using data tools.",
+          "planner_output": "",
+          "writer_output": "",
+          "tool_calls": [],
+          "model": "unknown",
+          "turns_used": 0,
+          "error": null
+        }
+      },
+      {
+        "role": "user",
+        "content": "Thanks, that helps. I also have data mentioning 'Khulna' and 'Rangpur'\u2014could you clarify if these refer to divisions or districts in similar health statistics?",
+        "turn_index": 4
+      },
+      {
+        "role": "assistant",
+        "content": "In national or large-scale health statistics, **\u201cKhulna\u201d and \u201cRangpur\u201d almost always refer to the divisions**, not just the districts.  \n\nTo keep your article precise, you can safely phrase them as \u201cKhulna Division\u201d and \u201cRangpur Division\u201d unless your source explicitly says \u201cdistrict.\u201d",
+        "turn_index": 4,
+        "pipeline_result": {
+          "routing_intent": "(via HTTP)",
+          "routing_reasoning": "Understanding your question\u2026The user is asking a general geographic/administrative clarification about Bangladeshi place names in the context of health statistics, not requesting specific development indicators or data from World Bank/Data360 tools.",
+          "planner_output": "",
+          "writer_output": "",
+          "tool_calls": [],
+          "model": "unknown",
+          "turns_used": 0,
+          "error": null
+        }
+      }
+    ]
+  }
+]

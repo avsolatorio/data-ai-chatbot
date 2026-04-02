@@ -1,0 +1,3637 @@
+[
+  {
+    "persona": "composed_technical_expert_trade_openness_east_africa_visualize",
+    "scenario": "A data analyst needs to investigate trade openness and economic integration in Kenya and Tanzania for integration into an analytical pipeline. They request data, then ask for a chart to visualize trends, and finally ask for exportable citation details and a direct chart link for publishing or presentation.",
+    "expected_outcome": "ALL of the following must be achieved: (1) The chatbot searches for and provides relevant data about trade openness and economic integration in Kenya and Tanzania with claim tags and sources. (2) Metadata and data provenance details are provided for validation. (3) A chart link visualizes relevant trends for Kenya and Tanzania. (4) Citation details and chart links are provided for export.",
+    "num_turns": 4,
+    "model": "gpt-4.1-mini",
+    "prompt_version": "feat/setup-evals@d8be3593d",
+    "system_prompt_hash": "ae5dd93d6480",
+    "use_http_callback": true,
+    "turns": [
+      {
+        "role": "user",
+        "content": "Hello, I\u2019m working on integrating data about trade openness and economic integration for Kenya and Tanzania into our analytical pipeline. Could you provide the relevant datasets with full metadata and source details for validation?",
+        "turn_index": 1
+      },
+      {
+        "role": "assistant",
+        "content": "\n\n**Summary:**  \nBelow are the core datasets and metadata you can plug into your pipeline for trade openness and (optionally) economic integration for Kenya and Tanzania, with direct links and methodological notes for validation.\n\n---\n\n### Data:\n\n1. **Merchandise trade (% of GDP) \u2014 WDI**\n\n- Indicator: Merchandise trade (% of GDP)  \n- Code: `WB_WDI_TG_VAL_TOTL_GD_ZS` (WDI code: `TG.VAL.TOTL.GD.ZS`)  \n- Database: World Development Indicators  \n- Unit: Percent of GDP  \n- Coverage: 1960\u20132024, annual, includes Kenya (KEN) and Tanzania (TZA).  \n- Latest values (illustrative subset):\n  - Kenya 2024: <claim id=\"d2a695ba\" policy=\"auto\">23.54</claim>% of GDP  \n  - Tanzania 2024: <claim id=\"327b2f9c\" policy=\"auto\">29.15</claim>% of GDP  \n\n**Files & endpoints:**\n- CSV (all countries, all years):  \n  `https://data360files.worldbank.org/data360-data/data/WB_WDI/WB_WDI_TG_VAL_TOTL_GD_ZS.csv`\n- Metadata (JSON):  \n  `https://data360files.worldbank.org/data360-data/metadata/WB_WDI/WB_WDI_TG_VAL_TOTL_GD_ZS.json`\n- Data360 API (generic):  \n  `https://data360api.worldbank.org/data360/data?top=1000&skip=0&DATABASE_ID=WB_WDI&INDICATOR=WB_WDI_TG_VAL_TOTL_GD_ZS`\n- Classic WDI API (data, JSON):  \n  `https://api.worldbank.org/v2/countries/all/indicators/tg.val.totl.gd.zs?date=1960:2022&format=json`\n- Classic WDI API (metadata, JSON):  \n  `https://api.worldbank.org/v2/sources/2/series/tg.val.totl.gd.zs/metadata?format=json`\n\n2. **GCI 4.0: Trade openness \u2014 WEF**\n\n- Indicator: GCI 4.0: Trade openness  \n- Code: `WEF_GCI_GCI4_C_07_02`  \n- Database: Global Competitiveness Index 4.0  \n- Unit: Score (0\u2013100 scale) and rank  \n- Coverage: 2017\u20132019, annual, includes Kenya and Tanzania.  \n- Example values:\n  - Kenya 2019: score <claim id=\"69fc40da\" policy=\"auto\">52.71</claim>, rank <claim id=\"bc9f8cea\" policy=\"auto\">103</claim>  \n  - Tanzania 2019: score <claim id=\"5c36f430\" policy=\"auto\">52.34</claim>, rank <claim id=\"046b8d26\" policy=\"auto\">106</claim>\n\n**Files & endpoints:**\n- CSV (all countries, all years):  \n  `https://data360files.worldbank.org/data360-data/data/WEF_GCI/WEF_GCI_GCI4_C_07_02.csv`\n- Metadata (JSON):  \n  `https://data360files.worldbank.org/data360-data/metadata/WEF_GCI/WEF_GCI_GCI4_C_07_02.json`\n- Data360 API (generic):  \n  `https://data360api.worldbank.org/data360/data?top=1000&skip=0&DATABASE_ID=WEF_GCI&INDICATOR=WEF_GCI_GCI4_C_07_02`\n\n3. **Optional: AIPI \u2013 Innovation and Economic Integration (IMF)**\n\n- Indicator: AIPI \u2013 Innovation and Economic Integration  \n- Code: `IMF_AI_INNOV_ECON_INT`  \n- Database: IMF AI Preparedness Index  \n- Coverage: 2023, annual, includes Kenya and Tanzania.  \n- Use: Composite measure of innovation capacity and integration into global/AI-related trade and investment.\n\n*(I can pull exact values and full metadata in a follow-up if you confirm you want this in your integration.)*\n\n---\n\n### Analysis:\n\n- **Trade openness (volume-based):**  \n  WDI\u2019s merchandise trade (% of GDP) is your standard macro trade openness proxy, widely used in empirical work. It is methodologically grounded in IMTS 2010 and SNA; data come primarily from WTO and World Bank national accounts.\n\n- **Trade openness (institutional/competitiveness-based):**  \n  WEF\u2019s GCI 4.0 trade openness indicator gives a structural/institutional angle (tariffs, NTBs, etc.) but only up to 2019. It is useful as a control or for cross-sectional analysis; less suitable for post-2019 time-series work.\n\n- **Economic integration (broader structural angle):**  \n  For a forward-looking, innovation-centric view of integration, the IMF AIPI \u201cInnovation and Economic Integration\u201d sub-index is relevant, but currently limited to 2023.\n\n- **Data gaps:**  \n  - No WEF GCI trade openness after 2019.  \n  - WDI merchandise trade covers up to 2024, but only goods (no services).  \n  - AIPI integration is single-year at present.\n\n---\n\n### Sources:\n\n- **World Bank \u2014 World Development Indicators (WDI)** \u2014 Merchandise trade (% of GDP) \u2014 compiled from WTO merchandise trade statistics and World Bank GDP estimates; methodology aligned with IMTS 2010 and SNA.\n- **World Economic Forum \u2014 Global Competitiveness Index 4.0** \u2014 GCI 4.0: Trade openness \u2014 composite of hard and survey data, 0\u2013100 normalized scores and country ranks.\n- **IMF \u2014 AI Preparedness Index (AIPI)** \u2014 Innovation and Economic Integration sub-index \u2014 captures R&D and openness/integration dimensions relevant to AI and innovation (2023).\n\n---\n\n**Suggested follow-ups:**\n\n1. \u201cCan you also provide services trade restrictiveness or services trade openness indicators for Kenya and Tanzania, with full metadata?\u201d  \n2. \u201cCan you fetch the AIPI \u2018Innovation and Economic Integration\u2019 scores for Kenya and Tanzania (2023) and explain how they compare?\u201d  \n3. \u201cCan you give me ready-to-use API queries or code snippets to pull only Kenya and Tanzania for these indicators over 2000\u20132024?\u201d",
+        "turn_index": 1,
+        "pipeline_result": {
+          "routing_intent": "(via HTTP)",
+          "routing_reasoning": "Understanding your question\u2026User is asking for datasets, metadata, and sources on trade openness and economic integration for Kenya and Tanzania, which are development/economic data topics available via Data360/WDI and related tools.",
+          "planner_output": "**Intent:** Provide ready-to-integrate datasets (with full metadata and source details) on trade openness and economic integration for Kenya and Tanzania.\n\nBelow I list the most relevant indicators, their meaning, coverage, and how to access them (CSV/API/metadata) for validation in your pipeline.\n\n---\n\n## 1. Trade openness \u2013 outcome level\n\n### 1.1 Merchandise trade (% of GDP) \u2014 World Development Indicators\n\n**Indicator:**\n- **Name:** Merchandise trade (% of GDP)  \n- **Code (Data360):** `WB_WDI_TG_VAL_TOTL_GD_ZS`  \n- **Code (WDI / classic API):** `TG.VAL.TOTL.GD.ZS`  \n- **Database:** World Development Indicators (WDI)  \n- **Unit:** Percent of GDP (`PT_GDP`)  \n- **Periodicity:** Annual  \n- **Time coverage:** 1960\u20132024 (Kenya and Tanzania included)  \n- **Geographic coverage:** Standard WDI country set + aggregates (includes Kenya `KEN` and Tanzania `TZA`)\n\n**Concept & definition (for documentation):**  \nGeneral merchandise trade includes goods whose economic ownership is changed between a resident and a non-resident and that are not included in: goods under merchanting, non-monetary gold, and parts of travel, construction, and government goods and services n.i.e. It is the total of merchandise exports plus merchandise imports, expressed as a percentage of Gross Domestic Product (GDP).\n\n**Statistical concept & methodology (summary):**\n- Conceptual basis follows **International Merchandise Trade Statistics \u2013 Concepts and Definitions 2010 (IMTS 2010)**.\n- Trade statistics are compiled mainly from customs records and other administrative sources.\n- GDP is from World Bank national accounts.\n- Aggregation: **weighted average** for regional/income group aggregates.\n\n**Latest data points (Kenya & Tanzania, 2019\u20132024):**\n\n| Country   | Year | Merchandise trade (% of GDP) |\n|----------|------|------------------------------|\n| Kenya    | 2024 | <claim id=\"d2a695ba\" policy=\"auto\">23.54</claim>% |\n| Kenya    | 2023 | <claim id=\"d82511eb\" policy=\"auto\">23.98</claim>% |\n| Kenya    | 2022 | <claim id=\"c26e3326\" policy=\"auto\">24.97</claim>% |\n| Kenya    | 2021 | <claim id=\"c6c60086\" policy=\"auto\">23.97</claim>% |\n| Kenya    | 2020 | <claim id=\"6a3188de\" policy=\"auto\">21.33</claim>% |\n| Kenya    | 2019 | <claim id=\"f3740e43\" policy=\"auto\">23.41</claim>% |\n| Tanzania | 2024 | <claim id=\"327b2f9c\" policy=\"auto\">29.15</claim>% |\n| Tanzania | 2023 | <claim id=\"b1c475b6\" policy=\"auto\">26.58</claim>% |\n| Tanzania | 2022 | <claim id=\"7ad6c11c\" policy=\"auto\">27.78</claim>% |\n| Tanzania | 2021 | <claim id=\"a5f8fee1\" policy=\"auto\">23.23</claim>% |\n| Tanzania | 2020 | <claim id=\"2628c1ad\" policy=\"auto\">21.95</claim>% |\n| Tanzania | 2019 | <claim id=\"f57c45f4\" policy=\"auto\">23.69</claim>% |\n\n*(Values are percentages of GDP; 2 decimal places.)*\n\n**Direct data access (for integration):**\n- **Data360 CSV (all economies, all years):**  \n  `https://data360files.worldbank.org/data360-data/data/WB_WDI/WB_WDI_TG_VAL_TOTL_GD_ZS.csv`\n- **Data360 JSON metadata:**  \n  `https://data360files.worldbank.org/data360-data/metadata/WB_WDI/WB_WDI_TG_VAL_TOTL_GD_ZS.json`\n- **Data360 API (generic endpoint):**  \n  `https://data360api.worldbank.org/data360/data?top=1000&skip=0&DATABASE_ID=WB_WDI&INDICATOR=WB_WDI_TG_VAL_TOTL_GD_ZS`\n\n- **Classic WDI API (World Bank v2) \u2013 data:**  \n  `https://api.worldbank.org/v2/countries/all/indicators/tg.val.totl.gd.zs?date=1960:2022&format=json`\n- **Classic WDI API \u2013 metadata:**  \n  `https://api.worldbank.org/v2/sources/2/series/tg.val.totl.gd.zs/metadata?format=json`\n\n**Pipeline note (Kenya & Tanzania filter):**\nYou can filter by `REF_AREA` in Data360:\n- `REF_AREA=KEN,TZA`\n- `TIME_PERIOD` subset as needed (e.g. 2000\u20132024).\n\n---\n\n## 2. Trade openness \u2013 institutional/competitiveness dimension\n\n### 2.1 GCI 4.0: Trade openness \u2014 World Economic Forum\n\n**Indicator:**\n- **Name:** GCI 4.0: Trade openness  \n- **Code (Data360):** `WEF_GCI_GCI4_C_07_02`  \n- **Code (WEF docs):** `WEF.GCI.GCI4.C.07.02`  \n- **Database:** Global Competitiveness Index (GCI) 4.0  \n- **Unit:** Score (0\u2013100) and rank (RANK)  \n- **Periodicity:** Annual  \n- **Time coverage:** 2017\u20132019 (no data after 2019)  \n- **Geographic coverage:** GCI country set (includes Kenya `KEN` and Tanzania `TZA`)\n\n**Concept & definition:**\n- Sub-pillar of the GCI 4.0 index capturing how open a country is to international trade (tariffs, non-tariff barriers, trade infrastructure, etc.).\n- Detailed construction and components are documented in WEF\u2019s **Global Competitiveness Report 2018/2019** (Appendix A).\n\n**Methodology (summary):**\n- Based on a mix of hard data (e.g., tariffs) and survey data.\n- Scores are normalized to a **0\u2013100 scale** (higher = more open).\n- Ranks are ordinal positions among all covered economies for each year.\n\n**Data for Kenya and Tanzania (2017\u20132019):**\n\n*Scores (0\u2013100 scale)*\n\n| Country   | Year | Score (0\u2013100) |\n|----------|------|---------------|\n| Kenya    | 2019 | <claim id=\"69fc40da\" policy=\"auto\">52.71</claim> |\n| Kenya    | 2018 | <claim id=\"f16aec05\" policy=\"auto\">55.70</claim> |\n| Kenya    | 2017 | <claim id=\"1943c410\" policy=\"auto\">60.33</claim> |\n| Tanzania | 2019 | <claim id=\"5c36f430\" policy=\"auto\">52.34</claim> |\n| Tanzania | 2018 | <claim id=\"2703ce6f\" policy=\"auto\">54.47</claim> |\n| Tanzania | 2017 | <claim id=\"fbd8149b\" policy=\"auto\">56.62</claim> |\n\n*Ranks (1 = best; larger values = lower position)*\n\n| Country   | Year | Rank |\n|----------|------|------|\n| Kenya    | 2019 | <claim id=\"bc9f8cea\" policy=\"auto\">103</claim> |\n| Kenya    | 2018 | <claim id=\"9c39e457\" policy=\"auto\">104</claim> |\n| Kenya    | 2017 | <claim id=\"7bac7c70\" policy=\"auto\">79</claim>  |\n| Tanzania | 2019 | <claim id=\"046b8d26\" policy=\"auto\">106</claim> |\n| Tanzania | 2018 | <claim id=\"8564798b\" policy=\"auto\">114</claim> |\n| Tanzania | 2017 | <claim id=\"9540d25f\" policy=\"auto\">99</claim>  |\n\n**Direct data access (for integration):**\n- **Data360 CSV (all economies, all years):**  \n  `https://data360files.worldbank.org/data360-data/data/WEF_GCI/WEF_GCI_GCI4_C_07_02.csv`\n- **Data360 JSON metadata:**  \n  `https://data360files.worldbank.org/data360-data/metadata/WEF_GCI/WEF_GCI_GCI4_C_07_02.json`\n- **Data360 API (generic endpoint):**  \n  `https://data360api.worldbank.org/data360/data?top=1000&skip=0&DATABASE_ID=WEF_GCI&INDICATOR=WEF_GCI_GCI4_C_07_02`\n\n**Licensing / use constraints:**\n- License specified externally by WEF: **non-commercial, no-derivatives (CC BY-NC-ND\u2013type)** as per WEF Terms of Use:  \n  https://www.weforum.org/about/terms-of-use  \n  (You may need to check that your pipeline use is non-commercial and attribute WEF appropriately.)\n\n---\n\n## 3. Economic integration \u2013 innovation & integration angle\n\nFor \u201ceconomic integration\u201d there is no single canonical macro indicator analogous to \u201ctrade openness\u201d. One relevant cross-country indicator in Data360 that explicitly mentions economic integration is:\n\n### 3.1 AIPI \u2013 Innovation and Economic Integration \u2014 IMF AI Preparedness Index\n\n**Indicator:**\n- **Name:** AIPI - Innovation and Economic Integration  \n- **Code (Data360):** `IMF_AI_INNOV_ECON_INT`  \n- **Database:** IMF AI Preparedness Index (AIPI)  \n- **Periodicity:** Annual  \n- **Time coverage:** 2023 only (for now)  \n- **Geographic coverage:** Includes Kenya and Tanzania.\n\n**Concept (from search result summary):**\n- Subcomponent assessing:\n  - General and AI-specific R&D activity.\n  - Openness of trade and investment relevant to AI and innovation.\n  - Broader integration of the economy into global innovation networks.\n\n**Why it\u2019s relevant:**\n- Captures a composite view of how integrated an economy is into global innovation and trade ecosystems, beyond pure trade volumes.\n- Could be used as a structural/institutional control in your models.\n\n**Note:** I have not yet pulled the full metadata and country-level values here because you did not explicitly confirm interest in AI/innovation-based economic integration. If you want it, I can fetch the 2023 scores and metadata for Kenya and Tanzania in a follow-up.\n\n---\n\n## 4. How to integrate these into your pipeline\n\n### 4.1 Using Data360 API (generic pattern)\n\nThe Data360 API structure is:\n\n`https://data360api.worldbank.org/data360/data?DATABASE_ID=<DB>&INDICATOR=<INDICATOR>&REF_AREA=<CODES>&TIME_PERIOD=<YEARS>&top=<N>&skip=<M>`\n\nExample: **Merchandise trade (% of GDP) for Kenya & Tanzania, 2000\u20132024**\n\n```bash\nhttps://data360api.worldbank.org/data360/data?DATABASE_ID=WB_WDI&INDICATOR=WB_WDI_TG_VAL_TOTL_GD_ZS&REF_AREA=KEN,TZA&TIME_PERIOD=2000:2024&top=1000&skip=0\n```\n\nExample Python snippet:\n\n```python\nimport requests\n\nurl = \"https://data360api.worldbank.org/data360/data\"\nparams = {\n    \"DATABASE_ID\": \"WB_WDI\",\n    \"INDICATOR\": \"WB_WDI_TG_VAL_TOTL_GD_ZS\",\n    \"REF_AREA\": \"KEN,TZA\",\n    \"TIME_PERIOD\": \"2000:2024\",\n    \"top\": 1000,\n    \"skip\": 0\n}\n\nr = requests.get(url, params=params)\nr.raise_for_status()\ndata = r.json()[\"data\"]  # list of observations\n```\n\nYou can use the same pattern for `WEF_GCI_GCI4_C_07_02` with `DATABASE_ID=WEF_GCI`.\n\n---\n\n## 5. Validation & methodological notes\n\n**WDI Merchandise trade (% of GDP):**\n- **Primary sources:**  \n  - World Trade Organization (WTO) trade statistics  \n  - World Bank GDP estimates / World Development Indicators\n- **Key references:**\n  - IMTS 2010 (UN Statistics Division): https://unstats.un.org/unsd/trade/eg-imts/IMTS%202010%20(English).pdf  \n  - SNA/ISWGNA glossary for GDP concepts: https://unstats.un.org/unsd/nationalaccount/SNAUpdate/2025/glossary.pdf\n- **Limitations:**\n  - Focuses on *goods* trade; services trade openness is not captured here.\n  - GDP revisions can lead to back revisions in the ratio.\n  - Cross-country comparability is high but can still be affected by differences in customs coverage and valuation.\n\n**WEF GCI 4.0 Trade openness:**\n- **Source:** World Economic Forum, Global Competitiveness Reports 2018\u20132019.  \n  - Methodology: https://www3.weforum.org/docs/WEF_GCR_2019_Appendix_A.pdf  \n  - Indicator definitions:  \n    https://www.weforum.org/publications/how-to-end-a-decade-of-lost-productivity-growth/in-full/appendix-a/#appendix-a\n- **Limitations:**\n  - Mixes perception-based and hard indicators.\n  - Only available for 2017\u20132019; not updated since.\n  - Scores are relative to the set of countries included in each year.\n\n---\n\n## 6. Data gaps / caveats relevant for your use case\n\n- **Time coverage mismatch:**  \n  - WDI trade (% of GDP) goes through **2024**.  \n  - WEF GCI trade openness stops in **2019**. For post-2019 institutional openness, you may need alternative sources (e.g., World Bank\u2019s *Services Trade Restrictions Index* for services, or tariff datasets).\n- **Scope:**  \n  - WDI indicator measures *actual trade volume relative to GDP* (outcome).  \n  - WEF GCI indicator measures *policy/institutional openness* and perceived barriers (structural/institutional dimension).\n\n---\n\n**CLARIFYING QUESTION:**  \nDo you also need (a) services trade restrictiveness / services trade openness, and/or (b) a specific \u201cregional economic integration\u201d angle (e.g., EAC intra-regional trade shares, trade agreements), so I can add those datasets as well?",
+          "writer_output": "",
+          "tool_calls": [
+            {
+              "name": "data360_search_indicators",
+              "args": {
+                "query": "trade openness",
+                "required_country": "Kenya, Tanzania",
+                "limit": 10
+              },
+              "output": {
+                "count": 10,
+                "total_count": 1537,
+                "offset": 0,
+                "has_more": true,
+                "next_offset": 10,
+                "indicators": [
+                  {
+                    "idno": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                    "database_id": "WB_WDI",
+                    "name": "Merchandise trade (% of GDP)",
+                    "truncated_definition": "General merchandise trade includes goods whose economic ownership is changed between a resident and ",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1960-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_WITS_CNTRY_GRWTH",
+                    "database_id": "WB_WITS",
+                    "name": "Trade Value - Country Growth (%)",
+                    "truncated_definition": "Annual percentage growth rate of the country\u2019s trade value (export or import), by sector, at market ",
+                    "periodicity": "Annual",
+                    "latest_data": "2023",
+                    "time_period_range": "1989-2023",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_WITS_WRLD_GRWTH",
+                    "database_id": "WB_WITS",
+                    "name": "Trade Value - World Growth (%)",
+                    "truncated_definition": "Annual percentage growth rate of the world\u2019s trade value (export or import), by sector, at market pr",
+                    "periodicity": "Annual",
+                    "latest_data": "2023",
+                    "time_period_range": "1989-2023",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_SPI_D2_2_OPENNESS_SUBSCORE",
+                    "database_id": "WB_SPI",
+                    "name": "ODIN Open Data Openness score",
+                    "truncated_definition": "Open Data Watch (ODW) Openness score. Openness score from Open Data Inventory (ODIN) for this measur",
+                    "periodicity": null,
+                    "latest_data": "2022",
+                    "time_period_range": "2004-2022",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WEF_GCI_GCI4_C_07_02",
+                    "database_id": "WEF_GCI",
+                    "name": "GCI 4.0: Trade openness",
+                    "truncated_definition": "Please refer to: https://www.weforum.org/publications/how-to-end-a-decade-of-lost-productivity-growt",
+                    "periodicity": "Annual",
+                    "latest_data": "2019",
+                    "time_period_range": "2017-2019",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "OECD_STRI_STRI",
+                    "database_id": "OECD_STRI",
+                    "name": "Services trade restrictiveness index (Services Trade Restrictiveness Index)",
+                    "truncated_definition": "Services trade restrictiveness index (Services Trade Restrictiveness Index)",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "2014-2024",
+                    "covers_country": false,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "OECD_STRI_CLAS1_4",
+                    "database_id": "OECD_STRI",
+                    "name": "Barriers to competition (Services Trade Restrictiveness Index)",
+                    "truncated_definition": "Barriers to competition (Services Trade Restrictiveness Index)",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "2014-2024",
+                    "covers_country": false,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "OECD_STRI_CLAS1_1",
+                    "database_id": "OECD_STRI",
+                    "name": "Restrictions on foreign entry (Services Trade Restrictiveness Index)",
+                    "truncated_definition": "Restrictions on foreign entry (Services Trade Restrictiveness Index)",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "2014-2024",
+                    "covers_country": false,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "OECD_STRI_CLAS1_3",
+                    "database_id": "OECD_STRI",
+                    "name": "Other discriminatory measures (Services Trade Restrictiveness Index)",
+                    "truncated_definition": "Other discriminatory measures (Services Trade Restrictiveness Index)",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "2014-2024",
+                    "covers_country": false,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "OECD_STRI_CLAS1_5",
+                    "database_id": "OECD_STRI",
+                    "name": "Regulatory transparency (Services Trade Restrictiveness Index)",
+                    "truncated_definition": "Regulatory transparency (Services Trade Restrictiveness Index)",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "2014-2024",
+                    "covers_country": false,
+                    "dimensions": null
+                  }
+                ],
+                "required_country": "KEN,TZA",
+                "error": null
+              }
+            },
+            {
+              "name": "data360_search_indicators",
+              "args": {
+                "query": "economic integration",
+                "required_country": "Kenya, Tanzania",
+                "limit": 10
+              },
+              "output": {
+                "count": 10,
+                "total_count": 4725,
+                "offset": 0,
+                "has_more": true,
+                "next_offset": 10,
+                "indicators": [
+                  {
+                    "idno": "RWB_PFI_ECONOMIC_CONTEXT",
+                    "database_id": "RWB_PFI",
+                    "name": "Press Freedom Index: Economic context",
+                    "truncated_definition": "This indicator aims to evaluate:\n- economic constraints linked to governmental policies (including t",
+                    "periodicity": "Annual",
+                    "latest_data": "2025",
+                    "time_period_range": "2022-2025",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "RWB_PFI_RANK_ECO",
+                    "database_id": "RWB_PFI",
+                    "name": "Press Freedom Index: Economic context rank",
+                    "truncated_definition": "This indicator aims to evaluate:\n- economic constraints linked to governmental policies (including t",
+                    "periodicity": "Annual",
+                    "latest_data": "2025",
+                    "time_period_range": "2022-2025",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "GI_AII_101",
+                    "database_id": "GI_AII",
+                    "name": "In practice, there is a government policy/strategy to increase the socio-economic integration of youth.",
+                    "truncated_definition": "In practice, there is a government policy/strategy to increase the socio-economic integration of you",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "2014-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "BS_BTI_Q5",
+                    "database_id": "BS_BTI",
+                    "name": "Bertelsmann Transformation Index: Political and Social Integration",
+                    "truncated_definition": "Please refer to: https://bti-project.org/fileadmin/api/content/en/downloads/codebooks/BTI2024_Codebo",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "2006-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "UNDRR_SFM_C5",
+                    "database_id": "UNDRR_SFM",
+                    "name": "C-5: Direct economic loss resulting from damaged or destroyed critical infrastructure attributed to disasters.",
+                    "truncated_definition": "Direct economic loss from damaged critical infrastructure from disasters",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "2005-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "IMF_AI_INNOV_ECON_INT",
+                    "database_id": "IMF_AI",
+                    "name": "AIPI - Innovation and Economic Integration",
+                    "truncated_definition": "AIPI subcomponent assessing the level of general and AI specific R&D activity and the openness of tr",
+                    "periodicity": "Annual",
+                    "latest_data": "2023",
+                    "time_period_range": "2023-2023",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "UNDRR_SFM_C3",
+                    "database_id": "UNDRR_SFM",
+                    "name": "C-3: Direct economic loss to all other damaged or destroyed productive assets attributed to disasters.",
+                    "truncated_definition": "Direct economic loss from damaged productive assets from disasters",
+                    "periodicity": "Annual",
+                    "latest_data": "2023",
+                    "time_period_range": "2005-2023",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_SSGD_ECO_SOC_RIGHTS_SCORE",
+                    "database_id": "WB_SSGD",
+                    "name": "Economic and Social Rights Performance Score",
+                    "truncated_definition": "The Economic and Social Rights Performance Score reflects how well countries are fulfilling their ci",
+                    "periodicity": "Annual",
+                    "latest_data": "2018",
+                    "time_period_range": "2018-2018",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "BS_SGI_89",
+                    "database_id": "BS_SGI",
+                    "name": "Sustainable Governance Indicators: Integration",
+                    "truncated_definition": "Please refer to: https://www.sgi-network.org/docs/2022/basics/SGI2022_Codebook.pdf",
+                    "periodicity": "Annual",
+                    "latest_data": "2022",
+                    "time_period_range": "2014-2022",
+                    "covers_country": false,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "BS_SGI_90",
+                    "database_id": "BS_SGI",
+                    "name": "Sustainable Governance Indicators: Integration Policy",
+                    "truncated_definition": "Please refer to: https://www.sgi-network.org/docs/2022/basics/SGI2022_Codebook.pdf",
+                    "periodicity": "Annual",
+                    "latest_data": "2022",
+                    "time_period_range": "2014-2022",
+                    "covers_country": false,
+                    "dimensions": null
+                  }
+                ],
+                "required_country": "KEN,TZA",
+                "error": null
+              }
+            },
+            {
+              "name": "data360_get_metadata",
+              "args": {
+                "database_id": "WB_WDI",
+                "indicator_id": "WB_WDI_TG_VAL_TOTL_GD_ZS"
+              },
+              "output": {
+                "indicator_metadata": {
+                  "idno": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                  "doi": null,
+                  "name": "Merchandise trade (% of GDP)",
+                  "display_name": null,
+                  "database_id": "WB_WDI",
+                  "database_name": "World Development Indicators (WDI)",
+                  "date_last_update": null,
+                  "date_released": null,
+                  "measurement_unit": "%",
+                  "release_calendar": null,
+                  "periodicity": "Annual",
+                  "base_period": null,
+                  "definition_short": null,
+                  "definition_long": "General merchandise trade includes goods whose economic ownership is changed between a resident and a non-resident and that are not included in the following specific categories: goods under merchanting, non-monetary gold, and parts of travel, construction, and government goods and services n.i.e. It is the total of merchandise exports plus merchandise imports. This indicator is expressed as a percentage of Gross Domestic Product (GDP) which is the total income earned through the production of goods and services in an economic territory during an accounting period.",
+                  "statistical_concept": "The conceptual basis for international merchandise trade statistics covers a specialized multipurpose domain of official statistics concerned with the provision of data on the movements of goods between countries and areas. Trade statistics are compiled to serve the needs of many users, including Governments; the business community; compilers of other economic statistics, such as balance of payments and national accounts; various regional, supranational and international organizations; researchers; and the public at large. Different users need different data, ranging from data sets by country and commodity at varying levels of detail to aggregated figures.",
+                  "methodology": "International merchandise trade statistics are compiled in accordance with international standards: International Merchandise Trade statistics \u2013 Concepts and Definitions 2010. Specific information on how countries compile their merchandise trade statistics can be found on the IMF website: https://dsbb.imf.org/",
+                  "derivation": null,
+                  "imputation": null,
+                  "missing": null,
+                  "quality_checks": null,
+                  "quality_note": null,
+                  "sources_discrepancies": null,
+                  "series_break": null,
+                  "limitation": null,
+                  "relevance": "This indicator is related to the trade statistics, which are essential for gauging a country's economic performance, particularly through the lens of its trade balance, which is the net of exports against imports. These statistics inform government trade policy, trade agreement negotiations, and decisions on tariffs and other trade barriers. For businesses, this information is crucial for strategic decisions about export and import locations, market entry, and product pricing. By enabling comparisons between nations, trade data sheds light on competitive strengths and the movement of goods and services internationally. It's also key for monitoring trade trends, including the rise of new markets or shifts in commodity demand, and for identifying both opportunities for growth and potential economic risks. Trade volumes and values are important economic indicators, offering insights into the economic health of a nation and affecting investment decisions and forecasts. Overall, trade statistics play a central role in understanding the complexities of global trade and in guiding both macroeconomic policy and microeconomic business decisions.",
+                  "aggregation_method": "Weighted average",
+                  "disaggregation": null,
+                  "confidentiality": null,
+                  "confidentiality_status": "PU",
+                  "confidentiality_note": null,
+                  "citation_requirement": null,
+                  "sources_note": null,
+                  "acknowledgement_statement": null,
+                  "disclaimer": null,
+                  "economies_count": null,
+                  "csv_link": "https://data360files.worldbank.org/data360-data/data/WB_WDI/WB_WDI_TG_VAL_TOTL_GD_ZS.csv",
+                  "excel_link": null,
+                  "json_link": "https://data360files.worldbank.org/data360-data/metadata/WB_WDI/WB_WDI_TG_VAL_TOTL_GD_ZS.json",
+                  "api_link": "https://data360api.worldbank.org/data360/data?top=1000&skip=0&DATABASE_ID=WB_WDI&INDICATOR=WB_WDI_TG_VAL_TOTL_GD_ZS",
+                  "indicator_count": null,
+                  "apiservice_link": null,
+                  "api_explorer_link": "http://datacatalog.worldbank.org/data360/api/execute?tab=Data&id=1&DATABASE_ID=WB_WDI&INDICATOR=WB_WDI_TG_VAL_TOTL_GD_ZS",
+                  "authoring_entity": [
+                    {
+                      "name": "World Bank National Accounts Team",
+                      "affiliation": null,
+                      "abbreviation": null,
+                      "email": null,
+                      "uri": null
+                    }
+                  ],
+                  "version_statement": {
+                    "version": null,
+                    "version_date": "2024-12-16",
+                    "version_resp": null,
+                    "version_notes": null
+                  },
+                  "aliases": [
+                    {
+                      "alias": "TG.VAL.TOTL.GD.ZS"
+                    }
+                  ],
+                  "alternate_identifiers": [],
+                  "languages": [
+                    {
+                      "name": "English",
+                      "code": "EN"
+                    }
+                  ],
+                  "dimensions": [
+                    {
+                      "name": null,
+                      "label": "Year",
+                      "description": null
+                    },
+                    {
+                      "name": null,
+                      "label": "Geographic area",
+                      "description": "Country/economy, country group, region"
+                    }
+                  ],
+                  "definition_references": [
+                    {
+                      "source": "Inter-secretariat Working Group on National Accounts (ISWGNA) Glossary",
+                      "uri": "https://unstats.un.org/unsd/nationalaccount/SNAUpdate/2025/glossary.pdf",
+                      "note": null
+                    }
+                  ],
+                  "statistical_concept_references": [],
+                  "methodology_references": [
+                    {
+                      "source": "IMTS",
+                      "uri": "https://unstats.un.org/unsd/trade/eg-imts/IMTS%202010%20(English).pdf",
+                      "note": null
+                    }
+                  ],
+                  "derivation_references": [],
+                  "imputation_references": [],
+                  "topics": [
+                    {
+                      "id": "P3",
+                      "name": "Prosperity",
+                      "parent_id": null,
+                      "vocabulary": "WB Practice Groups",
+                      "uri": null
+                    },
+                    {
+                      "id": "P3_000006",
+                      "name": "Trade, Investment and Competitiveness",
+                      "parent_id": "P3",
+                      "vocabulary": "Data360 Topic L1",
+                      "uri": null
+                    },
+                    {
+                      "id": "P3_000028",
+                      "name": "Trade Outcomes",
+                      "parent_id": "P3_000006",
+                      "vocabulary": "Data360 Topic L2",
+                      "uri": null
+                    }
+                  ],
+                  "time_periods": [
+                    {
+                      "start": "1960",
+                      "end": "2024",
+                      "notes": null
+                    }
+                  ],
+                  "ref_country": [
+                    {
+                      "name": "Aruba",
+                      "code": "ABW"
+                    },
+                    {
+                      "name": "Afghanistan",
+                      "code": "AFG"
+                    },
+                    {
+                      "name": "Angola",
+                      "code": "AGO"
+                    },
+                    {
+                      "name": "Albania",
+                      "code": "ALB"
+                    },
+                    {
+                      "name": "Andorra",
+                      "code": "AND"
+                    },
+                    {
+                      "name": "United Arab Emirates",
+                      "code": "ARE"
+                    },
+                    {
+                      "name": "Argentina",
+                      "code": "ARG"
+                    },
+                    {
+                      "name": "Armenia",
+                      "code": "ARM"
+                    },
+                    {
+                      "name": "American Samoa",
+                      "code": "ASM"
+                    },
+                    {
+                      "name": "Australia",
+                      "code": "AUS"
+                    },
+                    {
+                      "name": "Antigua and Barbuda",
+                      "code": "ATG"
+                    },
+                    {
+                      "name": "Austria",
+                      "code": "AUT"
+                    },
+                    {
+                      "name": "Azerbaijan",
+                      "code": "AZE"
+                    },
+                    {
+                      "name": "Burundi",
+                      "code": "BDI"
+                    },
+                    {
+                      "name": "Belgium",
+                      "code": "BEL"
+                    },
+                    {
+                      "name": "Benin",
+                      "code": "BEN"
+                    },
+                    {
+                      "name": "Burkina Faso",
+                      "code": "BFA"
+                    },
+                    {
+                      "name": "Bangladesh",
+                      "code": "BGD"
+                    },
+                    {
+                      "name": "Bulgaria",
+                      "code": "BGR"
+                    },
+                    {
+                      "name": "Bahrain",
+                      "code": "BHR"
+                    },
+                    {
+                      "name": "Bahamas, The",
+                      "code": "BHS"
+                    },
+                    {
+                      "name": "Bosnia and Herzegovina",
+                      "code": "BIH"
+                    },
+                    {
+                      "name": "Belarus",
+                      "code": "BLR"
+                    },
+                    {
+                      "name": "Belize",
+                      "code": "BLZ"
+                    },
+                    {
+                      "name": "Bermuda",
+                      "code": "BMU"
+                    },
+                    {
+                      "name": "Bolivia",
+                      "code": "BOL"
+                    },
+                    {
+                      "name": "Brazil",
+                      "code": "BRA"
+                    },
+                    {
+                      "name": "Brunei Darussalam",
+                      "code": "BRN"
+                    },
+                    {
+                      "name": "Barbados",
+                      "code": "BRB"
+                    },
+                    {
+                      "name": "Bhutan",
+                      "code": "BTN"
+                    },
+                    {
+                      "name": "Botswana",
+                      "code": "BWA"
+                    },
+                    {
+                      "name": "Canada",
+                      "code": "CAN"
+                    },
+                    {
+                      "name": "Central African Republic",
+                      "code": "CAF"
+                    },
+                    {
+                      "name": "Switzerland",
+                      "code": "CHE"
+                    },
+                    {
+                      "name": "Chile",
+                      "code": "CHL"
+                    },
+                    {
+                      "name": "China",
+                      "code": "CHN"
+                    },
+                    {
+                      "name": "C\u00f4te d\u2019Ivoire",
+                      "code": "CIV"
+                    },
+                    {
+                      "name": "Congo, Dem. Rep.",
+                      "code": "COD"
+                    },
+                    {
+                      "name": "Congo, Rep.",
+                      "code": "COG"
+                    },
+                    {
+                      "name": "Colombia",
+                      "code": "COL"
+                    },
+                    {
+                      "name": "Costa Rica",
+                      "code": "CRI"
+                    },
+                    {
+                      "name": "Cabo Verde",
+                      "code": "CPV"
+                    },
+                    {
+                      "name": "Comoros",
+                      "code": "COM"
+                    },
+                    {
+                      "name": "Cura\u00e7ao",
+                      "code": "CUW"
+                    },
+                    {
+                      "name": "Cyprus",
+                      "code": "CYP"
+                    },
+                    {
+                      "name": "Czechia",
+                      "code": "CZE"
+                    },
+                    {
+                      "name": "Cayman Islands",
+                      "code": "CYM"
+                    },
+                    {
+                      "name": "Germany",
+                      "code": "DEU"
+                    },
+                    {
+                      "name": "Dominica",
+                      "code": "DMA"
+                    },
+                    {
+                      "name": "Cameroon",
+                      "code": "CMR"
+                    },
+                    {
+                      "name": "Djibouti",
+                      "code": "DJI"
+                    },
+                    {
+                      "name": "Denmark",
+                      "code": "DNK"
+                    },
+                    {
+                      "name": "Dominican Republic",
+                      "code": "DOM"
+                    },
+                    {
+                      "name": "Algeria",
+                      "code": "DZA"
+                    },
+                    {
+                      "name": "Ecuador",
+                      "code": "ECU"
+                    },
+                    {
+                      "name": "Cuba",
+                      "code": "CUB"
+                    },
+                    {
+                      "name": "Egypt, Arab Rep.",
+                      "code": "EGY"
+                    },
+                    {
+                      "name": "Spain",
+                      "code": "ESP"
+                    },
+                    {
+                      "name": "Eritrea",
+                      "code": "ERI"
+                    },
+                    {
+                      "name": "Ethiopia",
+                      "code": "ETH"
+                    },
+                    {
+                      "name": "Faroe Islands",
+                      "code": "FRO"
+                    },
+                    {
+                      "name": "Finland",
+                      "code": "FIN"
+                    },
+                    {
+                      "name": "France",
+                      "code": "FRA"
+                    },
+                    {
+                      "name": "Guinea",
+                      "code": "GIN"
+                    },
+                    {
+                      "name": "United Kingdom",
+                      "code": "GBR"
+                    },
+                    {
+                      "name": "Gambia, The",
+                      "code": "GMB"
+                    },
+                    {
+                      "name": "Ghana",
+                      "code": "GHA"
+                    },
+                    {
+                      "name": "Guinea-Bissau",
+                      "code": "GNB"
+                    },
+                    {
+                      "name": "Greenland",
+                      "code": "GRL"
+                    },
+                    {
+                      "name": "Equatorial Guinea",
+                      "code": "GNQ"
+                    },
+                    {
+                      "name": "Guam",
+                      "code": "GUM"
+                    },
+                    {
+                      "name": "Greece",
+                      "code": "GRC"
+                    },
+                    {
+                      "name": "Guyana",
+                      "code": "GUY"
+                    },
+                    {
+                      "name": "Guatemala",
+                      "code": "GTM"
+                    },
+                    {
+                      "name": "Grenada",
+                      "code": "GRD"
+                    },
+                    {
+                      "name": "Estonia",
+                      "code": "EST"
+                    },
+                    {
+                      "name": "Hong Kong SAR, China",
+                      "code": "HKG"
+                    },
+                    {
+                      "name": "Haiti",
+                      "code": "HTI"
+                    },
+                    {
+                      "name": "Croatia",
+                      "code": "HRV"
+                    },
+                    {
+                      "name": "Honduras",
+                      "code": "HND"
+                    },
+                    {
+                      "name": "Hungary",
+                      "code": "HUN"
+                    },
+                    {
+                      "name": "Fiji",
+                      "code": "FJI"
+                    },
+                    {
+                      "name": "Micronesia, Fed. Sts.",
+                      "code": "FSM"
+                    },
+                    {
+                      "name": "Gabon",
+                      "code": "GAB"
+                    },
+                    {
+                      "name": "Indonesia",
+                      "code": "IDN"
+                    },
+                    {
+                      "name": "Georgia",
+                      "code": "GEO"
+                    },
+                    {
+                      "name": "India",
+                      "code": "IND"
+                    },
+                    {
+                      "name": "Iraq",
+                      "code": "IRQ"
+                    },
+                    {
+                      "name": "Ireland",
+                      "code": "IRL"
+                    },
+                    {
+                      "name": "Israel",
+                      "code": "ISR"
+                    },
+                    {
+                      "name": "Iran, Islamic Rep.",
+                      "code": "IRN"
+                    },
+                    {
+                      "name": "Iceland",
+                      "code": "ISL"
+                    },
+                    {
+                      "name": "Kenya",
+                      "code": "KEN"
+                    },
+                    {
+                      "name": "Kyrgyz Republic",
+                      "code": "KGZ"
+                    },
+                    {
+                      "name": "Jamaica",
+                      "code": "JAM"
+                    },
+                    {
+                      "name": "Italy",
+                      "code": "ITA"
+                    },
+                    {
+                      "name": "Kiribati",
+                      "code": "KIR"
+                    },
+                    {
+                      "name": "Jordan",
+                      "code": "JOR"
+                    },
+                    {
+                      "name": "Japan",
+                      "code": "JPN"
+                    },
+                    {
+                      "name": "Kazakhstan",
+                      "code": "KAZ"
+                    },
+                    {
+                      "name": "St. Kitts and Nevis",
+                      "code": "KNA"
+                    },
+                    {
+                      "name": "Kuwait",
+                      "code": "KWT"
+                    },
+                    {
+                      "name": "Cambodia",
+                      "code": "KHM"
+                    },
+                    {
+                      "name": "St. Lucia",
+                      "code": "LCA"
+                    },
+                    {
+                      "name": "Korea, Rep.",
+                      "code": "KOR"
+                    },
+                    {
+                      "name": "Lebanon",
+                      "code": "LBN"
+                    },
+                    {
+                      "name": "Lao PDR",
+                      "code": "LAO"
+                    },
+                    {
+                      "name": "Libya",
+                      "code": "LBY"
+                    },
+                    {
+                      "name": "Liberia",
+                      "code": "LBR"
+                    },
+                    {
+                      "name": "Sri Lanka",
+                      "code": "LKA"
+                    },
+                    {
+                      "name": "Lesotho",
+                      "code": "LSO"
+                    },
+                    {
+                      "name": "Lithuania",
+                      "code": "LTU"
+                    },
+                    {
+                      "name": "Macao SAR, China",
+                      "code": "MAC"
+                    },
+                    {
+                      "name": "St. Martin (French part)",
+                      "code": "MAF"
+                    },
+                    {
+                      "name": "Luxembourg",
+                      "code": "LUX"
+                    },
+                    {
+                      "name": "Latvia",
+                      "code": "LVA"
+                    },
+                    {
+                      "name": "Moldova",
+                      "code": "MDA"
+                    },
+                    {
+                      "name": "Maldives",
+                      "code": "MDV"
+                    },
+                    {
+                      "name": "North Macedonia",
+                      "code": "MKD"
+                    },
+                    {
+                      "name": "Marshall Islands",
+                      "code": "MHL"
+                    },
+                    {
+                      "name": "Madagascar",
+                      "code": "MDG"
+                    },
+                    {
+                      "name": "Morocco",
+                      "code": "MAR"
+                    },
+                    {
+                      "name": "Mexico",
+                      "code": "MEX"
+                    },
+                    {
+                      "name": "Myanmar",
+                      "code": "MMR"
+                    },
+                    {
+                      "name": "Mongolia",
+                      "code": "MNG"
+                    },
+                    {
+                      "name": "Mali",
+                      "code": "MLI"
+                    },
+                    {
+                      "name": "Malta",
+                      "code": "MLT"
+                    },
+                    {
+                      "name": "Montenegro",
+                      "code": "MNE"
+                    },
+                    {
+                      "name": "Mauritius",
+                      "code": "MUS"
+                    },
+                    {
+                      "name": "Northern Mariana Islands",
+                      "code": "MNP"
+                    },
+                    {
+                      "name": "Mozambique",
+                      "code": "MOZ"
+                    },
+                    {
+                      "name": "Namibia",
+                      "code": "NAM"
+                    },
+                    {
+                      "name": "Mauritania",
+                      "code": "MRT"
+                    },
+                    {
+                      "name": "Nicaragua",
+                      "code": "NIC"
+                    },
+                    {
+                      "name": "Malawi",
+                      "code": "MWI"
+                    },
+                    {
+                      "name": "Malaysia",
+                      "code": "MYS"
+                    },
+                    {
+                      "name": "Niger",
+                      "code": "NER"
+                    },
+                    {
+                      "name": "New Caledonia",
+                      "code": "NCL"
+                    },
+                    {
+                      "name": "Nigeria",
+                      "code": "NGA"
+                    },
+                    {
+                      "name": "Nauru",
+                      "code": "NRU"
+                    },
+                    {
+                      "name": "Netherlands",
+                      "code": "NLD"
+                    },
+                    {
+                      "name": "Norway",
+                      "code": "NOR"
+                    },
+                    {
+                      "name": "Nepal",
+                      "code": "NPL"
+                    },
+                    {
+                      "name": "Pakistan",
+                      "code": "PAK"
+                    },
+                    {
+                      "name": "Philippines",
+                      "code": "PHL"
+                    },
+                    {
+                      "name": "Oman",
+                      "code": "OMN"
+                    },
+                    {
+                      "name": "New Zealand",
+                      "code": "NZL"
+                    },
+                    {
+                      "name": "Palau",
+                      "code": "PLW"
+                    },
+                    {
+                      "name": "Panama",
+                      "code": "PAN"
+                    },
+                    {
+                      "name": "Papua New Guinea",
+                      "code": "PNG"
+                    },
+                    {
+                      "name": "Paraguay",
+                      "code": "PRY"
+                    },
+                    {
+                      "name": "Portugal",
+                      "code": "PRT"
+                    },
+                    {
+                      "name": "French Polynesia",
+                      "code": "PYF"
+                    },
+                    {
+                      "name": "Rwanda",
+                      "code": "RWA"
+                    },
+                    {
+                      "name": "Sierra Leone",
+                      "code": "SLE"
+                    },
+                    {
+                      "name": "Qatar",
+                      "code": "QAT"
+                    },
+                    {
+                      "name": "Russian Federation",
+                      "code": "RUS"
+                    },
+                    {
+                      "name": "Romania",
+                      "code": "ROU"
+                    },
+                    {
+                      "name": "Sudan",
+                      "code": "SDN"
+                    },
+                    {
+                      "name": "Senegal",
+                      "code": "SEN"
+                    },
+                    {
+                      "name": "Saudi Arabia",
+                      "code": "SAU"
+                    },
+                    {
+                      "name": "El Salvador",
+                      "code": "SLV"
+                    },
+                    {
+                      "name": "Federal Republic of Somalia",
+                      "code": "SOM"
+                    },
+                    {
+                      "name": "Singapore",
+                      "code": "SGP"
+                    },
+                    {
+                      "name": "Solomon Islands",
+                      "code": "SLB"
+                    },
+                    {
+                      "name": "South Sudan",
+                      "code": "SSD"
+                    },
+                    {
+                      "name": "S\u00e3o Tom\u00e9 and Pr\u00edncipe",
+                      "code": "STP"
+                    },
+                    {
+                      "name": "Slovenia",
+                      "code": "SVN"
+                    },
+                    {
+                      "name": "Slovak Republic",
+                      "code": "SVK"
+                    },
+                    {
+                      "name": "Serbia",
+                      "code": "SRB"
+                    },
+                    {
+                      "name": "Suriname",
+                      "code": "SUR"
+                    },
+                    {
+                      "name": "Sweden",
+                      "code": "SWE"
+                    },
+                    {
+                      "name": "Syrian Arab Republic",
+                      "code": "SYR"
+                    },
+                    {
+                      "name": "Seychelles",
+                      "code": "SYC"
+                    },
+                    {
+                      "name": "Chad",
+                      "code": "TCD"
+                    },
+                    {
+                      "name": "Togo",
+                      "code": "TGO"
+                    },
+                    {
+                      "name": "Eswatini",
+                      "code": "SWZ"
+                    },
+                    {
+                      "name": "Peru",
+                      "code": "PER"
+                    },
+                    {
+                      "name": "Sint Maarten (Dutch part)",
+                      "code": "SXM"
+                    },
+                    {
+                      "name": "Tajikistan",
+                      "code": "TJK"
+                    },
+                    {
+                      "name": "Turks and Caicos Islands",
+                      "code": "TCA"
+                    },
+                    {
+                      "name": "Timor-Leste",
+                      "code": "TLS"
+                    },
+                    {
+                      "name": "Poland",
+                      "code": "POL"
+                    },
+                    {
+                      "name": "Turkmenistan",
+                      "code": "TKM"
+                    },
+                    {
+                      "name": "Thailand",
+                      "code": "THA"
+                    },
+                    {
+                      "name": "Trinidad and Tobago",
+                      "code": "TTO"
+                    },
+                    {
+                      "name": "T\u00fcrkiye",
+                      "code": "TUR"
+                    },
+                    {
+                      "name": "Tuvalu",
+                      "code": "TUV"
+                    },
+                    {
+                      "name": "Uganda",
+                      "code": "UGA"
+                    },
+                    {
+                      "name": "Tanzania",
+                      "code": "TZA"
+                    },
+                    {
+                      "name": "Uruguay",
+                      "code": "URY"
+                    },
+                    {
+                      "name": "Tunisia",
+                      "code": "TUN"
+                    },
+                    {
+                      "name": "Ukraine",
+                      "code": "UKR"
+                    },
+                    {
+                      "name": "Uzbekistan",
+                      "code": "UZB"
+                    },
+                    {
+                      "name": "United States",
+                      "code": "USA"
+                    },
+                    {
+                      "name": "St. Vincent and the Grenadines",
+                      "code": "VCT"
+                    },
+                    {
+                      "name": "Venezuela, RB",
+                      "code": "VEN"
+                    },
+                    {
+                      "name": "Vietnam",
+                      "code": "VNM"
+                    },
+                    {
+                      "name": "Vanuatu",
+                      "code": "VUT"
+                    },
+                    {
+                      "name": "Samoa",
+                      "code": "WSM"
+                    },
+                    {
+                      "name": "Zimbabwe",
+                      "code": "ZWE"
+                    },
+                    {
+                      "name": "Yemen, Rep.",
+                      "code": "YEM"
+                    },
+                    {
+                      "name": "Zambia",
+                      "code": "ZMB"
+                    },
+                    {
+                      "name": "Tonga",
+                      "code": "TON"
+                    },
+                    {
+                      "name": "South Africa",
+                      "code": "ZAF"
+                    }
+                  ],
+                  "geographic_units": [
+                    {
+                      "name": "Eastern & Southern Africa",
+                      "code": "AFE",
+                      "type": null
+                    },
+                    {
+                      "name": "Western & Central Africa",
+                      "code": "AFW",
+                      "type": null
+                    },
+                    {
+                      "name": "Arab World",
+                      "code": "ARB",
+                      "type": null
+                    },
+                    {
+                      "name": "Central Europe and the Baltics",
+                      "code": "CEB",
+                      "type": null
+                    },
+                    {
+                      "name": "Caribbean small states",
+                      "code": "CSS",
+                      "type": null
+                    },
+                    {
+                      "name": "East Asia & Pacific (excluding high income)",
+                      "code": "EAP",
+                      "type": null
+                    },
+                    {
+                      "name": "Early-demographic dividend",
+                      "code": "EAR",
+                      "type": null
+                    },
+                    {
+                      "name": "East Asia & Pacific",
+                      "code": "EAS",
+                      "type": null
+                    },
+                    {
+                      "name": "Europe & Central Asia (excluding high income)",
+                      "code": "ECA",
+                      "type": null
+                    },
+                    {
+                      "name": "Europe & Central Asia",
+                      "code": "ECS",
+                      "type": null
+                    },
+                    {
+                      "name": "Euro area",
+                      "code": "EMU",
+                      "type": null
+                    },
+                    {
+                      "name": "European Union",
+                      "code": "EUU",
+                      "type": null
+                    },
+                    {
+                      "name": "Fragile and conflict affected situations",
+                      "code": "FCS",
+                      "type": null
+                    },
+                    {
+                      "name": "High income",
+                      "code": "HIC",
+                      "type": null
+                    },
+                    {
+                      "name": "Heavily indebted poor countries (HIPC)",
+                      "code": "HPC",
+                      "type": null
+                    },
+                    {
+                      "name": "IDA total",
+                      "code": "IDA",
+                      "type": null
+                    },
+                    {
+                      "name": "IBRD only",
+                      "code": "IBD",
+                      "type": null
+                    },
+                    {
+                      "name": "IDA & IBRD total",
+                      "code": "IBT",
+                      "type": null
+                    },
+                    {
+                      "name": "IDA blend",
+                      "code": "IDB",
+                      "type": null
+                    },
+                    {
+                      "name": "IDA only",
+                      "code": "IDX",
+                      "type": null
+                    },
+                    {
+                      "name": "Latin America & Caribbean (excluding high income)",
+                      "code": "LAC",
+                      "type": null
+                    },
+                    {
+                      "name": "Low income",
+                      "code": "LIC",
+                      "type": null
+                    },
+                    {
+                      "name": "Least developed countries: UN classification",
+                      "code": "LDC",
+                      "type": null
+                    },
+                    {
+                      "name": "Lower middle income",
+                      "code": "LMC",
+                      "type": null
+                    },
+                    {
+                      "name": "Latin America & Caribbean",
+                      "code": "LCN",
+                      "type": null
+                    },
+                    {
+                      "name": "Late-demographic dividend",
+                      "code": "LTE",
+                      "type": null
+                    },
+                    {
+                      "name": "Low & middle income",
+                      "code": "LMY",
+                      "type": null
+                    },
+                    {
+                      "name": "Middle East, North Africa, Afghanistan & Pakistan",
+                      "code": "MEA",
+                      "type": null
+                    },
+                    {
+                      "name": "Middle income",
+                      "code": "MIC",
+                      "type": null
+                    },
+                    {
+                      "name": "Middle East, North Africa, Afghanistan & Pakistan (excluding high income)",
+                      "code": "MNA",
+                      "type": null
+                    },
+                    {
+                      "name": "North America",
+                      "code": "NAC",
+                      "type": null
+                    },
+                    {
+                      "name": "OECD members",
+                      "code": "OED",
+                      "type": null
+                    },
+                    {
+                      "name": "Other small states",
+                      "code": "OSS",
+                      "type": null
+                    },
+                    {
+                      "name": "Pre-demographic dividend",
+                      "code": "PRE",
+                      "type": null
+                    },
+                    {
+                      "name": "Post-demographic dividend",
+                      "code": "PST",
+                      "type": null
+                    },
+                    {
+                      "name": "Pacific island small states",
+                      "code": "PSS",
+                      "type": null
+                    },
+                    {
+                      "name": "South Asia",
+                      "code": "SAS",
+                      "type": null
+                    },
+                    {
+                      "name": "Sub-Saharan Africa (excluding high income)",
+                      "code": "SSA",
+                      "type": null
+                    },
+                    {
+                      "name": "Sub-Saharan Africa",
+                      "code": "SSF",
+                      "type": null
+                    },
+                    {
+                      "name": "Small states",
+                      "code": "SST",
+                      "type": null
+                    },
+                    {
+                      "name": "Europe & Central Asia (IDA & IBRD)",
+                      "code": "TEC",
+                      "type": null
+                    },
+                    {
+                      "name": "East Asia & Pacific (IDA & IBRD)",
+                      "code": "TEA",
+                      "type": null
+                    },
+                    {
+                      "name": "South Asia (IDA & IBRD)",
+                      "code": "TSA",
+                      "type": null
+                    },
+                    {
+                      "name": "Latin America & Caribbean (IDA & IBRD)",
+                      "code": "TLA",
+                      "type": null
+                    },
+                    {
+                      "name": "Middle East, North Africa, Afghanistan & Pakistan (IDA & IBRD)",
+                      "code": "TMN",
+                      "type": null
+                    },
+                    {
+                      "name": "Upper middle income",
+                      "code": "UMC",
+                      "type": null
+                    },
+                    {
+                      "name": "World",
+                      "code": "WLD",
+                      "type": null
+                    },
+                    {
+                      "name": "Sub-Saharan Africa (IDA & IBRD)",
+                      "code": "TSS",
+                      "type": null
+                    }
+                  ],
+                  "aggregation_method_references": [],
+                  "license": [
+                    {
+                      "name": "CC BY-4.0",
+                      "uri": "https://creativecommons.org/licenses/by/4.0/",
+                      "note": null
+                    }
+                  ],
+                  "links": [
+                    {
+                      "type": "WDI API",
+                      "description": "Data in JSON",
+                      "uri": "https://api.worldbank.org/v2/countries/all/indicators/tg.val.totl.gd.zs?date=1960:2022&format=json",
+                      "image_uri": null
+                    },
+                    {
+                      "type": "WDI API",
+                      "description": "Data in XML",
+                      "uri": "https://api.worldbank.org/v2/countries/all/indicators/tg.val.totl.gd.zs?date=1960:2022",
+                      "image_uri": null
+                    },
+                    {
+                      "type": "WDI API",
+                      "description": "Metadata in JSON",
+                      "uri": "https://api.worldbank.org/v2/sources/2/series/tg.val.totl.gd.zs/metadata?format=json",
+                      "image_uri": null
+                    },
+                    {
+                      "type": "WDI API",
+                      "description": "Metadata in XML",
+                      "uri": "https://api.worldbank.org/v2/sources/2/series/tg.val.totl.gd.zs/metadata",
+                      "image_uri": null
+                    }
+                  ],
+                  "api_documentation": [
+                    {
+                      "description": "Developer Information webpage (detailed documentation of the WDI API)",
+                      "uri": "https://datahelpdesk.worldbank.org/knowledgebase/topics/125589-developer-information"
+                    }
+                  ],
+                  "sources": [
+                    {
+                      "idno": null,
+                      "type": null,
+                      "name": null,
+                      "organization": "World Trade Organization (WTO)",
+                      "publisher": null,
+                      "publication_date": null,
+                      "uri": null,
+                      "access_date": null,
+                      "note": null,
+                      "other_identifiers": [],
+                      "authors": [],
+                      "datasets": []
+                    },
+                    {
+                      "idno": null,
+                      "type": null,
+                      "name": "World Bank GDP estimates",
+                      "organization": "World Bank (WB)",
+                      "publisher": null,
+                      "publication_date": null,
+                      "uri": null,
+                      "access_date": null,
+                      "note": null,
+                      "other_identifiers": [],
+                      "authors": [],
+                      "datasets": []
+                    },
+                    {
+                      "idno": null,
+                      "type": null,
+                      "name": "World Development Indicators",
+                      "organization": "World Bank (WB)",
+                      "publisher": null,
+                      "publication_date": null,
+                      "uri": null,
+                      "access_date": null,
+                      "note": null,
+                      "other_identifiers": [],
+                      "authors": [],
+                      "datasets": []
+                    }
+                  ],
+                  "notes": [],
+                  "related_indicators": []
+                },
+                "disaggregation_options": [
+                  {
+                    "field_name": "FREQ",
+                    "label_name": "FREQ",
+                    "field_value": [
+                      "A"
+                    ]
+                  },
+                  {
+                    "field_name": "REF_AREA",
+                    "label_name": "REF_AREA",
+                    "field_value": [
+                      "ABW",
+                      "AFE",
+                      "AFG",
+                      "AFW",
+                      "AGO",
+                      "ALB",
+                      "AND",
+                      "ARB",
+                      "ARE",
+                      "ARG",
+                      "ARM",
+                      "ASM",
+                      "ATG",
+                      "AUS",
+                      "AUT",
+                      "AZE",
+                      "BDI",
+                      "BEL",
+                      "BEN",
+                      "BFA",
+                      "BGD",
+                      "BGR",
+                      "BHR",
+                      "BHS",
+                      "BIH",
+                      "BLR",
+                      "BLZ",
+                      "BMU",
+                      "BOL",
+                      "BRA",
+                      "BRB",
+                      "BRN",
+                      "BTN",
+                      "BWA",
+                      "CAF",
+                      "CAN",
+                      "CEB",
+                      "CHE",
+                      "CHL",
+                      "CHN",
+                      "CIV",
+                      "CMR",
+                      "COD",
+                      "COG",
+                      "COL",
+                      "COM",
+                      "CPV",
+                      "CRI",
+                      "CSS",
+                      "CUB",
+                      "CUW",
+                      "CYM",
+                      "CYP",
+                      "CZE",
+                      "DEU",
+                      "DJI",
+                      "DMA",
+                      "DNK",
+                      "DOM",
+                      "DZA",
+                      "EAP",
+                      "EAR",
+                      "EAS",
+                      "ECA",
+                      "ECS",
+                      "ECU",
+                      "EGY",
+                      "EMU",
+                      "ERI",
+                      "ESP",
+                      "EST",
+                      "ETH",
+                      "EUU",
+                      "FCS",
+                      "FIN",
+                      "FJI",
+                      "FRA",
+                      "FRO",
+                      "FSM",
+                      "GAB",
+                      "GBR",
+                      "GEO",
+                      "GHA",
+                      "GIN",
+                      "GMB",
+                      "GNB",
+                      "GNQ",
+                      "GRC",
+                      "GRD",
+                      "GRL",
+                      "GTM",
+                      "GUM",
+                      "GUY",
+                      "HIC",
+                      "HKG",
+                      "HND",
+                      "HPC",
+                      "HRV",
+                      "HTI",
+                      "HUN",
+                      "IBD",
+                      "IBT",
+                      "IDA",
+                      "IDB",
+                      "IDN",
+                      "IDX",
+                      "IND",
+                      "IRL",
+                      "IRN",
+                      "IRQ",
+                      "ISL",
+                      "ISR",
+                      "ITA",
+                      "JAM",
+                      "JOR",
+                      "JPN",
+                      "KAZ",
+                      "KEN",
+                      "KGZ",
+                      "KHM",
+                      "KIR",
+                      "KNA",
+                      "KOR",
+                      "KWT",
+                      "LAC",
+                      "LAO",
+                      "LBN",
+                      "LBR",
+                      "LBY",
+                      "LCA",
+                      "LCN",
+                      "LDC",
+                      "LIC",
+                      "LKA",
+                      "LMC",
+                      "LMY",
+                      "LSO",
+                      "LTE",
+                      "LTU",
+                      "LUX",
+                      "LVA",
+                      "MAC",
+                      "MAF",
+                      "MAR",
+                      "MDA",
+                      "MDG",
+                      "MDV",
+                      "MEA",
+                      "MEX",
+                      "MHL",
+                      "MIC",
+                      "MKD",
+                      "MLI",
+                      "MLT",
+                      "MMR",
+                      "MNA",
+                      "MNE",
+                      "MNG",
+                      "MNP",
+                      "MOZ",
+                      "MRT",
+                      "MUS",
+                      "MWI",
+                      "MYS",
+                      "NAC",
+                      "NAM",
+                      "NCL",
+                      "NER",
+                      "NGA",
+                      "NIC",
+                      "NLD",
+                      "NOR",
+                      "NPL",
+                      "NRU",
+                      "NZL",
+                      "OED",
+                      "OMN",
+                      "OSS",
+                      "PAK",
+                      "PAN",
+                      "PER",
+                      "PHL",
+                      "PLW",
+                      "PNG",
+                      "POL",
+                      "PRE",
+                      "PRT",
+                      "PRY",
+                      "PSS",
+                      "PST",
+                      "PYF",
+                      "QAT",
+                      "ROU",
+                      "RUS",
+                      "RWA",
+                      "SAS",
+                      "SAU",
+                      "SDN",
+                      "SEN",
+                      "SGP",
+                      "SLB",
+                      "SLE",
+                      "SLV",
+                      "SOM",
+                      "SRB",
+                      "SSA",
+                      "SSD",
+                      "SSF",
+                      "SST",
+                      "STP",
+                      "SUR",
+                      "SVK",
+                      "SVN",
+                      "SWE",
+                      "SWZ",
+                      "SXM",
+                      "SYC",
+                      "SYR",
+                      "TCA",
+                      "TCD",
+                      "TEA",
+                      "TEC",
+                      "TGO",
+                      "THA",
+                      "TJK",
+                      "TKM",
+                      "TLA",
+                      "TLS",
+                      "TMN",
+                      "TON",
+                      "TSA",
+                      "TSS",
+                      "TTO",
+                      "TUN",
+                      "TUR",
+                      "TUV",
+                      "TZA",
+                      "UGA",
+                      "UKR",
+                      "UMC",
+                      "URY",
+                      "USA",
+                      "UZB",
+                      "VCT",
+                      "VEN",
+                      "VNM",
+                      "VUT",
+                      "WLD",
+                      "WSM",
+                      "YEM",
+                      "ZAF",
+                      "ZMB",
+                      "ZWE"
+                    ]
+                  },
+                  {
+                    "field_name": "INDICATOR",
+                    "label_name": "INDICATOR",
+                    "field_value": [
+                      "WB_WDI_TG_VAL_TOTL_GD_ZS"
+                    ]
+                  },
+                  {
+                    "field_name": "SEX",
+                    "label_name": "SEX",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "AGE",
+                    "label_name": "AGE",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "URBANISATION",
+                    "label_name": "URBANISATION",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "UNIT_MEASURE",
+                    "label_name": "UNIT_MEASURE",
+                    "field_value": [
+                      "PT_GDP"
+                    ]
+                  },
+                  {
+                    "field_name": "TIME_PERIOD",
+                    "label_name": "TIME_PERIOD",
+                    "field_value": [
+                      "2015",
+                      "2006",
+                      "1979",
+                      "2004",
+                      "1967",
+                      "1977",
+                      "1996",
+                      "2014",
+                      "2009",
+                      "2020",
+                      "1982",
+                      "1988",
+                      "1986",
+                      "2007",
+                      "1973",
+                      "1963",
+                      "1991",
+                      "1968",
+                      "1976",
+                      "2013",
+                      "1989",
+                      "2019",
+                      "2024",
+                      "2008",
+                      "1960",
+                      "1975",
+                      "1998",
+                      "1969",
+                      "2012",
+                      "2018",
+                      "1984",
+                      "2021",
+                      "2001",
+                      "1978",
+                      "1993",
+                      "1964",
+                      "1995",
+                      "1971",
+                      "1983",
+                      "2011",
+                      "2022",
+                      "1992",
+                      "1990",
+                      "1972",
+                      "1980",
+                      "2016",
+                      "1987",
+                      "2003",
+                      "1997",
+                      "1966",
+                      "2010",
+                      "1981",
+                      "2017",
+                      "1985",
+                      "2002",
+                      "1994",
+                      "2000",
+                      "1970",
+                      "1962",
+                      "1965",
+                      "2005",
+                      "2023",
+                      "1974",
+                      "1961",
+                      "1999"
+                    ]
+                  }
+                ],
+                "error": null
+              }
+            },
+            {
+              "name": "data360_get_metadata",
+              "args": {
+                "database_id": "WEF_GCI",
+                "indicator_id": "WEF_GCI_GCI4_C_07_02"
+              },
+              "output": {
+                "indicator_metadata": {
+                  "idno": "WEF_GCI_GCI4_C_07_02",
+                  "doi": null,
+                  "name": "GCI 4.0: Trade openness",
+                  "display_name": null,
+                  "database_id": "WEF_GCI",
+                  "database_name": "Global Competitiveness Index (GCI) 4.0",
+                  "date_last_update": null,
+                  "date_released": null,
+                  "measurement_unit": "Rank, 0-100 scale",
+                  "release_calendar": null,
+                  "periodicity": "Annual",
+                  "base_period": null,
+                  "definition_short": "GCI 4.0: Trade openness",
+                  "definition_long": "Please refer to: https://www.weforum.org/publications/how-to-end-a-decade-of-lost-productivity-growth/in-full/appendix-a/#appendix-a",
+                  "statistical_concept": null,
+                  "methodology": "Please refer to: https://www3.weforum.org/docs/WEF_GCR_2019_Appendix_A.pdf",
+                  "derivation": null,
+                  "imputation": null,
+                  "missing": null,
+                  "quality_checks": null,
+                  "quality_note": null,
+                  "sources_discrepancies": null,
+                  "series_break": null,
+                  "limitation": null,
+                  "relevance": null,
+                  "aggregation_method": "Simple average",
+                  "disaggregation": null,
+                  "confidentiality": null,
+                  "confidentiality_status": "PU",
+                  "confidentiality_note": null,
+                  "citation_requirement": null,
+                  "sources_note": null,
+                  "acknowledgement_statement": null,
+                  "disclaimer": null,
+                  "economies_count": null,
+                  "csv_link": "https://data360files.worldbank.org/data360-data/data/WEF_GCI/WEF_GCI_GCI4_C_07_02.csv",
+                  "excel_link": null,
+                  "json_link": "https://data360files.worldbank.org/data360-data/metadata/WEF_GCI/WEF_GCI_GCI4_C_07_02.json",
+                  "api_link": "https://data360api.worldbank.org/data360/data?top=1000&skip=0&DATABASE_ID=WEF_GCI&INDICATOR=WEF_GCI_GCI4_C_07_02",
+                  "indicator_count": null,
+                  "apiservice_link": null,
+                  "api_explorer_link": "http://datacatalog.worldbank.org/data360/api/execute?tab=Data&id=1&DATABASE_ID=WEF_GCI&INDICATOR=WEF_GCI_GCI4_C_07_02",
+                  "authoring_entity": [],
+                  "version_statement": {
+                    "version": null,
+                    "version_date": "2025-03-05",
+                    "version_resp": null,
+                    "version_notes": null
+                  },
+                  "aliases": [],
+                  "alternate_identifiers": [
+                    {
+                      "identifier": "Indicator ID",
+                      "name": "WEF.GCI.GCI4.C.07.02",
+                      "database": "WEF Global Competitiveness Index 4.0",
+                      "uri": "http://reports.weforum.org/global-competitiveness-index/",
+                      "notes": null
+                    }
+                  ],
+                  "languages": [
+                    {
+                      "name": "English",
+                      "code": "EN"
+                    }
+                  ],
+                  "dimensions": [
+                    {
+                      "name": null,
+                      "label": "Geographic area",
+                      "description": "Country/economy, Region"
+                    },
+                    {
+                      "name": null,
+                      "label": "Year",
+                      "description": null
+                    }
+                  ],
+                  "definition_references": [
+                    {
+                      "source": null,
+                      "uri": "https://www.weforum.org/publications/how-to-end-a-decade-of-lost-productivity-growth/in-full/appendix-a/#appendix-a",
+                      "note": null
+                    }
+                  ],
+                  "statistical_concept_references": [],
+                  "methodology_references": [
+                    {
+                      "source": "World Economic Forum",
+                      "uri": "https://www3.weforum.org/docs/GCR2018/05FullReport/TheGlobalCompetitivenessReport2018.pdf",
+                      "note": null
+                    }
+                  ],
+                  "derivation_references": [],
+                  "imputation_references": [],
+                  "topics": [
+                    {
+                      "id": "P3",
+                      "name": "Prosperity",
+                      "parent_id": null,
+                      "vocabulary": "WB Practice Groups",
+                      "uri": null
+                    },
+                    {
+                      "id": "P3_000006",
+                      "name": "Trade, Investment and Competitiveness",
+                      "parent_id": "P3",
+                      "vocabulary": "Data360 Topic L1",
+                      "uri": null
+                    },
+                    {
+                      "id": "P3_000023",
+                      "name": "Markets, Competition, and Technology",
+                      "parent_id": "P3_000006",
+                      "vocabulary": "Data360 Topic L2",
+                      "uri": null
+                    }
+                  ],
+                  "time_periods": [
+                    {
+                      "start": "2017",
+                      "end": "2019",
+                      "notes": null
+                    }
+                  ],
+                  "ref_country": [
+                    {
+                      "name": "Angola",
+                      "code": "AGO"
+                    },
+                    {
+                      "name": "Albania",
+                      "code": "ALB"
+                    },
+                    {
+                      "name": "United Arab Emirates",
+                      "code": "ARE"
+                    },
+                    {
+                      "name": "Argentina",
+                      "code": "ARG"
+                    },
+                    {
+                      "name": "Armenia",
+                      "code": "ARM"
+                    },
+                    {
+                      "name": "Australia",
+                      "code": "AUS"
+                    },
+                    {
+                      "name": "Austria",
+                      "code": "AUT"
+                    },
+                    {
+                      "name": "Azerbaijan",
+                      "code": "AZE"
+                    },
+                    {
+                      "name": "Burundi",
+                      "code": "BDI"
+                    },
+                    {
+                      "name": "Belgium",
+                      "code": "BEL"
+                    },
+                    {
+                      "name": "Benin",
+                      "code": "BEN"
+                    },
+                    {
+                      "name": "Burkina Faso",
+                      "code": "BFA"
+                    },
+                    {
+                      "name": "Bangladesh",
+                      "code": "BGD"
+                    },
+                    {
+                      "name": "Bulgaria",
+                      "code": "BGR"
+                    },
+                    {
+                      "name": "Bahrain",
+                      "code": "BHR"
+                    },
+                    {
+                      "name": "Bosnia and Herzegovina",
+                      "code": "BIH"
+                    },
+                    {
+                      "name": "Bolivia",
+                      "code": "BOL"
+                    },
+                    {
+                      "name": "Brazil",
+                      "code": "BRA"
+                    },
+                    {
+                      "name": "Barbados",
+                      "code": "BRB"
+                    },
+                    {
+                      "name": "Brunei Darussalam",
+                      "code": "BRN"
+                    },
+                    {
+                      "name": "Botswana",
+                      "code": "BWA"
+                    },
+                    {
+                      "name": "Canada",
+                      "code": "CAN"
+                    },
+                    {
+                      "name": "Switzerland",
+                      "code": "CHE"
+                    },
+                    {
+                      "name": "Chile",
+                      "code": "CHL"
+                    },
+                    {
+                      "name": "China",
+                      "code": "CHN"
+                    },
+                    {
+                      "name": "C\u00f4te d\u2019Ivoire",
+                      "code": "CIV"
+                    },
+                    {
+                      "name": "Cameroon",
+                      "code": "CMR"
+                    },
+                    {
+                      "name": "Congo, Dem. Rep.",
+                      "code": "COD"
+                    },
+                    {
+                      "name": "Colombia",
+                      "code": "COL"
+                    },
+                    {
+                      "name": "Cabo Verde",
+                      "code": "CPV"
+                    },
+                    {
+                      "name": "Costa Rica",
+                      "code": "CRI"
+                    },
+                    {
+                      "name": "Cyprus",
+                      "code": "CYP"
+                    },
+                    {
+                      "name": "Czechia",
+                      "code": "CZE"
+                    },
+                    {
+                      "name": "Germany",
+                      "code": "DEU"
+                    },
+                    {
+                      "name": "Denmark",
+                      "code": "DNK"
+                    },
+                    {
+                      "name": "Dominican Republic",
+                      "code": "DOM"
+                    },
+                    {
+                      "name": "Algeria",
+                      "code": "DZA"
+                    },
+                    {
+                      "name": "Ecuador",
+                      "code": "ECU"
+                    },
+                    {
+                      "name": "Egypt, Arab Rep.",
+                      "code": "EGY"
+                    },
+                    {
+                      "name": "Spain",
+                      "code": "ESP"
+                    },
+                    {
+                      "name": "Estonia",
+                      "code": "EST"
+                    },
+                    {
+                      "name": "Ethiopia",
+                      "code": "ETH"
+                    },
+                    {
+                      "name": "Finland",
+                      "code": "FIN"
+                    },
+                    {
+                      "name": "France",
+                      "code": "FRA"
+                    },
+                    {
+                      "name": "Gabon",
+                      "code": "GAB"
+                    },
+                    {
+                      "name": "United Kingdom",
+                      "code": "GBR"
+                    },
+                    {
+                      "name": "Georgia",
+                      "code": "GEO"
+                    },
+                    {
+                      "name": "Ghana",
+                      "code": "GHA"
+                    },
+                    {
+                      "name": "Guinea",
+                      "code": "GIN"
+                    },
+                    {
+                      "name": "Gambia, The",
+                      "code": "GMB"
+                    },
+                    {
+                      "name": "Greece",
+                      "code": "GRC"
+                    },
+                    {
+                      "name": "Guatemala",
+                      "code": "GTM"
+                    },
+                    {
+                      "name": "Hong Kong SAR, China",
+                      "code": "HKG"
+                    },
+                    {
+                      "name": "Honduras",
+                      "code": "HND"
+                    },
+                    {
+                      "name": "Croatia",
+                      "code": "HRV"
+                    },
+                    {
+                      "name": "Haiti",
+                      "code": "HTI"
+                    },
+                    {
+                      "name": "Hungary",
+                      "code": "HUN"
+                    },
+                    {
+                      "name": "Indonesia",
+                      "code": "IDN"
+                    },
+                    {
+                      "name": "India",
+                      "code": "IND"
+                    },
+                    {
+                      "name": "Ireland",
+                      "code": "IRL"
+                    },
+                    {
+                      "name": "Iran, Islamic Rep.",
+                      "code": "IRN"
+                    },
+                    {
+                      "name": "Iceland",
+                      "code": "ISL"
+                    },
+                    {
+                      "name": "Israel",
+                      "code": "ISR"
+                    },
+                    {
+                      "name": "Italy",
+                      "code": "ITA"
+                    },
+                    {
+                      "name": "Jamaica",
+                      "code": "JAM"
+                    },
+                    {
+                      "name": "Jordan",
+                      "code": "JOR"
+                    },
+                    {
+                      "name": "Japan",
+                      "code": "JPN"
+                    },
+                    {
+                      "name": "Kazakhstan",
+                      "code": "KAZ"
+                    },
+                    {
+                      "name": "Kenya",
+                      "code": "KEN"
+                    },
+                    {
+                      "name": "Kyrgyz Republic",
+                      "code": "KGZ"
+                    },
+                    {
+                      "name": "Cambodia",
+                      "code": "KHM"
+                    },
+                    {
+                      "name": "Korea, Rep.",
+                      "code": "KOR"
+                    },
+                    {
+                      "name": "Kuwait",
+                      "code": "KWT"
+                    },
+                    {
+                      "name": "Lao PDR",
+                      "code": "LAO"
+                    },
+                    {
+                      "name": "Lebanon",
+                      "code": "LBN"
+                    },
+                    {
+                      "name": "Sri Lanka",
+                      "code": "LKA"
+                    },
+                    {
+                      "name": "Lesotho",
+                      "code": "LSO"
+                    },
+                    {
+                      "name": "Lithuania",
+                      "code": "LTU"
+                    },
+                    {
+                      "name": "Luxembourg",
+                      "code": "LUX"
+                    },
+                    {
+                      "name": "Latvia",
+                      "code": "LVA"
+                    },
+                    {
+                      "name": "Morocco",
+                      "code": "MAR"
+                    },
+                    {
+                      "name": "Moldova",
+                      "code": "MDA"
+                    },
+                    {
+                      "name": "Madagascar",
+                      "code": "MDG"
+                    },
+                    {
+                      "name": "Mexico",
+                      "code": "MEX"
+                    },
+                    {
+                      "name": "North Macedonia",
+                      "code": "MKD"
+                    },
+                    {
+                      "name": "Mali",
+                      "code": "MLI"
+                    },
+                    {
+                      "name": "Malta",
+                      "code": "MLT"
+                    },
+                    {
+                      "name": "Montenegro",
+                      "code": "MNE"
+                    },
+                    {
+                      "name": "Mongolia",
+                      "code": "MNG"
+                    },
+                    {
+                      "name": "Mozambique",
+                      "code": "MOZ"
+                    },
+                    {
+                      "name": "Mauritania",
+                      "code": "MRT"
+                    },
+                    {
+                      "name": "Mauritius",
+                      "code": "MUS"
+                    },
+                    {
+                      "name": "Malawi",
+                      "code": "MWI"
+                    },
+                    {
+                      "name": "Malaysia",
+                      "code": "MYS"
+                    },
+                    {
+                      "name": "Namibia",
+                      "code": "NAM"
+                    },
+                    {
+                      "name": "Nigeria",
+                      "code": "NGA"
+                    },
+                    {
+                      "name": "Nicaragua",
+                      "code": "NIC"
+                    },
+                    {
+                      "name": "Netherlands",
+                      "code": "NLD"
+                    },
+                    {
+                      "name": "Norway",
+                      "code": "NOR"
+                    },
+                    {
+                      "name": "Nepal",
+                      "code": "NPL"
+                    },
+                    {
+                      "name": "New Zealand",
+                      "code": "NZL"
+                    },
+                    {
+                      "name": "Oman",
+                      "code": "OMN"
+                    },
+                    {
+                      "name": "Pakistan",
+                      "code": "PAK"
+                    },
+                    {
+                      "name": "Panama",
+                      "code": "PAN"
+                    },
+                    {
+                      "name": "Peru",
+                      "code": "PER"
+                    },
+                    {
+                      "name": "Philippines",
+                      "code": "PHL"
+                    },
+                    {
+                      "name": "Poland",
+                      "code": "POL"
+                    },
+                    {
+                      "name": "Portugal",
+                      "code": "PRT"
+                    },
+                    {
+                      "name": "Paraguay",
+                      "code": "PRY"
+                    },
+                    {
+                      "name": "Qatar",
+                      "code": "QAT"
+                    },
+                    {
+                      "name": "Romania",
+                      "code": "ROU"
+                    },
+                    {
+                      "name": "Russian Federation",
+                      "code": "RUS"
+                    },
+                    {
+                      "name": "Rwanda",
+                      "code": "RWA"
+                    },
+                    {
+                      "name": "Saudi Arabia",
+                      "code": "SAU"
+                    },
+                    {
+                      "name": "Senegal",
+                      "code": "SEN"
+                    },
+                    {
+                      "name": "Singapore",
+                      "code": "SGP"
+                    },
+                    {
+                      "name": "El Salvador",
+                      "code": "SLV"
+                    },
+                    {
+                      "name": "Serbia",
+                      "code": "SRB"
+                    },
+                    {
+                      "name": "Slovak Republic",
+                      "code": "SVK"
+                    },
+                    {
+                      "name": "Slovenia",
+                      "code": "SVN"
+                    },
+                    {
+                      "name": "Sweden",
+                      "code": "SWE"
+                    },
+                    {
+                      "name": "Eswatini",
+                      "code": "SWZ"
+                    },
+                    {
+                      "name": "Seychelles",
+                      "code": "SYC"
+                    },
+                    {
+                      "name": "Chad",
+                      "code": "TCD"
+                    },
+                    {
+                      "name": "Thailand",
+                      "code": "THA"
+                    },
+                    {
+                      "name": "Tajikistan",
+                      "code": "TJK"
+                    },
+                    {
+                      "name": "Trinidad and Tobago",
+                      "code": "TTO"
+                    },
+                    {
+                      "name": "Tunisia",
+                      "code": "TUN"
+                    },
+                    {
+                      "name": "T\u00fcrkiye",
+                      "code": "TUR"
+                    },
+                    {
+                      "name": "Taiwan, China",
+                      "code": "TWN"
+                    },
+                    {
+                      "name": "Tanzania",
+                      "code": "TZA"
+                    },
+                    {
+                      "name": "Uganda",
+                      "code": "UGA"
+                    },
+                    {
+                      "name": "Ukraine",
+                      "code": "UKR"
+                    },
+                    {
+                      "name": "Uruguay",
+                      "code": "URY"
+                    },
+                    {
+                      "name": "United States",
+                      "code": "USA"
+                    },
+                    {
+                      "name": "Venezuela, RB",
+                      "code": "VEN"
+                    },
+                    {
+                      "name": "Vietnam",
+                      "code": "VNM"
+                    },
+                    {
+                      "name": "Yemen, Rep.",
+                      "code": "YEM"
+                    },
+                    {
+                      "name": "South Africa",
+                      "code": "ZAF"
+                    },
+                    {
+                      "name": "Zambia",
+                      "code": "ZMB"
+                    },
+                    {
+                      "name": "Zimbabwe",
+                      "code": "ZWE"
+                    }
+                  ],
+                  "geographic_units": [],
+                  "aggregation_method_references": [],
+                  "license": [
+                    {
+                      "name": "License Specified Externally",
+                      "uri": "https://www.weforum.org/about/terms-of-use",
+                      "note": "The following license information is from the source (World Economic Forum): \"Under the CCPL license, Visitors may copy, distribute and transmit the Articles, in any medium or format provided the work is properly attributed to the author and the World Economic Forum, that any such use is for non-commercial purposes and it is not altered, transformed or built upon.\n\nThat means (excerpt from https://creativecommons.org/licenses/by-nc-nd/4.0/):\n\nAttribution: Visitor must attribute the work in the manner specified by the author or licensor (but not in any way that suggests that they endorse Visitor or their use of the work).\n\nNoncommercial: Visitor may not use this work for commercial purposes.\""
+                    }
+                  ],
+                  "links": [],
+                  "api_documentation": [],
+                  "sources": [
+                    {
+                      "idno": null,
+                      "type": null,
+                      "name": "WEF Global Competitiveness Index 4.0",
+                      "organization": "World Economic Forum (WEF)",
+                      "publisher": null,
+                      "publication_date": null,
+                      "uri": "http://reports.weforum.org/global-competitiveness-index/",
+                      "access_date": null,
+                      "note": null,
+                      "other_identifiers": [],
+                      "authors": [],
+                      "datasets": []
+                    }
+                  ],
+                  "notes": [],
+                  "related_indicators": []
+                },
+                "disaggregation_options": [
+                  {
+                    "field_name": "FREQ",
+                    "label_name": "Frequency of observation",
+                    "field_value": [
+                      "A"
+                    ]
+                  },
+                  {
+                    "field_name": "REF_AREA",
+                    "label_name": "Reference area",
+                    "field_value": [
+                      "AGO",
+                      "ALB",
+                      "ARE",
+                      "ARG",
+                      "ARM",
+                      "AUS",
+                      "AUT",
+                      "AZE",
+                      "BDI",
+                      "BEL",
+                      "BEN",
+                      "BFA",
+                      "BGD",
+                      "BGR",
+                      "BHR",
+                      "BIH",
+                      "BOL",
+                      "BRA",
+                      "BRB",
+                      "BRN",
+                      "BWA",
+                      "CAN",
+                      "CHE",
+                      "CHL",
+                      "CHN",
+                      "CIV",
+                      "CMR",
+                      "COD",
+                      "COL",
+                      "CPV",
+                      "CRI",
+                      "CYP",
+                      "CZE",
+                      "DEU",
+                      "DNK",
+                      "DOM",
+                      "DZA",
+                      "ECU",
+                      "EGY",
+                      "ESP",
+                      "EST",
+                      "ETH",
+                      "FIN",
+                      "FRA",
+                      "GAB",
+                      "GBR",
+                      "GEO",
+                      "GHA",
+                      "GIN",
+                      "GMB",
+                      "GRC",
+                      "GTM",
+                      "HKG",
+                      "HND",
+                      "HRV",
+                      "HTI",
+                      "HUN",
+                      "IDN",
+                      "IND",
+                      "IRL",
+                      "IRN",
+                      "ISL",
+                      "ISR",
+                      "ITA",
+                      "JAM",
+                      "JOR",
+                      "JPN",
+                      "KAZ",
+                      "KEN",
+                      "KGZ",
+                      "KHM",
+                      "KOR",
+                      "KWT",
+                      "LAO",
+                      "LBN",
+                      "LKA",
+                      "LSO",
+                      "LTU",
+                      "LUX",
+                      "LVA",
+                      "MAR",
+                      "MDA",
+                      "MDG",
+                      "MEX",
+                      "MKD",
+                      "MLI",
+                      "MLT",
+                      "MNE",
+                      "MNG",
+                      "MOZ",
+                      "MRT",
+                      "MUS",
+                      "MWI",
+                      "MYS",
+                      "NAM",
+                      "NGA",
+                      "NIC",
+                      "NLD",
+                      "NOR",
+                      "NPL",
+                      "NZL",
+                      "OMN",
+                      "PAK",
+                      "PAN",
+                      "PER",
+                      "PHL",
+                      "POL",
+                      "PRT",
+                      "PRY",
+                      "QAT",
+                      "ROU",
+                      "RUS",
+                      "RWA",
+                      "SAU",
+                      "SEN",
+                      "SGP",
+                      "SLV",
+                      "SRB",
+                      "SVK",
+                      "SVN",
+                      "SWE",
+                      "SWZ",
+                      "SYC",
+                      "TCD",
+                      "THA",
+                      "TJK",
+                      "TTO",
+                      "TUN",
+                      "TUR",
+                      "TWN",
+                      "TZA",
+                      "UGA",
+                      "UKR",
+                      "URY",
+                      "USA",
+                      "VEN",
+                      "VNM",
+                      "YEM",
+                      "ZAF",
+                      "ZMB",
+                      "ZWE"
+                    ]
+                  },
+                  {
+                    "field_name": "INDICATOR",
+                    "label_name": "Statistical indicator",
+                    "field_value": [
+                      "WEF_GCI_GCI4_C_07_02"
+                    ]
+                  },
+                  {
+                    "field_name": "SEX",
+                    "label_name": "Sex",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "AGE",
+                    "label_name": "Age",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "URBANISATION",
+                    "label_name": "Degree of urbanisation",
+                    "field_value": [
+                      "_T"
+                    ]
+                  },
+                  {
+                    "field_name": "UNIT_MEASURE",
+                    "label_name": "Unit of measure",
+                    "field_value": [
+                      "0_TO_100",
+                      "RANK"
+                    ]
+                  },
+                  {
+                    "field_name": "TIME_PERIOD",
+                    "label_name": "Time period",
+                    "field_value": [
+                      "2017",
+                      "2018",
+                      "2019"
+                    ]
+                  }
+                ],
+                "error": null
+              }
+            },
+            {
+              "name": "data360_get_data",
+              "args": {
+                "database_id": "WB_WDI",
+                "indicator_id": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                "disaggregation_filters": {
+                  "REF_AREA": "KEN,TZA"
+                },
+                "start_year": 2019,
+                "end_year": 2024,
+                "limit": 100
+              },
+              "output": {
+                "count": 12,
+                "total_count": null,
+                "offset": 0,
+                "has_more": false,
+                "next_offset": null,
+                "data": [
+                  {
+                    "OBS_VALUE": "29.147281",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Merchandise trade (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2024",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": "RATIO",
+                    "claim_id": "327b2f9c"
+                  },
+                  {
+                    "OBS_VALUE": "23.537564",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Merchandise trade (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2024",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": "RATIO",
+                    "claim_id": "d2a695ba"
+                  },
+                  {
+                    "OBS_VALUE": "23.977477",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Merchandise trade (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2023",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": "RATIO",
+                    "claim_id": "d82511eb"
+                  },
+                  {
+                    "OBS_VALUE": "26.576935",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Merchandise trade (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2023",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": "RATIO",
+                    "claim_id": "b1c475b6"
+                  },
+                  {
+                    "OBS_VALUE": "24.969205",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Merchandise trade (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2022",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": "RATIO",
+                    "claim_id": "c26e3326"
+                  },
+                  {
+                    "OBS_VALUE": "27.78118",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Merchandise trade (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2022",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": "RATIO",
+                    "claim_id": "7ad6c11c"
+                  },
+                  {
+                    "OBS_VALUE": "23.232403",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Merchandise trade (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2021",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": "RATIO",
+                    "claim_id": "a5f8fee1"
+                  },
+                  {
+                    "OBS_VALUE": "23.971853",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Merchandise trade (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2021",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": "RATIO",
+                    "claim_id": "c6c60086"
+                  },
+                  {
+                    "OBS_VALUE": "21.328762",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Merchandise trade (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2020",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": "RATIO",
+                    "claim_id": "6a3188de"
+                  },
+                  {
+                    "OBS_VALUE": "21.94684",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Merchandise trade (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2020",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": "RATIO",
+                    "claim_id": "2628c1ad"
+                  },
+                  {
+                    "OBS_VALUE": "23.405425",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Merchandise trade (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": "RATIO",
+                    "claim_id": "f3740e43"
+                  },
+                  {
+                    "OBS_VALUE": "23.689619",
+                    "TIME_FORMAT": "P1Y",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": "_Z",
+                    "DECIMALS": "2",
+                    "COMMENT_TS": "Merchandise trade (% of GDP)",
+                    "DATA_SOURCE": "WB_WDI",
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_WDI",
+                    "INDICATOR": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT_GDP",
+                    "UNIT_TYPE": "RATIO",
+                    "claim_id": "f57c45f4"
+                  }
+                ],
+                "metadata": {
+                  "idno": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                  "name": "Merchandise trade (% of GDP)",
+                  "database_id": "WB_WDI",
+                  "measurement_unit": "%",
+                  "periodicity": "Annual",
+                  "definition_short": null
+                },
+                "error": null,
+                "failed_validation": null
+              }
+            },
+            {
+              "name": "data360_get_data",
+              "args": {
+                "database_id": "WEF_GCI",
+                "indicator_id": "WEF_GCI_GCI4_C_07_02",
+                "disaggregation_filters": {
+                  "REF_AREA": "KEN,TZA"
+                },
+                "start_year": 2017,
+                "end_year": 2019,
+                "limit": 100
+              },
+              "output": {
+                "count": 12,
+                "total_count": null,
+                "offset": 0,
+                "has_more": false,
+                "next_offset": null,
+                "data": [
+                  {
+                    "OBS_VALUE": "103",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WEF_GCI",
+                    "INDICATOR": "WEF_GCI_GCI4_C_07_02",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "RANK",
+                    "UNIT_TYPE": null,
+                    "claim_id": "bc9f8cea"
+                  },
+                  {
+                    "OBS_VALUE": "52.71",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WEF_GCI",
+                    "INDICATOR": "WEF_GCI_GCI4_C_07_02",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "0_TO_100",
+                    "UNIT_TYPE": null,
+                    "claim_id": "69fc40da"
+                  },
+                  {
+                    "OBS_VALUE": "106",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WEF_GCI",
+                    "INDICATOR": "WEF_GCI_GCI4_C_07_02",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "RANK",
+                    "UNIT_TYPE": null,
+                    "claim_id": "046b8d26"
+                  },
+                  {
+                    "OBS_VALUE": "52.34",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WEF_GCI",
+                    "INDICATOR": "WEF_GCI_GCI4_C_07_02",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "0_TO_100",
+                    "UNIT_TYPE": null,
+                    "claim_id": "5c36f430"
+                  },
+                  {
+                    "OBS_VALUE": "55.7",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WEF_GCI",
+                    "INDICATOR": "WEF_GCI_GCI4_C_07_02",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2018",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "0_TO_100",
+                    "UNIT_TYPE": null,
+                    "claim_id": "f16aec05"
+                  },
+                  {
+                    "OBS_VALUE": "104",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WEF_GCI",
+                    "INDICATOR": "WEF_GCI_GCI4_C_07_02",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2018",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "RANK",
+                    "UNIT_TYPE": null,
+                    "claim_id": "9c39e457"
+                  },
+                  {
+                    "OBS_VALUE": "54.47",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WEF_GCI",
+                    "INDICATOR": "WEF_GCI_GCI4_C_07_02",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2018",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "0_TO_100",
+                    "UNIT_TYPE": null,
+                    "claim_id": "2703ce6f"
+                  },
+                  {
+                    "OBS_VALUE": "114",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WEF_GCI",
+                    "INDICATOR": "WEF_GCI_GCI4_C_07_02",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2018",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "RANK",
+                    "UNIT_TYPE": null,
+                    "claim_id": "8564798b"
+                  },
+                  {
+                    "OBS_VALUE": "60.33",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WEF_GCI",
+                    "INDICATOR": "WEF_GCI_GCI4_C_07_02",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2017",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "0_TO_100",
+                    "UNIT_TYPE": null,
+                    "claim_id": "1943c410"
+                  },
+                  {
+                    "OBS_VALUE": "79",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WEF_GCI",
+                    "INDICATOR": "WEF_GCI_GCI4_C_07_02",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2017",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "RANK",
+                    "UNIT_TYPE": null,
+                    "claim_id": "7bac7c70"
+                  },
+                  {
+                    "OBS_VALUE": "56.62",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WEF_GCI",
+                    "INDICATOR": "WEF_GCI_GCI4_C_07_02",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2017",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "0_TO_100",
+                    "UNIT_TYPE": null,
+                    "claim_id": "fbd8149b"
+                  },
+                  {
+                    "OBS_VALUE": "99",
+                    "TIME_FORMAT": "602",
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WEF_GCI",
+                    "INDICATOR": "WEF_GCI_GCI4_C_07_02",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2017",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "RANK",
+                    "UNIT_TYPE": null,
+                    "claim_id": "9540d25f"
+                  }
+                ],
+                "metadata": {
+                  "idno": "WEF_GCI_GCI4_C_07_02",
+                  "name": "GCI 4.0: Trade openness",
+                  "database_id": "WEF_GCI",
+                  "measurement_unit": "Rank, 0-100 scale",
+                  "periodicity": "Annual",
+                  "definition_short": "GCI 4.0: Trade openness"
+                },
+                "error": null,
+                "failed_validation": null
+              }
+            }
+          ],
+          "model": "unknown",
+          "turns_used": 0,
+          "error": null
+        }
+      },
+      {
+        "role": "user",
+        "content": "Could you generate a comparative line chart showing the merchandise trade (% of GDP) trends for Kenya and Tanzania from 2000 to 2024, including data points and source annotations?",
+        "turn_index": 2
+      },
+      {
+        "role": "assistant",
+        "content": "\n\n**Summary:**  \nHere\u2019s a comparative Kenya\u2013Tanzania line chart for merchandise trade (% of GDP), 2000\u20132024, with data points and source information.\n\n---\n\n**Data:**\n\n- **Indicator:** Merchandise trade (% of GDP)  \n- **Code:** `WB_WDI_TG_VAL_TOTL_GD_ZS`  \n- **Countries:** Kenya (KEN), Tanzania (TZA)  \n- **Years:** 2000\u20132024 (annual)  \n- **Unit:** Percent of GDP  \n\nYou can view the generated line chart here:  \n[Comparative line chart: Merchandise trade (% of GDP), Kenya vs Tanzania, 2000\u20132024](http://localhost:8000/static/viz_specs/c48f97cb-16b6-49b0-b79c-d0c3efe46794_vega.json)\n\nEach point in the chart corresponds to an annual observation from the WDI-based Data360 series. For example, recent values are:\n\n| Country   | Year | Merchandise trade (% of GDP) |\n|----------|------|------------------------------|\n| Kenya    | 2024 | <claim id=\"d2a695ba\" policy=\"auto\">23.54</claim>% |\n| Kenya    | 2023 | <claim id=\"d82511eb\" policy=\"auto\">23.98</claim>% |\n| Kenya    | 2022 | <claim id=\"c26e3326\" policy=\"auto\">24.97</claim>% |\n| Kenya    | 2021 | <claim id=\"c6c60086\" policy=\"auto\">23.97</claim>% |\n| Kenya    | 2020 | <claim id=\"6a3188de\" policy=\"auto\">21.33</claim>% |\n| Kenya    | 2019 | <claim id=\"f3740e43\" policy=\"auto\">23.41</claim>% |\n| Tanzania | 2024 | <claim id=\"327b2f9c\" policy=\"auto\">29.15</claim>% |\n| Tanzania | 2023 | <claim id=\"b1c475b6\" policy=\"auto\">26.58</claim>% |\n| Tanzania | 2022 | <claim id=\"7ad6c11c\" policy=\"auto\">27.78</claim>% |\n| Tanzania | 2021 | <claim id=\"a5f8fee1\" policy=\"auto\">23.23</claim>% |\n| Tanzania | 2020 | <claim id=\"2628c1ad\" policy=\"auto\">21.95</claim>% |\n| Tanzania | 2019 | <claim id=\"f57c45f4\" policy=\"auto\">23.69</claim>% |\n\n*(All values are percentages of GDP; 2 decimals as stored in the dataset.)*\n\n---\n\n**Analysis (visual pattern, 2000\u20132024):**\n\n- Both countries show moderate openness, with merchandise trade consistently in the roughly 20\u201330% of GDP band since the late 2010s (using latest available years in the chart).  \n- Tanzania\u2019s ratio is slightly higher than Kenya\u2019s in the most recent years (e.g., 2024: Tanzania <claim id=\"327b2f9c\" policy=\"auto\">29.15</claim>% vs. Kenya <claim id=\"d2a695ba\" policy=\"auto\">23.54</claim>%).  \n- The 2020 dip in both series (Kenya <claim id=\"6a3188de\" policy=\"auto\">21.33</claim>%, Tanzania <claim id=\"2628c1ad\" policy=\"auto\">21.95</claim>%) aligns with global trade disruptions around COVID\u201119, followed by recovery.\n\n---\n\n**Source annotations (for the chart and documentation):**\n\n- **Primary dataset:**  \n  - **World Bank \u2014 World Development Indicators (WDI)**  \n  - Indicator: Merchandise trade (% of GDP) (`TG.VAL.TOTL.GD.ZS` / `WB_WDI_TG_VAL_TOTL_GD_ZS`)  \n  - Methodology: International Merchandise Trade Statistics 2010 (IMTS 2010); GDP from World Bank national accounts.\n- **Underlying sources:**  \n  - World Trade Organization (WTO) merchandise trade statistics  \n  - World Bank GDP estimates / World Development Indicators  \n- **License:** CC BY 4.0 (World Bank Open Data).\n\nYou can embed the same data in your pipeline via the Data360 API, for example:\n\n```text\nhttps://data360api.worldbank.org/data360/data\n  ?DATABASE_ID=WB_WDI\n  &INDICATOR=WB_WDI_TG_VAL_TOTL_GD_ZS\n  &REF_AREA=KEN,TZA\n  &TIME_PERIOD=2000:2024\n  &top=1000\n  &skip=0\n```\n\n---\n\n**Suggested follow-ups:**\n\n1. \u201cCan you provide the underlying CSV for just Kenya and Tanzania (2000\u20132024) so I can attach it directly to the chart in my system?\u201d  \n2. \u201cCan you generate a similar chart for services trade or a services trade restrictiveness indicator for Kenya and Tanzania?\u201d  \n3. \u201cCan you overlay GDP per capita or export growth on this chart to relate trade openness to income dynamics?\u201d",
+        "turn_index": 2,
+        "pipeline_result": {
+          "routing_intent": "(via HTTP)",
+          "routing_reasoning": "Understanding your question\u2026User requests a comparative line chart for merchandise trade (% of GDP) for Kenya and Tanzania from 2000\u20132024, including data points and source annotations. This is a World Bank development indicator (WDI), so I should use Data360 tools to retrieve the data and metadata before constructing the chart description.",
+          "planner_output": "",
+          "writer_output": "",
+          "tool_calls": [
+            {
+              "name": "data360_get_viz_spec",
+              "args": {
+                "database_id": "WB_WDI",
+                "indicator_id": "WB_WDI_TG_VAL_TOTL_GD_ZS",
+                "country_code": "KEN,TZA",
+                "start_year": 2000,
+                "end_year": 2024,
+                "chart_type": "line chart"
+              },
+              "output": {
+                "url": "http://localhost:8000/static/viz_specs/c48f97cb-16b6-49b0-b79c-d0c3efe46794_vega.json",
+                "error": null
+              }
+            }
+          ],
+          "model": "unknown",
+          "turns_used": 0,
+          "error": null
+        }
+      }
+    ]
+  }
+]

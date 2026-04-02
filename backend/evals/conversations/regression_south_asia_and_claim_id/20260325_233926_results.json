@@ -1,0 +1,146 @@
+{
+  "timestamp": "20260325_233926",
+  "personas": [
+    "regression_south_asia_and_claim_id"
+  ],
+  "max_turns": 5,
+  "num_runs": 1,
+  "config": {
+    "judge_model": "gpt-4.1-mini",
+    "use_http_callback": true,
+    "hyperparameters": {
+      "prompt_version": "feat/setup-evals@d8be3593d",
+      "system_prompt_hash": "ae5dd93d6480"
+    }
+  },
+  "results": {
+    "regression_south_asia_and_claim_id": {
+      "Conversation Completeness [Conversational GEval]": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "All user intentions were fully met with accurate, relevant data provided for South Asia GDP growth and Tuvalu GDP per capita. When asked for derived total GDP estimates, the assistant explicitly explained the inability to perform calculations beyond official data, offered a clear method for user calculation, and suggested alternatives including fetching official total GDP and population data. This aligns perfectly with the rubric and evaluation steps, showing all intentions met or gracefully handled with gap explanation and alternatives.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Accuracy": {
+        "score": 0.9852,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (min=0.99). Turn 1: All GDP growth values correspond exactly to the South Asia region and correct years as per the World Bank Gender Statistics database. Entity names such as 'South Asia' and the indicator 'GDP growth (annual %)' match the tool output precisely. There is no evidence of fabricated or guessed numbers; all data points are clearly sourced and consistent. | Turn 2: All GDP per capita values for Tuvalu match the correct years (2021-2023) and correspond exactly to the World Bank data as indicated. Entity names and indicator details are precise and consistent with the tool output, with no fabricated or guessed numbers detected. | Turn 3: The response accurately presents Tuvalu's GDP per capita values for 2021\u20132023 exactly as provided by the tool output, with correct country and year matching. It avoids fabricating total GDP figures by clearly explaining the calculation method without performing it, adhering to the policy of not deriving new numbers. Entity names and values match the official data precisely, demonstrating full compliance with the evaluation steps.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Claim Tagging & PCN": {
+        "score": 1.0,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Context Retention": {
+        "score": 0.9095,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (min=0.91). Turn 2: The response correctly provides GDP per capita data for Tuvalu with consistent claim_ids reused in the analysis, maintaining data provenance. It does not re-search or contradict prior context, which focused on South Asia, thus appropriately retaining context. Minor deduction for not explicitly referencing prior turns, but overall context is well maintained. | Turn 3: The response correctly maintains context by not performing new calculations on official data, instead referencing prior claim_ids for GDP per capita values with consistent provenance. It avoids inventing new claim_ids and does not contradict prior assertions about data availability. The assistant also offers a clear explanation and suggests fetching official total GDP data to avoid approximation, demonstrating strong adherence to the evaluation criteria. A minor deduction is for not explicitly confirming population data provenance, but overall context retention and consistency are well handled.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Gap Handling": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Comparability Warnings": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Content Structure": {
+        "score": 0.904,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (mean=0.90). Turn 1: The response clearly separates data, analysis, and contextual notes into labeled sections, fulfilling the structural requirements. It provides detailed data with source and units, followed by a distinct analysis interpreting the trends. Caveats about data coverage and limitations regarding the five-year span are explicitly addressed in the 'Note' section. Minor improvements could be made by more explicitly separating facts from interpretation within the analysis, but overall the response demonstrates strong clarity and structure. | Turn 2: The response clearly separates data and analysis into labeled sections, with a distinct 'Data' section presenting the GDP per capita figures and an 'Analysis' section interpreting the trends. Caveats are addressed by noting that values are nominal and not inflation-adjusted, providing important context. Facts, analysis, and interpretation are well delineated, though the 'Summary' and 'Suggested follow-ups' sections add useful context but are not explicitly labeled as analysis or caveats, which slightly limits perfect structural clarity. | Turn 3: The response clearly separates data (GDP per capita values) and analysis (instructions on how to compute total GDP) into labeled sections. It explicitly addresses caveats by noting the inability to perform new calculations and suggesting alternative approaches. Facts, analysis, and interpretation are well distinguished, though the data section could be more explicitly labeled to achieve perfect clarity.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Follow-up Suggestions": {
+        "score": 0.9119,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (min=0.91). Turn 2: The response includes a clearly labeled 'Suggested follow-ups:' section with three follow-up prompts. All follow-ups are phrased as user questions, maintaining a conversational and natural tone. The only minor shortcoming is the use of quotation marks around the questions, which is slightly unusual but does not detract from the user-phrased nature. | Turn 3: The response includes a clearly labeled 'Suggested follow-ups:' section with three user-phrased questions that are relevant and well-formed. The questions invite further data retrieval and comparison, aligning well with the rubric's highest category. Minor deduction is due to slight formality in phrasing, but overall the follow-ups are appropriately user-oriented.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Latest Data Note": {
+        "score": 0.9731,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (min=0.97). Turn 1: The response clearly addresses the user's request for GDP growth rates over the past five years by providing data from 2019 to 2022 and explicitly notes the latest available data year (2022) and the dataset's coverage. It also includes a detailed analysis of year-by-year changes and a note about data availability up to 2024, fulfilling the rubric criteria for including a latest data note or user-specified year. | Turn 3: The response explicitly provides GDP per capita data for Tuvalu for the last three years (2021\u20132023), clearly specifying the years and values. It also includes a note about the limitations of deriving total GDP from these figures and suggests alternative official data sources, demonstrating awareness of the latest available data and user-specified year context.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Source Citation": {
+        "score": 0.9018,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (min=0.90). Turn 1: The response includes a clearly labeled 'Sources:' section citing the World Bank Gender Statistics database with relevant details such as the indicator name and code. The citation format is mostly correct and informative, though it could be slightly more formal or standardized to achieve a perfect score. | Turn 2: The response includes a clearly labeled 'Sources:' section with a detailed citation referencing the World Bank and the specific dataset used, including indicator codes. The format is mostly correct and informative, though it could be slightly more standardized (e.g., consistent use of italics or bold), but overall it meets the rubric criteria for a correct citation format.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Formatting": {
+        "score": 0.8622,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (min=0.86). Turn 1: The response includes units clearly stated as percent annual growth, presents multiple values in a well-formatted markdown table, and avoids scientific notation. The data is detailed and contextualized with clear labeling and explanations. Minor markdown inconsistencies with inline claim tags do not detract significantly from overall clarity and formatting quality. | Turn 2: The response includes units clearly specified as 'current US$' throughout, presents three years of data in a well-formatted markdown table, and avoids any scientific notation. The inclusion of detailed metadata and a brief analysis further enhances clarity and professionalism, fully meeting the rubric criteria for well-formatted output. | Turn 3: The response includes units for all GDP per capita values and clearly labels them with years. It presents multiple values (three years) but does not use a markdown table, instead opting for a clear list format with formulas, which is acceptable though not optimal. There is no use of scientific notation, maintaining clarity. The explanation is well-structured and guides the user on how to compute total GDP, showing strong formatting overall with minor room for improvement in tabular presentation.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Inline Explanations": {
+        "score": 0.9086,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (mean=0.91). Turn 1: The response identifies key technical terms such as GDP growth, the World Bank Gender Statistics database, and the indicator code, providing clear and concise inline explanations for most terms on first use. The explanation of units, coverage, and periodicity is also well integrated. However, the acronym 'SAS' for South Asia is used without explicit initial definition, which slightly reduces completeness. | Turn 2: The response identifies key technical terms such as 'GDP per capita (current US$)', 'World Development Indicators (WDI)', and 'nominal values', and provides clear, concise inline explanations for most of them on first use. The acronym 'WDI' is expanded immediately, and the nominal nature of the values is explained in the analysis section. The explanation of units and data source is also clear. However, the acronym 'WB_WDI_NY_GDP_PCAP_CD' is presented without explicit plain-language explanation, which slightly limits completeness. | Turn 3: The response identifies key technical terms such as 'GDP per capita (current US$)' and 'total GDP' and provides clear, concise inline explanations on how to compute total GDP from per capita GDP and population. It also explains the limitation of not performing new calculations and offers an alternative to fetch official total GDP data. While most terms are well explained, the term 'World Bank population series' could have been briefly clarified, preventing a perfect score.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Progressive Disclosure": {
+        "score": 0.9074,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (mean=0.91). Turn 1: The response begins with a clear summary providing insight into South Asia's GDP growth trends, avoiding excessive data dumping by presenting a concise table and focused analysis. It offers structured sections including data, analysis, notes, sources, and suggested follow-ups, enabling progressive understanding and inviting further drill-downs. Minor deduction for slightly dense data presentation, but overall it aligns well with the highest rubric tier. | Turn 2: The response begins with a clear summary providing insight into the data, avoiding an immediate dump of raw figures. It presents structured data with a brief analysis that contextualizes the numbers, and concludes with relevant suggested follow-up questions to enable drill-down. The only minor shortcoming is that the analysis is brief and could be slightly more detailed, but overall it meets the criteria for leading with insight, progressive structure, and offering drill-down. | Turn 3: The response begins with a clear summary explaining the limitation on providing a direct calculation, which aligns with leading with insight. It provides a structured, step-by-step method for the user to compute total GDP from per capita values and population, avoiding excessive data dumping. Additionally, it offers relevant, specific follow-up questions to enable drill-down, fulfilling the rubric's highest criteria. Minor deduction is due to the lack of an explicit progressive narrative beyond the calculation steps.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Selection": {
+        "score": 0.9692,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (mean=0.97). Turn 1: The response correctly uses the World Bank Gender Statistics database tool to provide GDP growth data for South Asia, which aligns well with the user's request. The tool name is real and appropriate, and the data is relevant and well-analyzed. However, the response notes that data for the full five-year span up to 2024 is not fully available and suggests complementing with another World Bank database, indicating a minor missing tool that could have been called to fully satisfy the five-year request.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Sequencing": {
+        "score": 0.9982,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (min=1.00). Turn 1: The response demonstrates correct logical ordering by providing a clear summary and analysis before presenting data, indicating discovery steps precede data retrieval. There is no evidence of data fetched before discovery, and no ambiguous country-level queries requiring find_codelist_value before get_data. The data is presented for the South Asia aggregate region, so no disaggregation precedes data retrieval. Overall, the tools appear called in the correct logical order.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Argument Quality": {
+        "score": 0.9,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (min=0.90). Turn 1: The response uses a valid 3-letter ISO code for South Asia (SAS) and a plausible indicator ID (WB_GS_NY_GDP_MKTP_KD_ZG) from the World Bank Gender Statistics database. The search query is specific to the user's intent, focusing on GDP growth rates for South Asia over recent years, and the disaggregation is appropriate as it covers the South Asia aggregate region. Minor deduction is due to the note about incomplete five-year coverage and reliance on a gender statistics database rather than the main WDI aggregates, which slightly limits completeness but does not affect correctness. | Turn 2: The response uses a valid 3-letter ISO country code (TUV for Tuvalu) and provides a plausible indicator and database ID format (WB_WDI_NY_GDP_PCAP_CD). The search query is specific to the user's intent, focusing on GDP per capita for Tuvalu over the last three years. No disaggregation filters are used, so that step is not applicable. The only minor issue is the slight inconsistency in the indicator ID format between the summary and sources, but overall the arguments are well-formed and specific.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Routing Correctness": {
+        "score": 0.9182,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (min=0.92). Turn 3: The response correctly identifies the user's intent as a data retrieval question involving derived calculations and appropriately routes it by explaining the limitation on performing new calculations while providing relevant data and guidance. The routing and tool usage are consistent, as the response relies on official data and suggests fetching official total GDP data to avoid approximation. The explanation is clear and aligns well with the evaluation steps, with only a minor deduction for not directly providing the total GDP figures but instead guiding the user to compute or request them.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Visualization & API URLs": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 3 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      }
+    }
+  }
+}

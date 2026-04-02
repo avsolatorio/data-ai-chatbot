@@ -1,0 +1,146 @@
+{
+  "timestamp": "20260326_044002",
+  "personas": [
+    "composed_general_public_health_outcomes_latin_america_drill_down"
+  ],
+  "max_turns": 5,
+  "num_runs": 1,
+  "config": {
+    "judge_model": "gpt-4.1-mini",
+    "use_http_callback": true,
+    "hyperparameters": {
+      "prompt_version": "feat/setup-evals@d8be3593d",
+      "system_prompt_hash": "ae5dd93d6480"
+    }
+  },
+  "results": {
+    "composed_general_public_health_outcomes_latin_america_drill_down": {
+      "Conversation Completeness [Conversational GEval]": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "The assistant fully met the user's intention by providing a simple, big-picture overview of child and maternal health in Latin America using recent World Bank data for six large countries, including clear mortality rates and plain-language explanations. The response included relevant comparisons, trends over time, regional differences, and high-level drivers, all aligned with the user's request and the evaluation rubric for fully met intentions.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Accuracy": {
+        "score": 1.0,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Claim Tagging & PCN": {
+        "score": 1.0,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Context Retention": {
+        "score": 1.0,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Gap Handling": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Comparability Warnings": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Content Structure": {
+        "score": 0.9622,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=0.96). Turn 1: The response demonstrates clear structural separation with distinct labeled sections for Data, Analysis, Note (caveats), and Sources. Facts, analysis, and interpretation are clearly separated, with data tables and plain-language summaries in the Data section, followed by a dedicated Analysis section that interprets the data. Caveats about national averages and subgroup disparities are explicitly addressed in the Note section, fulfilling all rubric criteria for the highest score range.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Follow-up Suggestions": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Latest Data Note": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Source Citation": {
+        "score": 0.9777,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=0.98). Turn 1: The response includes a clearly labeled 'Sources' section with properly formatted citations referencing the World Bank and specific indicator IDs, fulfilling the rubric criteria for correct format and completeness.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Formatting": {
+        "score": 0.9971,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). Turn 1: The response includes units for all values (e.g., per 1,000 live births, per 100,000 live births), presents multiple values in well-formatted markdown tables, and avoids scientific notation. The data is clearly organized and accompanied by plain-language explanations, meeting all rubric criteria for excellent formatting.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Inline Explanations": {
+        "score": 0.9182,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=0.92). Turn 1: The response identifies key technical terms such as 'under-5 mortality' and 'maternal mortality ratio' and provides clear, concise plain-language explanations immediately after introducing these indicators. Explanations are inline and accessible, effectively translating technical metrics into understandable takeaways. While most terms are well explained, some acronyms like 'SDG' are mentioned without definition, preventing a perfect score.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Progressive Disclosure": {
+        "score": 0.9011,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=0.90). Turn 1: The response begins with a clear summary and insight, providing a big-picture snapshot of child and maternal health in Latin America. It presents structured data tables with concise plain-language explanations, avoiding excessive data dumping. The analysis section offers a progressive, thematic overview of trends, regional differences, and drivers of health outcomes. Additionally, it suggests relevant follow-up questions for deeper exploration, demonstrating an effective drill-down approach. The only minor shortcoming is the relatively dense data presentation, but it is well balanced by clear explanations.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Selection": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Sequencing": {
+        "score": 0.9971,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). Turn 1: The response follows the correct logical order: discovery steps such as identifying indicators and countries precede data retrieval, and data is not fetched before discovery. There is no evidence of get_data being called before search_indicators or find_codelist_value, and no ordering violations are present for filtered queries. The output presents data clearly after establishing context and indicators, aligning with the rubric for a perfect score.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Argument Quality": {
+        "score": 0.9119,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=0.91). Turn 1: The response uses valid 3-letter country codes implicitly by naming countries correctly and references plausible indicator IDs from the World Bank (WB_WDI_SH_DYN_MORT and WB_WDI_SH_STA_MMRT). The queries are specific to the user's intent, focusing on child and maternal health in Latin America with recent data from six large countries. Disaggregation filters are not explicitly detailed but the selection of countries and indicators is appropriate and well-formed. Minor deduction for lack of explicit ISO codes and disaggregation filter codes, but overall the arguments are well-structured and specific.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Routing Correctness": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Visualization & API URLs": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      }
+    }
+  }
+}

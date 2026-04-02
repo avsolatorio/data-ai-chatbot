@@ -1,0 +1,583 @@
+[
+  {
+    "persona": "composed_general_public_poverty_inequality_east_africa_adversarial_disambiguation",
+    "scenario": "A curious citizen wants to learn about poverty and inequality in Kenya and Tanzania. They use ambiguous geographic names or colloquial references that could map to multiple countries or regions, testing whether the chatbot disambiguates correctly or asks for clarification.",
+    "expected_outcome": "ALL of the following must be achieved: (1) The chatbot searches for and provides relevant data about poverty and inequality in Kenya and Tanzania with claim tags and sources. (2) All responses use plain language with no unexplained jargon. (3) The chatbot correctly disambiguates or asks for clarification when geographic references are ambiguous. (4) No data is returned for the wrong country or region.",
+    "num_turns": 2,
+    "model": "gpt-4.1-mini",
+    "prompt_version": "feat/setup-evals@d8be3593d",
+    "system_prompt_hash": "ae5dd93d6480",
+    "use_http_callback": true,
+    "turns": [
+      {
+        "role": "user",
+        "content": "Hi there! I'm trying to understand more about poverty and inequality in the area around Kenya and Tanzania. Could you help explain what's going on there in simple terms?",
+        "turn_index": 1
+      },
+      {
+        "role": "assistant",
+        "content": "\n\n**Summary (in simple terms)**  \nIn Kenya, Tanzania, and nearby countries like Uganda, **a very large share of people still live in extreme poverty**, and **income is quite unevenly shared**, though not among the most unequal countries in the world. Progress has happened over the long term, but poverty remains high, especially in rural areas.\n\n---\n\n## Data\n\n**Extreme poverty (less than about $2.15 per day, 2017 PPP)**  \n- In **Kenya**, roughly **one in three people** lived in extreme poverty in 2021: <claim id=\"07438638\" policy=\"auto\">36.1</claim>% of the population.  \n- In **Uganda**, it was closer to **two in five people** in 2019: <claim id=\"1e51b445\" policy=\"auto\">42.2</claim>%.  \n- In **Tanzania**, about **almost half the population** was in extreme poverty in 2018: <claim id=\"75424db4\" policy=\"auto\">44.9</claim>%.  \n\nThese numbers mean that **tens of millions of people in the region live on very low daily spending**, often struggling to cover food, basic health care, and schooling.\n\n**Inequality (Gini index)**  \n- **Kenya** had a Gini index of about <claim id=\"97986bcb\" policy=\"auto\">38.7</claim> in 2021.  \n- **Uganda** was higher, around <claim id=\"3226d16f\" policy=\"auto\">42.7</claim> in 2019.  \n- **Tanzania** was about <claim id=\"33ab628f\" policy=\"auto\">40.5</claim> in 2018.  \n\nFor context, Gini values:\n- Around **25\u201330**: quite equal (like some richer European countries)  \n- Around **40\u201345**: moderate to high inequality  \n- Above **50**: very unequal  \n\nSo Kenya, Tanzania, and Uganda are in the **moderate\u2011to\u2011high inequality** range.\n\n---\n\n## Analysis (what this means in plain language)\n\n### 1. Poverty is still widespread, especially in rural areas\nEven though the region has grown economically, the share of people living on very little money is still high:\n\n- In **Kenya**, with around **one in three** people in extreme poverty, many households:\n  - Depend on small farms and informal work  \n  - Are vulnerable to droughts, food price shocks, and health emergencies  \n- In **Tanzania** and **Uganda**, the share in extreme poverty is even higher (around **two in five** or more), which means:\n  - Basic needs (enough food, safe water, decent housing) are often not secure  \n  - Many children grow up with limited access to quality education and health care  \n\nIn practice, this looks like:\n- Families skipping meals or relying heavily on one staple food  \n- Children leaving school early to help at home or work  \n- People unable to pay for medicine or transport to clinics  \n\n### 2. Inequality: growth is not shared equally\nThe Gini numbers show that **income is unevenly distributed**:\n\n- In cities like **Nairobi**, **Dar es Salaam**, and **Kampala**, you see:\n  - A growing middle class and wealthy elites  \n  - At the same time, large informal settlements with poor housing and services  \n- In rural areas, many people:\n  - Rely on rain\u2011fed agriculture  \n  - Have limited access to markets, roads, electricity, and finance  \n\nThis means that **even when the economy grows**, the benefits often go more to:\n- People with land in good locations  \n- Those with higher education  \n- Those connected to better\u2011paying jobs or businesses  \n\nOthers see **slow or no improvement**, which keeps inequality relatively high.\n\n### 3. Different countries, somewhat similar challenges\n- **Kenya**\n  - Extreme poverty is high but somewhat **lower than in Tanzania and Uganda**.  \n  - Inequality is **significant but not extreme** (Gini in the high\u201130s to around 40).  \n  - There is a strong urban\u2013rural divide and regional differences (e.g., arid and semi\u2011arid lands often poorer).\n\n- **Tanzania**\n  - A **larger share of the population is extremely poor** than in Kenya.  \n  - Inequality is similar or slightly higher than Kenya\u2019s.  \n  - Many people depend on subsistence farming; infrastructure gaps are large in rural areas.\n\n- **Uganda**\n  - Extreme poverty is also **very high**, and inequality is **on the high side** in the region.  \n  - Rapid population growth makes it harder for incomes per person to rise quickly.\n\n### 4. Why is it like this? (key drivers in simple terms)\n\nCommon factors across the region:\n\n- **Agriculture dependence and climate shocks**  \n  Many poor households rely on small farms. Droughts, floods, and changing rainfall patterns can wipe out harvests, pushing people deeper into poverty.\n\n- **Fast population growth**  \n  The number of people is growing quickly. Even if the economy grows, it has to \u201cstretch\u201d across more people, which can slow improvements per person.\n\n- **Limited good jobs**  \n  Many people work in informal jobs (street vending, casual labor, very small businesses) with:\n  - Low and unstable pay  \n  - No social protection (no unemployment insurance, pensions, etc.)\n\n- **Unequal access to education and services**  \n  Where you are born matters a lot:\n  - Children in remote rural areas or poorer neighborhoods often get lower\u2011quality schooling.  \n  - Health services can be far away or expensive.  \n  - This makes it hard to \u201cmove up\u201d even if you work hard.\n\n- **Infrastructure gaps**  \n  Poor roads, limited electricity, and weak internet in rural areas mean:\n  - Farmers can\u2019t easily get products to market  \n  - Businesses are more expensive to run  \n  - Investment tends to concentrate in cities\n\n### 5. The good news: there has been progress, but it is uneven\nOver the last 20\u201330 years, these countries have:\n- Increased school enrollment  \n- Expanded basic health services  \n- Grown their economies overall  \n\nThis has **reduced poverty compared with the 1990s**, but:\n- Many people are still just above the poverty line and can fall back with a shock.  \n- Inequality remains high, which can slow poverty reduction and create social tensions.\n\n---\n\n## Note\n\n- The exact percentages differ by year and country, and some of the latest data points are a few years old (surveys are not done every year).\n- The numbers I quoted come from **World Bank\u2019s Global Monitoring Database / Global Poverty and Shared Prosperity series (via Data360)**, using a common international line ($2.15/day, 2017 PPP) so that countries can be compared.\n\n---\n\n## Sources\n\n- **World Bank \u2014 Global Monitoring Database / Global Poverty and Shared Prosperity (WB_GS)**  \n  - *Poverty headcount ratio at $2.15 a day (2017 PPP) (% of population)* \u2014 Indicator ID: `WB_GS_SI_POV_DDAY`  \n  - *Gini index (World Bank estimate)* \u2014 Indicator ID: `WB_GS_SI_POV_GINI`  \n\n---\n\n**Suggested follow-ups:**\n1. Could you compare poverty and inequality in Kenya and Tanzania with a richer African country or with the global average?  \n2. What are some specific policies or programs in Kenya and Tanzania that have been effective in reducing poverty?  \n3. Can you show a simple chart of how poverty in Kenya and Tanzania has changed over the last 20 years?",
+        "turn_index": 1,
+        "pipeline_result": {
+          "routing_intent": "(via HTTP)",
+          "routing_reasoning": "Understanding your question\u2026User is asking about poverty and inequality in Kenya/Tanzania region, which is squarely in the domain of development data and can be informed by World Bank indicators and metadata.",
+          "planner_output": "**Intent (in your words):**  \nYou want a clear, simple explanation of what poverty and inequality look like in and around Kenya and Tanzania.\n\n**Selection logic (what I pulled):**  \nTo keep it simple but grounded in real data, I looked at two key World Bank indicators for Kenya, Tanzania, and close neighbors (Uganda; data for others was not available in this narrow window):\n\n1. **Extreme poverty:**  \n   - *\u201cPoverty headcount ratio at $2.15 a day (2017 PPP) (% of population)\u201d*  \n     - ID: `WB_GS_SI_POV_DDAY` (database: `WB_GS`)\n2. **Inequality:**  \n   - *\u201cGini index (World Bank estimate)\u201d*  \n     - ID: `WB_GS_SI_POV_GINI` (database: `WB_GS`)\n\nI focused on the most recent years available (roughly 2018\u20132023).\n\n**Data (latest available, from World Bank series used):**\n\n- **Extreme poverty \u2013 people living on less than about $2.15/day (2017 prices)**  \n  - **Kenya (2021):** about <claim id=\"07438638\" policy=\"auto\">36.1</claim>% of people  \n  - **Kenya (2020):** about <claim id=\"aead3b42\" policy=\"auto\">35</claim>%  \n  - **Uganda (2019):** about <claim id=\"1e51b445\" policy=\"auto\">42.2</claim>%  \n  - **Tanzania (2018):** about <claim id=\"75424db4\" policy=\"auto\">44.9</claim>%\n\n- **Inequality \u2013 Gini index (0 = everyone has the same income, 100 = one person has everything)**  \n  - **Kenya (2021):** Gini around <claim id=\"97986bcb\" policy=\"auto\">38.7</claim>  \n  - **Kenya (2020):** Gini around <claim id=\"87cf075b\" policy=\"auto\">36.2</claim>  \n  - **Uganda (2019):** Gini around <claim id=\"3226d16f\" policy=\"auto\">42.7</claim>  \n  - **Tanzania (2018):** Gini around <claim id=\"33ab628f\" policy=\"auto\">40.5</claim>  \n\n*(Note: higher Gini = more unequal.)*\n\n---",
+          "writer_output": "",
+          "tool_calls": [
+            {
+              "name": "data360_search_indicators",
+              "args": {
+                "query": "poverty headcount ratio at $2.15 a day (2017 PPP) (% of population)",
+                "required_country": "Kenya, Tanzania, Uganda, Rwanda, Burundi, Ethiopia, Somalia",
+                "limit": 10
+              },
+              "output": {
+                "count": 10,
+                "total_count": 9024,
+                "offset": 0,
+                "has_more": true,
+                "next_offset": 10,
+                "indicators": [
+                  {
+                    "idno": "WB_WDI_SI_POV_UMIC",
+                    "database_id": "WB_WDI",
+                    "name": "Poverty headcount ratio at $8.30 a day (2021 PPP) (% of population)",
+                    "truncated_definition": "Poverty headcount ratio at $8.30 a day is the percentage of the population living on less than $8.30",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1963-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_WDI_SI_POV_LMIC",
+                    "database_id": "WB_WDI",
+                    "name": "Poverty headcount ratio at $4.20 a day (2021 PPP) (% of population)",
+                    "truncated_definition": "Poverty headcount ratio at $4.20 a day is the percentage of the population living on less than $4.20",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1963-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_WDI_SI_POV_DDAY",
+                    "database_id": "WB_WDI",
+                    "name": "Poverty headcount ratio at $3.00 a day (2021 PPP) (% of population)",
+                    "truncated_definition": "Poverty headcount ratio at $3.00 a day is the percentage of the population living on less than $3.00",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1963-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_PIP_HEADCOUNT_IPL",
+                    "database_id": "WB_PIP",
+                    "name": "Poverty headcount ratio (2021 PPP, $3.00) (% of population)",
+                    "truncated_definition": "The percentage of population living in households with consumption or income per person below the po",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1963-2024",
+                    "covers_country": true,
+                    "dimensions": [
+                      "URBANISATION"
+                    ]
+                  },
+                  {
+                    "idno": "WB_PIP_HEADCOUNT_LMIC",
+                    "database_id": "WB_PIP",
+                    "name": "Poverty headcount ratio (2021 PPP, $4.20) (% of population)",
+                    "truncated_definition": "The percentage of population living in households with consumption or income per person below the po",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1963-2024",
+                    "covers_country": true,
+                    "dimensions": [
+                      "URBANISATION"
+                    ]
+                  },
+                  {
+                    "idno": "WB_PIP_HEADCOUNT_UMIC",
+                    "database_id": "WB_PIP",
+                    "name": "Poverty headcount ratio (2021 PPP, $8.30) (% of population)",
+                    "truncated_definition": "The percentage of population living in households with consumption or income per person below the po",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1963-2024",
+                    "covers_country": true,
+                    "dimensions": [
+                      "URBANISATION"
+                    ]
+                  },
+                  {
+                    "idno": "WB_WDI_SI_POV_NAHC",
+                    "database_id": "WB_WDI",
+                    "name": "Poverty headcount ratio at national poverty lines (% of population)",
+                    "truncated_definition": "National poverty headcount ratio is the percentage of the population living below the national pover",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1985-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_PIP_NPOOR_IPL",
+                    "database_id": "WB_PIP",
+                    "name": "Population living below the poverty line (2021 PPP, $3.00) (million)",
+                    "truncated_definition": "Number of people, in millions, living on less than $3.00 a day at 2021 PPP is calculated by multiply",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1963-2024",
+                    "covers_country": true,
+                    "dimensions": [
+                      "URBANISATION"
+                    ]
+                  },
+                  {
+                    "idno": "WB_GS_SI_POV_DDAY",
+                    "database_id": "WB_GS",
+                    "name": "Poverty headcount ratio at $2.15 a day (2017 PPP) (% of population)",
+                    "truncated_definition": "Poverty headcount ratio at $2.15 a day is the percentage of the population living on less than $2.15",
+                    "periodicity": "Annual",
+                    "latest_data": "2023",
+                    "time_period_range": "1960-2023",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_SSGD_POVERTY_RATIO_NPL",
+                    "database_id": "WB_SSGD",
+                    "name": "Poverty headcount ratio at national poverty lines",
+                    "truncated_definition": "National poverty headcount ratio is the percentage of the population living below the national pover",
+                    "periodicity": "Annual",
+                    "latest_data": "2022",
+                    "time_period_range": "2018-2022",
+                    "covers_country": true,
+                    "dimensions": null
+                  }
+                ],
+                "required_country": "KEN,TZA,UGA,RWA,BDI,ETH,SOM",
+                "error": null
+              }
+            },
+            {
+              "name": "data360_search_indicators",
+              "args": {
+                "query": "GINI index (World Bank estimate)",
+                "required_country": "Kenya, Tanzania, Uganda, Rwanda, Burundi, Ethiopia, Somalia",
+                "limit": 10
+              },
+              "output": {
+                "count": 10,
+                "total_count": 8145,
+                "offset": 0,
+                "has_more": true,
+                "next_offset": 10,
+                "indicators": [
+                  {
+                    "idno": "WB_WDI_SI_POV_GINI",
+                    "database_id": "WB_WDI",
+                    "name": "Gini index",
+                    "truncated_definition": "Gini index measures the extent to which the distribution of income (or, in some cases, consumption e",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "1963-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_WDI_SI_POV_MPWB",
+                    "database_id": "WB_WDI",
+                    "name": "Multidimensional poverty headcount ratio (World Bank) (% of population)",
+                    "truncated_definition": "The multidimensional poverty headcount ratio (World Bank) is the percentage of a population living i",
+                    "periodicity": "Annual",
+                    "latest_data": "2024",
+                    "time_period_range": "2008-2024",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_GS_SI_POV_GINI",
+                    "database_id": "WB_GS",
+                    "name": "Gini index (World Bank estimate)",
+                    "truncated_definition": "Gini index measures the extent to which the distribution of income (or, in some cases, consumption e",
+                    "periodicity": "Annual",
+                    "latest_data": "2023",
+                    "time_period_range": "1960-2023",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_ESG_SI_POV_GINI",
+                    "database_id": "WB_ESG",
+                    "name": "Gini index",
+                    "truncated_definition": "Gini index measures the extent to which the distribution of income (or, in some cases, consumption e",
+                    "periodicity": "Annual",
+                    "latest_data": "2023",
+                    "time_period_range": "1963-2023",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "UHC_SCI",
+                    "database_id": "WB_UHC",
+                    "name": "Universal Health Coverage (UHC) service coverage index",
+                    "truncated_definition": "A composite index representing coverage of essential health services based on 14 tracer indicators i",
+                    "periodicity": "Annual",
+                    "latest_data": "2023",
+                    "time_period_range": "2000-2023",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_SSGD_GINI_INDEX",
+                    "database_id": "WB_SSGD",
+                    "name": "Gini index (World Bank estimate)",
+                    "truncated_definition": "The Gini index measures the extent to which the distribution of income (or, in some cases, consumpti",
+                    "periodicity": "Annual",
+                    "latest_data": "2022",
+                    "time_period_range": "2018-2022",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_SPI_D1_5_DT_TDS_DPPF_XP_ZS",
+                    "database_id": "WB_SPI",
+                    "name": "Quality of Debt service data according to World Bank",
+                    "truncated_definition": "Debt Reporting Metadata from World Bank. For this indicator,  data is pulled from the World Developm",
+                    "periodicity": null,
+                    "latest_data": "2022",
+                    "time_period_range": "2004-2022",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_HCI_HCI",
+                    "database_id": "WB_HCI",
+                    "name": "Human Capital Index (scale 0-1)",
+                    "truncated_definition": "The HCI calculates the contributions of health and education to worker productivity. The final index",
+                    "periodicity": "Annual",
+                    "latest_data": "2020",
+                    "time_period_range": "2010-2020",
+                    "covers_country": true,
+                    "dimensions": [
+                      "SEX"
+                    ]
+                  },
+                  {
+                    "idno": "WB_INFECDB_WBENTP3",
+                    "database_id": "WB_INFECDB",
+                    "name": "Number of years firm operated without formal registration (World Bank Enterprise Surveys)",
+                    "truncated_definition": "Average number of years firms operated without formal registration. This indicator is computed only ",
+                    "periodicity": "Annual",
+                    "latest_data": "2020",
+                    "time_period_range": "1990-2020",
+                    "covers_country": true,
+                    "dimensions": null
+                  },
+                  {
+                    "idno": "WB_INFECDB_WBENTP1",
+                    "database_id": "WB_INFECDB",
+                    "name": "Percent of firms competing against unregistered or informal firms (World Bank Enterprise Surveys)",
+                    "truncated_definition": "Percent of firms competing against unregistered or informal firms is created from the World Bank Ent",
+                    "periodicity": "Annual",
+                    "latest_data": "2020",
+                    "time_period_range": "1990-2020",
+                    "covers_country": true,
+                    "dimensions": null
+                  }
+                ],
+                "required_country": "KEN,TZA,UGA,RWA,BDI,ETH,SOM",
+                "error": null
+              }
+            },
+            {
+              "name": "data360_get_data",
+              "args": {
+                "database_id": "WB_GS",
+                "indicator_id": "WB_GS_SI_POV_DDAY",
+                "disaggregation_filters": {
+                  "REF_AREA": "KEN,TZA,UGA,RWA,BDI,ETH,SOM"
+                },
+                "start_year": 2018,
+                "end_year": 2023,
+                "limit": 100
+              },
+              "output": {
+                "count": 4,
+                "total_count": null,
+                "offset": 0,
+                "has_more": false,
+                "next_offset": null,
+                "data": [
+                  {
+                    "OBS_VALUE": "36.1",
+                    "TIME_FORMAT": null,
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WB_GS",
+                    "INDICATOR": "WB_GS_SI_POV_DDAY",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2021",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT",
+                    "UNIT_TYPE": null,
+                    "claim_id": "07438638"
+                  },
+                  {
+                    "OBS_VALUE": "35",
+                    "TIME_FORMAT": null,
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_GS",
+                    "INDICATOR": "WB_GS_SI_POV_DDAY",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2020",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT",
+                    "UNIT_TYPE": null,
+                    "claim_id": "aead3b42"
+                  },
+                  {
+                    "OBS_VALUE": "42.2",
+                    "TIME_FORMAT": null,
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WB_GS",
+                    "INDICATOR": "WB_GS_SI_POV_DDAY",
+                    "REF_AREA": "UGA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT",
+                    "UNIT_TYPE": null,
+                    "claim_id": "1e51b445"
+                  },
+                  {
+                    "OBS_VALUE": "44.9",
+                    "TIME_FORMAT": null,
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WB_GS",
+                    "INDICATOR": "WB_GS_SI_POV_DDAY",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2018",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "PT",
+                    "UNIT_TYPE": null,
+                    "claim_id": "75424db4"
+                  }
+                ],
+                "metadata": {
+                  "idno": "WB_GS_SI_POV_DDAY",
+                  "name": "Poverty headcount ratio at $2.15 a day (2017 PPP) (% of population)",
+                  "database_id": "WB_GS",
+                  "measurement_unit": "Percent",
+                  "periodicity": "Annual",
+                  "definition_short": "Poverty headcount ratio at $2.15 a day (2017 PPP) (% of population)"
+                },
+                "error": null,
+                "failed_validation": null
+              }
+            },
+            {
+              "name": "data360_get_data",
+              "args": {
+                "database_id": "WB_GS",
+                "indicator_id": "WB_GS_SI_POV_GINI",
+                "disaggregation_filters": {
+                  "REF_AREA": "KEN,TZA,UGA,RWA,BDI,ETH,SOM"
+                },
+                "start_year": 2018,
+                "end_year": 2023,
+                "limit": 100
+              },
+              "output": {
+                "count": 4,
+                "total_count": null,
+                "offset": 0,
+                "has_more": false,
+                "next_offset": null,
+                "data": [
+                  {
+                    "OBS_VALUE": "38.7",
+                    "TIME_FORMAT": null,
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WB_GS",
+                    "INDICATOR": "WB_GS_SI_POV_GINI",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2021",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "COUNT",
+                    "UNIT_TYPE": null,
+                    "claim_id": "97986bcb"
+                  },
+                  {
+                    "OBS_VALUE": "36.2",
+                    "TIME_FORMAT": null,
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": false,
+                    "DATABASE_ID": "WB_GS",
+                    "INDICATOR": "WB_GS_SI_POV_GINI",
+                    "REF_AREA": "KEN",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2020",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "COUNT",
+                    "UNIT_TYPE": null,
+                    "claim_id": "87cf075b"
+                  },
+                  {
+                    "OBS_VALUE": "42.7",
+                    "TIME_FORMAT": null,
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WB_GS",
+                    "INDICATOR": "WB_GS_SI_POV_GINI",
+                    "REF_AREA": "UGA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2019",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "COUNT",
+                    "UNIT_TYPE": null,
+                    "claim_id": "3226d16f"
+                  },
+                  {
+                    "OBS_VALUE": "40.5",
+                    "TIME_FORMAT": null,
+                    "UNIT_MULT": 0,
+                    "COMMENT_OBS": null,
+                    "OBS_STATUS": "A",
+                    "OBS_CONF": "PU",
+                    "AGG_METHOD": null,
+                    "DECIMALS": null,
+                    "COMMENT_TS": null,
+                    "DATA_SOURCE": null,
+                    "LATEST_DATA": true,
+                    "DATABASE_ID": "WB_GS",
+                    "INDICATOR": "WB_GS_SI_POV_GINI",
+                    "REF_AREA": "TZA",
+                    "SEX": "_T",
+                    "AGE": "_T",
+                    "URBANISATION": "_T",
+                    "COMP_BREAKDOWN_1": "_Z",
+                    "COMP_BREAKDOWN_2": "_Z",
+                    "COMP_BREAKDOWN_3": "_Z",
+                    "TIME_PERIOD": "2018",
+                    "FREQ": "A",
+                    "UNIT_MEASURE": "COUNT",
+                    "UNIT_TYPE": null,
+                    "claim_id": "33ab628f"
+                  }
+                ],
+                "metadata": {
+                  "idno": "WB_GS_SI_POV_GINI",
+                  "name": "Gini index (World Bank estimate)",
+                  "database_id": "WB_GS",
+                  "measurement_unit": "Count",
+                  "periodicity": "Annual",
+                  "definition_short": "Gini index (World Bank estimate)"
+                },
+                "error": null,
+                "failed_validation": null
+              }
+            }
+          ],
+          "model": "unknown",
+          "turns_used": 0,
+          "error": null
+        }
+      }
+    ]
+  }
+]

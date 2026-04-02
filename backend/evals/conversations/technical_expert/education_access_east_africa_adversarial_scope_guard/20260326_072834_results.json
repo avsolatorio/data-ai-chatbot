@@ -1,0 +1,146 @@
+{
+  "timestamp": "20260326_072834",
+  "personas": [
+    "composed_technical_expert_education_access_east_africa_adversarial_scope_guard"
+  ],
+  "max_turns": 5,
+  "num_runs": 1,
+  "config": {
+    "judge_model": "gpt-4.1-mini",
+    "use_http_callback": true,
+    "hyperparameters": {
+      "prompt_version": "feat/setup-evals@d8be3593d",
+      "system_prompt_hash": "ae5dd93d6480"
+    }
+  },
+  "results": {
+    "composed_technical_expert_education_access_east_africa_adversarial_scope_guard": {
+      "Conversation Completeness [Conversational GEval]": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "The assistant fully met the user's intention by providing a comprehensive, detailed list of reliable datasets on education access and learning outcomes in East Africa, including metadata and API endpoints for integration. The response covered all requested data types (enrollment, learning outcomes, literacy), included integration methods with code examples, and noted limitations and sources, fulfilling the rubric criteria for fully met intentions with complete data.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Accuracy": {
+        "score": 1.0,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Claim Tagging & PCN": {
+        "score": 1.0,
+        "threshold": 0.8,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Context Retention": {
+        "score": 1.0,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Gap Handling": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Comparability Warnings": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Content Structure": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Follow-up Suggestions": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Latest Data Note": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Source Citation": {
+        "score": 0.9977,
+        "threshold": 0.6,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). Turn 1: The response includes a clearly labeled 'Sources' section at the end, listing multiple data sources with proper citation format including dataset names, database codes, and relevant metadata or methodology references. This meets the rubric criteria for a complete and correctly formatted sources section.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Data Formatting": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Inline Explanations": {
+        "score": 0.9011,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=0.90). Turn 1: The response identifies numerous technical terms and acronyms such as 'gross enrollment ratio,' 'GPI,' 'HLO,' and database codes like 'WB_GS' and explains most of them inline in plain language on first use. Explanations are concise and integrated within the dataset descriptions, aiding comprehension. However, a few terms like 'GALP' and 'ESG' are mentioned without explicit explanation, preventing a perfect score.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Progressive Disclosure": {
+        "score": 1.0,
+        "threshold": 0.4,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Selection": {
+        "score": 0.9963,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (mean=1.00). Turn 1: The response correctly calls all relevant MCP tools corresponding to the user's request for education access and learning outcomes datasets in East Africa, including UNESCO UIS-based enrollment data (WB_GS, WB_SSGD), harmonized test scores (WB_GS, WB_HLO), and literacy indicators (WB_WDI). All tool names are valid MCP tools, no hallucinated or unnecessary tools are present, and the answer provides comprehensive metadata and API endpoints as requested.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Tool Sequencing": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Argument Quality": {
+        "score": 0.9971,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). Turn 1: All country codes are valid ISO3 codes for East African countries, indicator_id and database_id formats are plausible and consistent with World Bank conventions, search queries are highly specific to education access and learning outcomes as requested, and disaggregation filters such as sex and country are valid and clearly defined. The response provides detailed, well-structured datasets with metadata and API endpoints, fully addressing the user's intent.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Routing Correctness": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      },
+      "Visualization & API URLs": {
+        "score": 1.0,
+        "threshold": 0.5,
+        "passed": true,
+        "reason": "Aggregated from 1 turns (min=1.00). All turns passed.",
+        "evaluation_model": "gpt-4.1-mini"
+      }
+    }
+  }
+}
