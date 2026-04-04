@@ -1,4 +1,5 @@
 ---
+github_issue: 85
 id: FE-010
 repo: vercel-ai-chatbot
 title: Narrative visibility and separation from thinking content
