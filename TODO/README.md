@@ -1,6 +1,6 @@
 # data-ai-chatbot — task index
 
-Agent-oriented work items. Each task is a standalone `.md` file with context, acceptance criteria, and dependency metadata. (10 active, 1 completed)
+Agent-oriented work items. Each task is a standalone `.md` file with context, acceptance criteria, and dependency metadata. (9 active, 2 completed)
 
 **Sibling repos:** [data360-mcp/TODO](../data360-mcp/TODO/README.md), [pcn/TODO](../pcn/TODO/README.md)
 
@@ -19,20 +19,12 @@ Agent-oriented work items. Each task is a standalone `.md` file with context, ac
 | FE-008 | [FE-008-chat-list-skeleton-loader.md](./FE-008-chat-list-skeleton-loader.md) | When the sidebar chat history list is fetching its first page of data, it sho... |
 
 <details>
-<summary>1 done</summary>
-
-| ID | File | Summary |
-|----|------|---------|
-| FE-009 | [FE-009-chart-viz-urls-basepath.md](./FE-009-chart-viz-urls-basepath.md) | When the app is deployed with a non-empty `NEXT_PUBLIC_BASE_PATH` (matching `... ✓ done |
-
-</details>
-
-<details>
-<summary>1 done</summary>
+<summary>2 done</summary>
 
 | ID | File | Summary |
 |----|------|---------|
 | FE-001 | [FE-001-follow-ups-parser-and-chips.md](./FE-001-follow-ups-parser-and-chips.md) | Make suggested follow-ups reliably interactive and visually obvious: parsing ... ✓ done |
+| FE-009 | [FE-009-chart-viz-urls-basepath.md](./FE-009-chart-viz-urls-basepath.md) | When the app is deployed with a non-empty `NEXT_PUBLIC_BASE_PATH` (matching `... ✓ done |
 
 </details>
 
