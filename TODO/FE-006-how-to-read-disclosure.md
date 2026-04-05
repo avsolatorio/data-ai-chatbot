@@ -1,4 +1,5 @@
 ---
+github_issue: 95
 id: FE-006
 repo: vercel-ai-chatbot
 title: Optional “How to read” presentation

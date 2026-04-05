@@ -1,4 +1,5 @@
 ---
+github_issue: 98
 id: FE-011
 repo: vercel-ai-chatbot
 title: Main narrative streaming must not override user scroll-up

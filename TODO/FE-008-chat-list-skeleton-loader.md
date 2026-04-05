@@ -1,4 +1,5 @@
 ---
+github_issue: 97
 id: FE-008
 repo: vercel-ai-chatbot
 title: Chat messages — skeleton loader on initial load
