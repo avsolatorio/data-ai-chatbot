@@ -3,13 +3,13 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import equal from "fast-deep-equal";
 import { ArrowDownIcon } from "lucide-react";
 import { memo, useCallback, useEffect, useRef } from "react";
+import { useArtifactSelector } from "@/hooks/use-artifact";
 import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
 import { useMessages } from "@/hooks/use-messages";
-import type { Vote } from "@/lib/db/schema";
 import { appConfig } from "@/lib/config";
+import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
-import { useArtifactSelector } from "@/hooks/use-artifact";
 import { useDataStream } from "./data-stream-provider";
 import { PreviewMessage, ThinkingMessage } from "./message";
 import { scrollToAndHighlightMessage } from "./quoted-context-block";
@@ -17,6 +17,43 @@ import { scrollToAndHighlightMessage } from "./quoted-context-block";
 const ROW_GAP = 16;
 const ESTIMATE_SIZE = 200;
 const OVERSCAN = 3;
+
+/** Avoids megabyte JSON.stringify work when building the streaming scroll fingerprint. */
+const MAX_STREAMING_PART_DATA_JSON = 16_384;
+
+function stringifyForStreamingFingerprint(value: unknown): string {
+  try {
+    const s = JSON.stringify(value);
+    if (s.length > MAX_STREAMING_PART_DATA_JSON) {
+      return `${s.slice(0, MAX_STREAMING_PART_DATA_JSON)}…`;
+    }
+    return s;
+  } catch {
+    return "[unserializable]";
+  }
+}
+
+/**
+ * Bumps when any thinking/tool part changes (not only last-part text length) so the
+ * virtual list can scrollToIndex while streaming.
+ */
+function getStreamingThinkingScrollFingerprint(
+  stage: ProcessingStage | null,
+  parts: Array<{
+    type: string;
+    id: string;
+    data: ChatMessage["parts"][number];
+  }>,
+): string {
+  if (parts.length === 0) {
+    return `${stage ?? ""}|0`;
+  }
+  const pieceStrings = parts.map(
+    (p) =>
+      `${p.type}\u001f${p.id}\u001f${stringifyForStreamingFingerprint(p.data)}`,
+  );
+  return `${stage ?? ""}|${parts.length}\u001e${pieceStrings.join("\u001e")}`;
+}
 
 type MessagesProps = {
   chatId: string;
@@ -82,8 +119,7 @@ function PureMessages({
 
   useDataStream();
 
-  const virtualItemCount =
-    messages.length + (status === "submitted" ? 1 : 0);
+  const virtualItemCount = messages.length + (status === "submitted" ? 1 : 0);
 
   const virtualizer = useVirtualizer({
     count: virtualItemCount,
@@ -96,7 +132,8 @@ function PureMessages({
       typeof window !== "undefined" &&
       typeof navigator !== "undefined" &&
       navigator.userAgent.indexOf("Firefox") === -1
-        ? (el) => (el?.getBoundingClientRect().height ?? ESTIMATE_SIZE) + ROW_GAP
+        ? (el) =>
+            (el?.getBoundingClientRect().height ?? ESTIMATE_SIZE) + ROW_GAP
         : undefined,
   });
 
@@ -182,32 +219,22 @@ function PureMessages({
     return () => clearTimeout(t);
   }, [virtualItemCount, status, virtualizer]);
 
-  // Stick to bottom while streaming when user is at bottom (virtual list height may not change so observers don't fire)
+  // Last assistant text length (main message row grows while streaming).
   const lastMessageTextLength =
     messages.length > 0
       ? (messages.at(-1)?.parts ?? [])
-          .filter(
-            (p): p is { type: "text"; text: string } => p.type === "text",
-          )
+          .filter((p): p is { type: "text"; text: string } => p.type === "text")
           .reduce((sum, p) => sum + (p.text?.length ?? 0), 0)
       : 0;
-  const streamingThinkingScrollKey =
-    streamingThinkingParts.length > 0
-      ? `${streamingThinkingParts.length}-${
-          (() => {
-            const last = streamingThinkingParts.at(-1)?.data;
-            if (
-              typeof last === "object" &&
-              last !== null &&
-              "text" in last &&
-              typeof (last as { text?: unknown }).text === "string"
-            ) {
-              return (last as { text: string }).text.length;
-            }
-            return 0;
-          })()
-        }`
-      : "0";
+
+  // Stick-to-bottom while streaming (FE-003): only when the user is already at the bottom
+  // (`isAtBottom`). If they scroll up to read history, we do not force the viewport back
+  // down. A future product flag could add "always follow during thinking" if needed.
+  const streamingThinkingScrollKey = getStreamingThinkingScrollFingerprint(
+    streamingThinkingStage,
+    streamingThinkingParts,
+  );
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: deps re-run when message or thinking content appends
   useEffect(() => {
     if (
@@ -345,8 +372,8 @@ function PureMessages({
                   }
                   usageOverride={
                     message.role === "assistant"
-                      ? usageByMessageId?.[message.id] ??
-                        (isLastAssistantMessage ? lastMessageUsage : undefined)
+                      ? (usageByMessageId?.[message.id] ??
+                        (isLastAssistantMessage ? lastMessageUsage : undefined))
                       : undefined
                   }
                   vote={
