@@ -1,6 +1,6 @@
 # data-ai-chatbot — task index
 
-Agent-oriented work items. Each task is a standalone `.md` file with context, acceptance criteria, and dependency metadata. (9 active, 3 completed)
+Agent-oriented work items. Each task is a standalone `.md` file with context, acceptance criteria, and dependency metadata. (10 active, 3 completed)
 
 **Sibling repos:** [data360-mcp/TODO](../data360-mcp/TODO/README.md), [pcn/TODO](../pcn/TODO/README.md)
 
@@ -9,6 +9,7 @@ Agent-oriented work items. Each task is a standalone `.md` file with context, ac
 | ID | File | Summary |
 |----|------|---------|
 | BE-001 | [BE-001-writer-planner-prompts.md](./BE-001-writer-planner-prompts.md) | Align model output with the agreed structure: Summary → optional Visualizatio... |
+| BE-002 | [BE-002-canonical-thinking-delimiter-alias.md](./BE-002-canonical-thinking-delimiter-alias.md) | Keep `^ANSWER^` as the single invariant canonical delimiter everywhere persis... |
 | DESIGN-001 | [DESIGN-001-visual-hierarchy-spec.md](./DESIGN-001-visual-hierarchy-spec.md) | Produce lightweight specs: typography scale for section titles, spacing, opti... |
 | FE-002 | [FE-002-markdown-autolinks.md](./FE-002-markdown-autolinks.md) | Ensure raw URLs in assistant markdown render as clickable links when the mode... |
 | FE-003 | [FE-003-scroll-while-thinking.md](./FE-003-scroll-while-thinking.md) | Keep the main chat viewport aligned with the latest activity while the system... |
@@ -34,6 +35,7 @@ Agent-oriented work items. Each task is a standalone `.md` file with context, ac
 ```mermaid
 flowchart TB
   BE001["BE-001 Writer and Planner prompts — r"]
+  BE002["BE-002 Canonical thinking delimiter w"]
   DESIGN001["DESIGN-001 Design — visual hierarchy and "]
   FE002["FE-002 Assistant markdown — autolink "]
   FE003["FE-003 Chat scroll — stick to bottom "]
