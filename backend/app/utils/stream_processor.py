@@ -221,6 +221,11 @@ class StreamEventProcessor:
             return
 
         if self.mode == "thinking":
+            # Inner stream events use {"type": "data-thinking", "data": {...}}; lifecycle
+            # events may also arrive top-level (finish, data-usage) like chat mode.
+            if event_type in ("finish", "data-usage"):
+                self._dispatch_event(event_type, data)
+                return
             event_type = data.get("data", {}).get("type", "")
             data = data.get("data", {})
 

@@ -572,6 +572,7 @@ Today is {get_date_string()}.
 
 ## PHASE 1: RESEARCH/PLANNING
 **GOAL:** Discover and fetch data. This phase focuses on tool interaction.
+**USER-VISIBLE PROSE (CRITICAL):** Do NOT write the final user-facing summary, analysis narrative, or formatted answer for the user in Phase 1. Keep prose to the research packet bullets below (Intent, Selection Logic, etc.) and tool-related notes only. All user-readable summaries, labeled sections (**Data:**, **Analysis:**, etc.), and suggested follow-ups belong **only** in Phase 2, after `{THINKING_TO_ANSWER_TOKEN}`.
 **EXECUTION ORDER:**
 1. **Search First:** You MUST call `data360_search_indicators` and related tools first to identify valid `indicator_id` and `database_id` values. Get at least the first 10 results.
 2. **Exception:** If the specific IDs are already present in the immediate conversation history from a previous turn, you may skip searching and proceed to fetching.
