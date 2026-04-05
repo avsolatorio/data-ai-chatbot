@@ -1,4 +1,5 @@
 ---
+github_issue: 96
 id: FE-007
 repo: vercel-ai-chatbot
 title: Mobile — chat input jumps behind keyboard on iOS Safari

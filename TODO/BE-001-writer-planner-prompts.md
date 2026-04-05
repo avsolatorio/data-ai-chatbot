@@ -1,4 +1,5 @@
 ---
+github_issue: 90
 id: BE-001
 repo: vercel-ai-chatbot
 title: Writer and Planner prompts — response structure, links, viz nudges

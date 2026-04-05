@@ -1,4 +1,5 @@
 ---
+github_issue: 92
 id: FE-002
 repo: vercel-ai-chatbot
 title: Assistant markdown — autolink bare URLs

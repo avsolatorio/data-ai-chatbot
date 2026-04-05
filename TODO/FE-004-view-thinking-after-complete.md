@@ -1,4 +1,5 @@
 ---
+github_issue: 93
 id: FE-004
 repo: vercel-ai-chatbot
 title: UI — return to thinking after completion

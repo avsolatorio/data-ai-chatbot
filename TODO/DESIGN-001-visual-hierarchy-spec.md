@@ -1,4 +1,5 @@
 ---
+github_issue: 91
 id: DESIGN-001
 repo: vercel-ai-chatbot
 title: Design — visual hierarchy and data vs interpretation
