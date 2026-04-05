@@ -1,4 +1,5 @@
 ---
+github_issue: 86
 id: BE-002
 repo: vercel-ai-chatbot
 title: Canonical thinking delimiter with optional LLM-facing alias normalization
