@@ -2,7 +2,7 @@
 id: FE-003
 repo: vercel-ai-chatbot
 title: Chat scroll — stick to bottom during thinking
-status: pending
+status: done
 priority: medium
 depends_on: []
 blocks: []
@@ -30,9 +30,9 @@ Keep the main chat viewport aligned with the latest activity while the system is
 
 ## Acceptance criteria
 
-- [ ] Thinking/tool updates bump a scroll key or equivalent so the main list scrolls when content grows and the user was already at the bottom.
-- [ ] Document or config flag if product chooses “force bottom during thinking” vs respect user scroll-up.
-- [ ] No runaway scroll when the user has intentionally scrolled away (unless forced mode is enabled).
+- [x] Thinking/tool updates bump a scroll key or equivalent so the main list scrolls when content grows and the user was already at the bottom.
+- [x] Document or config flag if product chooses “force bottom during thinking” vs respect user scroll-up.
+- [x] No runaway scroll when the user has intentionally scrolled away (unless forced mode is enabled).
 
 ## Dependencies
 

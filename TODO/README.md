@@ -1,6 +1,6 @@
 # data-ai-chatbot — task index
 
-Agent-oriented work items. Each task is a standalone `.md` file with context, acceptance criteria, and dependency metadata. (11 active, 3 completed)
+Agent-oriented work items. Each task is a standalone `.md` file with context, acceptance criteria, and dependency metadata. (10 active, 4 completed)
 
 **Sibling repos:** [data360-mcp/TODO](../data360-mcp/TODO/README.md), [pcn/TODO](../pcn/TODO/README.md)
 
@@ -12,7 +12,6 @@ Agent-oriented work items. Each task is a standalone `.md` file with context, ac
 | BE-002 | [BE-002-canonical-thinking-delimiter-alias.md](./BE-002-canonical-thinking-delimiter-alias.md) | Keep `^ANSWER^` as the single invariant canonical delimiter everywhere persis... |
 | DESIGN-001 | [DESIGN-001-visual-hierarchy-spec.md](./DESIGN-001-visual-hierarchy-spec.md) | Produce lightweight specs: typography scale for section titles, spacing, opti... |
 | FE-002 | [FE-002-markdown-autolinks.md](./FE-002-markdown-autolinks.md) | Ensure raw URLs in assistant markdown render as clickable links when the mode... |
-| FE-003 | [FE-003-scroll-while-thinking.md](./FE-003-scroll-while-thinking.md) | Keep the main chat viewport aligned with the latest activity while the system... |
 | FE-004 | [FE-004-view-thinking-after-complete.md](./FE-004-view-thinking-after-complete.md) | After the assistant message finishes, users can easily reopen the thinking pr... |
 | FE-005 | [FE-005-markdown-section-hierarchy.md](./FE-005-markdown-section-hierarchy.md) | Strengthen visual hierarchy for model-emitted sections: spacing, typography, ... |
 | FE-006 | [FE-006-how-to-read-disclosure.md](./FE-006-how-to-read-disclosure.md) | If the model emits How to read (or equivalent) per BE-001, present it as seco... |
@@ -21,11 +20,12 @@ Agent-oriented work items. Each task is a standalone `.md` file with context, ac
 | FE-011 | [FE-011-main-narrative-stream-scroll-up.md](./FE-011-main-narrative-stream-scroll-up.md) | When the assistant streams the main answer text (outside the thinking UI), us... |
 
 <details>
-<summary>3 done</summary>
+<summary>4 done</summary>
 
 | ID | File | Summary |
 |----|------|---------|
 | FE-001 | [FE-001-follow-ups-parser-and-chips.md](./FE-001-follow-ups-parser-and-chips.md) | Make suggested follow-ups reliably interactive and visually obvious: parsing ... ✓ done |
+| FE-003 | [FE-003-scroll-while-thinking.md](./FE-003-scroll-while-thinking.md) | Keep the main chat viewport aligned with the latest activity while the system... ✓ done |
 | FE-009 | [FE-009-chart-viz-urls-basepath.md](./FE-009-chart-viz-urls-basepath.md) | When the app is deployed with a non-empty `NEXT_PUBLIC_BASE_PATH` (matching `... ✓ done |
 | FE-010 | [FE-010-narrative-vs-thinking-separation.md](./FE-010-narrative-vs-thinking-separation.md) | Users consistently see the assistant’s main answer (narrative) in the primary... ✓ done |
 
@@ -39,7 +39,6 @@ flowchart TB
   BE002["BE-002 Canonical thinking delimiter w"]
   DESIGN001["DESIGN-001 Design — visual hierarchy and "]
   FE002["FE-002 Assistant markdown — autolink "]
-  FE003["FE-003 Chat scroll — stick to bottom "]
   FE004["FE-004 UI — return to thinking after "]
   FE005["FE-005 Markdown — visual hierarchy fo"]
   FE006["FE-006 Optional “How to read” present"]
@@ -48,7 +47,6 @@ flowchart TB
   FE011["FE-011 Main narrative streaming must "]
   BE001 --> FE005
   FE005 --> FE006
-  FE003 -.-> FE011
 ```
 
 ## Cross-repo dependencies
