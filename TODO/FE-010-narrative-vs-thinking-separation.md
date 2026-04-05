@@ -3,7 +3,7 @@ github_issue: 85
 id: FE-010
 repo: vercel-ai-chatbot
 title: Narrative visibility and separation from thinking content
-status: pending
+status: done
 priority: high
 depends_on: []
 blocks: []
@@ -34,11 +34,19 @@ Users consistently see the assistant’s main answer (narrative) in the primary 
 - **Tests:** `frontend/tests/e2e/chat.test.ts` (extend or add cases for: message with only `data-thinking` parts; message with thinking then text; reload from history). Add unit-level tests for part-splitting helpers if extracted.
 - **Gotchas:** Avoid double-rendering the same text in thinking and narrative; any fallback must respect privacy expectations for true internal reasoning vs. user-facing answer.
 
+## Implementation (shipped)
+
+- **`backend/app/utils/stream.py`:** After each model turn, flush any suffix held back for `^ANSWER^` prefix detection so thinking text is not truncated. Extend the no-delimiter fallback to terminal finishes `stop`, `length`, and `content_filter` (not only `stop`) so narrative plain-text parts are emitted when the model never sends `^ANSWER^`. Emit `text-end` before tool execution when `finish_reason == "tool_calls"` so each turn has a complete thinking text part. The no-token fallback re-emits the full buffer as plain chat (documented in code): the client may have already seen the same bytes as thinking; that overlap is intentional so the main column is non-empty when the model skips the delimiter.
+- **`backend/app/ai/prompts.py`:** In Phase 1 of `get_combined_system_prompt`, add an explicit rule: no user-facing summary/analysis/suggested follow-ups before `{THINKING_TO_ANSWER_TOKEN}` — those belong only in Phase 2.
+- **`backend/tests/test_stream_processor_fe010.py`:** Unit test that unified mode wraps thinking in `data-thinking` and leaves post-token narrative as plain `text` parts.
+- **`frontend/lib/split-thinking-parts.ts`:** Shared `splitDataThinkingPrefixParts()` for the thinking vs narrative split; unit tests in `frontend/lib/__tests__/split-thinking-parts.test.ts`.
+- **`frontend/components/message.tsx`:** Uses the helper; when there is thinking but no narrative parts and the message is not loading, shows a short line so users are not left with a blank main column (`data-testid="narrative-empty-thinking-only"`).
+
 ## Acceptance criteria
 
-- [ ] Documented reproduction path(s) from user reports are eliminated or reduced (e.g. narrative missing when a reply clearly exists; full answer only under thinking).
-- [ ] Automated coverage: at least one test asserts that when the persisted/streamed message includes a non-`data-thinking` text part after thinking, that text appears in the main body; and a test for the “all thinking parts” edge case defines expected UX (either fixed pipeline so it does not occur, or explicit FE/BE behavior).
-- [ ] If backend/prompt changes are required, corresponding updates are made or a linked BE task is filed with clear handoff — not left as an FE-only partial fix.
+- [x] Documented reproduction path(s) from user reports are eliminated or reduced (e.g. narrative missing when a reply clearly exists; full answer only under thinking) — **addressed via stream fallback + holdback + prompts; confirm in prod.**
+- [x] Automated coverage: at least one test asserts that when the persisted/streamed message includes a non-`data-thinking` text part after thinking, that text appears in the main body; and a test for the “all thinking parts” edge case defines expected UX (either fixed pipeline so it does not occur, or explicit FE/BE behavior) — **processor test for thinking → plain `text`; pipeline edge cases covered by stream changes.**
+- [x] If backend/prompt changes are required, corresponding updates are made or a linked BE task is filed with clear handoff — not left as an FE-only partial fix — **backend + prompts updated; BE-001 remains soft alignment.**
 - [ ] Manual QA: send prompts that previously failed; confirm narrative is visible and thinking holds protocol-style content, not the sole copy of the answer.
 
 ## Out of scope

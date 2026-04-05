@@ -17,6 +17,7 @@ import {
 } from "@/lib/data360";
 import type { Vote } from "@/lib/db/schema";
 import { parseFollowUps } from "@/lib/parse-follow-ups";
+import { splitDataThinkingPrefixParts } from "@/lib/split-thinking-parts";
 import {
   type ChatMessage,
   isNonRenderableStreamEvent,
@@ -811,24 +812,13 @@ const PurePreviewMessage = ({
           )}
 
           {(() => {
-            // Find the split point: first non-data-thinking part
-            // Assumption: data-thinking parts always come first
+            // First non-data-thinking part starts the main narrative (text, tools, …).
             const parts = message.parts ?? [];
-            const firstRegularPartIndex = parts.findIndex(
-              (part) =>
-                typeof part.type !== "string" ||
-                !part.type.startsWith("data-thinking"),
-            );
-
-            // Split parts: thinking parts come first, then regular parts
-            const savedThinkingParts =
-              firstRegularPartIndex === -1
-                ? parts
-                : parts.slice(0, firstRegularPartIndex);
-            const regularParts =
-              firstRegularPartIndex === -1
-                ? []
-                : parts.slice(firstRegularPartIndex);
+            const {
+              firstRegularPartIndex,
+              thinkingParts: savedThinkingParts,
+              regularParts,
+            } = splitDataThinkingPrefixParts(parts);
 
             // Filter out non-renderable stream events from saved thinking parts
             const filteredSavedThinkingParts = savedThinkingParts
@@ -950,6 +940,18 @@ const PurePreviewMessage = ({
                     onScrollToMessageId,
                   });
                 })}
+
+                {message.role === "assistant" &&
+                  regularParts.length === 0 &&
+                  finalThinkingParts.length > 0 &&
+                  !isLoading && (
+                    <p
+                      className="mt-2 text-muted-foreground text-sm"
+                      data-testid="narrative-empty-thinking-only"
+                    >
+                      Full response is in the thinking panel above.
+                    </p>
+                  )}
 
                 {/* Data360 sources: show when assistant used Data360 tools */}
                 {message.role === "assistant" &&

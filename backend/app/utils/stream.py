@@ -720,16 +720,41 @@ async def stream_text(
                 logger.error("Stream iteration failed: %s", stream_error, exc_info=True)
                 # Don't re-raise - we'll still send finish events
 
+            # Flush suffix held back for ^ANSWER^ prefix detection so thinking text is complete (FE-010)
+            if (
+                thinking_to_answer_token
+                and mode == "thinking"
+                and not switched_to_chat
+                and text_buffer
+                and yielded_len < len(text_buffer)
+            ):
+                remaining = text_buffer[yielded_len:]
+                if remaining:
+                    yield part_to_sse(
+                        TextDeltaPart(id=text_stream_id, delta=remaining),
+                        mode=effective_mode,
+                        thinking_id=thinking_id,
+                    )
+                    await asyncio.sleep(stream_yield_delay)
+                    yielded_len = len(text_buffer)
+
+            # Terminal completions where we may need no-token fallback (not tool_calls mid-turn)
+            _terminal_text_finish = finish_reason in ("stop", "length", "content_filter")
+
             # Handle text end - emit if text was started and stream finished
-            if finish_reason == "stop" and text_started and not text_finished:
-                # CRITICAL FALLBACK: If we expected an <ANSWER> token but never
-                # received it, the entire response is stuck in thinking mode.
-                # Switch to chat mode and re-emit the content as a regular text
-                # part so the UI can display it.
+            if _terminal_text_finish and text_started and not text_finished:
+                # CRITICAL FALLBACK (FE-010): If we expected ^ANSWER^ but never received it,
+                # switch to chat and append a plain text part so persisted messages get
+                # non-data-thinking parts (narrative renders). We re-emit the full
+                # text_buffer as chat delta: the client may have already received the same
+                # bytes as thinking deltas earlier in the turn; that duplication is
+                # intentional so the main body is non-empty when the model skips the delimiter.
                 if thinking_to_answer_token and not switched_to_chat and text_buffer:
                     logger.warning(
-                        "Stream ended without <ANSWER> token. "
+                        "Stream ended without %s (finish_reason=%s). "
                         "Falling back: re-emitting %d chars as chat text.",
+                        thinking_to_answer_token,
+                        finish_reason,
                         len(text_buffer),
                     )
                     # Close the thinking text part
@@ -760,6 +785,15 @@ async def stream_text(
                         thinking_id=thinking_id,
                     )
 
+                yield part_to_sse(
+                    TextEndPart(id=text_stream_id),
+                    mode=effective_mode,
+                    thinking_id=thinking_id,
+                )
+                text_finished = True
+
+            # Close thinking text before tool execution so each turn has a complete text part (FE-010)
+            if finish_reason == "tool_calls" and tools and text_started and not text_finished:
                 yield part_to_sse(
                     TextEndPart(id=text_stream_id),
                     mode=effective_mode,
