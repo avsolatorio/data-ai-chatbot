@@ -1,4 +1,5 @@
 ---
+github_issue: 89
 id: FE-003
 repo: vercel-ai-chatbot
 title: Chat scroll — stick to bottom during thinking
