@@ -24,7 +24,8 @@ function getApplicationStatus(): ApplicationStatus | null {
   const v =
     process.env.NEXT_PUBLIC_APPLICATION_STATUS?.trim() ||
     getEnv().NEXT_PUBLIC_APPLICATION_STATUS;
-  if (v && ["pre-alpha", "alpha", "beta"].includes(v)) return v as ApplicationStatus;
+  if (v && ["pre-alpha", "alpha", "beta"].includes(v))
+    return v as ApplicationStatus;
   // Show banner in development when not set so you can verify placement
   if (process.env.NODE_ENV === "development") return "alpha";
   return null;
@@ -60,7 +61,8 @@ function getArtifactScrollBehavior(): ArtifactScrollBehavior {
 }
 
 function getShowReasoningPartType(): boolean {
-  const v = process.env.NEXT_PUBLIC_SHOW_REASONING_PART_TYPE?.trim().toLowerCase();
+  const v =
+    process.env.NEXT_PUBLIC_SHOW_REASONING_PART_TYPE?.trim().toLowerCase();
   const fromEnv = getEnv().NEXT_PUBLIC_SHOW_REASONING_PART_TYPE;
   return v === "true" || v === "1" || v === "yes" || fromEnv === true;
 }
@@ -76,6 +78,14 @@ function getEnableImageUpload(): boolean {
     return true;
   }
   return fromEnv;
+}
+
+/** Base URL for Data360 indicator pages (Sources links from tool-data360_get_data). */
+function getData360IndicatorBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL?.trim() ||
+    getEnv().NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL
+  );
 }
 
 /** When set (e.g. "/app"), the app is served under that path. Must match next.config basePath. Trailing slash is stripped. */
@@ -188,4 +198,10 @@ export const appConfig = {
    * Set via NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD=true.
    */
   enableImageUpload: getEnableImageUpload(),
+
+  /**
+   * Base URL for Data360 indicator source links (no trailing slash required).
+   * Default production Data360. Set via NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL.
+   */
+  data360IndicatorBaseUrl: getData360IndicatorBaseUrl(),
 };

@@ -60,18 +60,29 @@ const rawEnvSchema = z.object({
   // --- Environment identifier ---
   NEXT_PUBLIC_APP_ENV: optionalString.transform((v) => {
     const s = v?.trim().toLowerCase();
-    if (s && ["dev", "qa", "uat", "prod"].includes(s)) return s as EnvironmentName;
+    if (s && ["dev", "qa", "uat", "prod"].includes(s))
+      return s as EnvironmentName;
     return undefined;
   }),
 
   // --- API URLs (server + client) ---
-  SERVER_API_URL: optionalString.describe("Server-side API URL; preferred over NEXT_PUBLIC_API_URL for server routes"),
-  NEXT_PUBLIC_API_URL: optionalString.describe("FastAPI backend URL; used when SERVER_API_URL unset"),
-  NEXT_PUBLIC_BASE_URL: optionalString.describe("Base URL for the app (e.g. http://localhost:3001)"),
-  NEXT_PUBLIC_APP_URL: optionalString.describe("Public app URL for redirects and metadata"),
+  SERVER_API_URL: optionalString.describe(
+    "Server-side API URL; preferred over NEXT_PUBLIC_API_URL for server routes",
+  ),
+  NEXT_PUBLIC_API_URL: optionalString.describe(
+    "FastAPI backend URL; used when SERVER_API_URL unset",
+  ),
+  NEXT_PUBLIC_BASE_URL: optionalString.describe(
+    "Base URL for the app (e.g. http://localhost:3001)",
+  ),
+  NEXT_PUBLIC_APP_URL: optionalString.describe(
+    "Public app URL for redirects and metadata",
+  ),
 
   // --- Base path ---
-  NEXT_PUBLIC_BASE_PATH: optionalString.describe("Subpath deployment (e.g. /app); must match next.config basePath"),
+  NEXT_PUBLIC_BASE_PATH: optionalString.describe(
+    "Subpath deployment (e.g. /app); must match next.config basePath",
+  ),
 
   // --- Auth ---
   NEXT_PUBLIC_AUTH_PROVIDER: optionalString.transform((v) => {
@@ -83,9 +94,15 @@ const rawEnvSchema = z.object({
   NEXT_PUBLIC_SKIP_LOGIN_PAGE: booleanEnv.describe(
     "When true, skip login page in guest/MSAL modes (redirect or trigger sign-in directly). Default: true.",
   ),
-  NEXT_PUBLIC_MSAL_CLIENT_ID: optionalString.describe("Azure AD app (client) ID"),
-  NEXT_PUBLIC_MSAL_REDIRECT_URI: optionalString.describe("MSAL redirect URI; must match Azure AD app registration"),
-  NEXT_PUBLIC_MSAL_AUTHORITY: optionalString.describe("MSAL authority URL (e.g. https://login.microsoftonline.com/<tenant>)"),
+  NEXT_PUBLIC_MSAL_CLIENT_ID: optionalString.describe(
+    "Azure AD app (client) ID",
+  ),
+  NEXT_PUBLIC_MSAL_REDIRECT_URI: optionalString.describe(
+    "MSAL redirect URI; must match Azure AD app registration",
+  ),
+  NEXT_PUBLIC_MSAL_AUTHORITY: optionalString.describe(
+    "MSAL authority URL (e.g. https://login.microsoftonline.com/<tenant>)",
+  ),
   NEXT_PUBLIC_DATA360_AUTH_URL: optionalUrl.describe(
     "Data360 auth URL for redirect when unauthenticated; required when NEXT_PUBLIC_AUTH_PROVIDER=data360",
   ),
@@ -95,7 +112,9 @@ const rawEnvSchema = z.object({
     .transform((v) => (v ? Number.parseInt(v, 10) : undefined)),
 
   // --- Internal API secret (server-only) ---
-  INTERNAL_API_SECRET: optionalString.describe("Secret for FastAPI → Next.js internal requests"),
+  INTERNAL_API_SECRET: optionalString.describe(
+    "Secret for FastAPI → Next.js internal requests",
+  ),
 
   // --- Database (deprecated: frontend no longer connects to DB; backend owns DB) ---
   POSTGRES_URL: optionalString.describe(
@@ -107,28 +126,49 @@ const rawEnvSchema = z.object({
     if (v === "pre-alpha" || v === "alpha" || v === "beta") return v;
     return undefined;
   }),
-  NEXT_PUBLIC_FEEDBACK_CONTACT_URL: optionalUrl.describe("Feedback form redirect URL"),
-  NEXT_PUBLIC_FEEDBACK_CONTACT_LABEL: optionalString.describe("Feedback button label"),
+  NEXT_PUBLIC_FEEDBACK_CONTACT_URL: optionalUrl.describe(
+    "Feedback form redirect URL",
+  ),
+  NEXT_PUBLIC_FEEDBACK_CONTACT_LABEL: optionalString.describe(
+    "Feedback button label",
+  ),
   NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR: optionalString.transform((v) => {
     if (v === "trigger" || v === "bottom") return v;
     return undefined;
   }),
-  NEXT_PUBLIC_SHOW_REASONING_PART_TYPE: booleanEnv.describe("Show part type in reasoning stepper"),
+  NEXT_PUBLIC_SHOW_REASONING_PART_TYPE: booleanEnv.describe(
+    "Show part type in reasoning stepper",
+  ),
 
   // --- Data header ---
-  NEXT_PUBLIC_DATA_HEADER_ENABLED: booleanEnv.describe("Enable World Bank data header"),
-  NEXT_PUBLIC_DATA_HEADER_CSS_URL: optionalUrl.describe("Data header CSS URL; used when NEXT_PUBLIC_DATA_HEADER_ENABLED is true"),
-  NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: optionalUrl.describe("Data header script URL; used when NEXT_PUBLIC_DATA_HEADER_ENABLED is true"),
+  NEXT_PUBLIC_DATA_HEADER_ENABLED: booleanEnv.describe(
+    "Enable World Bank data header",
+  ),
+  NEXT_PUBLIC_DATA_HEADER_CSS_URL: optionalUrl.describe(
+    "Data header CSS URL; used when NEXT_PUBLIC_DATA_HEADER_ENABLED is true",
+  ),
+  NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: optionalUrl.describe(
+    "Data header script URL; used when NEXT_PUBLIC_DATA_HEADER_ENABLED is true",
+  ),
 
   // --- Maintenance ---
-  MAINTENANCE_MODE: booleanEnv.describe("Redirect to maintenance page when true"),
+  MAINTENANCE_MODE: booleanEnv.describe(
+    "Redirect to maintenance page when true",
+  ),
 
   // --- CSP ---
   CSP_ENABLED: booleanEnv.describe("Enable Content-Security-Policy headers"),
   CSP_REPORT_ENABLED: booleanEnv.describe("Enable CSP violation reporting"),
 
   // --- Vega / charts ---
-  NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL: optionalUrl.describe("Custom Vega theme JSON URL"),
+  NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL: optionalUrl.describe(
+    "Custom Vega theme JSON URL",
+  ),
+
+  // --- Data360 sources (indicator links in chat) ---
+  NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL: optionalUrl.describe(
+    "Base URL for Data360 indicator pages; used to build source links from tool-data360_get_data (no trailing slash required)",
+  ),
 
   // --- File upload ---
   NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD: booleanEnv.describe(
@@ -138,7 +178,9 @@ const rawEnvSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v ? Number.parseInt(v, 10) : undefined)),
-  NEXT_PUBLIC_ALLOWED_IMAGE_TYPES: optionalString.describe("Comma-separated MIME types for image uploads"),
+  NEXT_PUBLIC_ALLOWED_IMAGE_TYPES: optionalString.describe(
+    "Comma-separated MIME types for image uploads",
+  ),
 });
 
 export type RawEnv = z.infer<typeof rawEnvSchema>;
@@ -160,6 +202,7 @@ export type Env = RawEnv & {
   NEXT_PUBLIC_DATA_HEADER_ENABLED: boolean;
   NEXT_PUBLIC_DATA_HEADER_CSS_URL: string;
   NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: string;
+  NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL: string;
   NEXT_PUBLIC_SKIP_LOGIN_PAGE: boolean;
   MAINTENANCE_MODE: boolean;
   CSP_ENABLED: boolean;
@@ -189,6 +232,7 @@ export type PublicEnv = Pick<
   | "NEXT_PUBLIC_MSAL_AUTHORITY"
   | "NEXT_PUBLIC_DATA360_AUTH_URL"
   | "NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL"
+  | "NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL"
   | "NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD"
   | "NEXT_PUBLIC_MAX_FILE_SIZE_BYTES"
   | "NEXT_PUBLIC_ALLOWED_IMAGE_TYPES"

@@ -4,8 +4,7 @@
  * and tool-ai4data_ai4data_mcpget_wdi_data.
  */
 
-/** Base URL for Data360 indicator pages (opens in new tab). */
-const DATA360_INDICATOR_BASE_URL = "https://data360.worldbank.org/en/indicator";
+import { appConfig } from "@/lib/config";
 
 export type Data360SourceEntry = {
   title: string;
@@ -80,9 +79,8 @@ export function getData360SourcesFromParts(
         const key = `${databaseId}:${indicator}`;
         if (key && !seen.has(key)) {
           seen.add(key);
-          const href = indicator
-            ? `${DATA360_INDICATOR_BASE_URL}/${indicator}`
-            : undefined;
+          const base = appConfig.data360IndicatorBaseUrl.replace(/\/+$/, "");
+          const href = indicator ? `${base}/${indicator}` : undefined;
           entries.push({ title, href });
         }
       }
