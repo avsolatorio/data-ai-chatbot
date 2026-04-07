@@ -3,9 +3,9 @@
  * Resolution order: process.env > preset for NEXT_PUBLIC_APP_ENV > defaults.
  */
 
-import { rawEnvSchema } from "./schema";
-import type { Env, EnvironmentName, PublicEnv, RawEnv } from "./schema";
 import { envDefaults, environmentPresets } from "./presets";
+import type { Env, EnvironmentName, PublicEnv, RawEnv } from "./schema";
+import { rawEnvSchema } from "./schema";
 
 let cachedEnv: Env | null = null;
 
@@ -35,8 +35,12 @@ function buildRawInput(): Record<string, string | undefined> {
     NEXT_PUBLIC_API_URL: pick("NEXT_PUBLIC_API_URL"),
     NEXT_PUBLIC_BASE_URL: pick("NEXT_PUBLIC_BASE_URL"),
     // Explicit refs so Next.js inlines these in client bundles
-    NEXT_PUBLIC_DATA_HEADER_CSS_URL: process.env.NEXT_PUBLIC_DATA_HEADER_CSS_URL?.trim() || undefined,
-    NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: process.env.NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL?.trim() || undefined,
+    NEXT_PUBLIC_DATA_HEADER_CSS_URL:
+      process.env.NEXT_PUBLIC_DATA_HEADER_CSS_URL?.trim() || undefined,
+    NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL:
+      process.env.NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL?.trim() || undefined,
+    NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL:
+      process.env.NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL?.trim() || undefined,
   };
 }
 
@@ -51,11 +55,7 @@ function applyDefaults(raw: RawEnv): Env {
   const pickUrl = (
     key: keyof typeof envDefaults,
     fromRaw: string | undefined,
-  ): string =>
-    fromRaw?.trim() ||
-    preset?.[key] ||
-    envDefaults[key] ||
-    "";
+  ): string => fromRaw?.trim() || preset?.[key] || envDefaults[key] || "";
 
   return {
     ...raw,
@@ -69,9 +69,11 @@ function applyDefaults(raw: RawEnv): Env {
       raw.NEXT_PUBLIC_BASE_URL as string,
     ),
     NEXT_PUBLIC_APP_URL:
-      raw.NEXT_PUBLIC_APP_URL?.trim() ||
-      "https://data360chat.worldbank.org",
-    NEXT_PUBLIC_BASE_PATH: (raw.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, ""),
+      raw.NEXT_PUBLIC_APP_URL?.trim() || "https://data360chat.worldbank.org",
+    NEXT_PUBLIC_BASE_PATH: (raw.NEXT_PUBLIC_BASE_PATH ?? "").replace(
+      /\/+$/,
+      "",
+    ),
     NEXT_PUBLIC_APPLICATION_STATUS:
       raw.NEXT_PUBLIC_APPLICATION_STATUS ?? undefined,
     NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR:
@@ -88,8 +90,10 @@ function applyDefaults(raw: RawEnv): Env {
     NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL:
       raw.NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL?.trim() ||
       "https://extdataportalqa.worldbank.org/qa/api/ext/header/webasset/data/dataheaderservice/clientlibs/site.js",
-    NEXT_PUBLIC_SKIP_LOGIN_PAGE:
-      raw.NEXT_PUBLIC_SKIP_LOGIN_PAGE ?? true,
+    NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL:
+      raw.NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL?.trim() ||
+      "https://data360.worldbank.org/en/indicator",
+    NEXT_PUBLIC_SKIP_LOGIN_PAGE: raw.NEXT_PUBLIC_SKIP_LOGIN_PAGE ?? true,
     MAINTENANCE_MODE: raw.MAINTENANCE_MODE ?? false,
     CSP_ENABLED: raw.CSP_ENABLED ?? false,
     CSP_REPORT_ENABLED: raw.CSP_REPORT_ENABLED ?? true,
@@ -156,6 +160,8 @@ export function getPublicEnv(): PublicEnv {
     NEXT_PUBLIC_MSAL_AUTHORITY: env.NEXT_PUBLIC_MSAL_AUTHORITY,
     NEXT_PUBLIC_DATA360_AUTH_URL: env.NEXT_PUBLIC_DATA360_AUTH_URL,
     NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL: env.NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL,
+    NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL:
+      env.NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL,
     NEXT_PUBLIC_MAX_FILE_SIZE_BYTES: env.NEXT_PUBLIC_MAX_FILE_SIZE_BYTES,
     NEXT_PUBLIC_ALLOWED_IMAGE_TYPES: env.NEXT_PUBLIC_ALLOWED_IMAGE_TYPES,
   };
