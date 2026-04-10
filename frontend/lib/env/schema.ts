@@ -169,6 +169,9 @@ const rawEnvSchema = z.object({
   NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL: optionalUrl.describe(
     "Base URL for Data360 indicator pages; used to build source links from tool-data360_get_data (no trailing slash required)",
   ),
+  NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN: booleanEnv.describe(
+    "When true, Data360 MCP tool panels (get_data, search, viz, etc.) start expanded. Default false when unset.",
+  ),
 
   // --- File upload ---
   NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD: booleanEnv.describe(
@@ -203,6 +206,7 @@ export type Env = RawEnv & {
   NEXT_PUBLIC_DATA_HEADER_CSS_URL: string;
   NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: string;
   NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL: string;
+  NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN: boolean;
   NEXT_PUBLIC_SKIP_LOGIN_PAGE: boolean;
   MAINTENANCE_MODE: boolean;
   CSP_ENABLED: boolean;
@@ -233,6 +237,7 @@ export type PublicEnv = Pick<
   | "NEXT_PUBLIC_DATA360_AUTH_URL"
   | "NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL"
   | "NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL"
+  | "NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN"
   | "NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD"
   | "NEXT_PUBLIC_MAX_FILE_SIZE_BYTES"
   | "NEXT_PUBLIC_ALLOWED_IMAGE_TYPES"
