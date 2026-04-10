@@ -11,11 +11,24 @@
  */
 
 import { authProvider } from "@/lib/auth/config";
-import { clearAuthSessionStorage } from "@/lib/auth-service-client";
 import { getAuthTokenFromDocument } from "@/lib/auth/cookies";
+import { refreshSearchTokenIfConfigured } from "@/lib/auth/data360/data360-search-token-refresh";
+import { getMsalRefresh } from "@/lib/auth/msal/msal-refresh-registry";
+import { clearAuthSessionStorage } from "@/lib/auth-service-client";
 import { getBasePath, getPublicReturnUrl } from "@/lib/config";
 import { getEnv } from "@/lib/env";
-import { getMsalRefresh } from "@/lib/auth/msal/msal-refresh-registry";
+
+/** Set before redirect on Data360 401 so utils/fetcher can skip duplicate redirect. */
+let data360AuthRedirectScheduled = false;
+
+export function isData360AuthRedirectScheduled(): boolean {
+  return data360AuthRedirectScheduled;
+}
+
+/** @internal Test-only */
+export function resetData360AuthRedirectScheduledForTests(): void {
+  data360AuthRedirectScheduled = false;
+}
 
 /**
  * Check if endpoint should use Next.js proxy (all endpoints now use proxy)
@@ -117,8 +130,7 @@ export async function apiFetch(
 
   // MSAL: on 401, try silent refresh and retry once (no user interaction)
   // Skip retry for requests with non-reusable body (stream, FormData, etc.)
-  const canRetry =
-    !init?.body || typeof init.body === "string";
+  const canRetry = !init?.body || typeof init.body === "string";
   if (
     typeof window !== "undefined" &&
     response.status === 401 &&
@@ -134,12 +146,30 @@ export async function apiFetch(
         if (newToken) {
           const retryHeaders = new Headers(newInit.headers);
           retryHeaders.set("Authorization", `Bearer ${newToken}`);
-          return apiFetch(
-            fullUrl,
-            { ...newInit, headers: retryHeaders },
-            true,
-          );
+          return apiFetch(fullUrl, { ...newInit, headers: retryHeaders }, true);
         }
+      }
+    }
+  }
+
+  // data360 or msal+searchToken (no MSAL refresh): try parent searchToken refresh, retry once
+  const isSearchTokenAuthPath =
+    authProvider === "data360" ||
+    (authProvider === "msal" && !getMsalRefresh());
+  if (
+    typeof window !== "undefined" &&
+    response.status === 401 &&
+    isSearchTokenAuthPath &&
+    !isRetry &&
+    canRetry
+  ) {
+    const refreshed = await refreshSearchTokenIfConfigured();
+    if (refreshed) {
+      const newToken = getAuthTokenFromDocument();
+      if (newToken) {
+        const retryHeaders = new Headers(newInit.headers);
+        retryHeaders.set("Authorization", `Bearer ${newToken}`);
+        return apiFetch(fullUrl, { ...newInit, headers: retryHeaders }, true);
       }
     }
   }
@@ -163,6 +193,7 @@ export async function apiFetch(
     } finally {
       const authUrl = getEnv().NEXT_PUBLIC_DATA360_AUTH_URL;
       if (authUrl) {
+        data360AuthRedirectScheduled = true;
         const returnTo = encodeURIComponent(getPublicReturnUrl());
         const redirectUrl = `${authUrl}${authUrl.includes("?") ? "&" : "?"}returnTo=${returnTo}`;
         window.location.replace(redirectUrl);

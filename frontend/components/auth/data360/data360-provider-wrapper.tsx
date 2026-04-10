@@ -8,7 +8,9 @@
  */
 
 import { useEffect, useState } from "react";
+import { Data360TokenRefresh } from "@/components/auth/data360/data360-token-refresh";
 import { getAuthTokenFromDocument } from "@/lib/auth/cookies";
+import { isData360SearchTokenRefreshConfigured } from "@/lib/auth/data360/data360-search-token-refresh";
 import { getPublicReturnUrl } from "@/lib/config";
 import { getEnv } from "@/lib/env";
 
@@ -47,5 +49,10 @@ export function Data360ProviderWrapper({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {isData360SearchTokenRefreshConfigured() ? <Data360TokenRefresh /> : null}
+      {children}
+    </>
+  );
 }

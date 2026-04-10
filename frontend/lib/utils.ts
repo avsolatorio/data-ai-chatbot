@@ -13,12 +13,17 @@ import { clearAuthSessionStorage } from '@/lib/auth-service-client';
 import { getEnv } from '@/lib/env';
 import { ChatSDKError, type ErrorCode } from './errors';
 import type { ChatMessage, ChatTools, CustomUIDataTypes } from './types';
-import { apiFetch, getApiUrl } from './api-client';
+import {
+  apiFetch,
+  getApiUrl,
+  isData360AuthRedirectScheduled,
+} from "./api-client";
 import { getPublicReturnUrl } from '@/lib/config';
 
 /** Redirect to Data360 auth URL on 401 (token refresh flow). Clears searchToken first. */
 async function redirectToData360AuthOn401(): Promise<void> {
-  if (typeof window === 'undefined' || authProvider !== 'data360') return;
+  if (typeof window === "undefined" || authProvider !== "data360") return;
+  if (isData360AuthRedirectScheduled()) return;
   const authUrl = getEnv().NEXT_PUBLIC_DATA360_AUTH_URL;
   if (!authUrl) return;
   try {

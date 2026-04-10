@@ -106,6 +106,22 @@ const rawEnvSchema = z.object({
   NEXT_PUBLIC_DATA360_AUTH_URL: optionalUrl.describe(
     "Data360 auth URL for redirect when unauthenticated; required when NEXT_PUBLIC_AUTH_PROVIDER=data360",
   ),
+  /** Absolute URL to parent refresh API, or same-origin path e.g. /api/auth/refresh-search-token (proxy). */
+  NEXT_PUBLIC_DATA360_SEARCH_TOKEN_REFRESH_URL: optionalString.describe(
+    "Data360 searchToken refresh POST URL; optional. Absolute https URL or path starting with /. When unset, no silent refresh.",
+  ),
+  NEXT_PUBLIC_DATA360_SEARCH_TOKEN_REFRESH_INTERVAL_MS: z
+    .string()
+    .optional()
+    .transform((v) => {
+      if (!v?.trim()) return undefined;
+      const n = Number.parseInt(v, 10);
+      return Number.isFinite(n) && n > 0 ? n : undefined;
+    }),
+  /** Server-only upstream URL for refresh-search-token proxy (overrides NEXT_PUBLIC when set). */
+  DATA360_SEARCH_TOKEN_REFRESH_URL: optionalString.describe(
+    "Server-side Data360 refresh URL for POST /api/auth/refresh-search-token proxy",
+  ),
   AUTH_PROXY_TIMEOUT_MS: z
     .string()
     .optional()
@@ -203,6 +219,8 @@ export type Env = RawEnv & {
   NEXT_PUBLIC_DATA_HEADER_CSS_URL: string;
   NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: string;
   NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL: string;
+  /** Default 50 minutes when unset; proactive searchToken refresh interval for Data360 auth. */
+  NEXT_PUBLIC_DATA360_SEARCH_TOKEN_REFRESH_INTERVAL_MS: number;
   NEXT_PUBLIC_SKIP_LOGIN_PAGE: boolean;
   MAINTENANCE_MODE: boolean;
   CSP_ENABLED: boolean;
@@ -231,6 +249,8 @@ export type PublicEnv = Pick<
   | "NEXT_PUBLIC_MSAL_REDIRECT_URI"
   | "NEXT_PUBLIC_MSAL_AUTHORITY"
   | "NEXT_PUBLIC_DATA360_AUTH_URL"
+  | "NEXT_PUBLIC_DATA360_SEARCH_TOKEN_REFRESH_URL"
+  | "NEXT_PUBLIC_DATA360_SEARCH_TOKEN_REFRESH_INTERVAL_MS"
   | "NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL"
   | "NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL"
   | "NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD"

@@ -28,7 +28,8 @@
     "format": "npx ultracite@latest fix",
     "env:check": "tsx scripts/env-check.ts",
     "test": "export PLAYWRIGHT=True && pnpm exec playwright test",
-    "test:unit": "tsx --test lib/__tests__/**/*.test.ts"
+    "test:unit": "tsx --test lib/__tests__/*.test.ts && tsx --import ./lib/__tests__/preload-data360-auth.ts --test lib/__tests__/isolated/api-client-data360-401.test.ts",
+    "test:unit:data360-api-client": "tsx --import ./lib/__tests__/preload-data360-auth.ts --test lib/__tests__/isolated/api-client-data360-401.test.ts"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^1.0.15",
