@@ -1,0 +1,98 @@
+site_name: Data AI Chatbot documentation
+site_description: >-
+  Data AI Chatbot — a self-hostable data chatbot powered by MCP, with optional Proof-Carrying Numbers.
+  These docs focus on Data360 Chat, the World Bank reference configuration (Data360 MCP).
+site_url: https://avsolatorio.github.io/vercel-ai-chatbot/
+repo_url: https://github.com/avsolatorio/vercel-ai-chatbot
+edit_uri: edit/main/docs/
+
+# Draft / internal Markdown in docs/ that should not be published (avoids link-check noise).
+# Pin the doc toolchain: mkdocs>=1.6,<2 (MkDocs 2.x is not compatible with Material yet).
+exclude_docs: |
+  architecture-data360-chat.md
+  database-idempotency-and-duplicate-inserts.md
+  itsda-data360-chat-int-fe-diff-integration.md
+  open-source-application.md
+  plan-remove-frontend-db-dependency.md
+  pr-feat-*.md
+  pr-fix-*.md
+  security-guardrails-audit.md
+  single-llm-thinking-transition.md
+  task-workflow.md
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - search.suggest
+    - search.highlight
+  palette:
+    - scheme: default
+      primary: blue
+    - scheme: slate
+      primary: blue
+
+plugins:
+  - search
+
+markdown_extensions:
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - admonition
+  - pymdownx.details
+
+nav:
+  - Home: index.md
+  - User Guide:
+    - user-guide/index.md
+    - user-guide/getting-started.md
+    - user-guide/chat-features.md
+    - user-guide/documents-spreadsheets.md
+    - user-guide/data-analysis.md
+    - user-guide/file-attachments.md
+    - user-guide/chat-visibility.md
+    - user-guide/faq.md
+  - Architecture:
+    - architecture/index.md
+    - architecture/overview.md
+    - architecture/system-context.md
+    - architecture/backend.md
+    - architecture/frontend.md
+    - architecture/data-persistence.md
+    - architecture/authentication.md
+    - architecture/ai-streaming.md
+    - architecture/integrations.md
+    - architecture/deployment-and-operations.md
+    - architecture/architectural-decisions.md
+  - Infrastructure:
+    - infrastructure/index.md
+    - infrastructure/components.md
+    - infrastructure/network-topology.md
+    - infrastructure/data-flow.md
+  - Deployment:
+    - deployment/index.md
+    - deployment/local-development.md
+    - deployment/docker.md
+    - docker-setup.md
+    - deployment/production.md
+    - deployment/deployment-rendering.md
+  - Operations:
+    - operations/index.md
+    - operations/environment-variables.md
+    - operations/health-monitoring.md
+    - operations/logging.md
+    - operations/troubleshooting.md
+    - operations/runbooks.md
+  - Security:
+    - security/index.md
+    - security/overview.md
+    - security/risk-assessment.md
+    - security/guardrails-audit.md
+  - Admin Guide:
+    - admin-guide/index.md
+    - admin-guide/feedback-review.md
+    - admin-guide/maintenance-mode.md
+    - admin-guide/user-management.md
+  - API:
+    - api/index.md
