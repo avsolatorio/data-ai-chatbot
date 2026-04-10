@@ -1,53 +1,25 @@
-# Security Guardrails Audit
+# Authorization guardrails (internal reference, not published)
 
-This document summarizes the review of API surfaces for **authorization and input-validation guardrails** to prevent bypass via malicious requests (e.g. IDOR, cross-user access).
+This file is **excluded from the public documentation build** (`mkdocs.yml` → `exclude_docs`) so it does not appear on GitHub Pages. It remains in the repository for contributors who clone the repo.
+
+**Content policy:** Do not add per-route URLs, handler names, or step-by-step exploitation notes here—those belong in **private** engineering trackers.
 
 ---
 
 ## Summary
 
-| Area | Status | Notes |
-|------|--------|--------|
-| Chat / stream / history | Guarded | Ownership or visibility checked on all chat-scoped endpoints |
-| Documents | Guarded | Ownership checked on get/create/delete |
-| Votes | Guarded | Chat access + message-in-chat validation |
-| Files | Fixed | GET now enforces ownership (was IDOR) |
-| Charts | By design | GET is world-readable by ID (shareable); add ownership if needed |
-| Auth (logout/refresh/guest reset) | Guarded | Token/session from request only; no IDOR surface |
-| Feedback review | Guarded | Reviewer allowlist (FEEDBACK_REVIEWER_EMAILS) |
-| Thinking stream | If enabled | Not mounted; add chat-ownership check if mounted |
+The API is designed so that **authenticated identity** is established server-side, and **user-owned resources** (chats, files, documents, votes) are accessed only when the backend enforces the correct relationship to the current user (or an intentional public-read rule, where documented).
+
+Some features are **deliberately shareable** (for example, artifacts identified by opaque IDs for embedding). If product requirements change, tighten authz and document the behavior in release notes.
+
+Operational routes (for example, admin or reviewer flows) should rely on **configuration-driven allowlists** rather than hard-coded identities.
 
 ---
 
-## Key endpoints
+## Ongoing expectations
 
-### Chat and stream
+1. New endpoints that accept resource IDs must **repeat the same authorization patterns** as existing user-scoped routes.
+2. **Secrets and environment** defaults must be validated before production (see [risk posture](risk-assessment.md) and [environment variables](../operations/environment-variables.md)).
+3. When adding streaming or long-lived connections, apply the **same ownership checks** as for non-streaming access to the same conversation.
 
-- **POST /api/v1/chat/stream** — Validates chat exists and `existing_chat.userId == current_user` before streaming.
-- **POST /api/v1/chat** — For existing chat, validates `chat.userId == user_id`; else creates with current user.
-- **GET/DELETE /api/v1/chat/{id}**, **PATCH visibility**, **DELETE messages** — Validates `user_ids_match` or visibility for public read.
-
-### Files
-
-- **GET /api/v1/files/{file_id}** — Requires auth when `file.user_id` is set; allows access only if `file.user_id == current_user`.
-- **POST /api/v1/files/upload** — Requires `get_current_user`; file stored with `user_id`.
-
-### Documents
-
-- **GET/POST/DELETE /api/v1/document** — Validates `user_ids_match(current_user, document.user_id)` on all operations.
-
-### Charts
-
-- **GET /api/v1/charts/{chart_id}** — Intentionally no ownership check; charts are world-readable by ID (shareable/embed). Add auth and ownership if charts become private.
-
-### Votes
-
-- **GET/PATCH /api/v1/vote** — Validates chat access and that `messageId` belongs to `chatId` before voting.
-
----
-
-## Recommendations
-
-1. Keep ownership checks on all resource-scoped endpoints.
-2. If charts become private, add auth and `chart.user_id == current_user` to GET chart.
-3. If thinking stream router is mounted, add the same chat-ownership validation as in `chat_stream.stream_chat`.
+For architecture context, see [Security overview](overview.md) and the deployment sections of this documentation set.

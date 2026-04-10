@@ -97,7 +97,7 @@ hide:
 
 - [**Security hub**](security/index.md) — security documentation index  
 - [**Security overview**](security/overview.md) — auth, cookies, CSRF, rate limiting  
-- [**Risk assessment**](security/risk-assessment.md) — risks and mitigations  
+- [**Risk assessment**](security/risk-assessment.md) — high-level security themes and practices  
 - **Live API docs** (when the backend is running): Swagger at `{BACKEND_URL}/docs` and ReDoc at `{BACKEND_URL}/redoc` — see [**API**](api/index.md)  
 
 ---

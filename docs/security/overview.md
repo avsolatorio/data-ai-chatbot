@@ -7,7 +7,7 @@ This document summarizes the security architecture of Data360 Chat.
 ## Authentication
 
 - **Three auth paths:** JWT (email/password), Azure AD cookie (MSAL), and opaque session token (guest or user).
-- **Server-side resolution only:** The backend never trusts a user id or token from the request body. Identity is always resolved from cookies or the Authorization header via `get_current_user`.
+- **Server-side resolution only:** The backend never trusts a user id or token from the request body. Identity is always resolved from cookies or the Authorization header using the API’s auth dependencies.
 - **httpOnly cookies:** Auth tokens are stored in httpOnly cookies so JavaScript cannot read them (XSS mitigation).
 - **Revocation:** JWT JTI blacklist (logout, password change), session invalidation, optional SESSION_VERSION for deploy-time invalidation.
 
@@ -52,4 +52,4 @@ This document summarizes the security architecture of Data360 Chat.
 
 ## See also
 
-- [Risk assessment](risk-assessment.md) — Identified risks and mitigations
+- [Risk assessment](risk-assessment.md) — Public summary of security themes and practices
