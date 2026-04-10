@@ -88,6 +88,20 @@ function getData360IndicatorBaseUrl(): string {
   );
 }
 
+/** When true, Data360 MCP tool panels start expanded. Default false. */
+export function getData360ToolDefaultOpen(): boolean {
+  const v =
+    process.env.NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN?.trim().toLowerCase();
+  const fromEnv = getEnv().NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN;
+  if (v === "false" || v === "0" || v === "no") {
+    return false;
+  }
+  if (v === "true" || v === "1" || v === "yes") {
+    return true;
+  }
+  return fromEnv;
+}
+
 /** When set (e.g. "/app"), the app is served under that path. Must match next.config basePath. Trailing slash is stripped. */
 export function getBasePath(): string {
   const v =
@@ -204,4 +218,10 @@ export const appConfig = {
    * Default production Data360. Set via NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL.
    */
   data360IndicatorBaseUrl: getData360IndicatorBaseUrl(),
+
+  /**
+   * When true, Data360 tool UI (get_data, search, viz, legacy ai4data tools) starts expanded.
+   * Default false. Set via NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN=true.
+   */
+  data360ToolDefaultOpen: getData360ToolDefaultOpen(),
 };
