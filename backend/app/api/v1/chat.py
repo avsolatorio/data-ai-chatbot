@@ -10,13 +10,10 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.client import get_ai_client, get_async_ai_client, get_model_name
+from app.ai.client import get_ai_client, get_model_name
+from app.ai.graph.pipeline import chat_graph
+from app.ai.graph.sse_bridge import stream_graph_to_sse
 from app.ai.observability.token_usage import DataUsageData
-from app.ai.prompts import (
-    THINKING_TO_ANSWER_TOKEN,
-    get_combined_system_prompt,
-    get_direct_system_prompt,
-)
 from app.ai.protocols.stream import (
     DataPart,
     DataThinkingPart,
@@ -38,7 +35,6 @@ from app.api.v1.utils.background_tasks import (
     create_save_messages_task,
     create_update_context_task,
 )
-from app.api.v1.utils.continue_stream import _continue_stream_in_background
 from app.api.v1.utils.tool_setup import prepare_tools
 from app.config import IntentType, ModelType
 from app.core.database import get_db
@@ -185,6 +181,24 @@ def _build_assistant_message(
     assistant_message["id"] = message_id
     assistant_message["parts"] = routing_parts + assistant_message["parts"]
     return assistant_message
+
+
+def _build_assistant_message_from_graph(message_id: str, graph_out: dict) -> dict:
+    """Build the assistant message dict from LangGraph stream output for DB save.
+
+    graph_out keys (populated by stream_graph_to_sse via out= parameter):
+      - routing_reasoning: str
+      - answer_text: str
+      - final_usage: dict | None
+    """
+    routing_parts = _build_routing_parts(message_id, graph_out.get("routing_reasoning", ""))
+    answer_text = graph_out.get("answer_text", "")
+    text_parts = [{"type": "text", "text": answer_text}] if answer_text else []
+    return {
+        "id": message_id,
+        "role": "assistant",
+        "parts": routing_parts + text_parts,
+    }
 
 
 router = APIRouter()
@@ -444,162 +458,105 @@ async def create_chat(
     openai_messages = await convert_messages_to_openai_format(all_messages, db)
     logger.info("[chat] convert_messages_to_openai_format done count=%d", len(openai_messages))
 
-    # Current query text (for @wdr token detection)
+    # Current query text (for @wdr token detection in router_node)
     query_text = get_text_from_message(request.message)
 
-    # System prompt: combined (one-LLM) for RESEARCH path; direct for DIRECT path
-    request_hints = None  # Will be implemented later
-    system_direct = get_direct_system_prompt()
-    system_combined = get_combined_system_prompt(request.selectedChatModel, request_hints)
-
-    # Get async AI client for streaming and model name
-    client = get_async_ai_client()
-    model = get_model_name(request.selectedChatModel)
-    logger.info("[chat] AI client ready model=%s", model)
-
-    # Prepare tools
+    # Prepare tools (LangChain tools are in tool_set["mcp_data"], ["mcp_viz"], ["local"])
     logger.info("[chat] prepare_tools start")
     tool_set = await prepare_tools(user_id, db)
     logger.info("[chat] prepare_tools done")
-
-    # Processor is created inside stream_generator after use_thinking is known
 
     # Track if stream was interrupted (client disconnect) vs completed normally
     stream_interrupted = False
 
     async def stream_generator():
         nonlocal stream_interrupted
-        logger.info("[chat] stream_generator started stream_id=%s", stream_id)
+        logger.info("[chat] stream_generator (LangGraph) started stream_id=%s", stream_id)
         state = {"sequence": 0}
-
-        # This is the part message id
         part_message_id = f"msg-{uuid4().hex}"
-
-        # This is the response message id
-        message_id = str(uuid4())
-        use_thinking = False
-        reasoning = ""
-        stream_processor = None
-        chat_system = system_direct
-        tools_for_stream = tool_set["local"]["tools"]
-        tool_defs_for_stream = tool_set["local"]["tool_definitions"]
+        graph_out: dict = {}  # populated by stream_graph_to_sse
 
         try:
             yield MessageStartPart(messageId=part_message_id).to_sse().encode("utf-8")
             await asyncio.sleep(0)
 
-            logger.info("[chat] _emit_routing_phase start (check_intent + routing LLM)")
-            out = {}
-            async for chunk in _emit_routing_phase(
-                part_message_id, stream_id, openai_messages, state, out, query=query_text
+            # Emit routing UX: stage + "Understanding your question…" static text
+            # The actual routing LLM call happens inside router_node in the graph.
+            yield await _store_and_yield(
+                stream_id,
+                state,
+                DataPart(type="data-stage", data={"stage": "routing"}).to_sse().encode("utf-8"),
+            )
+            routing_part_id = f"routing-{part_message_id}"
+            for part in (
+                TextStartPart(id=routing_part_id),
+                TextDeltaPart(id=routing_part_id, delta="Understanding your question…"),
+                TextEndPart(id=routing_part_id),
             ):
-                yield chunk
-            logger.info("[chat] _emit_routing_phase done use_thinking=%s", out.get("use_thinking"))
-            use_thinking = out["use_thinking"]
-            reasoning = out["reasoning"]
-            chat_system = system_combined if use_thinking else system_direct
-            merged_tools = {**tool_set["mcp"]["tools"], **tool_set["local"]["tools"]}
-            merged_definitions = (
-                tool_set["mcp"]["tool_definitions"] + tool_set["local"]["tool_definitions"]
-            )
-            tools_for_stream = merged_tools if use_thinking else tool_set["local"]["tools"]
-            tool_defs_for_stream = (
-                merged_definitions if use_thinking else tool_set["local"]["tool_definitions"]
-            )
+                sse_bytes = (
+                    DataThinkingPart(id=part_message_id, data=part.model_dump(exclude_none=True))
+                    .to_sse()
+                    .encode("utf-8")
+                )
+                yield await _store_and_yield(stream_id, state, sse_bytes)
+                await asyncio.sleep(0)
 
-            stream_processor = StreamEventProcessor(
-                request.id, mode="unified" if use_thinking else "chat"
-            )
-            logger.info("[chat] main stream start mode=%s", "unified" if use_thinking else "chat")
-            if use_thinking:
-                # Single LLM call: combined prompt, merged MCP + local tools, transition token
-                async for chunk in _stream_with_store(
-                    stream_id,
-                    state,
-                    stream_processor.process_stream(
-                        client=client,
-                        model=model,
-                        messages=openai_messages,
-                        system=system_combined,
-                        tools=tools_for_stream,
-                        tool_definitions=tool_defs_for_stream,
-                        thinking_to_answer_token=THINKING_TO_ANSWER_TOKEN,
-                    ),
-                ):
-                    yield chunk
-            else:
-                # Direct path: one call, no thinking
-                async for chunk in _stream_with_store(
-                    stream_id,
-                    state,
-                    stream_processor.process_stream(
-                        client=client,
-                        model=model,
-                        messages=openai_messages,
-                        system=system_direct,
-                        tools=tools_for_stream,
-                        tool_definitions=tool_defs_for_stream,
-                    ),
-                ):
-                    yield chunk
+            # Build LangGraph input state
+            graph_input: dict = {
+                "openai_messages": openai_messages,
+                "model_type": request.selectedChatModel.value,
+                "query_text": query_text,
+                "message_id": part_message_id,
+                "tool_set": tool_set,
+                "intent": "",
+                "routing_reasoning": "",
+                "research_packet": "",
+                "assistant_parts": [],
+                "final_usage": None,
+            }
+
+            # Stream graph execution → SSE bytes
+            logger.info("[chat] stream_graph_to_sse start")
+            async for sse_bytes in stream_graph_to_sse(
+                chat_graph, graph_input, part_message_id, out=graph_out
+            ):
+                yield await _store_and_yield(stream_id, state, sse_bytes)
+                await asyncio.sleep(0)
+            logger.info("[chat] stream_graph_to_sse done")
 
         except GeneratorExit:
-            # Client disconnected (browser refresh, navigation, etc.)
             stream_interrupted = True
             logger.info(
                 "Stream interrupted (client disconnect) for stream_id=%s, chat_id=%s",
                 stream_id,
                 request.id,
             )
-            # Continue stream in background when we have a processor (skip if disconnect during routing)
-            if stream_processor is not None:
-                asyncio.create_task(
-                    _continue_stream_in_background(
-                        stream_id=stream_id,
-                        chat_id=request.id,
-                        client=client,
-                        model=model,
-                        messages=openai_messages,
-                        system=chat_system,
-                        tools=tools_for_stream,
-                        tool_definitions=tool_defs_for_stream,
-                        background_tasks=background_tasks,
-                        processor=stream_processor,
-                        current_sequence=state["sequence"],
-                        thinking_to_answer_token=THINKING_TO_ANSWER_TOKEN if use_thinking else None,
-                    )
-                )
             raise  # Re-raise to properly close the generator
         finally:
             logger.info(
                 "Stream generator exiting (stream_interrupted=%s); HTTP response will close",
                 stream_interrupted,
             )
-            # Only mark as complete if stream finished normally (not interrupted)
-            if not stream_interrupted and stream_processor is not None:
-                # Mark stream as complete in Redis (non-blocking)
+            if not stream_interrupted:
                 asyncio.create_task(mark_stream_complete(stream_id))
 
-                assert len(stream_processor.assistant_messages) == 1, (
-                    "Stream processor assistant messages count should be 1, but got %d"
-                    % len(stream_processor.assistant_messages)
+                assistant_message = _build_assistant_message_from_graph(part_message_id, graph_out)
+                logger.info(
+                    "[chat] saving assistant message parts=%d",
+                    len(assistant_message.get("parts", [])),
                 )
-
-                assistant_message = _build_assistant_message(
-                    message_id, reasoning, stream_processor
-                )
-                logger.info("Assistant message: %s", assistant_message)
                 create_save_messages_task(
                     background_tasks,
                     request.id,
                     [assistant_message],
                 )
-                if stream_processor.final_usage:
+                final_usage = graph_out.get("final_usage")
+                if final_usage:
                     create_update_context_task(
                         background_tasks,
                         request.id,
-                        DataUsageData.model_validate(stream_processor.final_usage),
-                        message_id=message_id,
+                        DataUsageData.model_validate(final_usage),
+                        message_id=part_message_id,
                     )
 
     response = StreamingResponse(
