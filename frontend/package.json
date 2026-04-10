@@ -26,7 +26,8 @@
     "lint": "npx ultracite@latest check",
     "format": "npx ultracite@latest fix",
     "env:check": "tsx scripts/env-check.ts",
-    "test": "export PLAYWRIGHT=True && pnpm exec playwright test"
+    "test": "export PLAYWRIGHT=True && pnpm exec playwright test",
+    "test:unit": "tsx --test lib/__tests__/**/*.test.ts"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^1.0.15",

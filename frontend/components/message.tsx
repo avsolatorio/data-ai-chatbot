@@ -4,9 +4,12 @@ import { DATA360_GET_DATA_TOOL } from "@pcn-js/data360";
 import { IngestToolOutput } from "@pcn-js/ui";
 import type { ToolUIPart } from "ai";
 import equal from "fast-deep-equal";
+import { MessageSquare } from "lucide-react";
 import { type Dispatch, memo, type SetStateAction, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
 import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
+import { buildChartUrlRegexes } from "@/lib/chart-url";
+import { getBasePath } from "@/lib/config";
 import {
   type Data360SourceEntry,
   getData360SourcesFromParts,
@@ -14,19 +17,23 @@ import {
 } from "@/lib/data360";
 import type { Vote } from "@/lib/db/schema";
 import { parseFollowUps } from "@/lib/parse-follow-ups";
-import type { ChatMessage, StreamingThinkingPart } from "@/lib/types";
+import { splitDataThinkingPrefixParts } from "@/lib/split-thinking-parts";
+import {
+  type ChatMessage,
+  isNonRenderableStreamEvent,
+  type StreamingThinkingPart,
+} from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
-import { isNonRenderableStreamEvent } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
 import { ASK_ABOUT_SELECTION_CONTEXT_ATTR } from "./ask-about-selection-toolbar";
 import { useDataStream } from "./data-stream-provider";
 import { ChartPreview } from "./data360/chart-preview";
 import { GetData, GetDataRequestSummary } from "./data360/get-data";
+import { GetWdiData } from "./data360/get-wdi-data";
 import {
   SearchIndicators,
   SearchIndicatorsRequestSummary,
 } from "./data360/search-indicators";
-import { GetWdiData } from "./data360/get-wdi-data";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
@@ -60,14 +67,8 @@ import {
 } from "./quoted-context-block";
 import { Weather } from "./weather";
 
-/** Bare chart URL (path or full URL). */
-const CHART_URL_REGEX =
-  /(?:\/api\/v1\/charts\/[^\s"'<>)\]]+|https?:\/\/[^\s]*\/api\/v1\/charts\/[^\s"'<>)\]]+)/;
-
-/** Markdown link whose href is a chart URL: [label](chartUrl). Group 1 = chartUrl, full match = whole link. */
-const CHART_MARKDOWN_LINK_REGEX = new RegExp(
-  `\\[[^\\]]*\\]\\s*\\(\\s*(${CHART_URL_REGEX.source})\\s*\\)`,
-);
+const { bare: CHART_URL_REGEX, markdownLink: CHART_MARKDOWN_LINK_REGEX } =
+  buildChartUrlRegexes();
 
 /** Splits text at the first chart URL (or markdown link with chart URL) so it can be replaced by ChartPreview inline. */
 function splitTextAtChartUrl(text: string): {
@@ -512,20 +513,26 @@ function renderMessagePart(
               | undefined;
             return {
               database_id:
-                typeof raw.database_id === "string" ? raw.database_id : undefined,
+                typeof raw.database_id === "string"
+                  ? raw.database_id
+                  : undefined,
               indicator_id:
-                typeof raw.indicator_id === "string" ? raw.indicator_id : undefined,
+                typeof raw.indicator_id === "string"
+                  ? raw.indicator_id
+                  : undefined,
               disaggregation_filters:
                 disaggregation_filters &&
                 typeof disaggregation_filters === "object"
                   ? disaggregation_filters
                   : undefined,
               start_year:
-                typeof raw.start_year === "number" && Number.isFinite(raw.start_year)
+                typeof raw.start_year === "number" &&
+                Number.isFinite(raw.start_year)
                   ? raw.start_year
                   : undefined,
               end_year:
-                typeof raw.end_year === "number" && Number.isFinite(raw.end_year)
+                typeof raw.end_year === "number" &&
+                Number.isFinite(raw.end_year)
                   ? raw.end_year
                   : undefined,
               limit:
@@ -600,8 +607,7 @@ function renderMessagePart(
         ? (() => {
             const raw = toolPart.input as Record<string, unknown>;
             return {
-              query:
-                typeof raw.query === "string" ? raw.query : undefined,
+              query: typeof raw.query === "string" ? raw.query : undefined,
               required_country:
                 typeof raw.required_country === "string"
                   ? raw.required_country
@@ -623,9 +629,7 @@ function renderMessagePart(
         <ToolContent>
           {toolPart.state === "input-available" &&
             (searchIndicatorsInput != null ? (
-              <SearchIndicatorsRequestSummary
-                input={searchIndicatorsInput}
-              />
+              <SearchIndicatorsRequestSummary input={searchIndicatorsInput} />
             ) : (
               <ToolInput input={toolPart.input} />
             ))}
@@ -808,24 +812,13 @@ const PurePreviewMessage = ({
           )}
 
           {(() => {
-            // Find the split point: first non-data-thinking part
-            // Assumption: data-thinking parts always come first
+            // First non-data-thinking part starts the main narrative (text, tools, …).
             const parts = message.parts ?? [];
-            const firstRegularPartIndex = parts.findIndex(
-              (part) =>
-                typeof part.type !== "string" ||
-                !part.type.startsWith("data-thinking"),
-            );
-
-            // Split parts: thinking parts come first, then regular parts
-            const savedThinkingParts =
-              firstRegularPartIndex === -1
-                ? parts
-                : parts.slice(0, firstRegularPartIndex);
-            const regularParts =
-              firstRegularPartIndex === -1
-                ? []
-                : parts.slice(firstRegularPartIndex);
+            const {
+              firstRegularPartIndex,
+              thinkingParts: savedThinkingParts,
+              regularParts,
+            } = splitDataThinkingPrefixParts(parts);
 
             // Filter out non-renderable stream events from saved thinking parts
             const filteredSavedThinkingParts = savedThinkingParts
@@ -948,6 +941,18 @@ const PurePreviewMessage = ({
                   });
                 })}
 
+                {message.role === "assistant" &&
+                  regularParts.length === 0 &&
+                  finalThinkingParts.length > 0 &&
+                  !isLoading && (
+                    <p
+                      className="mt-2 text-muted-foreground text-sm"
+                      data-testid="narrative-empty-thinking-only"
+                    >
+                      Full response is in the thinking panel above.
+                    </p>
+                  )}
+
                 {/* Data360 sources: show when assistant used Data360 tools */}
                 {message.role === "assistant" &&
                   (() => {
@@ -1034,9 +1039,13 @@ const PurePreviewMessage = ({
                       {followUps.map((suggestion) => (
                         <Suggestion
                           key={suggestion}
-                          className="h-auto whitespace-normal px-3 py-1.5 text-left text-sm"
+                          className="h-auto gap-2 whitespace-normal px-3 py-1.5 text-left text-sm"
                           onClick={() => {
-                            window.history.pushState({}, "", `/chat/${chatId}`);
+                            window.history.pushState(
+                              {},
+                              "",
+                              `${getBasePath()}/chat/${chatId}`,
+                            );
                             if (
                               followUpSuggestionsPopulateInput &&
                               onFollowUpPopulateInput
@@ -1051,7 +1060,13 @@ const PurePreviewMessage = ({
                           }}
                           suggestion={suggestion}
                         >
-                          {suggestion}
+                          <span className="inline-flex items-start gap-2">
+                            <MessageSquare
+                              aria-hidden
+                              className="mt-0.5 size-4 shrink-0 opacity-70"
+                            />
+                            <span>{suggestion}</span>
+                          </span>
                         </Suggestion>
                       ))}
                     </div>

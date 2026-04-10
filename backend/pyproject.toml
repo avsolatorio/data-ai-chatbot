@@ -29,6 +29,7 @@ dependencies = [
     "pyodbc>=5.3.0",
     "aioodbc>=0.5.0",
     "azure-identity>=1.25.1",
+    "gunicorn>=25.1.0",
 ]
 
 [project.optional-dependencies]
@@ -51,6 +52,10 @@ dev-dependencies = [
     "pytest>=7.4.4",
     "pytest-asyncio>=0.23.3",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100

@@ -27,6 +27,13 @@ from app.ai.protocols.stream import (
 )
 from app.ai.routing import check_intent
 from app.api.deps import get_current_user, get_optional_user
+from app.api.v1.schemas.chat_schemas import (
+    DeleteMessagesRequest,
+    DeleteMessagesResponse,
+    SuggestionResponse,
+    UpdateChatVisibilityRequest,
+    UpdateChatVisibilityResponse,
+)
 from app.api.v1.utils.background_tasks import (
     create_save_messages_task,
     create_update_context_task,
@@ -39,8 +46,6 @@ from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import (
     create_stream_id,
     delete_chat_by_id,
-    soft_delete_message_by_id,
-    soft_delete_messages_by_chat_id_after_timestamp,
     get_chat_by_id,
     get_latest_messages_by_chat_id,
     get_message_by_id,
@@ -48,18 +53,13 @@ from app.db.queries.chat_queries import (
     get_messages_by_chat_id,
     save_chat,
     save_messages,
+    soft_delete_message_by_id,
+    soft_delete_messages_by_chat_id_after_timestamp,
     update_chat_visibility_by_id,
 )
 from app.db.queries.suggestion_queries import get_suggestions_by_document_id
 from app.utils.message_converter import convert_messages_to_openai_format
 from app.utils.resumable_stream import mark_stream_complete, store_stream_chunk
-from app.api.v1.schemas.chat_schemas import (
-    DeleteMessagesRequest,
-    DeleteMessagesResponse,
-    SuggestionResponse,
-    UpdateChatVisibilityRequest,
-    UpdateChatVisibilityResponse,
-)
 from app.utils.stream import patch_response_with_headers
 from app.utils.stream_processor import StreamEventProcessor
 from app.utils.user_id import get_user_id_uuid, user_ids_match
@@ -788,6 +788,13 @@ async def delete_chat(
 
     # Validate user owns the chat
     if not user_ids_match(current_user["id"], chat.userId):
+        logger.warning(
+            "Delete access denied (ownership mismatch): current_user_id=%s, chat.userId=%s, chatId=%s. "
+            "Chat may have been created before login (guest) or under different session.",
+            current_user["id"],
+            chat.userId,
+            chat_id,
+        )
         raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
 
     # Delete the chat (cascade deletes votes, messages, streams)
@@ -839,7 +846,10 @@ async def delete_messages(
 
     logger.info(
         "Soft-deleted %d message(s) for chat_id=%s from message_id=%s (includeTrailing=%s)",
-        deleted_count, message.chatId, message_id, request.includeTrailing,
+        deleted_count,
+        message.chatId,
+        message_id,
+        request.includeTrailing,
     )
     return DeleteMessagesResponse(deletedCount=deleted_count)
 
@@ -861,20 +871,18 @@ async def update_chat_visibility(
         raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
 
     updated_chat = await update_chat_visibility_by_id(db, chat_id, request.visibility)
-    return UpdateChatVisibilityResponse(
-        id=str(updated_chat.id), visibility=updated_chat.visibility
-    )
+    return UpdateChatVisibilityResponse(id=str(updated_chat.id), visibility=updated_chat.visibility)
 
 
 @router.get("/suggestions", response_model=List[SuggestionResponse])
 async def get_suggestions(
-    documentId: str = Query(...),
+    document_id: str = Query(..., alias="documentId"),
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get suggestions for a document by document ID."""
-    document_id = UUID(documentId)
-    suggestions = await get_suggestions_by_document_id(db, document_id)
+    document_uuid = UUID(document_id)
+    suggestions = await get_suggestions_by_document_id(db, document_uuid)
 
     if not suggestions:
         return []

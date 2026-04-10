@@ -5,6 +5,7 @@ Uses Redis if available, falls back to in-memory storage.
 
 import asyncio
 import hashlib
+import logging
 import time
 from collections import defaultdict
 from typing import Callable, Optional
@@ -14,6 +15,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 # In-memory fallback storage (simple dict)
 _memory_store: dict[str, list[float]] = defaultdict(list)
@@ -248,6 +251,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
         except HTTPException as exc:
             if exc.status_code == status.HTTP_429_TOO_MANY_REQUESTS:
+                identifier = get_rate_limit_identifier(request)
+                # Log prefix only to avoid PII (e.g. "u:abc..." not full user id)
+                id_preview = f"{identifier[:12]}..." if len(identifier) > 12 else identifier
+                logger.warning(
+                    "rate_limit_exceeded: path=%s method=%s id_preview=%s",
+                    request.url.path,
+                    request.method,
+                    id_preview,
+                )
                 return JSONResponse(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     content={"detail": exc.detail},

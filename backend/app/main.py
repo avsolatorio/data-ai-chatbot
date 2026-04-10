@@ -30,6 +30,7 @@ from app.core.cache_headers import CachePreventionMiddleware
 from app.core.csrf import CSRFMiddleware
 from app.core.rate_limit import RateLimitMiddleware
 from app.core.redis import close_redis_client
+from app.core.request_logging import RequestLoggingMiddleware
 from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
 
 # Resolve log level from config (DEBUG, INFO, WARNING, ERROR)
@@ -81,6 +82,16 @@ logger = logging.getLogger(__name__)
 logger.info("=== FastAPI app starting, logging configured ===")
 if settings.LOG_FILE and settings.LOG_FILE.strip():
     logger.info("Logs are also being written to: %s", settings.LOG_FILE.strip())
+# Debug: CORS config (count and first origin for troubleshooting CSRF)
+_cors_list = (
+    settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else [settings.CORS_ORIGINS]
+)
+_cors_preview = (
+    _cors_list[0][:60] + "..."
+    if _cors_list and len(str(_cors_list[0])) > 60
+    else (_cors_list[0] if _cors_list else "none")
+)
+logger.debug("CORS_ORIGINS: count=%d preview=%s", len(_cors_list), _cors_preview)
 
 
 @asynccontextmanager
@@ -146,6 +157,9 @@ app.add_middleware(CSRFMiddleware)
 
 # Cache prevention: no-store for all responses to avoid form/sensitive data caching
 app.add_middleware(CachePreventionMiddleware)
+
+# Request logging: method, path, status, duration for /api/* (add last = runs first)
+app.add_middleware(RequestLoggingMiddleware)
 
 
 @app.middleware("http")

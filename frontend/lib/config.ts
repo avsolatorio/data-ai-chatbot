@@ -65,6 +65,19 @@ function getShowReasoningPartType(): boolean {
   return v === "true" || v === "1" || v === "yes" || fromEnv === true;
 }
 
+/** When true, show image attach UI and allow pasted images. Default false. */
+function getEnableImageUpload(): boolean {
+  const v = process.env.NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD?.trim().toLowerCase();
+  const fromEnv = getEnv().NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD;
+  if (v === "false" || v === "0" || v === "no") {
+    return false;
+  }
+  if (v === "true" || v === "1" || v === "yes") {
+    return true;
+  }
+  return fromEnv;
+}
+
 /** When set (e.g. "/app"), the app is served under that path. Must match next.config basePath. Trailing slash is stripped. */
 export function getBasePath(): string {
   const v =
@@ -72,6 +85,29 @@ export function getBasePath(): string {
     getEnv().NEXT_PUBLIC_BASE_PATH ||
     "";
   return v.replace(/\/+$/, "");
+}
+
+/**
+ * Public URL for the current page. Use for returnTo in auth redirects when behind a proxy
+ * (window.location.href can expose the internal container hostname).
+ * When NEXT_PUBLIC_APP_URL is set, builds URL from it + current path; else uses window.location.href.
+ */
+export function getPublicReturnUrl(): string {
+  if (typeof window === "undefined") return "";
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    getEnv().NEXT_PUBLIC_APP_URL ||
+    "";
+  if (!appUrl) return window.location.href;
+  const basePath = getBasePath();
+  const pathname = window.location.pathname;
+  const rest =
+    basePath && pathname.startsWith(basePath)
+      ? pathname.slice(basePath.length) || "/"
+      : pathname;
+  const base = appUrl.replace(/\/+$/, "");
+  const path = rest.startsWith("/") ? rest : `/${rest}`;
+  return `${base}${path}${window.location.search}${window.location.hash}`;
 }
 
 export const appConfig = {
@@ -146,4 +182,10 @@ export const appConfig = {
    * Default false. Set via NEXT_PUBLIC_SHOW_REASONING_PART_TYPE=true.
    */
   showReasoningPartType: getShowReasoningPartType(),
+
+  /**
+   * When true, image upload (paperclip, paste) is enabled. Default false.
+   * Set via NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD=true.
+   */
+  enableImageUpload: getEnableImageUpload(),
 };

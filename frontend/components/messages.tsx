@@ -3,13 +3,14 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import equal from "fast-deep-equal";
 import { ArrowDownIcon } from "lucide-react";
 import { memo, useCallback, useEffect, useRef } from "react";
+import { useArtifactSelector } from "@/hooks/use-artifact";
 import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
 import { useMessages } from "@/hooks/use-messages";
-import type { Vote } from "@/lib/db/schema";
 import { appConfig } from "@/lib/config";
+import type { Vote } from "@/lib/db/schema";
+import { getStreamingThinkingScrollFingerprint } from "@/lib/streaming-thinking-scroll-fingerprint";
 import type { ChatMessage } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
-import { useArtifactSelector } from "@/hooks/use-artifact";
 import { useDataStream } from "./data-stream-provider";
 import { PreviewMessage, ThinkingMessage } from "./message";
 import { scrollToAndHighlightMessage } from "./quoted-context-block";
@@ -82,8 +83,7 @@ function PureMessages({
 
   useDataStream();
 
-  const virtualItemCount =
-    messages.length + (status === "submitted" ? 1 : 0);
+  const virtualItemCount = messages.length + (status === "submitted" ? 1 : 0);
 
   const virtualizer = useVirtualizer({
     count: virtualItemCount,
@@ -96,7 +96,8 @@ function PureMessages({
       typeof window !== "undefined" &&
       typeof navigator !== "undefined" &&
       navigator.userAgent.indexOf("Firefox") === -1
-        ? (el) => (el?.getBoundingClientRect().height ?? ESTIMATE_SIZE) + ROW_GAP
+        ? (el) =>
+            (el?.getBoundingClientRect().height ?? ESTIMATE_SIZE) + ROW_GAP
         : undefined,
   });
 
@@ -182,32 +183,22 @@ function PureMessages({
     return () => clearTimeout(t);
   }, [virtualItemCount, status, virtualizer]);
 
-  // Stick to bottom while streaming when user is at bottom (virtual list height may not change so observers don't fire)
+  // Last assistant text length (main message row grows while streaming).
   const lastMessageTextLength =
     messages.length > 0
       ? (messages.at(-1)?.parts ?? [])
-          .filter(
-            (p): p is { type: "text"; text: string } => p.type === "text",
-          )
+          .filter((p): p is { type: "text"; text: string } => p.type === "text")
           .reduce((sum, p) => sum + (p.text?.length ?? 0), 0)
       : 0;
-  const streamingThinkingScrollKey =
-    streamingThinkingParts.length > 0
-      ? `${streamingThinkingParts.length}-${
-          (() => {
-            const last = streamingThinkingParts.at(-1)?.data;
-            if (
-              typeof last === "object" &&
-              last !== null &&
-              "text" in last &&
-              typeof (last as { text?: unknown }).text === "string"
-            ) {
-              return (last as { text: string }).text.length;
-            }
-            return 0;
-          })()
-        }`
-      : "0";
+
+  // Stick-to-bottom while streaming (FE-003): only when the user is already at the bottom
+  // (`isAtBottom`). If they scroll up to read history, we do not force the viewport back
+  // down. A future product flag could add "always follow during thinking" if needed.
+  const streamingThinkingScrollKey = getStreamingThinkingScrollFingerprint(
+    streamingThinkingStage,
+    streamingThinkingParts,
+  );
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: deps re-run when message or thinking content appends
   useEffect(() => {
     if (
@@ -345,8 +336,8 @@ function PureMessages({
                   }
                   usageOverride={
                     message.role === "assistant"
-                      ? usageByMessageId?.[message.id] ??
-                        (isLastAssistantMessage ? lastMessageUsage : undefined)
+                      ? (usageByMessageId?.[message.id] ??
+                        (isLastAssistantMessage ? lastMessageUsage : undefined))
                       : undefined
                   }
                   vote={

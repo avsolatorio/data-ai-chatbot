@@ -11,9 +11,11 @@
  */
 
 import { authProvider } from "@/lib/auth/config";
+import { clearAuthSessionStorage } from "@/lib/auth-service-client";
 import { getAuthTokenFromDocument } from "@/lib/auth/cookies";
-import { getBasePath } from "@/lib/config";
+import { getBasePath, getPublicReturnUrl } from "@/lib/config";
 import { getEnv } from "@/lib/env";
+import { getMsalRefresh } from "@/lib/auth/msal/msal-refresh-registry";
 
 /**
  * Check if endpoint should use Next.js proxy (all endpoints now use proxy)
@@ -66,10 +68,12 @@ export function getApiUrl(endpoint: string): string {
  * - Handles authentication automatically via cookies
  * - Routes to FastAPI by default
  * - Uses Next.js proxies for special cases
+ * - MSAL: on 401, attempts silent token refresh and retries once
  */
 export async function apiFetch(
   input: RequestInfo | URL,
   init?: RequestInit,
+  isRetry = false,
 ): Promise<Response> {
   let requestUrl: string;
   if (typeof input === "string") {
@@ -111,17 +115,58 @@ export async function apiFetch(
 
   const response = await fetch(fullUrl, newInit);
 
-  // data360: on 401 (expired token), redirect to auth URL for refresh
+  // MSAL: on 401, try silent refresh and retry once (no user interaction)
+  // Skip retry for requests with non-reusable body (stream, FormData, etc.)
+  const canRetry =
+    !init?.body || typeof init.body === "string";
   if (
     typeof window !== "undefined" &&
     response.status === 401 &&
-    authProvider === "data360"
+    authProvider === "msal" &&
+    !isRetry &&
+    canRetry
   ) {
-    const authUrl = getEnv().NEXT_PUBLIC_DATA360_AUTH_URL;
-    if (authUrl) {
-      const returnTo = encodeURIComponent(window.location.href);
-      const redirectUrl = `${authUrl}${authUrl.includes("?") ? "&" : "?"}returnTo=${returnTo}`;
-      window.location.href = redirectUrl;
+    const refresh = getMsalRefresh();
+    if (refresh) {
+      const ok = await refresh();
+      if (ok) {
+        const newToken = getAuthTokenFromDocument();
+        if (newToken) {
+          const retryHeaders = new Headers(newInit.headers);
+          retryHeaders.set("Authorization", `Bearer ${newToken}`);
+          return apiFetch(
+            fullUrl,
+            { ...newInit, headers: retryHeaders },
+            true,
+          );
+        }
+      }
+    }
+  }
+
+  // data360 or msal+searchToken: on 401, clear searchToken then redirect to auth URL
+  // Also handle msal when using searchToken (no MSAL refresh available)
+  const isData360OrSearchToken =
+    authProvider === "data360" ||
+    (authProvider === "msal" && !getMsalRefresh());
+  if (
+    typeof window !== "undefined" &&
+    response.status === 401 &&
+    isData360OrSearchToken
+  ) {
+    try {
+      await fetch(getApiUrl("/api/auth/clear-search-token"), {
+        method: "POST",
+        credentials: "include",
+      });
+      clearAuthSessionStorage();
+    } finally {
+      const authUrl = getEnv().NEXT_PUBLIC_DATA360_AUTH_URL;
+      if (authUrl) {
+        const returnTo = encodeURIComponent(getPublicReturnUrl());
+        const redirectUrl = `${authUrl}${authUrl.includes("?") ? "&" : "?"}returnTo=${returnTo}`;
+        window.location.replace(redirectUrl);
+      }
     }
   }
 

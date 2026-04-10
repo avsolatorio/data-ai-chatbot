@@ -29,10 +29,10 @@ import type { DBMessage, Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import {
+  type AppUsage,
   aggregateUsage,
   getLatestUsage,
   getUsageByMessageId,
-  type AppUsage,
   type LastContext,
 } from "@/lib/usage";
 import {
@@ -111,9 +111,9 @@ export function Chat({
 
   // lastContext is the canonical usage source (latest + byMessageId). We keep it in state so we can
   // update it after refetch when a stream completes; otherwise we only have the initial load value.
-  const [lastContextState, setLastContextState] = useState<LastContext | null | undefined>(
-    () => lastContext ?? undefined,
-  );
+  const [lastContextState, setLastContextState] = useState<
+    LastContext | null | undefined
+  >(() => lastContext ?? undefined);
 
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
@@ -267,9 +267,7 @@ export function Chat({
         "usage" in meta &&
         meta.usage != null
       ) {
-        const raw = meta.usage as
-          | AppUsage
-          | { type?: string; data?: AppUsage };
+        const raw = meta.usage as AppUsage | { type?: string; data?: AppUsage };
         const usagePayload =
           typeof raw === "object" && "data" in raw && raw.data != null
             ? raw.data
@@ -302,9 +300,7 @@ export function Chat({
         ) {
           setShowCreditCardAlert(true);
         } else {
-          const ref = error.errorId
-            ? ` Reference: ${error.errorId}.`
-            : "";
+          const ref = error.errorId ? ` Reference: ${error.errorId}.` : "";
           toast({
             type: "error",
             description: `Something went wrong. Please try again.${ref}`,
