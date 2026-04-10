@@ -11,7 +11,7 @@ hide:
 
 > *Maintained by the World Bank **AI for Data — Data for AI** team. On Data360 Chat, live indicators and metadata flow through Data360 MCP; PCN helps readers tell verified statistics from model guesses at a glance.*
 
-![Data AI Chatbot — chat and side panel](img/chat-preview.png)
+<!-- Screenshot: add docs/img/chat-preview.png when an image is available. -->
 
 ---
 
@@ -61,33 +61,32 @@ hide:
 
 === "I’m building or extending it"
 
-    - [**Architecture overview**](architecture/overview.md) — Scope and stack  
-    - [**System context**](architecture/system-context.md) — Actors and external systems  
-    - [**Backend**](architecture/backend.md) · [**Frontend**](architecture/frontend.md)  
-    - [**Authentication**](architecture/authentication.md) — Modes and flows  
-    - [**Integrations**](architecture/integrations.md) — MCP, Data360, and more  
+    Detailed architecture and integration docs will live in this site over time. For now, use the repository:
+
+    - [**Architecture**](https://github.com/avsolatorio/vercel-ai-chatbot/blob/main/README.md#architecture) — stack and system diagram  
+    - [**Getting started (manual)**](https://github.com/avsolatorio/vercel-ai-chatbot/blob/main/README.md#getting-started) — local setup  
+    - [**Development**](https://github.com/avsolatorio/vercel-ai-chatbot/blob/main/README.md#development) — tests and tooling  
+    - [**DEVELOPER.md**](https://github.com/avsolatorio/vercel-ai-chatbot/blob/main/DEVELOPER.md) — contributor notes  
 
 === "I’m deploying or operating it"
 
-    - [**Local development**](deployment/local-development.md)  
-    - [**Docker**](deployment/docker.md)  
-    - [**Docker setup (detailed)**](docker-setup.md)  
-    - [**Production**](deployment/production.md)  
-    - [**Environment variables**](operations/environment-variables.md)  
-    - [**Troubleshooting**](operations/troubleshooting.md)  
+    - [**Docker setup (detailed)**](docker-setup.md) — compose-oriented walkthrough  
+    - [**Getting started — Docker**](https://github.com/avsolatorio/vercel-ai-chatbot/blob/main/README.md#getting-started) — quick path in the README  
+    - [**Deployment**](https://github.com/avsolatorio/vercel-ai-chatbot/blob/main/README.md#deployment) — hosting options  
+    - [**Configuration**](https://github.com/avsolatorio/vercel-ai-chatbot/blob/main/README.md#configuration) — environment variables overview  
 
 === "I’m administering it"
 
-    - [**Feedback review**](admin-guide/feedback-review.md)  
-    - [**Maintenance mode**](admin-guide/maintenance-mode.md)  
-    - [**User management**](admin-guide/user-management.md)  
+    - [**Authentication**](https://github.com/avsolatorio/vercel-ai-chatbot/blob/main/README.md#authentication) — sign-in modes and MSAL notes  
+    - [**Deployment**](https://github.com/avsolatorio/vercel-ai-chatbot/blob/main/README.md#deployment) — production concerns  
+    - **Feedback and maintenance** — see [**Contributing**](https://github.com/avsolatorio/vercel-ai-chatbot/blob/main/README.md#contributing) and repository settings for your fork or org  
 
 ---
 
 ## Security & API
 
-- [**Security overview**](security/overview.md) — How auth, cookies, CSRF, and rate limiting fit together  
-- **Live API docs** (when the backend is running): Swagger at `{BACKEND_URL}/docs` and ReDoc at `{BACKEND_URL}/redoc` — see [**API**](api/index.md)  
+- [**Authentication**](https://github.com/avsolatorio/vercel-ai-chatbot/blob/main/README.md#authentication) — how sign-in and sessions relate to the stack (see also **Configuration** in the README for cookies and URLs)  
+- **Live API docs** (when the backend is running): Swagger at `{BACKEND_URL}/docs` and ReDoc at `{BACKEND_URL}/redoc`  
 
 ---
 
