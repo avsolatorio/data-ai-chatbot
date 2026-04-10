@@ -1,72 +1,14 @@
-# World Bank IGO Rider — Procedural Terms
+### WORLD BANK IGO RIDER - PROCEDURAL TERMS
 
-> **Note**: This is the World Bank IGO Rider that supplements the MIT License for this project.
-> The canonical version of this document is maintained at:
-> https://github.com/worldbank/.github/blob/main/WB-IGO-RIDER.md
+Where the Licensor is an intergovernmental organization (IGO), the following additional terms shall apply. These terms are part of the License. Exercise of any permission granted under the License constitutes acceptance of these terms:
 
----
-
-This Rider applies when the Licensor is the International Bank for Reconstruction and Development
-(also referred to as the World Bank), an international organization established by Articles of Agreement
-among its member countries.
-
-## 1. Privileges and Immunities
-
-Nothing in the MIT License or this Rider constitutes or shall be deemed a waiver, renunciation, or
-modification of any privileges, immunities, exemptions, or other rights that apply to the Licensor
-pursuant to international law, any treaty, or the Licensor's constituent documents, including but not
-limited to the Articles of Agreement of the International Bank for Reconstruction and Development.
-
-## 2. Dispute Resolution
-
-Any dispute, controversy, or claim arising out of or relating to this License that is not resolved
-by good-faith negotiation shall be settled by:
-
-1. **Non-binding mediation** under the UNCITRAL Mediation Rules, conducted in Washington, D.C., USA.
-2. If not resolved within 45 days of commencing mediation (or such longer period as the parties may
-   agree), by **binding arbitration** under the UNCITRAL Arbitration Rules.
-
-The language of any mediation or arbitration proceedings shall be English.
-
-## 3. Governing Law
-
-This License and any dispute arising under it shall be interpreted in accordance with general
-principles of international law, taking into account, where applicable, the Berne Convention for
-the Protection of Literary and Artistic Works, the WIPO Copyright Treaty, and the Universal
-Copyright Convention.
-
-## 4. No Waiver Without Writing
-
-No failure or delay by the Licensor in exercising any right under this License, and no course of
-dealing between the parties, shall constitute a waiver of any right. Any waiver or consent to a
-breach of any provision of this License must be express and in a written instrument signed by
-the Licensor to be effective.
-
-## 5. No Support Obligation
-
-Nothing in this License obligates the Licensor to provide updates, maintenance, support, patches,
-upgrades, or any other form of continued service with respect to the Software.
-
-## 6. Entire Agreement
-
-This License (MIT License together with this Rider) constitutes the entire agreement between the
-parties with respect to the Software and supersedes all prior and contemporaneous oral or written
-agreements relating to the subject matter hereof. Any modification must be made by mutual written
-consent of the parties.
-
-## 7. Severability
-
-If any provision of this License is held invalid, illegal, or unenforceable, that provision shall
-be modified to the minimum extent necessary to make it valid, legal, and enforceable while
-preserving its original intent; the remaining provisions shall remain in full force and effect.
-
-## 8. Precedence
-
-To the extent any provision of this Rider conflicts with the MIT License, the terms of this Rider
-shall prevail.
-
----
-
-*This Rider is purely procedural. It reserves privileges and immunities enjoyed by the World Bank
-as an intergovernmental organization, without adding any restrictions to the permissions granted
-by the MIT License.*
+1. **Privileges and Immunities** Nothing in this License shall constitute or be interpreted as a waiver, express or implied, of any privileges and immunities that apply to the Licensor pursuant to international law, treaties, or the Licensor's constituent documents, including immunity from jurisdiction and execution.
+   The Licensor does not submit to the jurisdiction of any national court by virtue of this License. No act of the Licensor in connection with this License — including its preparation, distribution, or administration — shall be construed as a waiver of any such immunity. The Licensor shall not be joined as a party to any legal or arbitral proceeding arising from or relating to this License or Work without its prior express written consent, and no such consent shall be implied from any conduct of the Licensor.
+2. **Dispute Resolution** Any dispute arising under this License that involves the Licensor shall be resolved, to the extent not settled amicably, through the following procedures:
+   - The party raising the dispute shall deliver written notice to the Licensor specifying the nature of the dispute in reasonable detail. The 45-day mediation period commences upon the Licensor's receipt of such notice. During that period, the parties shall attempt to resolve the dispute amicably. If the Licensor so designates, mediation shall be conducted under rules specified by the Licensor; otherwise, the UNCITRAL Mediation Rules shall apply.
+   - If the dispute is not resolved within 45 days of receipt of the written notice, either party may refer it to final and binding arbitration under the UNCITRAL Arbitration Rules then in force, before a sole arbitrator, conducted in English. The juridical seat of arbitration shall be Washington, D.C., United States, as a matter of procedural convenience only, and conducted remotely when practicable.
+3. **Interpretation under International Law** This License shall be interpreted in accordance with general principles of international law, including those reflected in the Berne Convention (1971), the WIPO Copyright Treaty (1996), and the Universal Copyright Convention (1971). No provision shall be interpreted in a manner that derogates from the legal status of the Licensor under international law.
+4. **No Waiver** No provision of this License shall be deemed waived and no breach consented to unless expressly agreed in writing and signed by the Licensor.
+5. **Entire Agreement** This License constitutes the entire agreement between the Licensee and the Licensor concerning the Work and supersedes any additional terms submitted by You. No modification shall be effective unless agreed in writing by both parties.
+6. **Severability** If any provision of this License is held to be unenforceable, it shall be interpreted to give effect to its purpose to the extent permitted by applicable law, and the remainder of the License shall remain in full force and effect. In particular, if Section 2 (Dispute Resolution) is held unenforceable in whole or in part, that holding shall not affect the enforceability of Section 1 (Privileges and Immunities) or any other provision of these Additional Terms.
+7. **Precedence** In the event of any inconsistency between these Additional Terms for IGOs and the terms of the Apache License, Version 2.0, these Additional Terms for IGOs shall prevail.
