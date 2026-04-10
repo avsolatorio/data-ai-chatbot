@@ -9,6 +9,7 @@ from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import delete_all_chats_by_user_id, get_chats_by_user_id
+from app.utils.chat_visibility import effective_visibility
 from app.utils.user_id import get_user_id_uuid
 
 router = APIRouter()
@@ -56,7 +57,7 @@ async def get_chat_history(
             "id": str(chat.id),
             "title": chat.title,
             "createdAt": _iso_utc(chat.createdAt),
-            "visibility": chat.visibility,
+            "visibility": effective_visibility(chat.visibility),
             "userId": str(chat.userId),
             "lastContext": chat.lastContext,
         }

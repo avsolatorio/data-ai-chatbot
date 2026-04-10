@@ -178,6 +178,9 @@ class Settings(BaseSettings):
     # Chat tools: when False, createDocument/updateDocument local tools are disabled
     ENABLE_LOCAL_TOOLS: bool = False
 
+    # When True, users can set chats to public (share via link). Default False.
+    ENABLE_SHARE_CONVERSATION: bool = False
+
     # Feedback review: only these users (by email) can list feedback. Comma-separated, case-insensitive.
     # Empty = no one can access review; set in production to e.g. "admin@example.com,reviewer@example.com"
     FEEDBACK_REVIEWER_EMAILS: str = ""
