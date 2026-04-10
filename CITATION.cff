@@ -6,13 +6,14 @@ abstract: >
   A full-stack AI chatbot application that provides natural-language access to World Bank
   development data via the Data360 MCP Server, with support for data retrieval, chart
   generation, document creation, and Proof-Carrying Numbers (PCN) verification of numeric claims.
+  Licensed under Apache-2.0; the World Bank IGO Rider in WB-IGO-RIDER.md applies in addition.
 authors:
   - name: "AI for Data — Data for AI Team"
     affiliation: "World Bank"
     email: "aifordata@worldbank.org"
 version: "1.0.0"
-date-released: "2025-01-01"
-license: MIT
+date-released: "2026-04-10"
+license: Apache-2.0
 repository-code: "https://github.com/worldbank/data-ai-chatbot"
 url: "https://worldbank.github.io/data-ai-chatbot"
 keywords:

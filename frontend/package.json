@@ -2,6 +2,7 @@
   "name": "ai-chatbot",
   "version": "3.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "scripts": {
     "copymainfile": "node copymain.js",
     "postbuild": "node scripts/postbuild.js",

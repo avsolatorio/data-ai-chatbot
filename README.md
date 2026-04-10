@@ -526,20 +526,20 @@ If you use this software, please cite it using the metadata in [CITATION.cff](CI
   title  = {Data AI Chatbot},
   author = {{AI for Data — Data for AI Team, World Bank}},
   url    = {https://github.com/worldbank/data-ai-chatbot},
-  license = {MIT + World Bank IGO Rider}
+  license = {Apache-2.0 with World Bank IGO Rider}
 }
 ```
 
 ## License
 
-This project is licensed under the MIT License together with the World Bank IGO Rider.
+This project is licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0), subject to the World Bank IGO Rider.
 The Rider is purely procedural: it reserves all privileges and immunities enjoyed by the
-World Bank, without adding restrictions to the MIT permissions. Please review both files
+World Bank, without adding restrictions to the Apache-2.0 permissions. Please review both files
 before using, distributing or contributing.
 
-See [LICENSE](LICENSE) and [WB-IGO-RIDER.md](WB-IGO-RIDER.md) for the full license texts.
+See [LICENSE](LICENSE) and [WB-IGO-RIDER.md](WB-IGO-RIDER.md) for the license notice, rider summary, and full IGO Rider text.
 
-> **Attribution**: Portions of this codebase are derived from the [Vercel AI Chatbot](https://github.com/vercel/ai-chatbot) template, originally licensed under the Apache License 2.0 by Vercel, Inc. See [NOTICE](NOTICE) and [LICENSE-APACHE](LICENSE-APACHE) for details.
+> **Attribution**: Portions of this codebase are derived from the [Vercel AI Chatbot](https://github.com/vercel/ai-chatbot) template, originally licensed under the Apache License 2.0 by Vercel, Inc. See [NOTICE](NOTICE) for upstream attribution and how the combined work is licensed.
 
 ---
 
