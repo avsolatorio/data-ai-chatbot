@@ -9,8 +9,13 @@ released under the Apache License, Version 2.0:
   https://github.com/vercel/ai-chatbot
   Licensed under the Apache License, Version 2.0
 
-A copy of the Apache License 2.0 is included in this repository as LICENSE-APACHE.
+Subsequent modifications, additions, and the overall World Bank integration are
+Copyright (c) 2026 The World Bank.
 
-Subsequent modifications, additions, and the overall World Bank integration
-are Copyright (c) 2026 The World Bank and are licensed under the MIT License.
-See LICENSE for the full MIT License text.
+The combined work is licensed under the Apache License, Version 2.0, subject to
+the World Bank IGO Rider. See the LICENSE file in this repository for the
+license notice and rider summary, and WB-IGO-RIDER.md for the full IGO Rider
+text.
+
+A copy of the Apache License, Version 2.0 is available at:
+https://www.apache.org/licenses/LICENSE-2.0
