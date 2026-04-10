@@ -1,7 +1,8 @@
 # Third-Party Licenses
 
 This document lists the open-source third-party software used by this project,
-organized by component. All licenses are compatible with the project's MIT License.
+organized by component. All licenses are compatible with the project's Apache-2.0 license
+and World Bank IGO Rider.
 
 > **How to regenerate this file:**
 > - Frontend: `cd frontend && pnpm licenses list --prod`
