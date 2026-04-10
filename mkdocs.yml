@@ -10,6 +10,8 @@ edit_uri: edit/main/docs/
 # Pin the doc toolchain: mkdocs>=1.6,<2 (MkDocs 2.x is not compatible with Material yet).
 exclude_docs: |
   architecture-data360-chat.md
+  architecture/Data360-Chat-Architecture.docx
+  architecture/generate_docx.py
   database-idempotency-and-duplicate-inserts.md
   itsda-data360-chat-int-fe-diff-integration.md
   open-source-application.md
@@ -17,6 +19,7 @@ exclude_docs: |
   pr-feat-*.md
   pr-fix-*.md
   security-guardrails-audit.md
+  security/guardrails-audit.md
   single-llm-thinking-transition.md
   task-workflow.md
 
@@ -42,7 +45,6 @@ markdown_extensions:
   - admonition
   - pymdownx.details
 
-# Nav lists only pages that exist under docs/. Add sections here when those guides land.
 nav:
   - Home: index.md
   - User Guide:
@@ -54,4 +56,45 @@ nav:
     - user-guide/file-attachments.md
     - user-guide/chat-visibility.md
     - user-guide/faq.md
-  - Docker: docker-setup.md
+  - Architecture:
+    - architecture/index.md
+    - architecture/overview.md
+    - architecture/system-context.md
+    - architecture/backend.md
+    - architecture/frontend.md
+    - architecture/data-persistence.md
+    - architecture/authentication.md
+    - architecture/ai-streaming.md
+    - architecture/integrations.md
+    - architecture/deployment-and-operations.md
+    - architecture/architectural-decisions.md
+  - Infrastructure:
+    - infrastructure/index.md
+    - infrastructure/components.md
+    - infrastructure/network-topology.md
+    - infrastructure/data-flow.md
+  - Deployment:
+    - deployment/index.md
+    - deployment/local-development.md
+    - deployment/docker.md
+    - "Docker setup (detailed)": docker-setup.md
+    - deployment/production.md
+    - deployment/deployment-rendering.md
+  - Operations:
+    - operations/index.md
+    - operations/environment-variables.md
+    - operations/health-monitoring.md
+    - operations/logging.md
+    - operations/troubleshooting.md
+    - operations/runbooks.md
+  - Security:
+    - security/index.md
+    - security/overview.md
+    - security/risk-assessment.md
+  - Admin Guide:
+    - admin-guide/index.md
+    - admin-guide/feedback-review.md
+    - admin-guide/maintenance-mode.md
+    - admin-guide/user-management.md
+  - API:
+    - api/index.md
