@@ -40,7 +40,7 @@ from app.api.v1.utils.background_tasks import (
 )
 from app.api.v1.utils.continue_stream import _continue_stream_in_background
 from app.api.v1.utils.tool_setup import prepare_tools
-from app.config import IntentType, ModelType
+from app.config import IntentType, ModelType, get_settings
 from app.core.database import get_db
 from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import (
@@ -58,6 +58,7 @@ from app.db.queries.chat_queries import (
     update_chat_visibility_by_id,
 )
 from app.db.queries.suggestion_queries import get_suggestions_by_document_id
+from app.utils.chat_visibility import effective_visibility
 from app.utils.message_converter import convert_messages_to_openai_format
 from app.utils.resumable_stream import mark_stream_complete, store_stream_chunk
 from app.utils.stream import patch_response_with_headers
@@ -366,11 +367,16 @@ async def create_chat(
 
     else:
         # Create new chat - generate title from user message
+        stored_visibility = (
+            request.selectedVisibilityType
+            if get_settings().ENABLE_SHARE_CONVERSATION
+            else "private"
+        )
         logger.info(
             "Creating new chat: id=%s, userId=%s, visibility=%s",
             request.id,
             user_id,
-            request.selectedVisibilityType,
+            stored_visibility,
         )
         # Generate title from user message
         logger.info("[chat] generate_title_from_user_message start (new chat)")
@@ -381,7 +387,7 @@ async def create_chat(
             request.id,
             user_id,
             title=title,
-            visibility=request.selectedVisibilityType,
+            visibility=stored_visibility,
         )
         logger.info(
             "Chat created: id=%s, userId=%s (stored in DB)",
@@ -637,7 +643,8 @@ async def get_latest_messages(
         raise ChatSDKError("not_found:chat", status_code=status.HTTP_404_NOT_FOUND)
 
     # Check access permissions (same logic as get_chat)
-    if chat.visibility == "private":
+    effective = effective_visibility(chat.visibility)
+    if effective == "private":
         # Private chats require authentication
         if not current_user:
             logger.warning("Access denied: private chat requires authentication")
@@ -710,8 +717,9 @@ async def get_chat(
 
     # Check access permissions
     is_owner = False
+    effective = effective_visibility(chat.visibility)
 
-    if chat.visibility == "private":
+    if effective == "private":
         # Private chats require authentication
         if not current_user:
             logger.warning("Access denied: private chat requires authentication")
@@ -725,7 +733,7 @@ async def get_chat(
             current_user_id_uuid,
             chat.userId,
             type(chat.userId).__name__,
-            chat.visibility,
+            effective,
         )
 
         if chat.userId != current_user_id_uuid:
@@ -753,7 +761,7 @@ async def get_chat(
             "id": str(chat.id),
             "title": chat.title,
             "createdAt": chat.createdAt.isoformat(),
-            "visibility": chat.visibility,
+            "visibility": effective,
             "userId": str(chat.userId),
             "lastContext": chat.lastContext,
         },
@@ -869,6 +877,13 @@ async def update_chat_visibility(
 
     if not user_ids_match(current_user["id"], chat.userId):
         raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
+
+    if not get_settings().ENABLE_SHARE_CONVERSATION and request.visibility == "public":
+        raise ChatSDKError(
+            "forbidden:chat",
+            "Public chat sharing is disabled",
+            status.HTTP_403_FORBIDDEN,
+        )
 
     updated_chat = await update_chat_visibility_by_id(db, chat_id, request.visibility)
     return UpdateChatVisibilityResponse(id=str(updated_chat.id), visibility=updated_chat.visibility)

@@ -10,6 +10,7 @@ from app.core.database import get_db
 from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import get_chat_by_id, get_message_by_id
 from app.db.queries.vote_queries import get_votes_by_chat_id, vote_message
+from app.utils.chat_visibility import effective_visibility
 from app.utils.user_id import get_user_id_uuid, user_ids_match
 
 logger = logging.getLogger(__name__)
@@ -47,18 +48,19 @@ async def get_votes(
         logger.warning("Chat not found: %s", chatId)
         raise ChatSDKError("not_found:chat", status_code=status.HTTP_404_NOT_FOUND)
 
+    effective = effective_visibility(chat.visibility)
     logger.info(
         "Chat found: id=%s, userId=%s (type=%s), visibility=%s",
         chat.id,
         chat.userId,
         type(chat.userId).__name__,
-        chat.visibility,
+        effective,
     )
 
     # Check ownership based on visibility:
     # - Public chats: Anyone can vote (no ownership check)
     # - Private chats: Only the owner can vote (enforce ownership)
-    if chat.visibility == "private":
+    if effective == "private":
         current_user_id_uuid = get_user_id_uuid(current_user["id"])
         logger.info(
             "Checking ownership: current_user_id=%s (uuid=%s) vs chat.userId=%s (uuid type)",
@@ -78,7 +80,7 @@ async def get_votes(
                 current_user["id"],
                 current_user_id_uuid,
                 chat.userId,
-                chat.visibility,
+                effective,
             )
             raise ChatSDKError("forbidden:vote", status_code=status.HTTP_403_FORBIDDEN)
 
@@ -122,7 +124,8 @@ async def vote(
     # Check ownership based on visibility:
     # - Public chats: Anyone can vote (no ownership check)
     # - Private chats: Only the owner can vote (enforce ownership)
-    if chat.visibility == "private":
+    effective = effective_visibility(chat.visibility)
+    if effective == "private":
         if not user_ids_match(current_user["id"], chat.userId):
             logger.warning(
                 "Vote access denied (ownership mismatch): current_user_id=%s, chat.userId=%s, chatId=%s, visibility=%s. "
@@ -130,7 +133,7 @@ async def vote(
                 current_user["id"],
                 chat.userId,
                 request.chatId,
-                chat.visibility,
+                effective,
             )
             raise ChatSDKError("forbidden:vote", status_code=status.HTTP_403_FORBIDDEN)
 

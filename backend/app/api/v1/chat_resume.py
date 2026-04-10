@@ -15,6 +15,7 @@ from app.core.database import get_db
 from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import get_chat_by_id, get_messages_by_chat_id
 from app.models.stream import Stream
+from app.utils.chat_visibility import effective_visibility
 from app.utils.helpers import format_sse
 from app.utils.resumable_stream import (
     get_stream_chunks,
@@ -53,7 +54,7 @@ async def resume_stream(
         )
 
     # Check user access (handles both UUID and session ID formats)
-    if chat.visibility == "private":
+    if effective_visibility(chat.visibility) == "private":
         if not user_ids_match(current_user["id"], chat.userId):
             raise ChatSDKError(
                 "forbidden:chat",
