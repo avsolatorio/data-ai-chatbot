@@ -1,36 +1,54 @@
-# File Attachments
+# File attachments
 
-You can attach files to your messages so the AI can read and use them in its response.
-
----
-
-## Supported file types
-
-- **Images** — Common formats (e.g. PNG, JPEG, GIF) for visual content
-- **Documents** — Text-based files the AI can read (depending on deployment)
-
-File size limits may apply. Check with your administrator if uploads fail.
+Attach files to a message so the assistant can **see** them in context (subject to your deployment’s limits and policies).
 
 ---
 
-## How to attach a file
+## What is usually supported
 
-1. Click the **attachment** or **paperclip** icon in the message input.
-2. Select a file from your device.
-3. The file will appear as an attachment preview.
-4. Type your message and send. The AI will have access to the file content.
+| Kind | Typical support |
+|------|-----------------|
+| **Images** | Common formats such as **PNG**, **JPEG**, **GIF** (exact list set by administrators). |
+| **Other files** | May be **disabled** or limited; ask your admin if uploads fail or options are missing. |
 
----
-
-## What the AI can do with files
-
-- **Images** — Describe the image, extract text (if applicable), or use it in analysis
-- **Documents** — Summarize, answer questions about the content, or extract specific information
+The app generally validates **size** and **type** on both **browser** and **server** so oversized or disallowed files are rejected early.
 
 ---
 
-## Privacy and security
+## How to attach
 
-- Files are stored securely and associated with your account.
-- Only you (and those you share chats with, if visibility allows) can access your attachments.
-- Do not upload sensitive or confidential files unless your organization's policy allows it.
+1. Click the **attachment** or **paperclip** control in the message input.
+2. Choose **one or more** files (if the UI allows multiples).
+3. Confirm previews look correct, add your **prompt**, then **send**.
+
+---
+
+## Writing a good prompt with an image
+
+- **Describe the task** — “Extract the three bullet points from this slide” or “What chart type is this?”
+- **State constraints** — “Answer in one paragraph” or “List numbers only if visible in the image.”
+- **Avoid sensitive data** if your policy restricts certain content—even if the model can read the file.
+
+---
+
+## Limits and errors
+
+- **File size** — If upload fails immediately, try a **smaller** image or compress it.
+- **Type** — If the server rejects the MIME type, convert to **PNG** or **JPEG**.
+- **Corporate networks** — Rarely, proxies block multipart uploads; try another network or contact IT.
+
+Administrators configure limits via environment variables (e.g. max bytes and allowed image types).
+
+---
+
+## Privacy
+
+- Treat uploads like **organizational data**: use the same rules as email or shared drives.
+- **Guest** sessions may still **store** attachments server-side for the chat record—do not upload **classified** or **personal** data unless policy allows.
+
+---
+
+## See also
+
+- [FAQ](faq.md) — Upload errors  
+- [Chat features](chat-features.md) — Message flow after send  

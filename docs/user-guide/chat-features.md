@@ -1,56 +1,111 @@
-# Chat Features
+# Chat features
 
-This document describes the main chat features: streaming, thinking stages, stop, regenerate, and resume.
-
----
-
-## Streaming responses
-
-Responses are streamed in real time. You see the text appear as the AI generates it, rather than waiting for the full response. This makes the experience feel faster and more responsive.
+How the conversation **behaves** while you use Data360 Chat: streaming, tool and thinking display, stopping and retrying, feedback, follow-ups, and optional extras (tokens, math).
 
 ---
 
-## Thinking stages
+## Streaming replies
 
-When the AI is working on a data-heavy question (e.g. searching indicators, fetching data, generating a chart), you may see **thinking** stages in the response. These show progress, for example:
+Answers usually **stream** token by token instead of appearing all at once.
 
-- "Searching for indicators..."
-- "Fetching data..."
-- "Generating chart..."
+- You can **start reading** immediately.
+- Long answers may take several seconds; data-heavy turns can take longer because the model may call **tools** first.
 
-The thinking content is part of the reasoning process and helps you understand what the AI is doing.
+---
+
+## Tool use and “thinking”
+
+For questions that need **Data360** (or other MCP tools), the assistant may:
+
+1. **Plan** — Decide which tool to call (search, get data, chart spec, etc.).
+2. **Show progress** — You might see **thinking** or **tool** segments (wording depends on deployment and model).
+3. **Answer** — Combine tool results into a clear reply, sometimes with **tables** or **charts** inline.
+
+!!! tip "If the answer feels slow"
+
+    Wait for tool steps to finish. If the UI seems stuck, use **Stop** and shorten or narrow your question.
 
 ---
 
 ## Stop generation
 
-If a response is taking too long or you want to change your question:
+While the assistant is still generating:
 
-1. Click the **Stop** button (or equivalent) while the AI is generating.
-2. The stream will stop. You can edit your message and try again.
+1. Click **Stop** (or the equivalent control).
+2. The partial reply stays in the thread; you can **edit your last message** or send a new one.
 
 ---
 
 ## Regenerate
 
-To get a new response for the same message:
+To ask for **another answer** to the same user message:
 
-1. Find the message you want to regenerate.
-2. Click **Regenerate** (or the retry icon).
-3. The AI will generate a new response, which may differ from the previous one.
+1. Use **Regenerate** / **Retry** on the assistant message (exact label varies).
+2. The new answer may differ; it is not guaranteed to be “more correct”—rephrase if you need different data or constraints.
 
 ---
 
-## Resume (if supported)
+## Resume after refresh (when enabled)
 
-If your connection drops during a long response and resumable streams are enabled:
+If **resumable streams** are enabled and your connection drops mid-reply:
 
-1. Reconnect or refresh the page.
-2. You may be prompted to **Resume** the response.
-3. The AI will continue from where it left off (or you will receive the rest of the stream).
+- **Reload** the page or return to the chat.
+- You may be offered **resume** behavior so the stream can continue or recover.
+
+If nothing resumes, send the question again or use **Regenerate** if available.
+
+---
+
+## Voting and feedback
+
+Many deployments show **thumbs up / thumbs down** or a **feedback** control on assistant messages.
+
+- Use them for **quality signals** (helpful, inaccurate, unsafe wording, etc.).
+- They do not usually change the answer in real time; they inform **operators** and model tuning.
+
+---
+
+## Follow-up suggestions
+
+Some replies end with **suggestion chips** (short follow-up questions).
+
+- **Click** a chip to drop that text into the input (or send it—behavior depends on configuration).
+- They are generated from the assistant’s text; treat them as **hints**, not official Data360 queries.
+
+---
+
+## Math, markdown, and code in replies
+
+Replies often support:
+
+- **GitHub-flavored Markdown** (headings, lists, tables, links).
+- **Code blocks** with syntax highlighting.
+- **Math** via KaTeX when the model emits it.
+
+Use normal **copy** from your browser to grab code or tables.
+
+---
+
+## Token usage (when shown)
+
+If your UI shows **token** or **usage** information, it reflects **approximate** consumption for that turn or session (definitions depend on your deployment). It is mainly useful for **power users** and **cost awareness**, not for precise billing unless your admin says otherwise.
 
 ---
 
 ## Model selection
 
-Depending on your deployment, you may be able to choose which AI model to use (e.g. a faster model for simple questions, a more capable model for complex analysis). Use the model selector in the chat interface if available.
+Some setups let you **pick a model** from the header or settings. Options are **fixed by administrators**; if you do not see a selector, the deployment uses configured defaults.
+
+---
+
+## Maintenance mode
+
+If the app shows a **maintenance** page, chat is temporarily unavailable. Try again later or contact your administrator.
+
+---
+
+## See also
+
+- [Data analysis](data-analysis.md) — Charts, indicators, PCN  
+- [Documents & spreadsheets](documents-spreadsheets.md) — Side panel artifacts  
+- [FAQ](faq.md) — Slow responses, errors

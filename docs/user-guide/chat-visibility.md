@@ -1,32 +1,46 @@
-# Chat Visibility
+# Chat visibility and sharing
 
-You can control who can see your chats: **private** (only you) or **shared** (others with the link or within your organization).
-
----
-
-## Visibility options
-
-- **Private** — Only you can see the chat. Default for most users.
-- **Shared** — The chat can be shared with others (e.g. via link or within a team). Exact behavior depends on your deployment.
+Control whether a conversation is **only yours** or **shareable** with others—when your deployment enables sharing.
 
 ---
 
-## How to change visibility
+## Typical visibility levels
 
-1. Open the chat you want to change.
-2. Find the **visibility** selector (e.g. in the chat header or settings).
-3. Choose **Private** or **Shared** (or the options available in your deployment).
-4. The change is saved automatically.
+| Mode | Who can see it |
+|------|----------------|
+| **Private** | **You** (and platform administrators with database access, per your org’s policy). |
+| **Shared / link** | People who receive the **share link** (or have access within a workspace), depending on configuration. |
 
----
-
-## Considerations
-
-- **Private** — Best for personal work, drafts, or sensitive topics.
-- **Shared** — Use when you want to collaborate or share results with colleagues. Ensure you have permission to share the content.
+Some deployments **disable sharing entirely** for policy reasons. If you never see a share option, assume chats are **private-only**.
 
 ---
 
-## Shared chats
+## Changing visibility
 
-If someone shares a chat with you, you may be able to view it (read-only or with edit access, depending on deployment). You typically access it via a link. Your ability to see shared chats depends on your organization's configuration.
+1. Open the chat.
+2. Use the **visibility** control in the **header** or **menu** (labels vary: “Private”, “Share”, “Anyone with link”).
+3. Confirm if the UI asks you to **acknowledge** that shared content may leave your private scope.
+
+Changes usually save **immediately**.
+
+---
+
+## Before you share
+
+- **Data sensitivity** — Shared links may bypass the recipient’s need for a full Data360 login, depending on setup. Do not share **confidential** analysis unless policy allows.
+- **Expiry** — Ask whether links **expire** or can be **revoked**.
+- **Editing** — Recipients may be **read-only**; clarify with your admin.
+
+---
+
+## Receiving a shared chat
+
+- Open the link in a **browser** where you can authenticate if required.
+- You might see the thread **read-only**. Copy useful parts into your own **new chat** if you need to continue the analysis under your account.
+
+---
+
+## See also
+
+- [Getting started](getting-started.md) — Accounts and sessions  
+- [FAQ](faq.md) — Access issues  
