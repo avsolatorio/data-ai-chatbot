@@ -22,6 +22,7 @@ async def list_mcp_tools(
     Returns tool definitions (name, description, parameters) for all connected MCP tools.
     """
     try:
+        # OpenAI-shaped defs from shared langchain-mcp-adapters bundle cache (data360_mcp)
         tools = await get_mcp_tools()
         return {"tools": tools, "count": len(tools)}
     except Exception as e:

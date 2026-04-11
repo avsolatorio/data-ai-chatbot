@@ -219,6 +219,12 @@ class MCPSettings(BaseSettings):
     tools_cache_ttl_seconds: float = (
         300.0  # How long to cache MCP tool list (seconds); 0 = no cache
     )
+    # Transport for langchain-mcp-adapters: sse, http (streamable HTTP), streamable_http, or empty for auto from URL
+    transport: str = ""
+    # Optional JSON object of extra HTTP headers (APIM, tracing), e.g. {"X-Api-Key":"..."}
+    headers_json: str = ""
+    # If set, adds Authorization: Bearer <value> (in addition to headers_json)
+    authorization_bearer: str = ""
 
     model_config = ConfigDict(
         extra="forbid",

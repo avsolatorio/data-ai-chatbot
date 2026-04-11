@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import time
 from typing import Any, Dict, List
 from uuid import UUID
 
@@ -10,8 +9,8 @@ from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.graph.mcp_tools import get_langchain_mcp_tools
-from app.ai.mcp_tools.data360_mcp import get_mcp_tools
+from app.ai.mcp_tools.data360_mcp import get_mcp_tool_bundle
+from app.ai.mcp_tools.partitions import DATA_TOOL_NAMES, VIZ_TOOL_NAMES
 from app.ai.tools import (
     CREATE_DOCUMENT_TOOL_DEFINITION,
     UPDATE_DOCUMENT_TOOL_DEFINITION,
@@ -21,11 +20,6 @@ from app.ai.tools import (
 from app.config import get_mcp_settings, get_settings
 
 logger = logging.getLogger(__name__)
-
-# In-memory cache for MCP tool list to avoid calling list_tools on every chat.
-# (cached_at_monotonic, mcp_tools_list) or None when empty/error.
-_mcp_tools_cache: tuple[float, list] | None = None
-_mcp_tools_cache_lock = asyncio.Lock()
 
 
 # ── Pydantic schemas for local LangChain tools ────────────────────────────────
@@ -128,9 +122,8 @@ async def prepare_tools(user_id: UUID, db: AsyncSession) -> Dict[str, Dict[str, 
     Prepare tools and tool definitions for OpenAI streaming.
     Returns tool_set: {"local": {tools, tool_definitions}, "mcp": {tools, tool_definitions}}.
     When ENABLE_LOCAL_TOOLS=false, local tools/definitions are empty.
-    MCP tool list is cached for 5 minutes to avoid calling list_tools on every chat.
+    MCP tools are loaded once via langchain-mcp-adapters (shared TTL cache in data360_mcp).
     """
-    global _mcp_tools_cache
     enable_local = get_settings().ENABLE_LOCAL_TOOLS
     if enable_local:
         logger.info("[tool_setup] create_tool_wrappers (local tools) start")
@@ -149,7 +142,7 @@ async def prepare_tools(user_id: UUID, db: AsyncSession) -> Dict[str, Dict[str, 
         _make_local_langchain_tools(user_id, db) if enable_local else []
     )
 
-    tool_set = {
+    tool_set: Dict[str, Dict[str, Any]] = {
         "local": {
             "tool_definitions": local_defs,
             "tools": local_tools,
@@ -159,86 +152,47 @@ async def prepare_tools(user_id: UUID, db: AsyncSession) -> Dict[str, Dict[str, 
             "tool_definitions": [],
             "tools": {},
         },
-        # LangChain tool groups for the LangGraph pipeline
         "mcp_data": {"langchain_tools": []},
         "mcp_viz": {"langchain_tools": []},
     }
 
-    # Add MCP tools (with 5-minute cache; gracefully handle connection failures and timeouts)
-    mcp_tools: list = []
-    async with _mcp_tools_cache_lock:
-        now = time.monotonic()
-        if (
-            _mcp_tools_cache is not None
-            and (now - _mcp_tools_cache[0]) < get_mcp_settings().tools_cache_ttl_seconds
-        ):
-            mcp_tools = _mcp_tools_cache[1]
-            logger.info(
-                "[tool_setup] using cached MCP tools count=%d (age=%.0fs)",
-                len(mcp_tools),
-                now - _mcp_tools_cache[0],
-            )
-
-    if not mcp_tools:
-        mcp_load_timeout = get_mcp_settings().load_timeout
-        logger.info("[tool_setup] get_mcp_tools start (timeout=%ss)", mcp_load_timeout)
-        try:
-            mcp_tools = await asyncio.wait_for(
-                get_mcp_tools(),
-                timeout=mcp_load_timeout,
-            )
-            async with _mcp_tools_cache_lock:
-                _mcp_tools_cache = (time.monotonic(), mcp_tools)
-            logger.info("[tool_setup] get_mcp_tools done count=%d", len(mcp_tools))
-        except asyncio.TimeoutError:
-            logger.warning(
-                "[tool_setup] get_mcp_tools timed out after %ss (MCP server unreachable or slow). "
-                "Continuing without MCP tools.",
-                mcp_load_timeout,
-            )
-        except Exception as e:
-            logger.warning(
-                "Failed to load MCP tools (continuing without them): %s",
-                str(e),
-                exc_info=True,
-            )
-
-    if mcp_tools:
-        for tool in mcp_tools:
-            tool_set["mcp"]["tools"][tool["function"]["name"]] = {
-                "function": None,
-                "type": "mcp",
-            }
-            tool_set["mcp"]["tool_definitions"].append(tool)
-        tool_names = [t["function"]["name"] for t in mcp_tools]
-        logger.info("Successfully loaded %d MCP tools: %s", len(mcp_tools), tool_names)
-
-    # ── LangChain MCP tools for the LangGraph pipeline ────────────────────────
-    logger.info("[tool_setup] get_langchain_mcp_tools start")
+    mcp_load_timeout = get_mcp_settings().load_timeout
+    logger.info(
+        "[tool_setup] get_mcp_tool_bundle start (timeout=%ss, cache via data360_mcp)",
+        mcp_load_timeout,
+    )
     try:
-        lc_data_tools, lc_viz_tools = await asyncio.wait_for(
-            get_langchain_mcp_tools(),
-            timeout=get_mcp_settings().load_timeout,
-        )
-        tool_set["mcp_data"]["langchain_tools"] = lc_data_tools
-        tool_set["mcp_viz"]["langchain_tools"] = lc_viz_tools
-        logger.info(
-            "[tool_setup] LangChain MCP tools: data=%d viz=%d",
-            len(lc_data_tools),
-            len(lc_viz_tools),
+        lc_tools, mcp_openai_defs = await asyncio.wait_for(
+            get_mcp_tool_bundle(),
+            timeout=mcp_load_timeout,
         )
     except asyncio.TimeoutError:
         logger.warning(
-            "[tool_setup] get_langchain_mcp_tools timed out after %ss. "
-            "LangGraph pipeline will run without MCP tools.",
-            get_mcp_settings().load_timeout,
+            "[tool_setup] get_mcp_tool_bundle timed out after %ss. Continuing without MCP tools.",
+            mcp_load_timeout,
         )
-    except Exception as exc:
+    except Exception as e:
         logger.warning(
-            "[tool_setup] get_langchain_mcp_tools failed: %s. "
-            "LangGraph pipeline will run without MCP tools.",
-            exc,
+            "Failed to load MCP tools (continuing without them): %s",
+            str(e),
             exc_info=True,
+        )
+    else:
+        for tool_def in mcp_openai_defs:
+            tool_set["mcp"]["tools"][tool_def["function"]["name"]] = {
+                "function": None,
+                "type": "mcp",
+            }
+            tool_set["mcp"]["tool_definitions"].append(tool_def)
+        tool_set["mcp_data"]["langchain_tools"] = [t for t in lc_tools if t.name in DATA_TOOL_NAMES]
+        tool_set["mcp_viz"]["langchain_tools"] = [t for t in lc_tools if t.name in VIZ_TOOL_NAMES]
+        tool_names = [t["function"]["name"] for t in mcp_openai_defs]
+        logger.info(
+            "Successfully loaded %d MCP tools (adapter); LangGraph data=%d viz=%d names=%s",
+            len(mcp_openai_defs),
+            len(tool_set["mcp_data"]["langchain_tools"]),
+            len(tool_set["mcp_viz"]["langchain_tools"]),
+            tool_names,
         )
 
     return tool_set
