@@ -1,8 +1,9 @@
 import json
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.ai.client import get_async_ai_client
+from app.ai.observability.token_usage import usage_dict_from_openai_completion_usage
 from app.ai.prompts import get_routing_system_prompt
 from app.config import IntentType, settings
 
@@ -48,14 +49,17 @@ def _simplify_content_for_routing(content: Any) -> str:
     return str(content)
 
 
-async def check_intent(messages: List[Dict[str, Any]]) -> Tuple[IntentType, str]:
+async def check_intent(
+    messages: List[Dict[str, Any]],
+) -> Tuple[IntentType, str, Optional[Dict[str, Any]]]:
     """
     Analyzes the user's latest message and conversation context to determine
     if it requires the Research Planner (Data360 tools) or can be handled
     via Direct Chat (Fast-Path).
 
     Returns:
-        (intent, reasoning): intent and a brief explanation for the frontend.
+        (intent, reasoning, router_usage): ``router_usage`` is a token-usage dict for
+        the routing completion (OpenAI-shaped), or ``None`` if unavailable.
     """
     logger.info("[routing] check_intent start messages_count=%d", len(messages))
 
@@ -122,6 +126,8 @@ async def check_intent(messages: List[Dict[str, Any]]) -> Tuple[IntentType, str]
         logger.info("[routing] routing LLM response received finish_reason=%s", finish_reason)
         logger.debug("Routing raw response (finish_reason=%s): %r", finish_reason, raw_content)
 
+        router_usage = usage_dict_from_openai_completion_usage(getattr(response, "usage", None))
+
         result = json.loads(raw_content)
         intent = IntentType(result.get("intent", IntentType.RESEARCH))
         reasoning = result.get("reasoning", "").strip()
@@ -129,7 +135,7 @@ async def check_intent(messages: List[Dict[str, Any]]) -> Tuple[IntentType, str]
         logger.info(
             "[routing] check_intent done intent=%s reasoning_len=%d", intent, len(reasoning)
         )
-        return (intent, reasoning)
+        return (intent, reasoning, router_usage)
 
     except json.JSONDecodeError as json_err:
         content = response.choices[0].message.content if "response" in locals() else "No response"
@@ -138,7 +144,7 @@ async def check_intent(messages: List[Dict[str, Any]]) -> Tuple[IntentType, str]
             str(json_err),
             content,
         )
-        return (IntentType.RESEARCH, "")
+        return (IntentType.RESEARCH, "", None)
     except Exception as e:
         logger.error("Error in intent routing: %s. Defaulting to RESEARCH.", str(e))
-        return (IntentType.RESEARCH, "")
+        return (IntentType.RESEARCH, "", None)

@@ -13,6 +13,7 @@ from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 
+from app.ai.observability.token_usage import append_llm_usage_fallback
 from app.ai.prompts import get_thinking_system_prompt
 from app.config import ModelType
 
@@ -60,6 +61,7 @@ async def research_node(state: ChatPipelineState) -> dict:
     for iteration in range(MAX_TOOL_ITERATIONS):
         logger.info("[research_node] LLM call iteration=%d", iteration)
         response: AIMessage = await llm.ainvoke(messages)
+        append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response)
         messages.append(response)
         final_content = response.content or ""
 

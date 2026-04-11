@@ -47,10 +47,13 @@ async def router_node(state: ChatPipelineState) -> dict:
     openai_messages: list[dict] = state.get("openai_messages", [])
     logger.info("[router_node] calling check_intent messages_count=%d", len(openai_messages))
 
-    intent, reasoning = await check_intent(openai_messages)
+    intent, reasoning, router_usage = await check_intent(openai_messages)
 
     logger.info("[router_node] intent=%s reasoning_len=%d", intent, len(reasoning))
-    return {
+    out: dict = {
         "intent": intent.value,
         "routing_reasoning": reasoning,
     }
+    if router_usage:
+        out["router_usage"] = router_usage
+    return out

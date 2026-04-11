@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Mapping, Optional
 
 from litellm import get_model_info
 from pydantic import BaseModel, ConfigDict, NonNegativeFloat, NonNegativeInt
@@ -284,6 +284,81 @@ def build_data_usage_event_from_usage_only(
     )
 
 
+def _usage_mapping_to_dict(meta: Any) -> dict[str, Any] | None:
+    """Turn LangChain ``UsageMetadata`` (or similar) into a plain dict."""
+    if meta is None:
+        return None
+    if isinstance(meta, dict):
+        out = {k: v for k, v in meta.items() if v is not None}
+        return out if out else None
+    if hasattr(meta, "model_dump"):
+        dumped = meta.model_dump(exclude_none=True)
+        return dumped if dumped else None
+    return None
+
+
+def usage_dict_is_nonzero(usage_fragment: Mapping[str, Any]) -> bool:
+    """True if the fragment carries any countable tokens (for skipping empty stream chunks)."""
+    u = extract_usage({"usage": dict(usage_fragment)})
+    return (u.total_tokens > 0) or (u.prompt_tokens > 0) or (u.completion_tokens > 0)
+
+
+def usage_dict_from_langchain_message(msg: Any) -> dict[str, Any] | None:
+    """Extract a usage fragment suitable for :func:`extract_usage` (nested under ``usage``).
+
+    Prefers ``AIMessage.usage_metadata``; falls back to LiteLLM-style fields inside
+    ``response_metadata`` (``token_usage``, ``usage``).
+    """
+    if msg is None:
+        return None
+
+    um = getattr(msg, "usage_metadata", None)
+    flat = _usage_mapping_to_dict(um)
+    if flat and usage_dict_is_nonzero(flat):
+        return flat
+
+    rm = getattr(msg, "response_metadata", None)
+    if isinstance(rm, dict):
+        for key in ("token_usage", "usage"):
+            nested = rm.get(key)
+            if isinstance(nested, dict):
+                cand = {k: v for k, v in nested.items() if v is not None}
+                if cand and usage_dict_is_nonzero(cand):
+                    return cand
+    return None
+
+
+def usage_dict_from_openai_completion_usage(usage_obj: Any) -> dict[str, Any] | None:
+    """Normalize OpenAI SDK ``response.usage`` to a dict for :func:`extract_usage`."""
+    if usage_obj is None:
+        return None
+    if hasattr(usage_obj, "model_dump"):
+        d = usage_obj.model_dump(exclude_none=True)
+    elif isinstance(usage_obj, dict):
+        d = dict(usage_obj)
+    else:
+        return None
+    return d if d and usage_dict_is_nonzero(d) else None
+
+
+class UsageFallbackBucket:
+    """Mutable holder attached to graph input so nodes can append usage if SSE events miss it."""
+
+    __slots__ = ("parts",)
+
+    def __init__(self) -> None:
+        self.parts: list[dict[str, Any]] = []
+
+
+def append_llm_usage_fallback(bucket: Any, msg: Any) -> None:
+    """Append non-empty usage from an ``AIMessage`` into a :class:`UsageFallbackBucket`."""
+    if bucket is None or not hasattr(bucket, "parts"):
+        return
+    raw = usage_dict_from_langchain_message(msg)
+    if raw and usage_dict_is_nonzero(raw):
+        bucket.parts.append(raw)
+
+
 def coerce_graph_final_usage_to_data_usage(raw: Dict[str, Any], *, model: str) -> DataUsageData:
     """Normalize LangGraph/SSE ``final_usage`` dict to :class:`DataUsageData`.
 
@@ -296,10 +371,17 @@ def coerce_graph_final_usage_to_data_usage(raw: Dict[str, Any], *, model: str) -
     """
     if "modelId" in raw and "inputTokens" in raw:
         return DataUsageData.model_validate(raw)
-    return build_data_usage_event_from_usage_only(
-        model=model,
-        completion_response={"usage": raw},
-    ).data
+    try:
+        return build_data_usage_event(
+            model=model,
+            completion_response={"usage": raw, "model": model},
+        ).data
+    except Exception as exc:
+        logger.debug("build_data_usage_event failed for raw usage, minimal fallback: %s", exc)
+        return build_data_usage_event_from_usage_only(
+            model=model,
+            completion_response={"usage": raw},
+        ).data
 
 
 # --- main API ----------------------------------------------------------------

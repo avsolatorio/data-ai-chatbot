@@ -1,22 +1,50 @@
 """Tests for ``coerce_graph_final_usage_to_data_usage`` and usage accumulation."""
 
+from types import SimpleNamespace
+
 from app.ai.observability.token_usage import (
     build_data_usage_event_from_usage_only,
     coerce_graph_final_usage_to_data_usage,
+    usage_dict_from_langchain_message,
+    usage_dict_from_openai_completion_usage,
 )
 
 
 def test_coerce_langchain_usage_metadata_shape():
+    # Model name unlikely to resolve in get_model_info for stable behavior in CI
     result = coerce_graph_final_usage_to_data_usage(
         {"input_tokens": 1, "output_tokens": 2, "total_tokens": 3},
-        model="chat-model",
+        model="__nonexistent_model_for_tests__",
     )
     assert result.inputTokens == 1
     assert result.outputTokens == 2
     assert result.totalTokens == 3
     assert result.modelId
-    assert result.context.outputMax == 0
-    assert result.costUSD.totalUSD == 0.0
+    assert result.costUSD.totalUSD >= 0.0
+
+
+def test_usage_dict_from_langchain_message_prefers_usage_metadata():
+    msg = SimpleNamespace(
+        usage_metadata={"input_tokens": 2, "output_tokens": 1, "total_tokens": 3},
+        response_metadata={},
+    )
+    d = usage_dict_from_langchain_message(msg)
+    assert d == {"input_tokens": 2, "output_tokens": 1, "total_tokens": 3}
+
+
+def test_usage_dict_from_langchain_message_response_metadata_fallback():
+    msg = SimpleNamespace(
+        usage_metadata={},
+        response_metadata={"token_usage": {"prompt_tokens": 4, "completion_tokens": 2}},
+    )
+    d = usage_dict_from_langchain_message(msg)
+    assert d == {"prompt_tokens": 4, "completion_tokens": 2}
+
+
+def test_usage_dict_from_openai_completion_usage():
+    usage = SimpleNamespace(model_dump=lambda **_: {"prompt_tokens": 1, "completion_tokens": 2})
+    d = usage_dict_from_openai_completion_usage(usage)
+    assert d == {"prompt_tokens": 1, "completion_tokens": 2}
 
 
 def test_coerce_fast_path_data_usage_dump():

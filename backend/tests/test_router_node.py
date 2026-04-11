@@ -69,7 +69,7 @@ async def test_research_intent_forwarded(monkeypatch):
     """check_intent returning RESEARCH must be forwarded with its reasoning."""
     monkeypatch.setattr(
         "app.ai.graph.nodes.router.check_intent",
-        AsyncMock(return_value=(IntentType.RESEARCH, "WDI data question")),
+        AsyncMock(return_value=(IntentType.RESEARCH, "WDI data question", None)),
     )
 
     result = await router_node(_state(query_text="GDP of Kenya"))
@@ -83,7 +83,7 @@ async def test_direct_intent_forwarded(monkeypatch):
     """check_intent returning DIRECT must be forwarded correctly."""
     monkeypatch.setattr(
         "app.ai.graph.nodes.router.check_intent",
-        AsyncMock(return_value=(IntentType.DIRECT, "greeting")),
+        AsyncMock(return_value=(IntentType.DIRECT, "greeting", None)),
     )
 
     result = await router_node(_state(query_text="Hello there"))
@@ -97,7 +97,7 @@ async def test_empty_reasoning_allowed(monkeypatch):
     """check_intent can return an empty reasoning string — router must not crash."""
     monkeypatch.setattr(
         "app.ai.graph.nodes.router.check_intent",
-        AsyncMock(return_value=(IntentType.DIRECT, "")),
+        AsyncMock(return_value=(IntentType.DIRECT, "", None)),
     )
 
     result = await router_node(_state(query_text="hi"))
@@ -109,7 +109,7 @@ async def test_empty_reasoning_allowed(monkeypatch):
 @pytest.mark.asyncio
 async def test_check_intent_called_once_for_normal_query(monkeypatch):
     """check_intent is called exactly once for a non-@wdr query."""
-    mock_ci = AsyncMock(return_value=(IntentType.RESEARCH, "data"))
+    mock_ci = AsyncMock(return_value=(IntentType.RESEARCH, "data", None))
     monkeypatch.setattr("app.ai.graph.nodes.router.check_intent", mock_ci)
 
     await router_node(_state(query_text="unemployment rate"))
@@ -159,9 +159,21 @@ async def test_openai_messages_passed_to_check_intent(monkeypatch):
         {"role": "user", "content": "What is GDP?"},
         {"role": "assistant", "content": "GDP is ..."},
     ]
-    mock_ci = AsyncMock(return_value=(IntentType.RESEARCH, "data"))
+    mock_ci = AsyncMock(return_value=(IntentType.RESEARCH, "data", None))
     monkeypatch.setattr("app.ai.graph.nodes.router.check_intent", mock_ci)
 
     await router_node(_state(openai_messages=messages, query_text="follow up"))
 
     mock_ci.assert_awaited_once_with(messages)
+
+
+@pytest.mark.asyncio
+async def test_router_usage_forwarded_when_present(monkeypatch):
+    """When check_intent returns usage, router_node exposes router_usage."""
+    usage = {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12}
+    monkeypatch.setattr(
+        "app.ai.graph.nodes.router.check_intent",
+        AsyncMock(return_value=(IntentType.DIRECT, "ok", usage)),
+    )
+    result = await router_node(_state(query_text="hello"))
+    assert result["router_usage"] == usage

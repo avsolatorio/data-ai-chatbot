@@ -58,3 +58,5 @@ def test_build_graph_input_forced_intent_key():
     )
     assert inp["forced_intent"] == "DIRECT"
     assert "_tool_sse_queue" in inp
+    assert "_usage_fallback_bucket" in inp
+    assert hasattr(inp["_usage_fallback_bucket"], "parts")

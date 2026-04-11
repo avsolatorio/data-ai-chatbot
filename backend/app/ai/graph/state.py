@@ -30,3 +30,5 @@ class ChatPipelineState(TypedDict):
 
     # ── Streaming only (set by chat.py; nodes push manual tool lifecycle) ────
     _tool_sse_queue: NotRequired[Any]  # asyncio.Queue of manual tool payloads
+    # Same object as graph input; nodes append usage if stream events omit token counts
+    _usage_fallback_bucket: NotRequired[Any]

@@ -11,6 +11,7 @@ from uuid import UUID
 from app.ai.graph.graph_tool_notify import create_tool_sse_queue
 from app.ai.graph.pipeline import chat_graph
 from app.ai.graph.sse_bridge import stream_graph_to_sse
+from app.ai.observability.token_usage import UsageFallbackBucket
 from app.ai.protocols.stream import (
     DataPart,
     DataThinkingPart,
@@ -92,6 +93,7 @@ def build_graph_input(
         "research_packet": "",
         "assistant_parts": [],
         "final_usage": None,
+        "_usage_fallback_bucket": UsageFallbackBucket(),
         "_tool_sse_queue": create_tool_sse_queue(),
     }
     if forced_intent is not None:

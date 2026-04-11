@@ -37,6 +37,8 @@ from app.ai.observability.token_usage import (
     DataUsageData,
     DataUsageEvent,
     coerce_graph_final_usage_to_data_usage,
+    usage_dict_from_langchain_message,
+    usage_dict_is_nonzero,
 )
 from app.ai.protocols.stream import (
     TEXT_STATE_DONE,
@@ -54,6 +56,7 @@ from app.ai.protocols.stream import (
     ToolInputStartPart,
     ToolOutputAvailablePart,
 )
+from app.config import settings
 from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
 
 try:
@@ -125,6 +128,16 @@ _THINKING_NODES = frozenset({"research"})
 _ANSWER_NODES = frozenset({"narrator", "direct"})
 
 _LLM_NODES = _THINKING_NODES | _ANSWER_NODES
+
+
+def _unwrap_chat_model_end_output(output: Any) -> Any:
+    """LangGraph ``on_chat_model_end`` may pass a ``ChatGeneration`` with ``.message``."""
+    if output is None:
+        return None
+    msg = getattr(output, "message", None)
+    if msg is not None:
+        return msg
+    return output
 
 
 class _SseBridgeState:
@@ -204,14 +217,12 @@ class _SseBridgeState:
         }
         self._db_parts.append(inner)
 
-    def add_usage_from_message(self, output_msg: Any) -> None:
-        if output_msg is None or not hasattr(output_msg, "usage_metadata"):
+    def add_usage_from_usage_fragment(self, raw: dict[str, Any], *, model_key: str) -> None:
+        """Merge one usage blob (OpenAI or LangChain-shaped) into the accumulator."""
+        if not raw or not usage_dict_is_nonzero(raw):
             return
-        meta = output_msg.usage_metadata
-        if not meta:
-            return
-        model_key = str(self.input_state.get("model_type") or "")
-        piece = coerce_graph_final_usage_to_data_usage(dict(meta), model=model_key)
+        mk = model_key or str(self.input_state.get("model_type") or "")
+        piece = coerce_graph_final_usage_to_data_usage(raw, model=mk)
         if self._usage_accum is None:
             self._usage_accum = piece
             return
@@ -219,6 +230,14 @@ class _SseBridgeState:
             self._usage_accum = self._usage_accum + piece
         except ValueError as exc:
             logger.warning("Skipping additive usage merge: %s", exc)
+
+    def add_usage_from_message(self, output_msg: Any) -> None:
+        unwrapped = _unwrap_chat_model_end_output(output_msg)
+        raw = usage_dict_from_langchain_message(unwrapped)
+        if not raw:
+            return
+        model_key = str(self.input_state.get("model_type") or "")
+        self.add_usage_from_usage_fragment(raw, model_key=model_key)
 
     def make_stage_sse(self, stage: str) -> bytes | None:
         if stage in self._stages_emitted:
@@ -247,9 +266,13 @@ class _SseBridgeState:
                 chunks.append(stage_bytes)
 
         elif evt_type == "on_chain_end" and evt_name == "router":
-            output: dict = data.get("output", {})
+            output: dict = data.get("output", {}) or {}
             reasoning: str = output.get("routing_reasoning", "")
             self._routing_reasoning = reasoning
+            ru = output.get("router_usage")
+            if isinstance(ru, dict):
+                routing_model = str(getattr(settings, "ROUTING_MODEL", "") or "")
+                self.add_usage_from_usage_fragment(ru, model_key=routing_model)
             if reasoning:
                 reason_id = f"routing-reason-{self.message_id}"
                 for part in (
@@ -520,6 +543,23 @@ class _SseBridgeState:
     def fill_out_dict(self, out: dict) -> None:
         out["routing_reasoning"] = self._routing_reasoning
         out["answer_text"] = "".join(self._answer_text_parts)
+        if self._usage_accum is None:
+            bucket = self.input_state.get("_usage_fallback_bucket")
+            fallback_parts: list = (
+                list(bucket.parts) if bucket is not None and hasattr(bucket, "parts") else []
+            )
+            model_key = str(self.input_state.get("model_type") or "")
+            merged: DataUsageData | None = None
+            for raw in fallback_parts:
+                if not isinstance(raw, dict) or not usage_dict_is_nonzero(raw):
+                    continue
+                try:
+                    piece = coerce_graph_final_usage_to_data_usage(raw, model=model_key)
+                    merged = piece if merged is None else merged + piece
+                except (ValueError, TypeError) as exc:
+                    logger.debug("LLM usage fallback piece skipped: %s", exc)
+                    continue
+            self._usage_accum = merged
         out["final_usage"] = self._usage_accum.model_dump() if self._usage_accum else None
         out["assistant_parts_for_db"] = self._db_parts
         out["stream_failed"] = self._stream_failed
