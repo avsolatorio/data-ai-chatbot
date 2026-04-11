@@ -7,23 +7,16 @@ relies on lastContext for per-message and full-chat usage (with stream usage for
 current response until refetch).
 """
 
-import asyncio
-import json
 import logging
 from datetime import datetime
-from typing import Any, AsyncIterator, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 from uuid import UUID, uuid4
 
 from app.ai.protocols.stream import (
     TEXT_STATE_DONE,
     TOOL_STATE_INPUT_AVAILABLE,
     TOOL_STATE_OUTPUT_AVAILABLE,
-    DoneMarker,
-    ErrorPart,
-    FinishMessagePart,
 )
-from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
-from app.utils.stream import stream_text
 
 StreamProcessorMode = Literal["thinking", "chat", "unified"]
 
@@ -251,96 +244,3 @@ class StreamEventProcessor:
         handler = event_handlers.get(event_type)
         if handler:
             handler(data)
-
-    async def process_stream(
-        self,
-        client: Any,
-        model: str,
-        messages: List[Dict[str, Any]],
-        system: Optional[str],
-        tools: Dict[str, Any],
-        tool_definitions: List[Dict[str, Any]],
-        thinking_to_answer_token: Optional[str] = None,
-    ) -> AsyncIterator[bytes]:
-        """
-        Process stream events and yield bytes for StreamingResponse.
-        Returns assistant messages and usage via instance attributes.
-        When mode is "unified", pass thinking_to_answer_token so stream_text can switch
-        from thinking to chat when the token is seen.
-        """
-        logger.info("=== STREAM GENERATOR STARTED ===")
-        # For unified mode, stream_text expects mode="thinking" and will switch to chat on token
-        stream_mode: StreamProcessorMode = "thinking" if self.mode == "unified" else self.mode
-
-        try:
-            logger.info("Starting stream_text iteration...")
-            async for event in stream_text(
-                client=client,
-                model=model,
-                messages=messages,
-                system=system,
-                mode=stream_mode,
-                tools=tools,
-                tool_definitions=tool_definitions,
-                temperature=0.7,
-                max_tool_turns=5,
-                thinking_to_answer_token=thinking_to_answer_token,
-            ):
-                # Convert string to bytes for FastAPI StreamingResponse
-                if isinstance(event, str):
-                    event_bytes = event.encode("utf-8")
-                else:
-                    event_bytes = event
-
-                # Parse SSE event to extract data (only if it's a string)
-                if isinstance(event, str) and event.startswith("data: "):
-                    data_str = event[6:].strip()
-                    if data_str == "[DONE]":
-                        logger.info(
-                            "Stream: yielding [DONE], then closing (client should see status=ready)"
-                        )
-                        yield event_bytes
-                        await asyncio.sleep(0)  # Give event loop a chance to flush
-                        break
-
-                    try:
-                        data = json.loads(data_str)
-                        self._process_event_data(data)
-                        yield event_bytes
-                        await asyncio.sleep(0)  # Give event loop a chance to flush
-                    except json.JSONDecodeError:
-                        # Not JSON, yield as-is
-                        yield event_bytes
-                        await asyncio.sleep(0)
-                else:
-                    yield event_bytes
-                    await asyncio.sleep(0)
-
-            logger.info(
-                "=== STREAM GENERATOR ENDED with assistant messages: %d message(s) ===",
-                len(self.assistant_messages),
-            )
-            logger.info("assistant messages to save: %s", self.assistant_messages)
-
-        except GeneratorExit:
-            # Generator is being closed by client, re-raise to allow cleanup
-            raise
-        except Exception as stream_error:
-            error_id = new_error_id()
-            logger.error(
-                "Error in stream [%s]: %s",
-                error_id,
-                stream_error,
-                exc_info=True,
-            )
-            try:
-                yield (
-                    ErrorPart(errorText=f"{USER_MESSAGE_GENERIC} Reference: {error_id}.")
-                    .to_sse()
-                    .encode("utf-8")
-                )
-                yield FinishMessagePart().to_sse().encode("utf-8")
-                yield DoneMarker().to_sse().encode("utf-8")
-            except Exception:
-                # If we can't yield, connection is likely closed
-                pass

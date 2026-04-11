@@ -1,7 +1,4 @@
-"""Chat streaming endpoint using aisuite + OpenAI.
-
-This endpoint handles AI streaming and replaces the Next.js /api/chat/stream endpoint.
-"""
+"""Resumable chat stream at /api/v1/chat/stream — LangGraph + SSE (aligned with main /api/chat)."""
 
 import asyncio
 import logging
@@ -13,31 +10,36 @@ from fastapi import APIRouter, BackgroundTasks, Depends, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.client import get_async_ai_client, get_model_name
-from app.ai.prompts import get_system_prompt
+from app.ai.observability.token_usage import coerce_graph_final_usage_to_data_usage
 from app.api.deps import get_current_user
-from app.api.v1.schemas.chat_schemas import StreamRequest
+from app.api.v1.schemas.chat_schemas import ChatMessage, StreamRequest
 from app.api.v1.utils.background_tasks import (
     create_save_messages_task,
     create_update_context_task,
 )
-from app.api.v1.utils.continue_stream import _continue_stream_in_background
+from app.api.v1.utils.graph_stream import (
+    build_assistant_message_from_graph,
+    emit_standard_chat_prelude,
+    store_and_yield_stream_chunk,
+    stream_chat_graph_sse,
+)
 from app.api.v1.utils.tool_setup import prepare_tools
+from app.config import IntentType
 from app.core.database import get_db
 from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import create_stream_id, get_chat_by_id
 from app.utils.message_converter import convert_messages_to_openai_format
-from app.utils.resumable_stream import (
-    mark_stream_complete,
-    store_stream_chunk,
-)
+from app.utils.resumable_stream import mark_stream_complete
 from app.utils.stream import patch_response_with_headers
-from app.utils.stream_processor import StreamEventProcessor
 from app.utils.user_id import get_user_id_uuid
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _query_text_from_stream_message(message: ChatMessage) -> str:
+    return "".join(part.text or "" for part in message.parts if part.type == "text" and part.text)
 
 
 @router.post("/stream")
@@ -48,17 +50,14 @@ async def stream_chat(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Stream AI response for a chat.
-    This replaces the Next.js /api/chat/stream endpoint.
+    Stream AI response for a chat (v1). Uses the same LangGraph pipeline as /api/chat
+    with intent forced to DIRECT (legacy plain-chat behavior, no research branch).
     """
-    logger.info("=== STREAM CHAT ENDPOINT CALLED ===")
+    logger.info("=== STREAM CHAT ENDPOINT CALLED (v1 LangGraph) ===")
     logger.info("Chat ID: %s", request.id)
-    logger.info("User ID: %s", current_user.get("id"))
     try:
         user_id = get_user_id_uuid(current_user["id"])
 
-        # Validate chat access: if chat exists, it must belong to the current user
-        # (prevents bypass via malicious chat ID to write to another user's chat)
         existing_chat = await get_chat_by_id(db, request.id)
         if existing_chat is not None and existing_chat.userId != user_id:
             logger.warning(
@@ -69,8 +68,6 @@ async def stream_chat(
             )
             raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
 
-        # 1. Prepare messages
-        # Combine existing messages with the new user message
         all_messages = []
         for msg in request.existingMessages:
             all_messages.append(
@@ -83,7 +80,6 @@ async def stream_chat(
                 }
             )
 
-        # Add the new user message
         all_messages.append(
             {
                 "id": str(request.message.id),
@@ -94,103 +90,79 @@ async def stream_chat(
             }
         )
 
-        # 2. Convert messages to OpenAI format (fetches file data from database)
         openai_messages = await convert_messages_to_openai_format(all_messages, db)
+        query_text = _query_text_from_stream_message(request.message)
 
-        # 3. Get system prompt
-        # TODO: Get geolocation hints from request headers or frontend
-        request_hints = None  # Will be implemented later
-        system = get_system_prompt(request.selectedChatModel, request_hints)
-
-        # 4. Get async AI client for streaming and model name
-        client = get_async_ai_client()
-        model = get_model_name(request.selectedChatModel)
-
-        # 5. Prepare tools (merge local + MCP; when ENABLE_LOCAL_TOOLS=false, local is empty)
         tool_set = await prepare_tools(user_id, db)
-        tools = {**tool_set["mcp"]["tools"], **tool_set["local"]["tools"]}
-        tool_definitions = (
-            tool_set["mcp"]["tool_definitions"] + tool_set["local"]["tool_definitions"]
-        )
-        logger.info("tool_definitions: %s", tool_definitions)
 
-        # 6. Get or create stream ID for resumable streams
         stream_id = request.streamId
         if not stream_id:
             stream_id = uuid4()
             await create_stream_id(db, stream_id, request.id)
 
-        # 7. Create stream processor (mode "chat": no thinking, plain tool/text stream)
-        processor = StreamEventProcessor(request.id, mode="chat")
-
-        # 8. Create stream generator with non-blocking Redis storage
-        # Track if stream was interrupted (client disconnect) vs completed normally
         stream_interrupted = False
 
         async def stream_generator():
             nonlocal stream_interrupted
-            sequence = 0  # Sequence counter for ordering chunks
+            state = {"sequence": 0}
+            part_message_id = f"msg-{uuid4().hex}"
+            message_id = str(uuid4())
+            graph_out: dict = {}
+
+            async def _store_and_yield_local(sse_bytes: bytes) -> bytes:
+                return await store_and_yield_stream_chunk(stream_id, state, sse_bytes)
+
             try:
-                async for event_bytes in processor.process_stream(
-                    client=client,
-                    model=model,
-                    messages=openai_messages,
-                    system=system,
-                    tools=tools,
-                    tool_definitions=tool_definitions,
+                async for sse_bytes in emit_standard_chat_prelude(
+                    stream_id=stream_id,
+                    state=state,
+                    part_message_id=part_message_id,
                 ):
-                    # Store chunk in Redis asynchronously with sequence number
-                    # Sequence ensures chunks are stored/retrieved in order
-                    # This doesn't block the stream output
-                    current_sequence = sequence
-                    sequence += 1
-                    asyncio.create_task(
-                        store_stream_chunk(stream_id, event_bytes, current_sequence)
-                    )
-                    yield event_bytes
+                    yield sse_bytes
+
+                async for sse_bytes in stream_chat_graph_sse(
+                    graph_out=graph_out,
+                    openai_messages=openai_messages,
+                    model_type=request.selectedChatModel.value,
+                    query_text=query_text,
+                    part_message_id=part_message_id,
+                    tool_set=tool_set,
+                    assistant_row_id=message_id,
+                    forced_intent=IntentType.DIRECT.value,
+                ):
+                    yield await _store_and_yield_local(sse_bytes)
+                    await asyncio.sleep(0)
             except GeneratorExit:
-                # Client disconnected (browser refresh, navigation, etc.)
-                # Don't mark as complete - stream should continue in background
                 stream_interrupted = True
                 logger.info(
-                    "Stream interrupted (client disconnect) for stream_id=%s, chat_id=%s",
+                    "Stream interrupted (client disconnect) stream_id=%s chat_id=%s",
                     stream_id,
                     request.id,
                 )
-                # Continue stream in background even though client disconnected
-                asyncio.create_task(
-                    _continue_stream_in_background(
-                        stream_id=stream_id,
-                        chat_id=request.id,
-                        client=client,
-                        model=model,
-                        messages=openai_messages,
-                        system=system,
-                        tools=tools,
-                        tool_definitions=tool_definitions,
-                        background_tasks=background_tasks,
-                        processor=processor,
-                        current_sequence=sequence,
-                    )
-                )
-                raise  # Re-raise to properly close the generator
+                raise
             finally:
-                # Only mark as complete if stream finished normally (not interrupted)
                 if not stream_interrupted:
-                    # Mark stream as complete in Redis (non-blocking)
                     asyncio.create_task(mark_stream_complete(stream_id))
-
-                    # Schedule background tasks after stream completes (even on error)
-                    create_save_messages_task(
-                        background_tasks, request.id, processor.assistant_messages
-                    )
-                    if processor.final_usage:
-                        create_update_context_task(
+                    if not graph_out.get("stream_failed"):
+                        assistant_message = build_assistant_message_from_graph(
+                            message_id, graph_out, chat_id=request.id
+                        )
+                        create_save_messages_task(
                             background_tasks,
                             request.id,
-                            processor.final_usage,
-                            message_id=processor.current_message_id,
+                            [assistant_message],
                         )
+                        final_usage = graph_out.get("final_usage")
+                        if final_usage:
+                            create_update_context_task(
+                                background_tasks,
+                                request.id,
+                                coerce_graph_final_usage_to_data_usage(
+                                    final_usage,
+                                    model=request.selectedChatModel.value,
+                                ),
+                                message_id=message_id,
+                            )
 
         response = StreamingResponse(
             stream_generator(),
@@ -206,4 +178,4 @@ async def stream_chat(
             "offline:chat",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error in stream_chat: {e}\n{stack_trace}",
-        )
+        ) from e

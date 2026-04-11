@@ -34,6 +34,15 @@ async def router_node(state: ChatPipelineState) -> dict:
             "routing_reasoning": "WDR research triggered by @wdr.",
         }
 
+    forced = state.get("forced_intent")
+    if forced in (IntentType.RESEARCH.value, IntentType.DIRECT.value):
+        logger.info("[router_node] forced_intent=%s (skipping check_intent)", forced)
+        label = "research" if forced == IntentType.RESEARCH.value else "direct"
+        return {
+            "intent": forced,
+            "routing_reasoning": f"Stream API: {label} path (no router LLM).",
+        }
+
     # ── LLM-based intent classification ─────────────────────────────────────
     openai_messages: list[dict] = state.get("openai_messages", [])
     logger.info("[router_node] calling check_intent messages_count=%d", len(openai_messages))

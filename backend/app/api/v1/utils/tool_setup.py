@@ -1,4 +1,4 @@
-"""Tool setup utilities for chat streaming."""
+"""Tool setup utilities for LangGraph chat (LangChain tools only)."""
 
 import asyncio
 import logging
@@ -22,9 +22,6 @@ from app.config import get_mcp_settings, get_settings
 logger = logging.getLogger(__name__)
 
 
-# ── Pydantic schemas for local LangChain tools ────────────────────────────────
-
-
 class _CreateDocumentInput(BaseModel):
     title: str = Field(description="The title of the document")
     kind: str = Field(description='The kind of document to create: "text", "code", or "sheet"')
@@ -36,14 +33,7 @@ class _UpdateDocumentInput(BaseModel):
 
 
 def _make_local_langchain_tools(user_id: UUID, db: AsyncSession) -> List[StructuredTool]:
-    """Build LangChain StructuredTool wrappers for createDocument / updateDocument.
-
-    The returned tools capture ``user_id`` and ``db`` via closure so they can be
-    passed directly to ``llm.bind_tools()`` in narrator_node / direct_node.
-
-    Note: ``sse_writer=None`` — document-content streaming SSE events are not
-    emitted on the LangGraph path (the tool still creates and saves the document).
-    """
+    """Build LangChain StructuredTool wrappers for createDocument / updateDocument."""
 
     async def _create_document(title: str, kind: str) -> dict:
         return await create_document_tool(
@@ -79,78 +69,25 @@ def _make_local_langchain_tools(user_id: UUID, db: AsyncSession) -> List[Structu
     ]
 
 
-async def create_tool_wrappers(user_id: UUID, db: AsyncSession) -> Dict[str, Dict[str, Any]]:
-    """
-    Create async tool wrappers for OpenAI tools.
-    These wrappers handle the _sse_writer parameter and pass user_id/db_session.
-    """
-
-    async def create_document_wrapper(**kwargs):
-        sse_writer = kwargs.pop("_sse_writer", None)
-        return await create_document_tool(
-            title=kwargs["title"],
-            kind=kwargs["kind"],
-            user_id=str(user_id),
-            db_session=db,
-            sse_writer=sse_writer,
-        )
-
-    async def update_document_wrapper(**kwargs):
-        sse_writer = kwargs.pop("_sse_writer", None)
-        return await update_document_tool(
-            document_id=kwargs["id"],
-            description=kwargs["description"],
-            user_id=str(user_id),
-            db_session=db,
-            sse_writer=sse_writer,
-        )
-
-    return {
-        "createDocument": {
-            "function": create_document_wrapper,
-            "type": "tool",
-        },
-        "updateDocument": {
-            "function": update_document_wrapper,
-            "type": "tool",
-        },
-    }
-
-
 async def prepare_tools(user_id: UUID, db: AsyncSession) -> Dict[str, Dict[str, Any]]:
     """
-    Prepare tools and tool definitions for OpenAI streaming.
-    Returns tool_set: {"local": {tools, tool_definitions}, "mcp": {tools, tool_definitions}}.
-    When ENABLE_LOCAL_TOOLS=false, local tools/definitions are empty.
-    MCP tools are loaded once via langchain-mcp-adapters (shared TTL cache in data360_mcp).
+    Load tools for the LangGraph pipeline.
+
+    Returns tool_set with:
+      - local.langchain_tools — local StructuredTools (or [])
+      - mcp_data.langchain_tools / mcp_viz.langchain_tools — MCP tools from the adapter bundle
     """
     enable_local = get_settings().ENABLE_LOCAL_TOOLS
     if enable_local:
-        logger.info("[tool_setup] create_tool_wrappers (local tools) start")
-        local_defs = [
-            CREATE_DOCUMENT_TOOL_DEFINITION,
-            UPDATE_DOCUMENT_TOOL_DEFINITION,
-        ]
-        local_tools = await create_tool_wrappers(user_id, db)
-        logger.info("[tool_setup] create_tool_wrappers done")
+        logger.info("[tool_setup] local LangChain tools (create/update document)")
+        local_lc_tools: List[StructuredTool] = _make_local_langchain_tools(user_id, db)
     else:
-        local_defs = []
-        local_tools = {}
+        local_lc_tools = []
         logger.info("[tool_setup] local tools disabled via ENABLE_LOCAL_TOOLS=false")
-
-    local_lc_tools: List[StructuredTool] = (
-        _make_local_langchain_tools(user_id, db) if enable_local else []
-    )
 
     tool_set: Dict[str, Dict[str, Any]] = {
         "local": {
-            "tool_definitions": local_defs,
-            "tools": local_tools,
             "langchain_tools": local_lc_tools,
-        },
-        "mcp": {
-            "tool_definitions": [],
-            "tools": {},
         },
         "mcp_data": {"langchain_tools": []},
         "mcp_viz": {"langchain_tools": []},
@@ -162,7 +99,7 @@ async def prepare_tools(user_id: UUID, db: AsyncSession) -> Dict[str, Dict[str, 
         mcp_load_timeout,
     )
     try:
-        lc_tools, mcp_openai_defs = await asyncio.wait_for(
+        lc_tools, _mcp_openai_defs = await asyncio.wait_for(
             get_mcp_tool_bundle(),
             timeout=mcp_load_timeout,
         )
@@ -178,18 +115,12 @@ async def prepare_tools(user_id: UUID, db: AsyncSession) -> Dict[str, Dict[str, 
             exc_info=True,
         )
     else:
-        for tool_def in mcp_openai_defs:
-            tool_set["mcp"]["tools"][tool_def["function"]["name"]] = {
-                "function": None,
-                "type": "mcp",
-            }
-            tool_set["mcp"]["tool_definitions"].append(tool_def)
         tool_set["mcp_data"]["langchain_tools"] = [t for t in lc_tools if t.name in DATA_TOOL_NAMES]
         tool_set["mcp_viz"]["langchain_tools"] = [t for t in lc_tools if t.name in VIZ_TOOL_NAMES]
-        tool_names = [t["function"]["name"] for t in mcp_openai_defs]
+        tool_names = [t.name for t in lc_tools]
         logger.info(
             "Successfully loaded %d MCP tools (adapter); LangGraph data=%d viz=%d names=%s",
-            len(mcp_openai_defs),
+            len(lc_tools),
             len(tool_set["mcp_data"]["langchain_tools"]),
             len(tool_set["mcp_viz"]["langchain_tools"]),
             tool_names,

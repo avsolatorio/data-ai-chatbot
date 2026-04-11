@@ -118,6 +118,41 @@ async def test_check_intent_called_once_for_normal_query(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_forced_intent_direct_skips_check_intent(monkeypatch):
+    """forced_intent=DIRECT must skip check_intent (v1 chat stream)."""
+    mock_ci = AsyncMock()
+    monkeypatch.setattr("app.ai.graph.nodes.router.check_intent", mock_ci)
+
+    result = await router_node(_state(forced_intent=IntentType.DIRECT.value))
+
+    assert result["intent"] == IntentType.DIRECT.value
+    mock_ci.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_forced_intent_research_skips_check_intent(monkeypatch):
+    mock_ci = AsyncMock()
+    monkeypatch.setattr("app.ai.graph.nodes.router.check_intent", mock_ci)
+
+    result = await router_node(_state(forced_intent=IntentType.RESEARCH.value))
+
+    assert result["intent"] == IntentType.RESEARCH.value
+    mock_ci.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_wdr_overrides_forced_intent(monkeypatch):
+    """@wdr in query still wins over forced DIRECT."""
+    mock_ci = AsyncMock()
+    monkeypatch.setattr("app.ai.graph.nodes.router.check_intent", mock_ci)
+
+    result = await router_node(_state(query_text="use @wdr", forced_intent=IntentType.DIRECT.value))
+
+    assert result["intent"] == IntentType.RESEARCH.value
+    mock_ci.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_openai_messages_passed_to_check_intent(monkeypatch):
     """check_intent receives the openai_messages from state."""
     messages = [

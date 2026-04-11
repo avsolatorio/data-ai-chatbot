@@ -18,6 +18,8 @@ class ChatPipelineState(TypedDict):
     # ── Router output ──────────────────────────────────────────────────────────
     intent: str  # "RESEARCH" | "DIRECT"
     routing_reasoning: str  # brief explanation for the SSE thinking panel
+    # When set ("RESEARCH" | "DIRECT"), router_node skips LLM classification (e.g. v1 chat stream).
+    forced_intent: NotRequired[str | None]
 
     # ── Research node output ───────────────────────────────────────────────────
     research_packet: str  # Planner's notes / data summary for the Writer

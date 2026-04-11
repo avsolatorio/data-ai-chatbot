@@ -11,19 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.client import get_ai_client, get_model_name
-from app.ai.graph.graph_tool_notify import create_tool_sse_queue
-from app.ai.graph.pipeline import chat_graph
-from app.ai.graph.sse_bridge import stream_graph_to_sse
 from app.ai.observability.token_usage import coerce_graph_final_usage_to_data_usage
-from app.ai.protocols.stream import (
-    DataPart,
-    DataThinkingPart,
-    MessageStartPart,
-    TextDeltaPart,
-    TextEndPart,
-    TextStartPart,
-)
-from app.ai.routing import check_intent
 from app.api.deps import get_current_user, get_optional_user
 from app.api.v1.schemas.chat_schemas import (
     DeleteMessagesRequest,
@@ -36,8 +24,18 @@ from app.api.v1.utils.background_tasks import (
     create_save_messages_task,
     create_update_context_task,
 )
+from app.api.v1.utils.graph_stream import (
+    build_assistant_message_from_graph as _build_assistant_message_from_graph,
+)
+from app.api.v1.utils.graph_stream import (
+    emit_standard_chat_prelude,
+    stream_chat_graph_sse,
+)
+from app.api.v1.utils.graph_stream import (
+    store_and_yield_stream_chunk as _store_and_yield,
+)
 from app.api.v1.utils.tool_setup import prepare_tools
-from app.config import IntentType, ModelType
+from app.config import ModelType
 from app.core.database import get_db
 from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import (
@@ -56,156 +54,11 @@ from app.db.queries.chat_queries import (
 )
 from app.db.queries.suggestion_queries import get_suggestions_by_document_id
 from app.utils.message_converter import convert_messages_to_openai_format
-from app.utils.resumable_stream import mark_stream_complete, store_stream_chunk
+from app.utils.resumable_stream import mark_stream_complete
 from app.utils.stream import patch_response_with_headers
-from app.utils.stream_processor import StreamEventProcessor
 from app.utils.user_id import get_user_id_uuid, user_ids_match
 
 logger = logging.getLogger(__name__)
-
-
-# ---- Stream generator helpers (keep stream_generator readable) ----
-
-
-async def _store_and_yield(stream_id: UUID, state: dict, sse_bytes: bytes):
-    """Yield one SSE chunk after storing it; increment sequence and flush."""
-    seq = state["sequence"]
-    state["sequence"] += 1
-    asyncio.create_task(store_stream_chunk(stream_id, sse_bytes, seq))
-    return sse_bytes
-
-
-async def _emit_routing_phase(
-    message_id: str,
-    stream_id: UUID,
-    openai_messages: list,
-    state: dict,
-    out: dict,
-    query: str = "",
-):
-    """Async generator: emit routing stage + 'Understanding your question' + check_intent + reasoning. Sets out['use_thinking'] and out['reasoning']."""
-    # Stage and static text
-    yield await _store_and_yield(
-        stream_id,
-        state,
-        DataPart(type="data-stage", data={"stage": "routing"}).to_sse().encode("utf-8"),
-    )
-    await asyncio.sleep(0)
-    routing_part_id = f"routing-{message_id}"
-    for part in (
-        TextStartPart(id=routing_part_id),
-        TextDeltaPart(id=routing_part_id, delta="Understanding your question…"),
-        TextEndPart(id=routing_part_id),
-    ):
-        sse_bytes = (
-            DataThinkingPart(id=message_id, data=part.model_dump(exclude_none=True))
-            .to_sse()
-            .encode("utf-8")
-        )
-        yield await _store_and_yield(stream_id, state, sse_bytes)
-        await asyncio.sleep(0)
-
-    intent, reasoning = await check_intent(openai_messages)
-    out["use_thinking"] = intent == IntentType.RESEARCH
-    out["reasoning"] = reasoning or ""
-
-    # Force WDR research path when the query contains @wdr
-    if "@wdr" in query.lower():
-        out["use_thinking"] = True
-        out["reasoning"] = (
-            "WDR research triggered by @wdr."
-            if not out["reasoning"]
-            else out["reasoning"] + " (WDR forced by @wdr.)"
-        )
-
-    if not out["use_thinking"]:
-        logger.info(
-            "Fast-path: DIRECT intent. Chat phase streams text-start/text-delta; frontend shows them via useChat."
-        )
-
-    if reasoning:
-        reason_part_id = f"routing-reason-{message_id}"
-        for part in (
-            TextStartPart(id=reason_part_id),
-            TextDeltaPart(id=reason_part_id, delta=reasoning),
-            TextEndPart(id=reason_part_id),
-        ):
-            sse_bytes = (
-                DataThinkingPart(id=message_id, data=part.model_dump(exclude_none=True))
-                .to_sse()
-                .encode("utf-8")
-            )
-            yield await _store_and_yield(stream_id, state, sse_bytes)
-            await asyncio.sleep(0)
-
-
-async def _stream_with_store(stream_id: UUID, state: dict, aiter):
-    """Forward an async iterable of SSE bytes, storing each and yielding it."""
-    async for event_bytes in aiter:
-        yield await _store_and_yield(stream_id, state, event_bytes)
-        await asyncio.sleep(0)
-
-
-def _build_routing_parts(message_id: str, reasoning: str) -> List[dict]:
-    """Parts to prepend to assistant message for the Reasoning block (reload)."""
-    parts = [
-        {
-            "type": "data-thinking",
-            "id": message_id,
-            "data": {"type": "text", "text": "Understanding your question…"},
-        },
-    ]
-    if reasoning:
-        parts.append(
-            {
-                "type": "data-thinking",
-                "id": message_id,
-                "data": {"type": "text", "text": reasoning},
-            }
-        )
-    return parts
-
-
-def _build_assistant_message(
-    message_id: str,
-    reasoning: str,
-    stream_processor: StreamEventProcessor,
-) -> dict:
-    """Build the assistant message dict with routing parts for saving.
-    When mode was unified, stream_processor.assistant_messages[0] already has
-    both thinking and chat parts. When mode was chat, it has only chat parts.
-    ``message_id`` is the persisted row id (UUID). The live stream uses
-    ``part_message_id`` (``msg-…``) in ``MessageStartPart``; that is separate.
-    """
-    routing_parts = _build_routing_parts(message_id, reasoning)
-    assistant_message = stream_processor.assistant_messages[0].copy()
-    assistant_message["id"] = message_id
-    assistant_message["parts"] = routing_parts + assistant_message["parts"]
-    return assistant_message
-
-
-def _build_assistant_message_from_graph(message_id: str, graph_out: dict, *, chat_id: UUID) -> dict:
-    """Build the assistant message dict from LangGraph stream output for DB save.
-
-    graph_out keys (populated by stream_graph_to_sse via out= parameter):
-      - routing_reasoning: str
-      - answer_text: str
-      - final_usage: dict | None
-      - assistant_parts_for_db: list[dict] (tool + text segments; optional)
-    """
-    routing_parts = _build_routing_parts(message_id, graph_out.get("routing_reasoning", ""))
-    persisted = graph_out.get("assistant_parts_for_db") or []
-    if persisted:
-        body: List[dict] = persisted
-    else:
-        answer_text = graph_out.get("answer_text", "")
-        body = [{"type": "text", "text": answer_text}] if answer_text else []
-    return {
-        "id": message_id,
-        "chatId": chat_id,
-        "role": "assistant",
-        "parts": routing_parts + body,
-    }
 
 
 router = APIRouter()
@@ -487,57 +340,25 @@ async def create_chat(
         graph_out: dict = {}  # populated by stream_graph_to_sse
 
         try:
-            yield MessageStartPart(messageId=part_message_id).to_sse().encode("utf-8")
-            await asyncio.sleep(0)
-
-            # Emit routing UX: stage + "Understanding your question…" static text
-            # The actual routing LLM call happens inside router_node in the graph.
-            yield await _store_and_yield(
-                stream_id,
-                state,
-                DataPart(type="data-stage", data={"stage": "routing"}).to_sse().encode("utf-8"),
-            )
-            routing_part_id = f"routing-{part_message_id}"
-            for part in (
-                TextStartPart(id=routing_part_id),
-                TextDeltaPart(id=routing_part_id, delta="Understanding your question…"),
-                TextEndPart(id=routing_part_id),
+            async for sse_bytes in emit_standard_chat_prelude(
+                stream_id=stream_id,
+                state=state,
+                part_message_id=part_message_id,
             ):
-                sse_bytes = (
-                    DataThinkingPart(id=part_message_id, data=part.model_dump(exclude_none=True))
-                    .to_sse()
-                    .encode("utf-8")
-                )
-                yield await _store_and_yield(stream_id, state, sse_bytes)
-                await asyncio.sleep(0)
+                yield sse_bytes
 
-            # Build LangGraph input state
-            graph_input: dict = {
-                "openai_messages": openai_messages,
-                "model_type": request.selectedChatModel.value,
-                "query_text": query_text,
-                "message_id": part_message_id,
-                "tool_set": tool_set,
-                "intent": "",
-                "routing_reasoning": "",
-                "research_packet": "",
-                "assistant_parts": [],
-                "final_usage": None,
-                "_tool_sse_queue": create_tool_sse_queue(),
-            }
-
-            # Stream graph execution → SSE bytes
-            logger.info("[chat] stream_graph_to_sse start")
-            async for sse_bytes in stream_graph_to_sse(
-                chat_graph,
-                graph_input,
-                part_message_id,
-                out=graph_out,
+            async for sse_bytes in stream_chat_graph_sse(
+                graph_out=graph_out,
+                openai_messages=openai_messages,
+                model_type=request.selectedChatModel.value,
+                query_text=query_text,
+                part_message_id=part_message_id,
+                tool_set=tool_set,
                 assistant_row_id=message_id,
+                forced_intent=None,
             ):
                 yield await _store_and_yield(stream_id, state, sse_bytes)
                 await asyncio.sleep(0)
-            logger.info("[chat] stream_graph_to_sse done")
 
         except GeneratorExit:
             stream_interrupted = True
