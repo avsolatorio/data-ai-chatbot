@@ -1,6 +1,6 @@
 """LangGraph state schema for the chat pipeline."""
 
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 
 class ChatPipelineState(TypedDict):
@@ -25,3 +25,6 @@ class ChatPipelineState(TypedDict):
     # ── Final output (consumed by chat.py for DB save) ────────────────────────
     assistant_parts: list[dict]  # assembled message parts (thinking + chat)
     final_usage: dict | None  # token usage counts
+
+    # ── Streaming only (set by chat.py; nodes push manual tool lifecycle) ────
+    _tool_sse_queue: NotRequired[Any]  # asyncio.Queue of manual tool payloads

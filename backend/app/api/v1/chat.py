@@ -11,9 +11,10 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.client import get_ai_client, get_model_name
+from app.ai.graph.graph_tool_notify import create_tool_sse_queue
 from app.ai.graph.pipeline import chat_graph
 from app.ai.graph.sse_bridge import stream_graph_to_sse
-from app.ai.observability.token_usage import DataUsageData
+from app.ai.observability.token_usage import coerce_graph_final_usage_to_data_usage
 from app.ai.protocols.stream import (
     DataPart,
     DataThinkingPart,
@@ -173,8 +174,8 @@ def _build_assistant_message(
     """Build the assistant message dict with routing parts for saving.
     When mode was unified, stream_processor.assistant_messages[0] already has
     both thinking and chat parts. When mode was chat, it has only chat parts.
-    Use message_id (sent to frontend in MessageStartPart) as the saved message id
-    so lastContext.byMessageId and the DB message id match.
+    ``message_id`` is the persisted row id (UUID). The live stream uses
+    ``part_message_id`` (``msg-…``) in ``MessageStartPart``; that is separate.
     """
     routing_parts = _build_routing_parts(message_id, reasoning)
     assistant_message = stream_processor.assistant_messages[0].copy()
@@ -183,21 +184,27 @@ def _build_assistant_message(
     return assistant_message
 
 
-def _build_assistant_message_from_graph(message_id: str, graph_out: dict) -> dict:
+def _build_assistant_message_from_graph(message_id: str, graph_out: dict, *, chat_id: UUID) -> dict:
     """Build the assistant message dict from LangGraph stream output for DB save.
 
     graph_out keys (populated by stream_graph_to_sse via out= parameter):
       - routing_reasoning: str
       - answer_text: str
       - final_usage: dict | None
+      - assistant_parts_for_db: list[dict] (tool + text segments; optional)
     """
     routing_parts = _build_routing_parts(message_id, graph_out.get("routing_reasoning", ""))
-    answer_text = graph_out.get("answer_text", "")
-    text_parts = [{"type": "text", "text": answer_text}] if answer_text else []
+    persisted = graph_out.get("assistant_parts_for_db") or []
+    if persisted:
+        body: List[dict] = persisted
+    else:
+        answer_text = graph_out.get("answer_text", "")
+        body = [{"type": "text", "text": answer_text}] if answer_text else []
     return {
         "id": message_id,
+        "chatId": chat_id,
         "role": "assistant",
-        "parts": routing_parts + text_parts,
+        "parts": routing_parts + body,
     }
 
 
@@ -473,7 +480,10 @@ async def create_chat(
         nonlocal stream_interrupted
         logger.info("[chat] stream_generator (LangGraph) started stream_id=%s", stream_id)
         state = {"sequence": 0}
+        # Stream envelope id (SSE / UI); not the persisted Message row id.
         part_message_id = f"msg-{uuid4().hex}"
+        # Persisted assistant message id (UUID) and lastContext.byMessageId key.
+        message_id = str(uuid4())
         graph_out: dict = {}  # populated by stream_graph_to_sse
 
         try:
@@ -513,12 +523,17 @@ async def create_chat(
                 "research_packet": "",
                 "assistant_parts": [],
                 "final_usage": None,
+                "_tool_sse_queue": create_tool_sse_queue(),
             }
 
             # Stream graph execution → SSE bytes
             logger.info("[chat] stream_graph_to_sse start")
             async for sse_bytes in stream_graph_to_sse(
-                chat_graph, graph_input, part_message_id, out=graph_out
+                chat_graph,
+                graph_input,
+                part_message_id,
+                out=graph_out,
+                assistant_row_id=message_id,
             ):
                 yield await _store_and_yield(stream_id, state, sse_bytes)
                 await asyncio.sleep(0)
@@ -540,24 +555,35 @@ async def create_chat(
             if not stream_interrupted:
                 asyncio.create_task(mark_stream_complete(stream_id))
 
-                assistant_message = _build_assistant_message_from_graph(part_message_id, graph_out)
-                logger.info(
-                    "[chat] saving assistant message parts=%d",
-                    len(assistant_message.get("parts", [])),
-                )
-                create_save_messages_task(
-                    background_tasks,
-                    request.id,
-                    [assistant_message],
-                )
-                final_usage = graph_out.get("final_usage")
-                if final_usage:
-                    create_update_context_task(
+                if graph_out.get("stream_failed"):
+                    logger.info(
+                        "[chat] skipping assistant persist (graph stream_failed) chat_id=%s",
+                        request.id,
+                    )
+                else:
+                    assistant_message = _build_assistant_message_from_graph(
+                        message_id, graph_out, chat_id=request.id
+                    )
+                    logger.info(
+                        "[chat] saving assistant message parts=%d",
+                        len(assistant_message.get("parts", [])),
+                    )
+                    create_save_messages_task(
                         background_tasks,
                         request.id,
-                        DataUsageData.model_validate(final_usage),
-                        message_id=part_message_id,
+                        [assistant_message],
                     )
+                    final_usage = graph_out.get("final_usage")
+                    if final_usage:
+                        create_update_context_task(
+                            background_tasks,
+                            request.id,
+                            coerce_graph_final_usage_to_data_usage(
+                                final_usage,
+                                model=request.selectedChatModel.value,
+                            ),
+                            message_id=message_id,
+                        )
 
     response = StreamingResponse(
         stream_generator(),

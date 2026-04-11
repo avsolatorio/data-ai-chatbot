@@ -10,6 +10,48 @@ logger = logging.getLogger(__name__)
 # NOTE: Implement outputSchema for MCP tools. https://github.com/modelcontextprotocol/modelcontextprotocol/pull/371
 
 
+def _normalize_mcp_tool_arguments(arguments: dict) -> dict:
+    """Coerce LangChain / LLM tool-call payloads to shapes FastMCP validates on the server.
+
+    - ``disaggregation_filters`` is often emitted as a JSON string; the MCP schema expects ``dict``.
+    - ``start_year``, ``end_year``, ``limit``, ``offset`` may arrive as numeric strings.
+    """
+    out = {k: v for k, v in arguments.items() if v is not None}
+    df_key = "disaggregation_filters"
+    if df_key in out:
+        df_val = out[df_key]
+        if isinstance(df_val, str):
+            stripped = df_val.strip()
+            if not stripped:
+                del out[df_key]
+            else:
+                try:
+                    parsed = json5.loads(stripped)
+                except Exception as e:
+                    raise ValueError(
+                        f"{df_key} must be JSON object or dict; could not parse: {df_val!r}"
+                    ) from e
+                if not isinstance(parsed, dict):
+                    raise ValueError(
+                        f"{df_key} must decode to a JSON object, got {type(parsed).__name__}"
+                    )
+                out[df_key] = parsed
+    for ik in ("start_year", "end_year", "limit", "offset"):
+        if ik not in out:
+            continue
+        val = out[ik]
+        if isinstance(val, str):
+            s = val.strip()
+            if not s:
+                del out[ik]
+                continue
+            try:
+                out[ik] = int(s)
+            except ValueError:
+                pass
+    return out
+
+
 async def main():
     client = get_mcp_client()
     async with client:
@@ -78,9 +120,10 @@ async def get_mcp_tools():
 
 async def call_mcp_tool(tool_name: str, arguments: dict, as_jsonable: bool = True):
     try:
+        normalized = _normalize_mcp_tool_arguments(dict(arguments))
         client = get_mcp_client()
         async with client:
-            result = await client.call_tool(tool_name, arguments)
+            result = await client.call_tool(tool_name, normalized)
             if as_jsonable:
                 try:
                     return json5.loads(
@@ -99,5 +142,5 @@ async def call_mcp_tool(tool_name: str, arguments: dict, as_jsonable: bool = Tru
         tbck = traceback.format_exc()
 
         raise Exception(
-            f"Error calling MCP tool {tool_name}, with arguments {arguments}: {str(e)}\n{tbck}"
+            f"Error calling MCP tool {tool_name}, with arguments {arguments!r}: {str(e)}\n{tbck}"
         )

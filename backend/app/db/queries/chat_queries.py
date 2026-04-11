@@ -14,6 +14,14 @@ from app.models.vote import Vote
 logger = logging.getLogger(__name__)
 
 
+def _coerce_message_row_uuid(msg_id: str | UUID) -> UUID:
+    """Parse Message primary key: standard UUID string or legacy ``msg-{32 hex}`` stream ids."""
+    if isinstance(msg_id, UUID):
+        return msg_id
+
+    return UUID(msg_id)
+
+
 async def get_chat_by_id(session: AsyncSession, chat_id: UUID):
     """Get a chat by its ID."""
     result = await session.execute(select(Chat).where(Chat.id == chat_id))
@@ -54,9 +62,7 @@ async def get_latest_messages_by_chat_id(
 async def get_message_by_id(session: AsyncSession, message_id: UUID) -> Optional[Message]:
     """Get a single active (non-deleted) message by its ID."""
     result = await session.execute(
-        select(Message).where(
-            and_(Message.id == message_id, Message.deletedAt.is_(None))
-        )
+        select(Message).where(and_(Message.id == message_id, Message.deletedAt.is_(None)))
     )
     return result.scalar_one_or_none()
 
@@ -190,7 +196,7 @@ async def save_messages(
     message_objects = []
     for msg_data in messages:
         # Convert id and chatId to UUIDs if they are strings
-        msg_id = UUID(msg_data["id"]) if isinstance(msg_data["id"], str) else msg_data["id"]
+        msg_id = _coerce_message_row_uuid(msg_data["id"])
         chat_id = (
             UUID(msg_data["chatId"]) if isinstance(msg_data["chatId"], str) else msg_data["chatId"]
         )
@@ -199,9 +205,7 @@ async def save_messages(
 
         # Skip if active message already exists (idempotent: safe for duplicate requests / retries)
         existing = await session.execute(
-            select(Message).where(
-                and_(Message.id == msg_id, Message.deletedAt.is_(None))
-            )
+            select(Message).where(and_(Message.id == msg_id, Message.deletedAt.is_(None)))
         )
         if existing.scalar_one_or_none() is not None:
             logger.warning(

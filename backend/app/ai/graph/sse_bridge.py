@@ -4,24 +4,48 @@ The frontend expects a specific SSE event format (data-thinking, text-start,
 text-delta, text-end, finish, …).  This module translates LangGraph's generic
 event stream into that protocol so the frontend needs zero changes.
 
-Event → SSE mapping by langgraph_node:
+**Manual tool streaming:** Research / narrator / direct nodes execute tools with
+``tool.ainvoke`` inside Python loops. They call :mod:`graph_tool_notify` to push
+tool lifecycle messages to ``input_state["_tool_sse_queue"]``; the bridge merges
+that queue with ``astream_events``.
+
+LangGraph may *also* emit ``on_tool_start`` / ``on_tool_end`` for the same
+invocations (traced tool runs). When ``_tool_sse_queue`` is set, those graph
+tool events are **ignored** so each tool is emitted exactly once — matching the
+classic stream (single source of truth).
+
+Event → SSE mapping by langgraph_node (when LangGraph emits them):
     router    → routing reasoning wrapped in DataThinkingPart (after node ends)
     research  → on_chat_model_stream  → DataThinkingPart(TextDeltaPart)
-              → on_tool_start         → DataThinkingPart(ToolInputStart + ToolInputAvailable)
-              → on_tool_end           → DataThinkingPart(ToolOutputAvailable)
     narrator  → on_chat_model_stream  → TextStartPart / TextDeltaPart / TextEndPart
-              → on_tool_start/end     → plain tool SSE (for document creation visibility)
     direct    → same as narrator
+
+DB persistence (``assistant_parts_for_db``): mirrors :class:`StreamEventProcessor`
+shapes — research tools wrapped in ``data-thinking``; narrator/direct tools and
+text segments stored as top-level parts so reload shows tools in order.
 """
 
+from __future__ import annotations
+
+import asyncio
 import logging
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 from uuid import uuid4
 
+from app.ai.graph.tool_output_normalize import normalize_tool_output_for_ui
+from app.ai.observability.token_usage import (
+    DataUsageData,
+    DataUsageEvent,
+    coerce_graph_final_usage_to_data_usage,
+)
 from app.ai.protocols.stream import (
+    TEXT_STATE_DONE,
+    TOOL_STATE_INPUT_AVAILABLE,
+    TOOL_STATE_OUTPUT_AVAILABLE,
     DataPart,
     DataThinkingPart,
     DoneMarker,
+    ErrorPart,
     FinishMessagePart,
     TextDeltaPart,
     TextEndPart,
@@ -30,110 +54,227 @@ from app.ai.protocols.stream import (
     ToolInputStartPart,
     ToolOutputAvailablePart,
 )
+from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
+
+try:
+    from litellm.exceptions import ContentPolicyViolationError
+except ImportError:  # pragma: no cover
+
+    class ContentPolicyViolationError(Exception):  # type: ignore[misc, no-redef]
+        """Fallback if litellm is not installed."""
+
+        pass
+
 
 logger = logging.getLogger(__name__)
 
+_GRAPH_DONE = object()
+
+
+def _root_cause(exc: BaseException) -> BaseException:
+    """Unwrap ExceptionGroup (e.g. LangGraph task groups) to a leaf exception."""
+    if isinstance(exc, BaseExceptionGroup):
+
+        def find_content_policy(e: BaseException) -> BaseException | None:
+            if isinstance(e, ContentPolicyViolationError):
+                return e
+            if isinstance(e, BaseExceptionGroup):
+                for sub in e.exceptions:
+                    found = find_content_policy(sub)
+                    if found is not None:
+                        return found
+            return None
+
+        preferred = find_content_policy(exc)
+        if preferred is not None:
+            return preferred
+        if len(exc.exceptions) == 1:
+            return _root_cause(exc.exceptions[0])
+        return exc.exceptions[0]
+    return exc
+
+
+def _user_visible_stream_error(root: BaseException, error_id: str) -> str:
+    ref = f" Reference: {error_id}."
+    if isinstance(root, ContentPolicyViolationError):
+        return (
+            "The model provider blocked this reply under its content safety rules. "
+            "Try rephrasing your question or narrowing the topic."
+        ) + ref
+    return USER_MESSAGE_GENERIC + ref
+
+
+def _terminal_error_chunks(br: _SseBridgeState, root: BaseException, error_id: str) -> list[bytes]:
+    """SSE chunks to finish the stream after a graph/model failure (no ASGI crash)."""
+    chunks: list[bytes] = []
+    br.flush_research_text_to_db()
+    br.flush_narrator_segment_to_db()
+    if br.answer_text_started:
+        chunks.append(TextEndPart(id=br.text_part_id).to_sse().encode("utf-8"))
+    msg = _user_visible_stream_error(root, error_id)
+    chunks.append(ErrorPart(errorText=msg).to_sse().encode("utf-8"))
+    chunks.append(FinishMessagePart(messageMetadata=None).to_sse().encode("utf-8"))
+    chunks.append(DoneMarker().to_sse().encode("utf-8"))
+    return chunks
+
+
 # Nodes whose LLM tokens go into the data-thinking envelope
-_THINKING_NODES = {"research"}
+_THINKING_NODES = frozenset({"research"})
 
 # Nodes whose LLM tokens are emitted as plain visible text
-_ANSWER_NODES = {"narrator", "direct"}
+_ANSWER_NODES = frozenset({"narrator", "direct"})
+
+_LLM_NODES = _THINKING_NODES | _ANSWER_NODES
 
 
-async def stream_graph_to_sse(
-    graph,
-    input_state: dict,
-    message_id: str,
-    out: dict | None = None,
-) -> AsyncGenerator[bytes, None]:
-    """Stream a compiled LangGraph graph and yield SSE bytes in the existing protocol.
+class _SseBridgeState:
+    """Mutable streaming state shared between LangGraph events and manual tool queue."""
 
-    Args:
-        graph:        Compiled LangGraph StateGraph (e.g. chat_graph from pipeline.py).
-        input_state:  ChatPipelineState dict to pass as graph input.
-        message_id:   The SSE message ID (part_message_id from chat.py).
-        out:          Optional mutable dict. After the generator is exhausted it will
-                      contain {"routing_reasoning": str, "answer_text": str,
-                      "final_usage": dict | None} for the caller to save to the DB.
+    __slots__ = (
+        "message_id",
+        "thinking_db_id",
+        "input_state",
+        "text_part_id",
+        "answer_text_started",
+        "_routing_reasoning",
+        "_answer_text_parts",
+        "_usage_accum",
+        "_db_parts",
+        "_research_text_buf",
+        "_research_tool_parts",
+        "_narrator_segment",
+        "_answer_tool_parts",
+        "_stages_emitted",
+        "_manual_tool_sse",
+        "_stream_failed",
+    )
 
-    Yields:
-        SSE-encoded bytes ready to forward to the HTTP response.
+    def __init__(
+        self,
+        *,
+        message_id: str,
+        thinking_db_id: str,
+        input_state: dict,
+    ) -> None:
+        self.message_id = message_id
+        self.thinking_db_id = thinking_db_id
+        self.input_state = input_state
+        # Single source: notify_tool_* queue; avoid duplicating traced on_tool_* events
+        self._manual_tool_sse = input_state.get("_tool_sse_queue") is not None
+        self.text_part_id = f"text-{uuid4().hex}"
+        self.answer_text_started = False
+        self._routing_reasoning: str = ""
+        self._answer_text_parts: list[str] = []
+        self._usage_accum: DataUsageData | None = None
+        self._db_parts: list[dict] = []
+        self._research_text_buf: list[str] = []
+        self._research_tool_parts: dict[str, dict] = {}
+        self._narrator_segment: list[str] = []
+        self._answer_tool_parts: dict[str, dict] = {}
+        self._stages_emitted: set[str] = set()
+        self._stream_failed = False
 
-    The caller (chat.py) is responsible for:
-    - Emitting MessageStartPart before calling this function.
-    - Emitting the "Understanding your question…" routing UX text before calling.
-    - Storing each chunk via store_stream_chunk() and checking for disconnect.
-    """
-    text_part_id = f"text-{uuid4().hex}"
-    answer_text_started = False
+    def flush_research_text_to_db(self) -> None:
+        if not self._research_text_buf:
+            return
+        merged = "".join(self._research_text_buf)
+        self._research_text_buf.clear()
+        if not merged:
+            return
+        inner = {
+            "type": "text",
+            "text": merged,
+            "state": TEXT_STATE_DONE,
+            "providerMetadata": {"openai": {"itemId": f"research-{uuid4().hex}"}},
+        }
+        self._db_parts.append({"type": "data-thinking", "id": self.thinking_db_id, "data": inner})
 
-    # State captured for the out dict (DB save)
-    _routing_reasoning: str = ""
-    _answer_text_parts: list[str] = []
-    _final_usage: dict | None = None
+    def flush_narrator_segment_to_db(self) -> None:
+        if not self._narrator_segment:
+            return
+        merged = "".join(self._narrator_segment)
+        self._narrator_segment.clear()
+        if not merged:
+            return
+        inner = {
+            "type": "text",
+            "text": merged,
+            "state": TEXT_STATE_DONE,
+            "providerMetadata": {"openai": {"itemId": f"narrator-{uuid4().hex}"}},
+        }
+        self._db_parts.append(inner)
 
-    # Track which data-stage we're currently in (avoid duplicate emissions)
-    _stages_emitted: set[str] = set()
+    def add_usage_from_message(self, output_msg: Any) -> None:
+        if output_msg is None or not hasattr(output_msg, "usage_metadata"):
+            return
+        meta = output_msg.usage_metadata
+        if not meta:
+            return
+        model_key = str(self.input_state.get("model_type") or "")
+        piece = coerce_graph_final_usage_to_data_usage(dict(meta), model=model_key)
+        if self._usage_accum is None:
+            self._usage_accum = piece
+            return
+        try:
+            self._usage_accum = self._usage_accum + piece
+        except ValueError as exc:
+            logger.warning("Skipping additive usage merge: %s", exc)
 
-    def _make_stage_sse(stage: str) -> bytes | None:
-        if stage in _stages_emitted:
+    def make_stage_sse(self, stage: str) -> bytes | None:
+        if stage in self._stages_emitted:
             return None
-        _stages_emitted.add(stage)
+        self._stages_emitted.add(stage)
         return DataPart(type="data-stage", data={"stage": stage}).to_sse().encode("utf-8")
 
-    async for event in graph.astream_events(input_state, version="v2"):
+    def graph_event_to_chunks(self, event: dict) -> list[bytes]:
+        chunks: list[bytes] = []
         evt_type: str = event.get("event", "")
         evt_name: str = event.get("name", "")
         run_id: str = event.get("run_id", "")
         metadata: dict = event.get("metadata", {})
         data: dict = event.get("data", {})
-
         node: str = metadata.get("langgraph_node", "")
 
-        # ── Stage markers ─────────────────────────────────────────────────────
-
         if evt_type == "on_chain_start" and evt_name == "research":
-            stage_bytes = _make_stage_sse("interpreting")
+            stage_bytes = self.make_stage_sse("interpreting")
             if stage_bytes:
-                yield stage_bytes
+                chunks.append(stage_bytes)
 
         elif evt_type == "on_chain_start" and evt_name in ("narrator", "direct"):
-            stage_bytes = _make_stage_sse("generating")
+            self.flush_research_text_to_db()
+            stage_bytes = self.make_stage_sse("generating")
             if stage_bytes:
-                yield stage_bytes
-
-        # ── Router node: emit routing reasoning as data-thinking ──────────────
+                chunks.append(stage_bytes)
 
         elif evt_type == "on_chain_end" and evt_name == "router":
             output: dict = data.get("output", {})
             reasoning: str = output.get("routing_reasoning", "")
-            _routing_reasoning = reasoning  # capture for out dict
+            self._routing_reasoning = reasoning
             if reasoning:
-                reason_id = f"routing-reason-{message_id}"
+                reason_id = f"routing-reason-{self.message_id}"
                 for part in (
                     TextStartPart(id=reason_id),
                     TextDeltaPart(id=reason_id, delta=reasoning),
                     TextEndPart(id=reason_id),
                 ):
-                    yield (
+                    chunks.append(
                         DataThinkingPart(
-                            id=message_id,
+                            id=self.message_id,
                             data=part.model_dump(exclude_none=True),
                         )
                         .to_sse()
                         .encode("utf-8")
                     )
 
-        # ── Research node: LLM token streaming → data-thinking ────────────────
-
         elif evt_type == "on_chat_model_stream" and node in _THINKING_NODES:
             chunk = data.get("chunk")
             content: str = chunk.content if (chunk and hasattr(chunk, "content")) else ""
             if content:
-                inner_id = f"research-{message_id}"
-                yield (
+                self._research_text_buf.append(content)
+                inner_id = f"research-{self.message_id}"
+                chunks.append(
                     DataThinkingPart(
-                        id=message_id,
+                        id=self.message_id,
                         data=TextDeltaPart(id=inner_id, delta=content).model_dump(
                             exclude_none=True
                         ),
@@ -142,138 +283,359 @@ async def stream_graph_to_sse(
                     .encode("utf-8")
                 )
 
-        # ── Research node: tool call start ────────────────────────────────────
+        elif evt_type == "on_chat_model_end" and node in _LLM_NODES:
+            self.add_usage_from_message(data.get("output"))
 
-        elif evt_type == "on_tool_start" and node in _THINKING_NODES:
-            tool_call_id = run_id
-            tool_name = evt_name
-            tool_input = data.get("input", {})
-
-            # Emit data-stage "retrieving" on the first tool call in research
-            stage_bytes = _make_stage_sse("retrieving")
-            if stage_bytes:
-                yield stage_bytes
-
-            # tool-input-start
-            yield (
-                DataThinkingPart(
-                    id=message_id,
-                    data=ToolInputStartPart(toolCallId=tool_call_id, toolName=tool_name).model_dump(
-                        exclude_none=True
-                    ),
+        elif not self._manual_tool_sse and evt_type == "on_tool_start" and node in _THINKING_NODES:
+            chunks.extend(
+                self._chunks_research_tool_start(
+                    tool_call_id=run_id,
+                    tool_name=evt_name
+                    or (data.get("name") if isinstance(data.get("name"), str) else "")
+                    or "tool",
+                    tool_input_raw=data.get("input", {}),
                 )
-                .to_sse()
-                .encode("utf-8")
             )
 
-            # tool-input-available (input is already known at start)
-            yield (
-                DataThinkingPart(
-                    id=message_id,
-                    data=ToolInputAvailablePart(
-                        toolCallId=tool_call_id,
-                        toolName=tool_name,
-                        input=tool_input,
-                    ).model_dump(exclude_none=True),
+        elif not self._manual_tool_sse and evt_type == "on_tool_end" and node in _THINKING_NODES:
+            chunks.extend(
+                self._chunks_research_tool_end(
+                    tool_call_id=run_id,
+                    output=data.get("output", ""),
                 )
-                .to_sse()
-                .encode("utf-8")
             )
-
-        # ── Research node: tool call end ──────────────────────────────────────
-
-        elif evt_type == "on_tool_end" and node in _THINKING_NODES:
-            tool_call_id = run_id
-            output = data.get("output", "")
-            # Normalise output to a JSON-serialisable form
-            output_value = (
-                output if isinstance(output, (dict, list, str, int, float)) else str(output)
-            )
-
-            yield (
-                DataThinkingPart(
-                    id=message_id,
-                    data=ToolOutputAvailablePart(
-                        toolCallId=tool_call_id,
-                        output=output_value,
-                    ).model_dump(exclude_none=True),
-                )
-                .to_sse()
-                .encode("utf-8")
-            )
-
-        # ── Narrator / Direct node: LLM token streaming → visible text ────────
 
         elif evt_type == "on_chat_model_stream" and node in _ANSWER_NODES:
             chunk = data.get("chunk")
             content = chunk.content if (chunk and hasattr(chunk, "content")) else ""
             if content:
-                _answer_text_parts.append(content)  # capture for out dict
-                if not answer_text_started:
-                    answer_text_started = True
-                    yield TextStartPart(id=text_part_id).to_sse().encode("utf-8")
-                yield TextDeltaPart(id=text_part_id, delta=content).to_sse().encode("utf-8")
+                self._answer_text_parts.append(content)
+                self._narrator_segment.append(content)
+                if not self.answer_text_started:
+                    self.answer_text_started = True
+                    chunks.append(TextStartPart(id=self.text_part_id).to_sse().encode("utf-8"))
+                chunks.append(
+                    TextDeltaPart(id=self.text_part_id, delta=content).to_sse().encode("utf-8")
+                )
 
-        # ── Narrator / Direct node: capture token usage ────────────────────────
-
-        elif evt_type == "on_chat_model_end" and node in _ANSWER_NODES:
-            output_msg = data.get("output")
-            if output_msg is not None and hasattr(output_msg, "usage_metadata"):
-                meta = output_msg.usage_metadata
-                if meta:
-                    _final_usage = dict(meta)
-
-        # ── Narrator / Direct node: tool call events (visible) ────────────────
-        # Tool calls from narrator/direct (viz tools, local tools) are emitted
-        # as plain SSE events so the frontend can render document panels, etc.
-
-        elif evt_type == "on_tool_start" and node in _ANSWER_NODES:
-            tool_call_id = run_id
-            tool_name = evt_name
-            tool_input = data.get("input", {})
-
-            yield (
-                ToolInputStartPart(toolCallId=tool_call_id, toolName=tool_name)
-                .to_sse()
-                .encode("utf-8")
+        elif not self._manual_tool_sse and evt_type == "on_tool_start" and node in _ANSWER_NODES:
+            chunks.extend(
+                self._chunks_answer_tool_start(
+                    tool_call_id=run_id,
+                    tool_name=evt_name
+                    or (data.get("name") if isinstance(data.get("name"), str) else "")
+                    or "tool",
+                    tool_input_raw=data.get("input", {}),
+                )
             )
-            yield (
-                ToolInputAvailablePart(
+
+        elif not self._manual_tool_sse and evt_type == "on_tool_end" and node in _ANSWER_NODES:
+            chunks.extend(
+                self._chunks_answer_tool_end(
+                    tool_call_id=run_id,
+                    output=data.get("output", ""),
+                )
+            )
+
+        return chunks
+
+    def manual_tool_to_chunks(self, payload: dict) -> list[bytes]:
+        phase = payload.get("phase")
+        graph_node = payload.get("graph_node", "")
+        tool_name = str(payload.get("tool_name") or "tool")
+        tool_call_id = str(payload.get("tool_call_id") or tool_name)
+        if phase == "start":
+            if graph_node == "research":
+                return self._chunks_research_tool_start(
+                    tool_call_id=tool_call_id,
+                    tool_name=tool_name,
+                    tool_input_raw=payload.get("input", {}),
+                )
+            if graph_node in _ANSWER_NODES:
+                return self._chunks_answer_tool_start(
+                    tool_call_id=tool_call_id,
+                    tool_name=tool_name,
+                    tool_input_raw=payload.get("input", {}),
+                )
+        elif phase == "end":
+            raw_out = payload.get("output", "")
+            if graph_node == "research":
+                return self._chunks_research_tool_end(tool_call_id=tool_call_id, output=raw_out)
+            if graph_node in _ANSWER_NODES:
+                return self._chunks_answer_tool_end(tool_call_id=tool_call_id, output=raw_out)
+        return []
+
+    def _normalize_tool_input(self, tool_input_raw: Any) -> tuple[dict, Any]:
+        if isinstance(tool_input_raw, dict):
+            return tool_input_raw, tool_input_raw
+        wrapped = {"value": tool_input_raw}
+        return wrapped, tool_input_raw
+
+    def _chunks_research_tool_start(
+        self,
+        *,
+        tool_call_id: str,
+        tool_name: str,
+        tool_input_raw: Any,
+    ) -> list[bytes]:
+        chunks: list[bytes] = []
+        tool_input, raw_for_available = self._normalize_tool_input(tool_input_raw)
+        self.flush_research_text_to_db()
+        stage_bytes = self.make_stage_sse("retrieving")
+        if stage_bytes:
+            chunks.append(stage_bytes)
+        self._research_tool_parts[tool_call_id] = {
+            "type": f"tool-{tool_name}",
+            "toolCallId": tool_call_id,
+            "state": TOOL_STATE_INPUT_AVAILABLE,
+            "input": tool_input,
+            "output": {},
+            "callProviderMetadata": {"openai": {"itemId": tool_call_id}},
+        }
+        chunks.append(
+            DataThinkingPart(
+                id=self.message_id,
+                data=ToolInputStartPart(toolCallId=tool_call_id, toolName=tool_name).model_dump(
+                    exclude_none=True
+                ),
+            )
+            .to_sse()
+            .encode("utf-8")
+        )
+        chunks.append(
+            DataThinkingPart(
+                id=self.message_id,
+                data=ToolInputAvailablePart(
                     toolCallId=tool_call_id,
                     toolName=tool_name,
-                    input=tool_input,
-                )
-                .to_sse()
-                .encode("utf-8")
+                    input=raw_for_available,
+                ).model_dump(exclude_none=True),
             )
+            .to_sse()
+            .encode("utf-8")
+        )
+        return chunks
 
-        elif evt_type == "on_tool_end" and node in _ANSWER_NODES:
-            tool_call_id = run_id
-            output = data.get("output", "")
-            output_value = (
-                output if isinstance(output, (dict, list, str, int, float)) else str(output)
+    def _chunks_research_tool_end(self, *, tool_call_id: str, output: Any) -> list[bytes]:
+        if isinstance(output, (dict, list, str, bool, int, float)) or output is None:
+            coerced = output
+        else:
+            coerced = str(output)
+        output_value = normalize_tool_output_for_ui(coerced)
+        part = self._research_tool_parts.pop(tool_call_id, None)
+        if part:
+            part["output"] = output_value
+            part["state"] = TOOL_STATE_OUTPUT_AVAILABLE
+            self._db_parts.append(
+                {"type": "data-thinking", "id": self.thinking_db_id, "data": part}
             )
-
-            yield (
-                ToolOutputAvailablePart(
+        return [
+            DataThinkingPart(
+                id=self.message_id,
+                data=ToolOutputAvailablePart(
                     toolCallId=tool_call_id,
                     output=output_value,
-                )
+                ).model_dump(exclude_none=True),
+            )
+            .to_sse()
+            .encode("utf-8")
+        ]
+
+    def _chunks_answer_tool_start(
+        self,
+        *,
+        tool_call_id: str,
+        tool_name: str,
+        tool_input_raw: Any,
+    ) -> list[bytes]:
+        chunks: list[bytes] = []
+        tool_input, raw_for_available = self._normalize_tool_input(tool_input_raw)
+        self.flush_narrator_segment_to_db()
+        self._answer_tool_parts[tool_call_id] = {
+            "type": f"tool-{tool_name}",
+            "toolCallId": tool_call_id,
+            "state": TOOL_STATE_INPUT_AVAILABLE,
+            "input": tool_input,
+            "output": {},
+            "callProviderMetadata": {"openai": {"itemId": tool_call_id}},
+        }
+        chunks.append(
+            ToolInputStartPart(toolCallId=tool_call_id, toolName=tool_name).to_sse().encode("utf-8")
+        )
+        chunks.append(
+            ToolInputAvailablePart(
+                toolCallId=tool_call_id,
+                toolName=tool_name,
+                input=raw_for_available,
+            )
+            .to_sse()
+            .encode("utf-8")
+        )
+        return chunks
+
+    def _chunks_answer_tool_end(self, *, tool_call_id: str, output: Any) -> list[bytes]:
+        if isinstance(output, (dict, list, str, bool, int, float)) or output is None:
+            coerced = output
+        else:
+            coerced = str(output)
+        output_value = normalize_tool_output_for_ui(coerced)
+        part = self._answer_tool_parts.pop(tool_call_id, None)
+        if part:
+            part["output"] = output_value
+            part["state"] = TOOL_STATE_OUTPUT_AVAILABLE
+            self._db_parts.append(part)
+        return [
+            ToolOutputAvailablePart(
+                toolCallId=tool_call_id,
+                output=output_value,
+            )
+            .to_sse()
+            .encode("utf-8")
+        ]
+
+    def finalize_chunks(self) -> list[bytes]:
+        chunks: list[bytes] = []
+        self.flush_research_text_to_db()
+        self.flush_narrator_segment_to_db()
+        if self.answer_text_started:
+            chunks.append(TextEndPart(id=self.text_part_id).to_sse().encode("utf-8"))
+        finish_metadata: dict = {}
+        if self._usage_accum:
+            finish_metadata["usage"] = DataUsageEvent(data=self._usage_accum).model_dump()
+            chunks.append(
+                DataPart(type="data-usage", data=self._usage_accum.model_dump())
                 .to_sse()
                 .encode("utf-8")
             )
+        chunks.append(
+            FinishMessagePart(
+                messageMetadata=finish_metadata if finish_metadata else None,
+            )
+            .to_sse()
+            .encode("utf-8")
+        )
+        chunks.append(DoneMarker().to_sse().encode("utf-8"))
+        return chunks
 
-    # ── Finalise visible text and close the stream ────────────────────────────
+    def fill_out_dict(self, out: dict) -> None:
+        out["routing_reasoning"] = self._routing_reasoning
+        out["answer_text"] = "".join(self._answer_text_parts)
+        out["final_usage"] = self._usage_accum.model_dump() if self._usage_accum else None
+        out["assistant_parts_for_db"] = self._db_parts
+        out["stream_failed"] = self._stream_failed
 
-    if answer_text_started:
-        yield TextEndPart(id=text_part_id).to_sse().encode("utf-8")
 
-    yield FinishMessagePart().to_sse().encode("utf-8")
-    yield DoneMarker().to_sse().encode("utf-8")
+async def stream_graph_to_sse(
+    graph,
+    input_state: dict,
+    message_id: str,
+    out: dict | None = None,
+    *,
+    assistant_row_id: str | None = None,
+) -> AsyncGenerator[bytes, None]:
+    """Stream a compiled LangGraph graph and yield SSE bytes in the existing protocol."""
+    thinking_db_id = assistant_row_id or message_id
+    br = _SseBridgeState(
+        message_id=message_id, thinking_db_id=thinking_db_id, input_state=input_state
+    )
+    tool_q: asyncio.Queue | None = input_state.get("_tool_sse_queue")
 
-    # ── Populate out dict for DB save ─────────────────────────────────────────
+    aiter = graph.astream_events(input_state, version="v2").__aiter__()
+
+    async def _graph_next() -> Any:
+        try:
+            return await aiter.__anext__()
+        except StopAsyncIteration:
+            return _GRAPH_DONE
+
+    next_graph: asyncio.Task | None = asyncio.create_task(_graph_next())
+    next_tool: asyncio.Task | None = (
+        asyncio.create_task(tool_q.get()) if tool_q is not None else None
+    )
+
+    try:
+        graph_ended = False
+        while not graph_ended and (next_graph is not None or next_tool is not None):
+            wait_on = [t for t in (next_graph, next_tool) if t is not None]
+            if not wait_on:
+                break
+            done, _ = await asyncio.wait(wait_on, return_when=asyncio.FIRST_COMPLETED)
+            for finished in done:
+                if next_graph is not None and finished is next_graph:
+                    try:
+                        ev = finished.result()
+                    except BaseException as graph_exc:
+                        root = _root_cause(graph_exc)
+                        err_id = new_error_id()
+                        logger.warning(
+                            "Graph SSE stream failed [%s]: %s",
+                            err_id,
+                            root,
+                            exc_info=True,
+                        )
+                        if next_tool is not None:
+                            next_tool.cancel()
+                            try:
+                                await next_tool
+                            except asyncio.CancelledError:
+                                pass
+                            next_tool = None
+                        if tool_q is not None:
+                            while True:
+                                try:
+                                    payload = tool_q.get_nowait()
+                                except asyncio.QueueEmpty:
+                                    break
+                                for chunk in br.manual_tool_to_chunks(payload):
+                                    yield chunk
+                        next_graph = None
+                        graph_ended = True
+                        br._stream_failed = True
+                        for chunk in _terminal_error_chunks(br, root, err_id):
+                            yield chunk
+                        break
+                    if ev is _GRAPH_DONE:
+                        if next_tool is not None:
+                            next_tool.cancel()
+                            try:
+                                await next_tool
+                            except asyncio.CancelledError:
+                                pass
+                            next_tool = None
+                        if tool_q is not None:
+                            while True:
+                                try:
+                                    payload = tool_q.get_nowait()
+                                except asyncio.QueueEmpty:
+                                    break
+                                for chunk in br.manual_tool_to_chunks(payload):
+                                    yield chunk
+                        next_graph = None
+                        graph_ended = True
+                        break
+                    for chunk in br.graph_event_to_chunks(ev):
+                        yield chunk
+                    next_graph = asyncio.create_task(_graph_next())
+
+                elif next_tool is not None and finished is next_tool:
+                    payload = finished.result()
+                    next_tool = asyncio.create_task(tool_q.get()) if tool_q is not None else None
+                    for chunk in br.manual_tool_to_chunks(payload):
+                        yield chunk
+    finally:
+        for pending in (next_graph, next_tool):
+            if pending is not None:
+                pending.cancel()
+                try:
+                    await pending
+                except asyncio.CancelledError:
+                    pass
+                except BaseException:
+                    pass
+
+    if not br._stream_failed:
+        for chunk in br.finalize_chunks():
+            yield chunk
 
     if out is not None:
-        out["routing_reasoning"] = _routing_reasoning
-        out["answer_text"] = "".join(_answer_text_parts)
-        out["final_usage"] = _final_usage
+        br.fill_out_dict(out)

@@ -16,6 +16,7 @@ from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolM
 from app.ai.prompts import get_thinking_system_prompt
 from app.config import ModelType
 
+from ..graph_tool_notify import notify_tool_end, notify_tool_start
 from ..llm_factory import get_chat_llm
 from ..memory import trim_for_node
 from ..message_utils import openai_to_langchain
@@ -76,6 +77,13 @@ async def research_node(state: ChatPipelineState) -> dict:
 
             logger.info("[research_node] calling tool=%s", tool_name)
             tool = tool_map.get(tool_name)
+            await notify_tool_start(
+                state,
+                graph_node="research",
+                tool_name=tool_name,
+                tool_call_id=tool_call_id,
+                tool_input=tool_args,
+            )
             if tool is None:
                 tool_result = f"Tool '{tool_name}' not available."
                 logger.warning("[research_node] unknown tool=%s", tool_name)
@@ -85,6 +93,13 @@ async def research_node(state: ChatPipelineState) -> dict:
                 except Exception as exc:
                     tool_result = f"Tool '{tool_name}' error: {exc}"
                     logger.error("[research_node] tool=%s error: %s", tool_name, exc)
+            await notify_tool_end(
+                state,
+                graph_node="research",
+                tool_name=tool_name,
+                tool_call_id=tool_call_id,
+                output=tool_result,
+            )
 
             messages.append(ToolMessage(content=str(tool_result), tool_call_id=tool_call_id))
     else:

@@ -284,6 +284,24 @@ def build_data_usage_event_from_usage_only(
     )
 
 
+def coerce_graph_final_usage_to_data_usage(raw: Dict[str, Any], *, model: str) -> DataUsageData:
+    """Normalize LangGraph/SSE ``final_usage`` dict to :class:`DataUsageData`.
+
+    LangChain stores ``AIMessage.usage_metadata`` as a flat dict (``input_tokens``,
+    ``output_tokens``, …). The API persistence layer expects the camelCase
+    :class:`DataUsageData` shape (including nested ``context`` and ``costUSD``).
+
+    If ``raw`` is already a serialized :class:`DataUsageData` (e.g. from
+    ``model_dump()``), it is validated and returned as-is.
+    """
+    if "modelId" in raw and "inputTokens" in raw:
+        return DataUsageData.model_validate(raw)
+    return build_data_usage_event_from_usage_only(
+        model=model,
+        completion_response={"usage": raw},
+    ).data
+
+
 # --- main API ----------------------------------------------------------------
 
 
