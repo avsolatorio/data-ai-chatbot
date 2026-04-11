@@ -10,38 +10,21 @@ import json
 import logging
 from typing import Any
 
-import json5
-
 logger = logging.getLogger(__name__)
 
 
 # TODO: Consider more robust schemas / validation for tool outputs, especially for MCP tools where we have schemas defined on the server. For now we just want to be able to parse common cases of JSON output without enforcing strict schemas or risking parse errors from non-JSON text (e.g. error messages).
 def normalize_tool_output_for_ui(output: Any) -> Any:
-    """If ``output`` is a JSON object/array string, parse it; otherwise return as-is.
+    """If ``output`` is a JSON object/array string, parse it; otherwise return as-is."""
 
-    Plain error or human-readable strings (not starting with ``{`` / ``[``) are
-    left unchanged so message text like ``Tool 'x' not available.`` stays a string.
-    """
-    if output is None:
-        return None
-    if isinstance(output, (dict, list)):
-        return output
-    if isinstance(output, bool):
-        return output
-    if isinstance(output, (int, float)):
-        return output
-    if not isinstance(output, str):
-        return str(output)
+    logger.debug("Normalizing tool output: %s", output)
 
-    stripped = output.strip()
-    if len(stripped) < 2 or stripped[0] not in "{[":
-        return output
-
-    try:
-        return json.loads(stripped)
-    except json.JSONDecodeError:
-        try:
-            return json5.loads(stripped)
-        except Exception as exc:
-            logger.debug("Tool output JSON parse skipped: %s", exc)
+    # TODO: Check how to generalize this given LangChain's tool output structure
+    if isinstance(output, list):
+        output = output[0]
+        if isinstance(output, dict) and "text" in output:
+            return json.loads(output["text"])
+        else:
             return output
+    else:
+        return output
