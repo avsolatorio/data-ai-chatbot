@@ -116,6 +116,27 @@ export function getData360ToolDefaultOpen(): boolean {
   return fromEnv;
 }
 
+/** Same-origin path or absolute URL for POST search-token refresh. Empty disables periodic refresh. */
+function getSearchTokenRefreshUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_URL?.trim() ||
+    getEnv().NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_URL ||
+    ""
+  );
+}
+
+/** Interval between refresh POSTs when URL is set. Default 50 minutes. */
+function getSearchTokenRefreshIntervalMs(): number {
+  const v = process.env.NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_INTERVAL_MS?.trim();
+  if (v) {
+    const n = Number.parseInt(v, 10);
+    if (Number.isFinite(n) && n > 0) {
+      return n;
+    }
+  }
+  return getEnv().NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_INTERVAL_MS;
+}
+
 /** When set (e.g. "/app"), the app is served under that path. Must match next.config basePath. Trailing slash is stripped. */
 export function getBasePath(): string {
   const v =
@@ -244,4 +265,15 @@ export const appConfig = {
    * Default false. Set via NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN=true.
    */
   data360ToolDefaultOpen: getData360ToolDefaultOpen(),
+
+  /**
+   * POST target for periodic search-token refresh (credentials: include). Empty disables.
+   * Client runs only when NEXT_PUBLIC_AUTH_PROVIDER=data360. Set via NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_URL.
+   */
+  searchTokenRefreshUrl: getSearchTokenRefreshUrl(),
+
+  /**
+   * Milliseconds between refresh POSTs (data360 mode only). Default 50 minutes. NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_INTERVAL_MS.
+   */
+  searchTokenRefreshIntervalMs: getSearchTokenRefreshIntervalMs(),
 };
