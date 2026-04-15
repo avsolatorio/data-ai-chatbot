@@ -51,15 +51,20 @@ def _simplify_content_for_routing(content: Any) -> str:
 
 async def check_intent(
     messages: List[Dict[str, Any]],
-) -> Tuple[IntentType, str, Optional[Dict[str, Any]]]:
+) -> Tuple[IntentType, str, Optional[Dict[str, Any]], List[str], str]:
     """
     Analyzes the user's latest message and conversation context to determine
-    if it requires the Research Planner (Data360 tools) or can be handled
-    via Direct Chat (Fast-Path).
+    the routing intent.
 
     Returns:
-        (intent, reasoning, router_usage): ``router_usage`` is a token-usage dict for
-        the routing completion (OpenAI-shaped), or ``None`` if unavailable.
+        (intent, reasoning, router_usage, missing_slots, detected_language):
+          - intent: one of RESEARCH, DIRECT, CLARIFY, OUT_OF_SCOPE, EXPLAIN
+          - reasoning: brief explanation from the routing LLM
+          - router_usage: token-usage dict (OpenAI-shaped), or None if unavailable
+          - missing_slots: list of missing slot names when intent is CLARIFY
+            (e.g. ["country", "time_period"]), empty list otherwise
+          - detected_language: full English name of the user's language (e.g. "French"),
+            defaults to "English"
     """
     logger.info("[routing] check_intent start messages_count=%d", len(messages))
 
@@ -117,7 +122,7 @@ async def check_intent(
             messages=[{"role": "system", "content": system_prompt}, *routing_messages],
             response_format={"type": "json_object"},
             temperature=0,
-            max_tokens=200,
+            max_tokens=300,
             stream=False,
         )
 
@@ -129,13 +134,26 @@ async def check_intent(
         router_usage = usage_dict_from_openai_completion_usage(getattr(response, "usage", None))
 
         result = json.loads(raw_content)
-        intent = IntentType(result.get("intent", IntentType.RESEARCH))
+        raw_intent = result.get("intent", IntentType.RESEARCH.value)
+        try:
+            intent = IntentType(raw_intent)
+        except ValueError:
+            logger.warning("[routing] unknown intent value=%r, defaulting to RESEARCH", raw_intent)
+            intent = IntentType.RESEARCH
         reasoning = result.get("reasoning", "").strip()
+        missing_slots: List[str] = result.get("missing_slots", [])
+        if not isinstance(missing_slots, list):
+            missing_slots = []
+        detected_language: str = result.get("detected_language", "English") or "English"
 
         logger.info(
-            "[routing] check_intent done intent=%s reasoning_len=%d", intent, len(reasoning)
+            "[routing] check_intent done intent=%s missing_slots=%s language=%s reasoning_len=%d",
+            intent,
+            missing_slots,
+            detected_language,
+            len(reasoning),
         )
-        return (intent, reasoning, router_usage)
+        return (intent, reasoning, router_usage, missing_slots, detected_language)
 
     except json.JSONDecodeError as json_err:
         content = response.choices[0].message.content if "response" in locals() else "No response"
@@ -144,7 +162,7 @@ async def check_intent(
             str(json_err),
             content,
         )
-        return (IntentType.RESEARCH, "", None)
+        return (IntentType.RESEARCH, "", None, [], "English")
     except Exception as e:
         logger.error("Error in intent routing: %s. Defaulting to RESEARCH.", str(e))
-        return (IntentType.RESEARCH, "", None)
+        return (IntentType.RESEARCH, "", None, [], "English")

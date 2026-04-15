@@ -16,13 +16,26 @@ class ChatPipelineState(TypedDict):
     tool_set: dict[str, Any]
 
     # ── Router output ──────────────────────────────────────────────────────────
-    intent: str  # "RESEARCH" | "DIRECT"
+    intent: str  # "RESEARCH" | "DIRECT" | "CLARIFY" | "OUT_OF_SCOPE" | "EXPLAIN"
     routing_reasoning: str  # brief explanation for the SSE thinking panel
-    # When set ("RESEARCH" | "DIRECT"), router_node skips LLM classification (e.g. v1 chat stream).
+    # When set, router_node skips LLM classification (e.g. v1 chat stream).
     forced_intent: NotRequired[str | None]
+    # Missing slots populated by router when intent == CLARIFY
+    missing_slots: NotRequired[list[str]]
+    # Confidence score from the routing LLM (0.0–1.0), for diagnostics/telemetry
+    routing_confidence: NotRequired[float]
+    # Detected language of the user's message (e.g. "French", "Spanish", "English")
+    # Used to instruct all response nodes to reply in the same language.
+    detected_language: NotRequired[str]
 
-    # ── Research node output ───────────────────────────────────────────────────
+    # ── Research / Explain node output ────────────────────────────────────────
     research_packet: str  # Planner's notes / data summary for the Writer
+
+    # ── Clarifier node output ─────────────────────────────────────────────────
+    clarification_question: NotRequired[str]  # the single question emitted to the user
+
+    # ── Suggester node output ─────────────────────────────────────────────────
+    suggestions: NotRequired[list[str]]  # 3-5 bridging questions (for telemetry)
 
     # ── Final output (consumed by chat.py for DB save) ────────────────────────
     assistant_parts: list[dict]  # assembled message parts (thinking + chat)
@@ -32,3 +45,18 @@ class ChatPipelineState(TypedDict):
     _tool_sse_queue: NotRequired[Any]  # asyncio.Queue of manual tool payloads
     # Same object as graph input; nodes append usage if stream events omit token counts
     _usage_fallback_bucket: NotRequired[Any]
+
+    # ── Multi-agent expansion fields ──────────────────────────────────────────
+    # Rolling summary of compressed older turns; injected as context by research/narrator/explain
+    session_summary: NotRequired[str]
+    # Data availability check results from scout node
+    scout_findings: NotRequired[dict]
+    # Structured execution plan from planner node
+    query_plan: NotRequired[list[dict]]
+    # Follow-up questions generated post-narrator
+    followup_questions: NotRequired[list[str]]
+    # Flag to prevent double recovery loops
+    recovery_attempted: NotRequired[bool]
+    # Translated data queries produced by the transformer node for analytical questions
+    # (e.g. "What are Ghana's economic challenges?" → ["Ghana GDP growth 2014-2024", ...])
+    translated_queries: NotRequired[list[str]]

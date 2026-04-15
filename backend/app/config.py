@@ -20,6 +20,9 @@ class IntentType(str, Enum):
 
     RESEARCH = "RESEARCH"
     DIRECT = "DIRECT"
+    CLARIFY = "CLARIFY"
+    OUT_OF_SCOPE = "OUT_OF_SCOPE"
+    EXPLAIN = "EXPLAIN"
 
 
 class ModelSettings(BaseSettings):

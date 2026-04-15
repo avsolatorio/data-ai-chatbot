@@ -23,6 +23,15 @@ TOKEN_BUDGETS: dict[str, int] = {
     "research": 32_000,  # planner benefits from long history for data continuity
     "narrator": 16_000,  # writer needs research packet + enough recent history
     "direct": 8_000,  # direct chat covers typical conversational context
+    "explain": 16_000,  # metadata calls are cheaper but benefit from history for follow-ups
+    "clarifier": 2_000,  # only needs last 2 turns to formulate one question
+    "suggester": 4_000,  # only needs last 3 turns + off-scope query context
+    "summarizer": 8_000,  # summarizer compresses history; moderate budget
+    "scout": 8_000,  # scout checks data availability before full research
+    "planner": 8_000,  # planner decomposes queries using scout findings
+    "recovery": 16_000,  # recovery retries failed research; needs full context
+    "followup": 4_000,  # followup generates questions from recent context only
+    "transformer": 4_000,  # only needs the current query to decide DATA_GROUNDABLE vs DEFINITIONAL
 }
 _DEFAULT_BUDGET = 16_000
 

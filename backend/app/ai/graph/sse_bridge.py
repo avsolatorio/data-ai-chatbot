@@ -121,11 +121,12 @@ def _terminal_error_chunks(br: _SseBridgeState, root: BaseException, error_id: s
     return chunks
 
 
-# Nodes whose LLM tokens go into the data-thinking envelope
-_THINKING_NODES = frozenset({"research"})
+# Nodes whose LLM tokens go into the data-thinking envelope (hidden in collapsible panel)
+# summarizer and planner are non-streaming → they don't appear in either set
+_THINKING_NODES = frozenset({"research", "explain", "scout", "recovery"})
 
 # Nodes whose LLM tokens are emitted as plain visible text
-_ANSWER_NODES = frozenset({"narrator", "direct"})
+_ANSWER_NODES = frozenset({"narrator", "direct", "clarifier", "suggester", "followup"})
 
 _LLM_NODES = _THINKING_NODES | _ANSWER_NODES
 
@@ -254,12 +255,12 @@ class _SseBridgeState:
         data: dict = event.get("data", {})
         node: str = metadata.get("langgraph_node", "")
 
-        if evt_type == "on_chain_start" and evt_name == "research":
+        if evt_type == "on_chain_start" and evt_name in _THINKING_NODES:
             stage_bytes = self.make_stage_sse("interpreting")
             if stage_bytes:
                 chunks.append(stage_bytes)
 
-        elif evt_type == "on_chain_start" and evt_name in ("narrator", "direct"):
+        elif evt_type == "on_chain_start" and evt_name in _ANSWER_NODES:
             self.flush_research_text_to_db()
             stage_bytes = self.make_stage_sse("generating")
             if stage_bytes:
@@ -368,7 +369,7 @@ class _SseBridgeState:
         tool_name = str(payload.get("tool_name") or "tool")
         tool_call_id = str(payload.get("tool_call_id") or tool_name)
         if phase == "start":
-            if graph_node == "research":
+            if graph_node in _THINKING_NODES:
                 return self._chunks_research_tool_start(
                     tool_call_id=tool_call_id,
                     tool_name=tool_name,
@@ -382,7 +383,7 @@ class _SseBridgeState:
                 )
         elif phase == "end":
             raw_out = payload.get("output", "")
-            if graph_node == "research":
+            if graph_node in _THINKING_NODES:
                 return self._chunks_research_tool_end(tool_call_id=tool_call_id, output=raw_out)
             if graph_node in _ANSWER_NODES:
                 return self._chunks_answer_tool_end(tool_call_id=tool_call_id, output=raw_out)

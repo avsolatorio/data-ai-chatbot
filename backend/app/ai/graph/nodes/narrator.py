@@ -55,7 +55,10 @@ async def narrator_node(state: ChatPipelineState) -> dict:
     except ValueError:
         mt = ModelType.CHAT_MODEL
 
-    system_prompt: str = get_system_prompt(selected_chat_model=mt, request_hints=None)
+    language: str = state.get("detected_language", "") or ""
+    system_prompt: str = get_system_prompt(
+        selected_chat_model=mt, request_hints=None, language=language
+    )
     llm = get_chat_llm(model_type, streaming=True).bind_tools(narrator_tools)
 
     # Build message list: trimmed history + research packet as context

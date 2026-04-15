@@ -40,7 +40,8 @@ async def direct_node(state: ChatPipelineState) -> dict:
     local_tools: list = state.get("tool_set", {}).get("local", {}).get("langchain_tools", [])
 
     llm = get_chat_llm(model_type, streaming=True).bind_tools(local_tools)
-    system_prompt: str = get_direct_system_prompt()
+    language: str = state.get("detected_language", "") or ""
+    system_prompt: str = get_direct_system_prompt(language=language)
 
     history = openai_to_langchain(state.get("openai_messages", []))
     messages: list[BaseMessage] = trim_for_node(
