@@ -50,10 +50,12 @@ async def router_node(state: ChatPipelineState) -> dict:
 
     # ── LLM-based intent classification ─────────────────────────────────────
     openai_messages: list[dict] = state.get("openai_messages", [])
+    session_summary: str = state.get("session_summary", "") or ""
     logger.info("[router_node] calling check_intent messages_count=%d", len(openai_messages))
 
     intent, reasoning, router_usage, missing_slots, detected_language = await check_intent(
-        openai_messages
+        openai_messages,
+        session_summary=session_summary,
     )
 
     logger.info(

@@ -133,6 +133,10 @@ async def convert_messages_to_openai_format(
             for part in parts:
                 part_type = part.get("type")
 
+                # Skip agent-trace parts — internal diagnostics, not for LLM context
+                if part_type == "agent-trace":
+                    continue
+
                 if part_type == "text":
                     # Flush any pending tool turn before text (so tool_calls are followed by their results)
                     flush_tool_turn()

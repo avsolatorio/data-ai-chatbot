@@ -105,4 +105,12 @@ async def planner_node(state: ChatPipelineState) -> dict:
         len(translated_queries),
     )
 
-    return {"query_plan": query_plan}
+    existing_trace: list = state.get("agent_trace_parts") or []
+    trace_data: dict = {"query_plan": query_plan}
+    if translated_queries:
+        trace_data["translated_queries"] = translated_queries
+    return {
+        "query_plan": query_plan,
+        "agent_trace_parts": existing_trace
+        + [{"type": "agent-trace", "node": "planner", "data": trace_data, "state": "done"}],
+    }

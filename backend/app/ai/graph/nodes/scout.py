@@ -2,7 +2,11 @@
 
 Uses a small subset of data tools (search, disaggregation, codelist) to verify
 indicator and country coverage before the full research node commits to expensive
-data retrieval.  Streaming=True so tool events appear in the data-thinking panel.
+data retrieval.
+
+Streaming is intentionally False — only tool call events (which come through the
+manual notify queue) appear in the data-thinking panel.  The scout's LLM synthesis
+text is internal plumbing and is not shown to the user.
 
 Returns ``{"scout_findings": parsed_dict_or_raw_text}``.
 """
@@ -37,18 +41,31 @@ MAX_TOOL_ITERATIONS = 4  # scout is lightweight; rarely needs more than 3 calls
 
 
 def _parse_scout_response(text: str) -> dict:
-    """Extract the JSON block from the scout response.
+    """Extract structured scout findings from the scout response.
 
-    Looks for a ```json ... ``` fenced block.  If found, parses and returns the
-    dict.  On any parse failure, falls back to ``{"raw": text}``.
+    Looks for a <scout_data>...</scout_data> tag containing a JSON object.
+    Falls back to the legacy ```json ... ``` block for backwards compatibility.
+    On any parse failure, returns a minimal dict derived from the prose.
     """
-    match = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
-    if match:
+    # Primary: <scout_data> XML tag
+    tag_match = re.search(r"<scout_data>\s*(.*?)\s*</scout_data>", text, re.DOTALL)
+    if tag_match:
         try:
-            return json.loads(match.group(1))
+            return json.loads(tag_match.group(1))
         except json.JSONDecodeError as exc:
-            logger.warning("[scout_node] JSON parse failed: %s", exc)
-    return {"raw": text}
+            logger.warning("[scout_node] <scout_data> JSON parse failed: %s", exc)
+
+    # Fallback: fenced ```json block (legacy format)
+    block_match = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
+    if block_match:
+        try:
+            return json.loads(block_match.group(1))
+        except json.JSONDecodeError as exc:
+            logger.warning("[scout_node] ```json block parse failed: %s", exc)
+
+    # Last resort: treat the whole text as the recommendation prose
+    available = "no data" not in text.lower() and "not available" not in text.lower()
+    return {"available": available, "raw": text}
 
 
 async def scout_node(state: ChatPipelineState) -> dict:
@@ -73,7 +90,7 @@ async def scout_node(state: ChatPipelineState) -> dict:
         logger.warning("[scout_node] no scout tools available — returning empty findings")
         return {"scout_findings": {"available": False, "gaps": "No scout tools available."}}
 
-    llm = get_chat_llm(model_type, streaming=True).bind_tools(scout_tools)
+    llm = get_chat_llm(model_type, streaming=False).bind_tools(scout_tools)
     system_prompt: str = get_scout_system_prompt()
 
     history = openai_to_langchain(state.get("openai_messages", []))
@@ -104,4 +121,9 @@ async def scout_node(state: ChatPipelineState) -> dict:
         parsed.get("available", "unknown"),
     )
 
-    return {"scout_findings": parsed}
+    existing_trace: list = state.get("agent_trace_parts") or []
+    return {
+        "scout_findings": parsed,
+        "agent_trace_parts": existing_trace
+        + [{"type": "agent-trace", "node": "scout", "data": parsed, "state": "done"}],
+    }

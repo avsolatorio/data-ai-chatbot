@@ -24,7 +24,7 @@ TOKEN_BUDGETS: dict[str, int] = {
     "narrator": 16_000,  # writer needs research packet + enough recent history
     "direct": 8_000,  # direct chat covers typical conversational context
     "explain": 16_000,  # metadata calls are cheaper but benefit from history for follow-ups
-    "clarifier": 2_000,  # only needs last 2 turns to formulate one question
+    "clarifier": 8_000,  # needs enough history to see established context (country, topic)
     "suggester": 4_000,  # only needs last 3 turns + off-scope query context
     "summarizer": 8_000,  # summarizer compresses history; moderate budget
     "scout": 8_000,  # scout checks data availability before full research

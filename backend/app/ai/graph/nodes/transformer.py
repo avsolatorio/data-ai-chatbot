@@ -100,4 +100,17 @@ async def transformer_node(state: ChatPipelineState) -> dict:
         decision,
         len(translated_queries),
     )
-    return {"translated_queries": translated_queries}
+
+    existing_trace: list = state.get("agent_trace_parts") or []
+    return {
+        "translated_queries": translated_queries,
+        "agent_trace_parts": existing_trace
+        + [
+            {
+                "type": "agent-trace",
+                "node": "transformer",
+                "data": {"decision": decision, "translated_queries": translated_queries},
+                "state": "done",
+            }
+        ],
+    }

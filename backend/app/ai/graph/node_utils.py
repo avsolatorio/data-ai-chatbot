@@ -11,6 +11,7 @@ from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
 
 from app.ai.observability.token_usage import append_llm_usage_fallback
 
+from .graph_debug_log import log_llm_messages_preview
 from .graph_tool_notify import notify_tool_end, notify_tool_start
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,12 @@ async def run_tool_loop(
 
     for iteration in range(max_iterations):
         logger.info("[%s] LLM call iteration=%d", graph_node, iteration)
+        log_llm_messages_preview(
+            message_id=str(state.get("message_id", "")),
+            graph_node=graph_node,
+            messages=messages,
+            iteration=iteration,
+        )
         response: AIMessage = await llm.ainvoke(messages)
         append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response)
         messages.append(response)

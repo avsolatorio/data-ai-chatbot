@@ -32,6 +32,13 @@ import logging
 from typing import Any, AsyncGenerator
 from uuid import uuid4
 
+from app.ai.graph.graph_debug_log import (
+    completion_text_from_model_output,
+    graph_llm_log_enabled,
+    log_llm_completion_preview,
+    log_llm_stream_delta,
+    log_llm_tool_manual,
+)
 from app.ai.graph.tool_output_normalize import normalize_tool_output_for_ui
 from app.ai.observability.token_usage import (
     DataUsageData,
@@ -122,11 +129,22 @@ def _terminal_error_chunks(br: _SseBridgeState, root: BaseException, error_id: s
 
 
 # Nodes whose LLM tokens go into the data-thinking envelope (hidden in collapsible panel)
-# summarizer and planner are non-streaming → they don't appear in either set
-_THINKING_NODES = frozenset({"research", "explain", "scout", "recovery"})
+# summarizer, planner, scout, transformer are non-streaming → LLM text not emitted;
+# scout tool events still appear via the manual notify queue
+_THINKING_NODES = frozenset({"research", "explain", "recovery"})
 
 # Nodes whose LLM tokens are emitted as plain visible text
 _ANSWER_NODES = frozenset({"narrator", "direct", "clarifier", "suggester", "followup"})
+
+# Non-streaming pre-research nodes — we emit stage/status text on their lifecycle events
+_PREPROCESSING_NODES = frozenset({"transformer", "scout", "planner"})
+
+# Human-readable status shown in the thinking panel when each preprocessing node starts
+_PREPROCESSING_STATUS: dict[str, str] = {
+    "transformer": "Analyzing question…",
+    "scout": "Checking data availability…",
+    "planner": "Building research plan…",
+}
 
 _LLM_NODES = _THINKING_NODES | _ANSWER_NODES
 
@@ -161,6 +179,8 @@ class _SseBridgeState:
         "_stages_emitted",
         "_manual_tool_sse",
         "_stream_failed",
+        "_final_graph_state",
+        "_preprocessing_run_ids",
     )
 
     def __init__(
@@ -187,6 +207,45 @@ class _SseBridgeState:
         self._answer_tool_parts: dict[str, dict] = {}
         self._stages_emitted: set[str] = set()
         self._stream_failed = False
+        self._final_graph_state: dict = {}
+        # Stable run-id per preprocessing node — shared between start and end events
+        # so the frontend can match them and animate running → done in place.
+        self._preprocessing_run_ids: dict[str, str] = {}
+
+    def _node_progress_chunks(
+        self,
+        node: str,
+        status: str,
+        message: str,
+    ) -> list[bytes]:
+        """Emit a node-progress event into the data-thinking panel.
+
+        status="running" → frontend shows animated spinner + message text.
+        status="done"    → frontend replaces spinner with checkmark + result text.
+
+        Both events share the same stable ``id`` keyed by node name so the
+        frontend Map entry is overwritten in-place (running → done transition).
+        """
+        if status == "running":
+            run_id = f"np-{node}-{uuid4().hex[:8]}"
+            self._preprocessing_run_ids[node] = run_id
+        else:
+            run_id = self._preprocessing_run_ids.get(node, f"np-{node}-{uuid4().hex[:8]}")
+
+        return [
+            DataThinkingPart(
+                id=self.message_id,
+                data={
+                    "type": "node-progress",
+                    "id": run_id,
+                    "node": node,
+                    "status": status,
+                    "message": message,
+                },
+            )
+            .to_sse()
+            .encode("utf-8")
+        ]
 
     def flush_research_text_to_db(self) -> None:
         if not self._research_text_buf:
@@ -255,7 +314,61 @@ class _SseBridgeState:
         data: dict = event.get("data", {})
         node: str = metadata.get("langgraph_node", "")
 
-        if evt_type == "on_chain_start" and evt_name in _THINKING_NODES:
+        if evt_type == "on_chain_start" and evt_name in _PREPROCESSING_NODES:
+            # Emit "interpreting" stage (once) + animated node-progress "running" event
+            stage_bytes = self.make_stage_sse("interpreting")
+            if stage_bytes:
+                chunks.append(stage_bytes)
+            status_msg = _PREPROCESSING_STATUS.get(evt_name, "")
+            if status_msg:
+                chunks.extend(self._node_progress_chunks(evt_name, "running", status_msg))
+
+        elif evt_type == "on_chain_end" and evt_name == "transformer":
+            output: dict = data.get("output", {}) or {}
+            translated: list = output.get("translated_queries") or []
+            if translated:
+                lines = " · ".join(translated[:4])  # compact inline list
+                done_msg = f"Queries identified: {lines}"
+                if len(translated) > 4:
+                    done_msg += f" (+{len(translated) - 4} more)"
+            else:
+                done_msg = "Routing to definition lookup"
+            chunks.extend(self._node_progress_chunks("transformer", "done", done_msg))
+
+        elif evt_type == "on_chain_end" and evt_name == "scout":
+            output = data.get("output", {}) or {}
+            findings: dict = output.get("scout_findings") or {}
+            available = findings.get("available", True)
+            indicators = findings.get("indicators") or []
+            if available and indicators:
+                names = ", ".join(i.get("name", "") for i in indicators[:3] if i.get("name"))
+                done_msg = f"Data found: {names}" if names else "Data available"
+            elif available:
+                done_msg = "Data available"
+            else:
+                done_msg = "No matching data — will try alternatives"
+            chunks.extend(self._node_progress_chunks("scout", "done", done_msg))
+
+        elif evt_type == "on_chain_end" and evt_name == "planner":
+            output = data.get("output", {}) or {}
+            plan: list = output.get("query_plan") or []
+            if plan:
+                purposes = [
+                    t.get("purpose") or t.get("indicator_id", "")
+                    for t in plan[:3]
+                    if t.get("purpose") or t.get("indicator_id")
+                ]
+                summary = "; ".join(p for p in purposes if p)
+                done_msg = (
+                    f"{len(plan)} task{'s' if len(plan) != 1 else ''}: {summary}"
+                    if summary
+                    else f"{len(plan)} tasks planned"
+                )
+            else:
+                done_msg = "Plan ready"
+            chunks.extend(self._node_progress_chunks("planner", "done", done_msg))
+
+        elif evt_type == "on_chain_start" and evt_name in _THINKING_NODES:
             stage_bytes = self.make_stage_sse("interpreting")
             if stage_bytes:
                 chunks.append(stage_bytes)
@@ -265,6 +378,14 @@ class _SseBridgeState:
             stage_bytes = self.make_stage_sse("generating")
             if stage_bytes:
                 chunks.append(stage_bytes)
+
+        elif (
+            evt_type == "on_chain_end"
+            and not metadata.get("langgraph_node")
+            and isinstance(data.get("output"), dict)
+        ):
+            # Top-level graph on_chain_end — capture final state for persistence
+            self._final_graph_state = data["output"]
 
         elif evt_type == "on_chain_end" and evt_name == "router":
             output: dict = data.get("output", {}) or {}
@@ -294,6 +415,11 @@ class _SseBridgeState:
             chunk = data.get("chunk")
             content: str = chunk.content if (chunk and hasattr(chunk, "content")) else ""
             if content:
+                log_llm_stream_delta(
+                    message_id=self.message_id,
+                    graph_node=node,
+                    delta=content,
+                )
                 self._research_text_buf.append(content)
                 inner_id = f"research-{self.message_id}"
                 chunks.append(
@@ -309,6 +435,14 @@ class _SseBridgeState:
 
         elif evt_type == "on_chat_model_end" and node in _LLM_NODES:
             self.add_usage_from_message(data.get("output"))
+            out_msg = _unwrap_chat_model_end_output(data.get("output"))
+            end_text = completion_text_from_model_output(out_msg)
+            if end_text:
+                log_llm_completion_preview(
+                    message_id=self.message_id,
+                    graph_node=node,
+                    text=end_text,
+                )
 
         elif not self._manual_tool_sse and evt_type == "on_tool_start" and node in _THINKING_NODES:
             chunks.extend(
@@ -333,6 +467,11 @@ class _SseBridgeState:
             chunk = data.get("chunk")
             content = chunk.content if (chunk and hasattr(chunk, "content")) else ""
             if content:
+                log_llm_stream_delta(
+                    message_id=self.message_id,
+                    graph_node=node,
+                    delta=content,
+                )
                 self._answer_text_parts.append(content)
                 self._narrator_segment.append(content)
                 if not self.answer_text_started:
@@ -368,6 +507,23 @@ class _SseBridgeState:
         graph_node = payload.get("graph_node", "")
         tool_name = str(payload.get("tool_name") or "tool")
         tool_call_id = str(payload.get("tool_call_id") or tool_name)
+        if graph_llm_log_enabled():
+            if phase == "start":
+                log_llm_tool_manual(
+                    message_id=self.message_id,
+                    graph_node=str(graph_node),
+                    tool_name=tool_name,
+                    phase="start",
+                    payload_summary=f"input={payload.get('input', {})!r}",
+                )
+            elif phase == "end":
+                log_llm_tool_manual(
+                    message_id=self.message_id,
+                    graph_node=str(graph_node),
+                    tool_name=tool_name,
+                    phase="end",
+                    payload_summary=f"output={payload.get('output', '')!r}",
+                )
         if phase == "start":
             if graph_node in _THINKING_NODES:
                 return self._chunks_research_tool_start(
@@ -564,6 +720,16 @@ class _SseBridgeState:
         out["final_usage"] = self._usage_accum.model_dump() if self._usage_accum else None
         out["assistant_parts_for_db"] = self._db_parts
         out["stream_failed"] = self._stream_failed
+        # Expose session summary for persistence by chat.py
+        if self._final_graph_state:
+            out["session_summary"] = self._final_graph_state.get("session_summary") or ""
+            out["summarized_message_count"] = (
+                self._final_graph_state.get("summarized_message_count") or 0
+            )
+            # Merge agent trace parts into db_parts for persistence
+            trace_parts = self._final_graph_state.get("agent_trace_parts") or []
+            if trace_parts:
+                self._db_parts.extend(trace_parts)
 
 
 async def stream_graph_to_sse(

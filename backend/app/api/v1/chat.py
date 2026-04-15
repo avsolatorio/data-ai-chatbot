@@ -219,6 +219,11 @@ async def create_chat(
             )
             raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
 
+        # Extract session summary from lastContext for incremental summarization
+        last_context = (chat.lastContext or {}) if chat else {}
+        loaded_session_summary: str = last_context.get("session_summary", "") or ""
+        loaded_summarized_count: int = last_context.get("summarized_message_count", 0) or 0
+
         # Fetch existing messages
         messages_from_db = await get_messages_by_chat_id(db, request.id)
 
@@ -240,6 +245,8 @@ async def create_chat(
         logger.debug("messages_from_db: %s", json.dumps(messages_from_db, indent=4))
 
     else:
+        loaded_session_summary = ""
+        loaded_summarized_count = 0
         # Create new chat - generate title from user message
         stored_visibility = (
             request.selectedVisibilityType
@@ -362,6 +369,8 @@ async def create_chat(
                 tool_set=tool_set,
                 assistant_row_id=message_id,
                 forced_intent=None,
+                session_summary=loaded_session_summary,
+                summarized_message_count=loaded_summarized_count,
             ):
                 yield await _store_and_yield(stream_id, state, sse_bytes)
                 await asyncio.sleep(0)
@@ -410,6 +419,9 @@ async def create_chat(
                                 model=request.selectedChatModel.value,
                             ),
                             message_id=message_id,
+                            session_summary=graph_out.get("session_summary") or None,
+                            summarized_message_count=graph_out.get("summarized_message_count")
+                            or None,
                         )
 
     response = StreamingResponse(

@@ -132,6 +132,17 @@ export type StreamingThinkingPart = {
   providerMetadata?: Record<string, unknown>;
 };
 
+// Node-progress part — emitted by preprocessing nodes (transformer / scout / planner).
+// "running" arrives when the node starts; "done" overwrites it when the node finishes.
+// Both events share the same stable `id` so the frontend Map entry transitions in-place.
+export type NodeProgressPart = {
+  type: "node-progress";
+  id: string;
+  node: "transformer" | "scout" | "planner" | string;
+  status: "running" | "done";
+  message: string;
+};
+
 // Helper to check if a part is a non-renderable stream event
 export function isNonRenderableStreamEvent(
   data: unknown,

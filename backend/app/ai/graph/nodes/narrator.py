@@ -21,6 +21,7 @@ from app.ai.observability.token_usage import append_llm_usage_fallback
 from app.ai.prompts import get_system_prompt
 from app.config import ModelType
 
+from ..graph_debug_log import log_llm_messages_preview
 from ..graph_tool_notify import notify_tool_end, notify_tool_start
 from ..llm_factory import get_chat_llm
 from ..memory import trim_for_node
@@ -68,12 +69,7 @@ async def narrator_node(state: ChatPipelineState) -> dict:
     if research_packet:
         # Inject research packet as an addendum so the writer sees planner findings
         packet_msg = HumanMessage(
-            content=(
-                "[RESEARCH PACKET — use this as your source of truth]\n\n"
-                + research_packet
-                + "\n\n[END OF RESEARCH PACKET]\n\n"
-                "Now write your response to the user based on the research packet above."
-            )
+            content=("[RESEARCH FINDINGS]\n\n" + research_packet + "\n\n[END OF RESEARCH FINDINGS]")
         )
         history = history + [packet_msg]
 
@@ -88,6 +84,12 @@ async def narrator_node(state: ChatPipelineState) -> dict:
 
     for iteration in range(MAX_TOOL_ITERATIONS):
         logger.info("[narrator_node] LLM call iteration=%d", iteration)
+        log_llm_messages_preview(
+            message_id=str(state.get("message_id", "")),
+            graph_node="narrator",
+            messages=messages,
+            iteration=iteration,
+        )
         response: AIMessage = await llm.ainvoke(messages)
         append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response)
         messages.append(response)

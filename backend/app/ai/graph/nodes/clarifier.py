@@ -44,8 +44,14 @@ async def clarifier_node(state: ChatPipelineState) -> dict:
     language: str = state.get("detected_language", "") or ""
     system_prompt: str = get_clarifier_system_prompt(language=language)
 
-    # Use limited history (last 4 messages) — clarifier only needs recent context
     history = openai_to_langchain(state.get("openai_messages", []))
+
+    # Prepend session summary so the clarifier has full context even when
+    # conversation history was truncated (e.g. country established 10+ turns ago).
+    session_summary: str = state.get("session_summary", "") or ""
+    if session_summary:
+        history = [HumanMessage(content=f"[CONVERSATION SUMMARY]\n{session_summary}")] + history
+
     messages: list[BaseMessage] = trim_for_node(
         [SystemMessage(content=system_prompt)] + history,
         node="clarifier",
@@ -64,10 +70,21 @@ async def clarifier_node(state: ChatPipelineState) -> dict:
     response: AIMessage = await llm.ainvoke(messages)
     append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response)
 
-    final_content: str = response.content or ""
+    final_content: str = (response.content or "").strip()
     final_usage: dict | None = None
     if hasattr(response, "usage_metadata") and response.usage_metadata:
         final_usage = dict(response.usage_metadata)
+
+    # If the LLM determined all slots are already filled from context, it returns
+    # "[PROCEED]" — we swallow this and emit nothing to the user (the router will
+    # reclassify on the next turn with the full context now visible).
+    if final_content.strip().upper() == "[PROCEED]":
+        logger.info("[clarifier_node] all slots filled from context — emitting nothing")
+        return {
+            "clarification_question": "",
+            "assistant_parts": state.get("assistant_parts", []),
+            "final_usage": final_usage,
+        }
 
     logger.info("[clarifier_node] clarification_question length=%d", len(final_content))
 

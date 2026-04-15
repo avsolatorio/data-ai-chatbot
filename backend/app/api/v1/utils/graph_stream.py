@@ -80,6 +80,8 @@ def build_graph_input(
     part_message_id: str,
     tool_set: dict[str, Any],
     forced_intent: str | None = None,
+    session_summary: str = "",
+    summarized_message_count: int = 0,
 ) -> dict[str, Any]:
     """Initial LangGraph state (chat pipeline)."""
     inp: dict[str, Any] = {
@@ -98,6 +100,10 @@ def build_graph_input(
     }
     if forced_intent is not None:
         inp["forced_intent"] = forced_intent
+    if session_summary:
+        inp["session_summary"] = session_summary
+    if summarized_message_count:
+        inp["summarized_message_count"] = summarized_message_count
     return inp
 
 
@@ -145,6 +151,8 @@ async def stream_chat_graph_sse(
     tool_set: dict[str, Any],
     assistant_row_id: str,
     forced_intent: str | None = None,
+    session_summary: str = "",
+    summarized_message_count: int = 0,
 ) -> AsyncIterator[bytes]:
     """Run ``chat_graph`` through ``stream_graph_to_sse`` and yield SSE bytes."""
     graph_input = build_graph_input(
@@ -154,6 +162,8 @@ async def stream_chat_graph_sse(
         part_message_id=part_message_id,
         tool_set=tool_set,
         forced_intent=forced_intent,
+        session_summary=session_summary,
+        summarized_message_count=summarized_message_count,
     )
     logger.info("[graph_stream] stream_graph_to_sse start forced_intent=%s", forced_intent)
     async for sse_bytes in stream_graph_to_sse(

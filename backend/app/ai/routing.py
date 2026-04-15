@@ -51,10 +51,17 @@ def _simplify_content_for_routing(content: Any) -> str:
 
 async def check_intent(
     messages: List[Dict[str, Any]],
+    session_summary: str = "",
 ) -> Tuple[IntentType, str, Optional[Dict[str, Any]], List[str], str]:
     """
     Analyzes the user's latest message and conversation context to determine
     the routing intent.
+
+    Args:
+        messages: Conversation history in OpenAI format.
+        session_summary: Optional compressed summary of earlier turns — injected
+            as a user message so the router retains context (country, topic, etc.)
+            even when the full history exceeds ROUTING_HISTORY_LIMIT.
 
     Returns:
         (intent, reasoning, router_usage, missing_slots, detected_language):
@@ -83,6 +90,18 @@ async def check_intent(
         # The routing LLM just needs user/assistant text to decide intent.
         # We must strip: tool messages, tool_calls, multi-part content structures.
         routing_messages = []
+
+        # Prepend session summary (if available) as a user message so the router
+        # retains context (country, topic, indicator names) even after the history
+        # window truncates older turns.
+        if session_summary:
+            routing_messages.append(
+                {
+                    "role": "user",
+                    "content": f"[CONVERSATION SUMMARY — context from earlier turns]\n{session_summary}",
+                }
+            )
+
         for msg in recent_history:
             role = msg.get("role")
             # Skip tool messages entirely

@@ -21,8 +21,10 @@ import { splitDataThinkingPrefixParts } from "@/lib/split-thinking-parts";
 import {
   type ChatMessage,
   isNonRenderableStreamEvent,
+  type NodeProgressPart,
   type StreamingThinkingPart,
 } from "@/lib/types";
+import { NodeProgress } from "./elements/node-progress";
 import type { AppUsage } from "@/lib/usage";
 import { cn, sanitizeText } from "@/lib/utils";
 import { ASK_ABOUT_SELECTION_CONTEXT_ATTR } from "./ask-about-selection-toolbar";
@@ -700,6 +702,13 @@ function renderMessagePart(
           )}
         </ToolContent>
       </Tool>
+    );
+  }
+
+  // Preprocessing node progress — animated spinner (running) → checkmark (done)
+  if ((type as string) === "node-progress") {
+    return (
+      <NodeProgress key={key} part={part as unknown as NodeProgressPart} />
     );
   }
 

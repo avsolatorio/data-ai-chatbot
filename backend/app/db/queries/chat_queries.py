@@ -259,16 +259,26 @@ def _merge_usage_by_message_id(current: Optional[dict], usage: dict, message_id:
     Merge usage for a message into lastContext.
     lastContext can be legacy (plain usage dict) or { "latest": usage, "byMessageId": { id: usage } }.
     Returns the new context dict to store.
+    Sticky fields (session_summary, summarized_message_count) are carried forward from current.
     """
     if not current or not isinstance(current, dict):
-        return {"latest": usage, "byMessageId": {message_id: usage}}
-    # Legacy: current is the usage object itself (has e.g. inputTokens, totalTokens)
-    if "inputTokens" in current or "totalTokens" in current:
-        return {"latest": current, "byMessageId": {message_id: usage}}
-    # New shape
-    by_id = dict(current.get("byMessageId") or {})
-    by_id[message_id] = usage
-    return {"latest": usage, "byMessageId": by_id}
+        result = {"latest": usage, "byMessageId": {message_id: usage}}
+    elif "inputTokens" in current or "totalTokens" in current:
+        # Legacy: current is the usage object itself (has e.g. inputTokens, totalTokens)
+        result = {"latest": current, "byMessageId": {message_id: usage}}
+    else:
+        # New shape
+        by_id = dict(current.get("byMessageId") or {})
+        by_id[message_id] = usage
+        result = {"latest": usage, "byMessageId": by_id}
+
+    # Carry forward sticky session summary fields from current context
+    if current and isinstance(current, dict):
+        for sticky_key in ("session_summary", "summarized_message_count"):
+            if sticky_key in current:
+                result.setdefault(sticky_key, current[sticky_key])
+
+    return result
 
 
 async def update_chat_visibility_by_id(
@@ -291,10 +301,13 @@ async def update_chat_last_context_by_id(
     chat_id: UUID,
     context: dict,
     message_id: Optional[str] = None,
+    session_summary: Optional[str] = None,
+    summarized_message_count: Optional[int] = None,
 ) -> Optional[Chat]:
     """
     Update chat's lastContext field with usage/context data.
     If message_id is provided, merges usage into byMessageId so each response has its own usage.
+    If session_summary is provided, persists it alongside the usage in lastContext.
     Returns: Updated Chat object or None if not found
     """
     logger.info("=== update_chat_last_context_by_id called ===")
@@ -308,6 +321,11 @@ async def update_chat_last_context_by_id(
         new_context = _merge_usage_by_message_id(chat.lastContext, context, message_id)
     else:
         new_context = context
+
+    # Apply session summary if provided (overrides the sticky carry-forward)
+    if session_summary is not None:
+        new_context["session_summary"] = session_summary
+        new_context["summarized_message_count"] = summarized_message_count or 0
 
     chat.lastContext = new_context
     await session.commit()

@@ -227,7 +227,7 @@ async def test_openai_messages_passed_to_check_intent(monkeypatch):
 
     await router_node(_state(openai_messages=messages, query_text="follow up"))
 
-    mock_ci.assert_awaited_once_with(messages)
+    mock_ci.assert_awaited_once_with(messages, session_summary="")
 
 
 @pytest.mark.asyncio

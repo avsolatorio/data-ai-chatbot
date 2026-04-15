@@ -57,7 +57,10 @@ def _is_research_failed(packet: str) -> bool:
     """Return True when research_packet indicates no data was retrieved."""
     if not packet or len(packet.strip()) < 50:
         return True
-    # If the packet contains claim tags, real data was found
+    # New format: explicit NO_DATA section means search found nothing
+    if "### no_data:" in packet.lower():
+        return True
+    # Old/new format: claim tags confirm real data was retrieved
     if "<claim" in packet.lower():
         return False
     lower = packet.lower()

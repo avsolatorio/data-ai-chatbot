@@ -60,3 +60,7 @@ class ChatPipelineState(TypedDict):
     # Translated data queries produced by the transformer node for analytical questions
     # (e.g. "What are Ghana's economic challenges?" → ["Ghana GDP growth 2014-2024", ...])
     translated_queries: NotRequired[list[str]]
+    # How many openai_messages were captured in the current session_summary (for incremental re-summarization)
+    summarized_message_count: NotRequired[int]
+    # Internal agent outputs from scout/planner/transformer nodes for debugging/analytics
+    agent_trace_parts: NotRequired[list[dict]]

@@ -114,7 +114,7 @@ class Settings(BaseSettings):
 
     # Routing Configuration
     ROUTING_MODEL: str = "gpt-4o-mini"
-    ROUTING_HISTORY_LIMIT: int = 3
+    ROUTING_HISTORY_LIMIT: int = 10
 
     # App
     ENVIRONMENT: str = "development"
@@ -131,6 +131,12 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"  # DEBUG, INFO, WARNING, ERROR
     LOG_MAX_BYTES: int = 10 * 1024 * 1024  # 10 MB per file
     LOG_BACKUP_COUNT: int = 5  # Number of rotated backup files to keep
+    # When True, log LangGraph LLM prompt previews, streamed token fragments, and
+    # tool I/O summaries (see graph_debug_log). May contain PII — dev/troubleshooting only.
+    GRAPH_DEBUG_LOG_LLM: bool = False
+    # Append the same debug records to this file (UTF-8, flushed per write). If empty while
+    # GRAPH_DEBUG_LOG_LLM is true, defaults to backend/logs/graph_llm_debug.log.
+    GRAPH_DEBUG_LOG_LLM_FILE: str = ""
     NEXTJS_URL: str = "http://localhost:3001"  # Next.js server URL for proxy requests
     # Cookie Domain - Optional: Set explicit domain for cookies (e.g., ".example.com" for subdomain sharing)
     # If not set, cookies will use the default domain (current domain only)

@@ -9,9 +9,10 @@ Token-budget trimming is applied before the loop so the planner never exceeds it
 context limit even in long multi-turn conversations.
 """
 
+import json
 import logging
 
-from langchain_core.messages import BaseMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
 from app.ai.prompts import get_thinking_system_prompt
 from app.config import ModelType
@@ -52,6 +53,39 @@ async def research_node(state: ChatPipelineState) -> dict:
         [SystemMessage(content=system_prompt)] + history,
         node="research",
     )
+
+    # Inject the planner's query plan so research follows it directly rather than
+    # re-deciding what to fetch (prevents clarification loops on broad questions).
+    query_plan: list = state.get("query_plan") or []
+    if query_plan:
+        plan_json = json.dumps(query_plan, indent=2)
+        messages = messages + [
+            HumanMessage(
+                content=(
+                    "[RESEARCH PLAN — from planner]\n"
+                    "Follow this plan exactly. Use the indicator_id and database_id "
+                    "listed for each task — do NOT re-search or ask for clarification:\n"
+                    f"```json\n{plan_json}\n```"
+                )
+            )
+        ]
+        logger.info("[research_node] injected query_plan with %d tasks", len(query_plan))
+
+    # Fallback: if no plan was generated but transformer produced translated queries,
+    # inject those as research targets so the agent knows what to look for.
+    elif translated_queries := (state.get("translated_queries") or []):
+        tq_lines = "\n".join(f"  {i + 1}. {q}" for i, q in enumerate(translated_queries))
+        messages = messages + [
+            HumanMessage(
+                content=(
+                    "[RESEARCH TARGETS — from transformer]\n"
+                    "Search for and retrieve data for each of these specific topics:\n" + tq_lines
+                )
+            )
+        ]
+        logger.info(
+            "[research_node] injected %d translated_queries (no plan)", len(translated_queries)
+        )
 
     tool_map = {t.name: t for t in data_tools}
     final_content, _ = await run_tool_loop(

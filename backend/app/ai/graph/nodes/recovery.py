@@ -69,10 +69,7 @@ async def recovery_node(state: ChatPipelineState) -> dict:
     if failed_packet:
         messages = messages + [
             HumanMessage(
-                content=(
-                    "[FAILED RESEARCH PACKET — use this to understand what was tried]\n"
-                    + failed_packet
-                )
+                content=("[FAILED RESEARCH FINDINGS — prior attempt summary]\n" + failed_packet)
             )
         ]
 
