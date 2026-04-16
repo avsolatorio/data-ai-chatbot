@@ -33,11 +33,12 @@ from typing import Any, AsyncGenerator
 from uuid import uuid4
 
 from app.ai.graph.graph_debug_log import (
-    completion_text_from_model_output,
     graph_llm_log_enabled,
-    log_llm_completion_preview,
-    log_llm_stream_delta,
+    log_langgraph_raw_event,
     log_llm_tool_manual,
+    log_pipeline_error,
+    log_pipeline_input,
+    log_pipeline_output,
 )
 from app.ai.graph.tool_output_normalize import normalize_tool_output_for_ui
 from app.ai.observability.token_usage import (
@@ -415,11 +416,6 @@ class _SseBridgeState:
             chunk = data.get("chunk")
             content: str = chunk.content if (chunk and hasattr(chunk, "content")) else ""
             if content:
-                log_llm_stream_delta(
-                    message_id=self.message_id,
-                    graph_node=node,
-                    delta=content,
-                )
                 self._research_text_buf.append(content)
                 inner_id = f"research-{self.message_id}"
                 chunks.append(
@@ -435,14 +431,6 @@ class _SseBridgeState:
 
         elif evt_type == "on_chat_model_end" and node in _LLM_NODES:
             self.add_usage_from_message(data.get("output"))
-            out_msg = _unwrap_chat_model_end_output(data.get("output"))
-            end_text = completion_text_from_model_output(out_msg)
-            if end_text:
-                log_llm_completion_preview(
-                    message_id=self.message_id,
-                    graph_node=node,
-                    text=end_text,
-                )
 
         elif not self._manual_tool_sse and evt_type == "on_tool_start" and node in _THINKING_NODES:
             chunks.extend(
@@ -467,11 +455,6 @@ class _SseBridgeState:
             chunk = data.get("chunk")
             content = chunk.content if (chunk and hasattr(chunk, "content")) else ""
             if content:
-                log_llm_stream_delta(
-                    message_id=self.message_id,
-                    graph_node=node,
-                    delta=content,
-                )
                 self._answer_text_parts.append(content)
                 self._narrator_segment.append(content)
                 if not self.answer_text_started:
@@ -745,6 +728,7 @@ async def stream_graph_to_sse(
     br = _SseBridgeState(
         message_id=message_id, thinking_db_id=thinking_db_id, input_state=input_state
     )
+    log_pipeline_input(message_id=message_id, input_state=input_state)
     tool_q: asyncio.Queue | None = input_state.get("_tool_sse_queue")
 
     aiter = graph.astream_events(input_state, version="v2").__aiter__()
@@ -774,6 +758,7 @@ async def stream_graph_to_sse(
                     except BaseException as graph_exc:
                         root = _root_cause(graph_exc)
                         err_id = new_error_id()
+                        log_pipeline_error(message_id=message_id, error_id=err_id, exc=root)
                         logger.warning(
                             "Graph SSE stream failed [%s]: %s",
                             err_id,
@@ -820,6 +805,7 @@ async def stream_graph_to_sse(
                         next_graph = None
                         graph_ended = True
                         break
+                    log_langgraph_raw_event(message_id=message_id, event=ev)
                     for chunk in br.graph_event_to_chunks(ev):
                         yield chunk
                     next_graph = asyncio.create_task(_graph_next())
@@ -846,3 +832,11 @@ async def stream_graph_to_sse(
 
     if out is not None:
         br.fill_out_dict(out)
+        if not br._stream_failed:
+            log_pipeline_output(
+                message_id=message_id,
+                out=out,
+                final_state=br._final_graph_state
+                if isinstance(br._final_graph_state, dict)
+                else None,
+            )
