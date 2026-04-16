@@ -91,6 +91,19 @@ function AgentBreakdownSection({
   const hasCost = rows.some(
     ([, n]) => n.costUSD?.totalUSD != null && n.costUSD.totalUSD > 0,
   );
+  const hasCached = rows.some(([, n]) => (n.cachedInputTokens ?? 0) > 0);
+  const hasReasoning = rows.some(([, n]) => (n.reasoningTokens ?? 0) > 0);
+
+  // Build dynamic column count: Agent + Input + Output [+ Cached] [+ Reasoning] [+ Cost]
+  const extraCols = (hasCached ? 1 : 0) + (hasReasoning ? 1 : 0) + (hasCost ? 1 : 0);
+  const colCount = 3 + extraCols;
+  const gridCols: Record<number, string> = {
+    3: "grid-cols-3",
+    4: "grid-cols-4",
+    5: "grid-cols-5",
+    6: "grid-cols-6",
+  };
+  const gridClass = gridCols[colCount] ?? "grid-cols-3";
 
   return (
     <div className="space-y-1">
@@ -102,22 +115,30 @@ function AgentBreakdownSection({
         <div
           className={cn(
             "grid text-[10px] font-medium uppercase tracking-wide text-muted-foreground",
-            hasCost ? "grid-cols-4" : "grid-cols-3",
+            gridClass,
           )}
         >
           <span>Agent</span>
           <span className="text-right font-mono">Input</span>
           <span className="text-right font-mono">Output</span>
+          {hasCached && (
+            <span className="text-right font-mono">Cache↩</span>
+          )}
+          {hasReasoning && (
+            <span className="text-right font-mono">Think</span>
+          )}
           {hasCost && <span className="text-right font-mono">Cost</span>}
         </div>
         {rows.map(([nodeName, nodeData]) => {
           const totalCost = nodeData.costUSD?.totalUSD ?? 0;
+          const cached = nodeData.cachedInputTokens ?? 0;
+          const reasoning = nodeData.reasoningTokens ?? 0;
           return (
             <div
               key={nodeName}
               className={cn(
                 "grid items-center text-xs",
-                hasCost ? "grid-cols-4" : "grid-cols-3",
+                gridClass,
               )}
             >
               <span className="truncate text-muted-foreground">
@@ -129,6 +150,16 @@ function AgentBreakdownSection({
               <span className="text-right font-mono">
                 {(nodeData.outputTokens ?? 0).toLocaleString()}
               </span>
+              {hasCached && (
+                <span className="text-right font-mono text-muted-foreground">
+                  {cached > 0 ? cached.toLocaleString() : "—"}
+                </span>
+              )}
+              {hasReasoning && (
+                <span className="text-right font-mono text-muted-foreground">
+                  {reasoning > 0 ? reasoning.toLocaleString() : "—"}
+                </span>
+              )}
               {hasCost && (
                 <span className="text-right font-mono text-muted-foreground">
                   {totalCost > 0 ? `$${totalCost.toFixed(6)}` : "—"}

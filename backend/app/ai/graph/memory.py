@@ -15,6 +15,8 @@ from typing import Any
 
 from langchain_core.messages import BaseMessage, trim_messages
 
+from .message_utils import _sanitize_tool_sequences
+
 logger = logging.getLogger(__name__)
 
 # ── Per-node token budgets (input tokens only, excluding system + output) ──────
@@ -73,7 +75,10 @@ def trim_for_node(
                 trimmed_count,
                 budget,
             )
-        return trimmed
+        # trim_messages(strategy="last") can cut a tool-call sequence mid-interaction
+        # (dropping the AIMessage that issued the tool call while keeping the ToolMessage
+        # response, or vice-versa).  Sanitize to avoid Azure/OpenAI 400 errors.
+        return _sanitize_tool_sequences(trimmed)
     except Exception as exc:
         logger.warning(
             "[memory] trim_messages failed for node=%s: %s — returning full history",

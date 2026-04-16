@@ -152,25 +152,27 @@ async def stream_chat(
                             request.id,
                             [assistant_message],
                         )
-                        final_usage_raw = graph_out.get("final_usage") or {}
-                        if final_usage_raw:
-                            by_node = None
-                            if isinstance(final_usage_raw, dict):
-                                final_usage_raw = dict(final_usage_raw)  # copy before mutating
-                                by_node = final_usage_raw.pop("byNode", None)
-                            usage_data = coerce_graph_final_usage_to_data_usage(
-                                final_usage_raw,
-                                model=request.selectedChatModel.value,
-                            )
-                            persisted = usage_data.model_dump()
-                            if by_node:
-                                persisted["byNode"] = by_node
-                            create_update_context_task(
-                                background_tasks,
-                                request.id,
-                                persisted,
-                                message_id=message_id,
-                            )
+                    # Always persist token usage — even partial usage from a failed stream is
+                    # valuable for cost tracking and debugging.
+                    final_usage_raw = graph_out.get("final_usage") or {}
+                    if final_usage_raw:
+                        by_node = None
+                        if isinstance(final_usage_raw, dict):
+                            final_usage_raw = dict(final_usage_raw)  # copy before mutating
+                            by_node = final_usage_raw.pop("byNode", None)
+                        usage_data = coerce_graph_final_usage_to_data_usage(
+                            final_usage_raw,
+                            model=request.selectedChatModel.value,
+                        )
+                        persisted = usage_data.model_dump()
+                        if by_node:
+                            persisted["byNode"] = by_node
+                        create_update_context_task(
+                            background_tasks,
+                            request.id,
+                            persisted,
+                            message_id=message_id,
+                        )
 
         response = StreamingResponse(
             stream_generator(),

@@ -151,6 +151,11 @@ async def check_intent(
         logger.debug("Routing raw response (finish_reason=%s): %r", finish_reason, raw_content)
 
         router_usage = usage_dict_from_openai_completion_usage(getattr(response, "usage", None))
+        # Embed the actual deployed model name so the SSE bridge can resolve it
+        # precisely instead of falling back to the settings.ROUTING_MODEL string.
+        if router_usage is not None and hasattr(response, "model") and response.model:
+            router_usage = dict(router_usage)  # don't mutate the original
+            router_usage["_model"] = str(response.model)
 
         result = json.loads(raw_content)
         raw_intent = result.get("intent", IntentType.RESEARCH.value)

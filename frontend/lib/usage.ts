@@ -6,6 +6,8 @@ export interface NodeUsage {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  cachedInputTokens?: number;
+  reasoningTokens?: number;
   costUSD?: {
     inputUSD?: number;
     outputUSD?: number;
@@ -133,6 +135,10 @@ export function aggregateUsage(usages: AppUsage[]): AppUsage {
             inputTokens: (existing.inputTokens ?? 0) + (nodeData.inputTokens ?? 0),
             outputTokens: (existing.outputTokens ?? 0) + (nodeData.outputTokens ?? 0),
             totalTokens: (existing.totalTokens ?? 0) + (nodeData.totalTokens ?? 0),
+            cachedInputTokens:
+              (existing.cachedInputTokens ?? 0) + (nodeData.cachedInputTokens ?? 0),
+            reasoningTokens:
+              (existing.reasoningTokens ?? 0) + (nodeData.reasoningTokens ?? 0),
             modelId: existing.modelId || nodeData.modelId,
             costUSD:
               existing.costUSD || nodeData.costUSD

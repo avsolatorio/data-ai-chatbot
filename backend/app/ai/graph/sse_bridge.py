@@ -371,7 +371,12 @@ class _SseBridgeState:
             self._routing_reasoning = reasoning
             ru = output.get("router_usage")
             if isinstance(ru, dict):
-                routing_model = str(getattr(settings, "ROUTING_MODEL", "") or "")
+                ru = dict(ru)  # copy before mutating
+                # routing.py embeds the actual deployed model name under "_model";
+                # pop it here so it doesn't confuse token-count parsing downstream.
+                routing_model = ru.pop("_model", None) or str(
+                    getattr(settings, "ROUTING_MODEL", "") or ""
+                )
                 self.add_usage_from_usage_fragment(ru, model_key=routing_model, node="router")
             if reasoning:
                 reason_id = f"routing-reason-{self.message_id}"
@@ -644,9 +649,11 @@ class _SseBridgeState:
             finish_metadata["usage"] = DataUsageEvent(data=self._usage_accum).model_dump()
             usage_sse_payload = self._usage_accum.model_dump()
             if self._usage_by_node:
-                usage_sse_payload["byNode"] = {
-                    k: v.model_dump() for k, v in self._usage_by_node.items()
-                }
+                by_node_dump = {k: v.model_dump() for k, v in self._usage_by_node.items()}
+                usage_sse_payload["byNode"] = by_node_dump
+                # Also surface byNode in finish_metadata so the non-streaming path
+                # (chat.py / chat_stream.py) can pick it up from the SSE finish event.
+                finish_metadata["usageByNode"] = by_node_dump
             chunks.append(
                 DataPart(type="data-usage", data=usage_sse_payload).to_sse().encode("utf-8")
             )
