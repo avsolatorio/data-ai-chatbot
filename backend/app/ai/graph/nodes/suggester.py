@@ -59,7 +59,7 @@ async def suggester_node(state: ChatPipelineState) -> dict:
 
     logger.info("[suggester_node] generating suggestions for off-scope query")
     response: AIMessage = await llm.ainvoke(messages)
-    append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response)
+    append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node="suggester")
 
     final_content: str = response.content or ""
     final_usage: dict | None = None

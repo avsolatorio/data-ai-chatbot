@@ -56,7 +56,7 @@ async def direct_node(state: ChatPipelineState) -> dict:
     for iteration in range(MAX_TOOL_ITERATIONS):
         logger.info("[direct_node] LLM call iteration=%d", iteration)
         response: AIMessage = await llm.ainvoke(messages)
-        append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response)
+        append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node="direct")
         messages.append(response)
         final_content = response.content or ""
 

@@ -68,7 +68,7 @@ async def clarifier_node(state: ChatPipelineState) -> dict:
 
     logger.info("[clarifier_node] asking about missing_slots=%s", missing_slots)
     response: AIMessage = await llm.ainvoke(messages)
-    append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response)
+    append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node="clarifier")
 
     final_content: str = (response.content or "").strip()
     final_usage: dict | None = None

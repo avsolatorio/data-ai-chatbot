@@ -28,6 +28,10 @@ def openai_to_langchain(openai_messages: list[dict[str, Any]]) -> list[BaseMessa
     - assistant messages (plain text or with tool_calls)
     - tool messages (tool results)
     - system messages (passed through as SystemMessage)
+
+    The result is sanitized: orphaned ToolMessages and AIMessages with tool_calls
+    whose responses were cut off (e.g. due to history slicing) are removed so that
+    Azure / OpenAI never receive an invalid message sequence.
     """
     lc_messages: list[BaseMessage] = []
 
@@ -72,7 +76,69 @@ def openai_to_langchain(openai_messages: list[dict[str, Any]]) -> list[BaseMessa
         else:
             logger.debug("openai_to_langchain: skipping unknown role=%s", role)
 
-    return lc_messages
+    return _sanitize_tool_sequences(lc_messages)
+
+
+def _sanitize_tool_sequences(messages: list[BaseMessage]) -> list[BaseMessage]:
+    """Remove incomplete tool-call sequences from a message list.
+
+    When conversation history is sliced (e.g. "last 6 messages"), a tool
+    interaction can be cut mid-sequence, producing either:
+      - A ToolMessage with no preceding AIMessage that has matching tool_calls
+        (the AIMessage fell outside the slice window)
+      - An AIMessage with tool_calls whose ToolMessage responses were not included
+        (the ToolMessages fell outside the slice window)
+
+    Azure and OpenAI both reject such sequences with a 400 error.  This function
+    removes the offending messages so the LLM receives a valid sequence.
+
+    Algorithm (3 passes):
+      1. Collect all ToolMessage IDs present in the list.
+      2. Collect "valid" tool_call_ids — only those belonging to an AIMessage that
+         is itself present AND whose full response set is also present.
+         (An AIMessage whose originating pair is cut off is never validated.)
+      3. Keep only messages that belong to a validated complete interaction,
+         or are plain messages with no tool involvement.
+    """
+    # Pass 1: which tool_call_ids have a ToolMessage response in this list?
+    ids_with_response: set[str] = {
+        msg.tool_call_id for msg in messages if isinstance(msg, ToolMessage) and msg.tool_call_id
+    }
+
+    # Pass 2: which tool_call_ids come from a *present* AIMessage with a *complete*
+    # response set?  Both conditions must hold — the AIMessage must be in the list
+    # AND all its expected ToolMessage responses must also be in the list.
+    valid_ids: set[str] = set()
+    for msg in messages:
+        if isinstance(msg, AIMessage) and msg.tool_calls:
+            ids = {tc.get("id", "") for tc in msg.tool_calls if tc.get("id")}
+            if ids and ids.issubset(ids_with_response):
+                valid_ids.update(ids)
+
+    # Pass 3: filter.
+    result: list[BaseMessage] = []
+    for msg in messages:
+        if isinstance(msg, AIMessage) and msg.tool_calls:
+            ids = {tc.get("id", "") for tc in msg.tool_calls if tc.get("id")}
+            if ids and ids.issubset(valid_ids):
+                result.append(msg)
+            else:
+                logger.debug(
+                    "_sanitize_tool_sequences: dropping AIMessage with incomplete tool_calls ids=%s",
+                    ids - valid_ids,
+                )
+        elif isinstance(msg, ToolMessage):
+            if msg.tool_call_id in valid_ids:
+                result.append(msg)
+            else:
+                logger.debug(
+                    "_sanitize_tool_sequences: dropping orphaned ToolMessage tool_call_id=%s",
+                    msg.tool_call_id,
+                )
+        else:
+            result.append(msg)
+
+    return result
 
 
 def _extract_text(content: Any) -> str:

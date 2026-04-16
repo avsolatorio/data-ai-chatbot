@@ -1,8 +1,24 @@
 import type { LanguageModelUsage } from "ai";
 import type { UsageData } from "tokenlens/helpers";
 
-// Server-merged usage: base usage + TokenLens summary + optional modelId
-export type AppUsage = LanguageModelUsage & UsageData & { modelId?: string };
+/** Per-node token usage entry (from byNode disaggregation). */
+export interface NodeUsage {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  costUSD?: {
+    inputUSD?: number;
+    outputUSD?: number;
+    cacheReadUSD?: number;
+    reasoningUSD?: number;
+    totalUSD?: number;
+  };
+  modelId?: string;
+}
+
+// Server-merged usage: base usage + TokenLens summary + optional modelId + optional byNode
+export type AppUsage = LanguageModelUsage &
+  UsageData & { modelId?: string; byNode?: Record<string, NodeUsage> };
 
 /** Chat lastContext: legacy (plain usage) or per-message shape from backend */
 export type LastContext =
@@ -88,6 +104,8 @@ export function aggregateUsage(usages: AppUsage[]): AppUsage {
   const result: Record<string, unknown> = {};
   const costAcc: Record<string, number> = {};
   let contextPreserved: Record<string, unknown> | undefined;
+  const byNodeAcc: Record<string, NodeUsage> = {};
+
   for (const u of usages) {
     for (const key of NUMERIC_USAGE_KEYS) {
       const v = (u as Record<string, unknown>)[key];
@@ -104,8 +122,42 @@ export function aggregateUsage(usages: AppUsage[]): AppUsage {
       if (ctx && typeof ctx === "object" && !Array.isArray(ctx))
         contextPreserved = ctx as Record<string, unknown>;
     }
+    // Merge per-node usage maps
+    if (u.byNode) {
+      for (const [nodeName, nodeData] of Object.entries(u.byNode)) {
+        if (!byNodeAcc[nodeName]) {
+          byNodeAcc[nodeName] = { ...nodeData };
+        } else {
+          const existing = byNodeAcc[nodeName];
+          byNodeAcc[nodeName] = {
+            inputTokens: (existing.inputTokens ?? 0) + (nodeData.inputTokens ?? 0),
+            outputTokens: (existing.outputTokens ?? 0) + (nodeData.outputTokens ?? 0),
+            totalTokens: (existing.totalTokens ?? 0) + (nodeData.totalTokens ?? 0),
+            modelId: existing.modelId || nodeData.modelId,
+            costUSD:
+              existing.costUSD || nodeData.costUSD
+                ? {
+                    inputUSD:
+                      (existing.costUSD?.inputUSD ?? 0) + (nodeData.costUSD?.inputUSD ?? 0),
+                    outputUSD:
+                      (existing.costUSD?.outputUSD ?? 0) + (nodeData.costUSD?.outputUSD ?? 0),
+                    cacheReadUSD:
+                      (existing.costUSD?.cacheReadUSD ?? 0) +
+                      (nodeData.costUSD?.cacheReadUSD ?? 0),
+                    reasoningUSD:
+                      (existing.costUSD?.reasoningUSD ?? 0) +
+                      (nodeData.costUSD?.reasoningUSD ?? 0),
+                    totalUSD:
+                      (existing.costUSD?.totalUSD ?? 0) + (nodeData.costUSD?.totalUSD ?? 0),
+                  }
+                : undefined,
+          };
+        }
+      }
+    }
   }
   if (Object.keys(costAcc).length > 0) result.costUSD = costAcc;
   if (contextPreserved) result.context = contextPreserved;
+  if (Object.keys(byNodeAcc).length > 0) result.byNode = byNodeAcc;
   return result as AppUsage;
 }

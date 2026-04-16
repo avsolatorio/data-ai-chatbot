@@ -78,7 +78,7 @@ async def followup_node(state: ChatPipelineState) -> dict:
 
     logger.info("[followup_node] generating follow-up questions")
     response: AIMessage = await llm.ainvoke(messages)
-    append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response)
+    append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node="followup")
 
     final_content: str = response.content or ""
     final_usage: dict | None = None

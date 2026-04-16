@@ -13,6 +13,7 @@ import logging
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
+from app.ai.observability.token_usage import append_llm_usage_fallback
 from app.ai.prompts import get_summarizer_system_prompt
 from app.config import ModelType
 
@@ -97,6 +98,7 @@ async def summarizer_node(state: ChatPipelineState) -> dict:
 
     llm = get_chat_llm(model_type, streaming=False)
     response = await llm.ainvoke(messages)
+    append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node="summarizer")
     summary_text: str = response.content or ""
 
     logger.info(

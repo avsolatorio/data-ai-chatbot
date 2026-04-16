@@ -12,32 +12,26 @@ logger = logging.getLogger(__name__)
 
 
 class CostUSD(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     inputUSD: NonNegativeFloat = 0.0
     outputUSD: NonNegativeFloat = 0.0
     cacheReadUSD: NonNegativeFloat = 0.0
-
-    # keep aliases if you truly need them; otherwise consider dropping them
-    inputTokenUSD: NonNegativeFloat = 0.0
-    outputTokenUSD: NonNegativeFloat = 0.0
-    cacheReadsUSD: NonNegativeFloat = 0.0
-
+    reasoningUSD: NonNegativeFloat = 0.0
     totalUSD: NonNegativeFloat = 0.0
 
     def __add__(self, other: "CostUSD") -> "CostUSD":
         input_usd = self.inputUSD + other.inputUSD
         output_usd = self.outputUSD + other.outputUSD
         cache_usd = self.cacheReadUSD + other.cacheReadUSD
+        reasoning_usd = self.reasoningUSD + other.reasoningUSD
 
         return CostUSD(
             inputUSD=input_usd,
             outputUSD=output_usd,
             cacheReadUSD=cache_usd,
-            totalUSD=input_usd + output_usd + cache_usd,
-            inputTokenUSD=self.inputTokenUSD + other.inputTokenUSD,
-            outputTokenUSD=self.outputTokenUSD + other.outputTokenUSD,
-            cacheReadsUSD=self.cacheReadsUSD + other.cacheReadsUSD,
+            reasoningUSD=reasoning_usd,
+            totalUSD=input_usd + output_usd + cache_usd + reasoning_usd,
         )
 
 
@@ -75,8 +69,18 @@ class DataUsageData(BaseModel):
     modelId: str
 
     def __add__(self, other: "DataUsageData") -> "DataUsageData":
+        # When models differ (e.g. routing model + chat model), combine IDs and
+        # sum tokens/costs.  Costs are pre-computed per-model before accumulation
+        # so the summed costUSD is still accurate despite the model mismatch.
+        # Use an ordered-dict trick to deduplicate while preserving insertion order,
+        # so repeated additions of the same model don't grow the string unboundedly.
         if self.modelId != other.modelId:
-            raise ValueError(f"Cannot add usage across models: {self.modelId} vs {other.modelId}")
+            seen: dict[str, None] = dict.fromkeys(
+                self.modelId.split(" + ") + other.modelId.split(" + ")
+            )
+            combined_id = " + ".join(seen)
+        else:
+            combined_id = self.modelId
 
         return DataUsageData(
             inputTokens=self.inputTokens + other.inputTokens,
@@ -86,7 +90,7 @@ class DataUsageData(BaseModel):
             cachedInputTokens=self.cachedInputTokens + other.cachedInputTokens,
             context=self.context + other.context,
             costUSD=self.costUSD + other.costUSD,
-            modelId=self.modelId,
+            modelId=combined_id,
         )
 
 
@@ -308,6 +312,13 @@ def usage_dict_from_langchain_message(msg: Any) -> dict[str, Any] | None:
 
     Prefers ``AIMessage.usage_metadata``; falls back to LiteLLM-style fields inside
     ``response_metadata`` (``token_usage``, ``usage``).
+
+    LangChain stores cache/reasoning detail under ``input_token_details.cache_read``
+    and ``output_token_details.reasoning`` — different from the raw OpenAI API shape
+    that ``extract_usage`` was written for.  We normalise them here into the nested
+    keys ``extract_usage`` already knows (``prompt_tokens_details.cached_tokens`` and
+    ``completion_tokens_details.reasoning_tokens``) so the rest of the pipeline just
+    works without needing a second code path.
     """
     if msg is None:
         return None
@@ -315,6 +326,18 @@ def usage_dict_from_langchain_message(msg: Any) -> dict[str, Any] | None:
     um = getattr(msg, "usage_metadata", None)
     flat = _usage_mapping_to_dict(um)
     if flat and usage_dict_is_nonzero(flat):
+        # Translate LangChain detail dicts → OpenAI-style nested keys so
+        # extract_usage can find cached and reasoning token counts.
+        in_details = flat.get("input_token_details")
+        out_details = flat.get("output_token_details")
+        if isinstance(in_details, dict):
+            cache_read = _int_or_zero(in_details.get("cache_read"))
+            if cache_read:
+                flat.setdefault("prompt_tokens_details", {})["cached_tokens"] = cache_read
+        if isinstance(out_details, dict):
+            reasoning = _int_or_zero(out_details.get("reasoning"))
+            if reasoning:
+                flat.setdefault("completion_tokens_details", {})["reasoning_tokens"] = reasoning
         return flat
 
     rm = getattr(msg, "response_metadata", None)
@@ -348,15 +371,16 @@ class UsageFallbackBucket:
 
     def __init__(self) -> None:
         self.parts: list[dict[str, Any]] = []
+        # Each entry: {"node": str, "raw": dict}
 
 
-def append_llm_usage_fallback(bucket: Any, msg: Any) -> None:
+def append_llm_usage_fallback(bucket: Any, msg: Any, *, node: str = "") -> None:
     """Append non-empty usage from an ``AIMessage`` into a :class:`UsageFallbackBucket`."""
     if bucket is None or not hasattr(bucket, "parts"):
         return
     raw = usage_dict_from_langchain_message(msg)
     if raw and usage_dict_is_nonzero(raw):
-        bucket.parts.append(raw)
+        bucket.parts.append({"node": node, "raw": raw})
 
 
 def coerce_graph_final_usage_to_data_usage(raw: Dict[str, Any], *, model: str) -> DataUsageData:
@@ -409,6 +433,10 @@ def build_data_usage_event(
     input_usd = cache_miss_tokens * p.input_per_token
     output_usd = u.completion_tokens * p.output_per_token
     cache_read_usd = u.cached_tokens * p.cache_read_per_token
+    # Reasoning tokens are a subset of completion_tokens; price at the output rate.
+    # LiteLLM doesn't expose a dedicated reasoning_cost_per_token yet, so this is
+    # the best available approximation.
+    reasoning_usd = u.reasoning_tokens * p.output_per_token
     total_usd = input_usd + output_usd + cache_read_usd
 
     return DataUsageEvent(
@@ -424,11 +452,8 @@ def build_data_usage_event(
                 inputUSD=input_usd,
                 outputUSD=output_usd,
                 cacheReadUSD=cache_read_usd,
+                reasoningUSD=reasoning_usd,
                 totalUSD=total_usd,
-                # aliases
-                inputTokenUSD=input_usd,
-                outputTokenUSD=output_usd,
-                cacheReadsUSD=cache_read_usd,
             ),
             modelId=model_id,
         ),

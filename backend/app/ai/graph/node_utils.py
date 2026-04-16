@@ -59,16 +59,26 @@ async def run_tool_loop(
             iteration=iteration,
         )
         response: AIMessage = await llm.ainvoke(messages)
-        append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response)
+        append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node=graph_node)
         messages.append(response)
         final_content = response.content or ""
 
-        # Capture usage metadata if available
+        # Capture full usage metadata if available
         if hasattr(response, "usage_metadata") and response.usage_metadata:
-            final_usage = {
-                "input_tokens": response.usage_metadata.get("input_tokens", 0),
-                "output_tokens": response.usage_metadata.get("output_tokens", 0),
-            }
+            um = response.usage_metadata
+            final_usage = (
+                dict(um)
+                if isinstance(um, dict)
+                else um.model_dump(exclude_none=True)
+                if hasattr(um, "model_dump")
+                else {
+                    "input_tokens": getattr(um, "input_tokens", 0) or 0,
+                    "output_tokens": getattr(um, "output_tokens", 0) or 0,
+                    "total_tokens": getattr(um, "total_tokens", 0) or 0,
+                    "cache_read_input_tokens": getattr(um, "cache_read_input_tokens", 0) or 0,
+                    "reasoning_tokens": getattr(um, "reasoning_tokens", 0) or 0,
+                }
+            )
 
         if not response.tool_calls:
             logger.info(

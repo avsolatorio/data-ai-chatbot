@@ -137,11 +137,14 @@ _THINKING_NODES = frozenset({"research", "explain", "recovery"})
 # Nodes whose LLM tokens are emitted as plain visible text
 _ANSWER_NODES = frozenset({"narrator", "direct", "clarifier", "suggester", "followup"})
 
+# Non-streaming background nodes (no SSE text emitted, but tokens must be counted)
+_BACKGROUND_NODES: frozenset[str] = frozenset({"summarizer"})
+
 # Non-streaming pre-research nodes — transformer/scout/planner removed in refactor
 _PREPROCESSING_NODES: frozenset[str] = frozenset()  # transformer/scout/planner removed
 _PREPROCESSING_STATUS: dict[str, str] = {}
 
-_LLM_NODES = _THINKING_NODES | _ANSWER_NODES
+_LLM_NODES = _THINKING_NODES | _ANSWER_NODES | _BACKGROUND_NODES
 
 
 def _unwrap_chat_model_end_output(output: Any) -> Any:
@@ -152,6 +155,26 @@ def _unwrap_chat_model_end_output(output: Any) -> Any:
     if msg is not None:
         return msg
     return output
+
+
+def _extract_model_id_from_message(msg: Any) -> str | None:
+    """Try to read the real deployed model name from an AIMessage's response_metadata.
+
+    LangChain stores the model name returned by the API in ``response_metadata``
+    under ``model_name`` (OpenAI) or ``model`` (Anthropic / Azure).  Using this
+    avoids storing the internal enum value (e.g. ``"chat-model-reasoning"``) as
+    the model ID in usage records.
+    """
+    if msg is None:
+        return None
+    rm = getattr(msg, "response_metadata", None)
+    if not isinstance(rm, dict):
+        return None
+    for key in ("model_name", "model", "model_id"):
+        value = rm.get(key)
+        if value and isinstance(value, str):
+            return value
+    return None
 
 
 class _SseBridgeState:
@@ -166,6 +189,7 @@ class _SseBridgeState:
         "_routing_reasoning",
         "_answer_text_parts",
         "_usage_accum",
+        "_usage_by_node",
         "_db_parts",
         "_research_text_buf",
         "_research_tool_parts",
@@ -195,6 +219,7 @@ class _SseBridgeState:
         self._routing_reasoning: str = ""
         self._answer_text_parts: list[str] = []
         self._usage_accum: DataUsageData | None = None
+        self._usage_by_node: dict[str, DataUsageData] = {}
         self._db_parts: list[dict] = []
         self._research_text_buf: list[str] = []
         self._research_tool_parts: dict[str, dict] = {}
@@ -272,27 +297,39 @@ class _SseBridgeState:
         }
         self._db_parts.append(inner)
 
-    def add_usage_from_usage_fragment(self, raw: dict[str, Any], *, model_key: str) -> None:
+    def _accumulate_node_usage(self, node: str, piece: DataUsageData) -> None:
+        """Add piece to both the total accumulator and the per-node accumulator."""
+        if self._usage_accum is None:
+            self._usage_accum = piece
+        else:
+            self._usage_accum = self._usage_accum + piece
+        if node:
+            if node not in self._usage_by_node:
+                self._usage_by_node[node] = piece
+            else:
+                self._usage_by_node[node] = self._usage_by_node[node] + piece
+
+    def add_usage_from_usage_fragment(
+        self, raw: dict[str, Any], *, model_key: str, node: str = ""
+    ) -> None:
         """Merge one usage blob (OpenAI or LangChain-shaped) into the accumulator."""
         if not raw or not usage_dict_is_nonzero(raw):
             return
         mk = model_key or str(self.input_state.get("model_type") or "")
         piece = coerce_graph_final_usage_to_data_usage(raw, model=mk)
-        if self._usage_accum is None:
-            self._usage_accum = piece
-            return
-        try:
-            self._usage_accum = self._usage_accum + piece
-        except ValueError as exc:
-            logger.warning("Skipping additive usage merge: %s", exc)
+        self._accumulate_node_usage(node, piece)
 
-    def add_usage_from_message(self, output_msg: Any) -> None:
+    def add_usage_from_message(self, output_msg: Any, *, node: str = "") -> None:
         unwrapped = _unwrap_chat_model_end_output(output_msg)
         raw = usage_dict_from_langchain_message(unwrapped)
         if not raw:
             return
-        model_key = str(self.input_state.get("model_type") or "")
-        self.add_usage_from_usage_fragment(raw, model_key=model_key)
+        # Prefer the actual model name from the API response over the internal
+        # enum value stored in model_type (e.g. "chat-model-reasoning").
+        model_key = _extract_model_id_from_message(unwrapped) or str(
+            self.input_state.get("model_type") or ""
+        )
+        self.add_usage_from_usage_fragment(raw, model_key=model_key, node=node)
 
     def make_stage_sse(self, stage: str) -> bytes | None:
         if stage in self._stages_emitted:
@@ -335,7 +372,7 @@ class _SseBridgeState:
             ru = output.get("router_usage")
             if isinstance(ru, dict):
                 routing_model = str(getattr(settings, "ROUTING_MODEL", "") or "")
-                self.add_usage_from_usage_fragment(ru, model_key=routing_model)
+                self.add_usage_from_usage_fragment(ru, model_key=routing_model, node="router")
             if reasoning:
                 reason_id = f"routing-reason-{self.message_id}"
                 for part in (
@@ -370,7 +407,7 @@ class _SseBridgeState:
                 )
 
         elif evt_type == "on_chat_model_end" and node in _LLM_NODES:
-            self.add_usage_from_message(data.get("output"))
+            self.add_usage_from_message(data.get("output"), node=node)
 
         elif not self._manual_tool_sse and evt_type == "on_tool_start" and node in _THINKING_NODES:
             chunks.extend(
@@ -605,10 +642,13 @@ class _SseBridgeState:
         finish_metadata: dict = {}
         if self._usage_accum:
             finish_metadata["usage"] = DataUsageEvent(data=self._usage_accum).model_dump()
+            usage_sse_payload = self._usage_accum.model_dump()
+            if self._usage_by_node:
+                usage_sse_payload["byNode"] = {
+                    k: v.model_dump() for k, v in self._usage_by_node.items()
+                }
             chunks.append(
-                DataPart(type="data-usage", data=self._usage_accum.model_dump())
-                .to_sse()
-                .encode("utf-8")
+                DataPart(type="data-usage", data=usage_sse_payload).to_sse().encode("utf-8")
             )
         chunks.append(
             FinishMessagePart(
@@ -629,18 +669,27 @@ class _SseBridgeState:
                 list(bucket.parts) if bucket is not None and hasattr(bucket, "parts") else []
             )
             model_key = str(self.input_state.get("model_type") or "")
-            merged: DataUsageData | None = None
-            for raw in fallback_parts:
+            for entry in fallback_parts:
+                # New format: {"node": str, "raw": dict}
+                if isinstance(entry, dict) and "raw" in entry:
+                    raw = entry["raw"]
+                    entry_node = entry.get("node") or ""
+                else:
+                    # Legacy bare dict fallback
+                    raw = entry
+                    entry_node = ""
                 if not isinstance(raw, dict) or not usage_dict_is_nonzero(raw):
                     continue
                 try:
                     piece = coerce_graph_final_usage_to_data_usage(raw, model=model_key)
-                    merged = piece if merged is None else merged + piece
-                except (ValueError, TypeError) as exc:
+                except TypeError as exc:
                     logger.debug("LLM usage fallback piece skipped: %s", exc)
                     continue
-            self._usage_accum = merged
-        out["final_usage"] = self._usage_accum.model_dump() if self._usage_accum else None
+                self._accumulate_node_usage(entry_node, piece)
+        usage_dict = self._usage_accum.model_dump() if self._usage_accum else None
+        if usage_dict and self._usage_by_node:
+            usage_dict["byNode"] = {k: v.model_dump() for k, v in self._usage_by_node.items()}
+        out["final_usage"] = usage_dict
         out["assistant_parts_for_db"] = self._db_parts
         out["stream_failed"] = self._stream_failed
         # Expose session summary for persistence by chat.py

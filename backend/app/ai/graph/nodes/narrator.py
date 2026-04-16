@@ -153,7 +153,7 @@ async def narrator_node(state: ChatPipelineState) -> dict:
             iteration=iteration,
         )
         response: AIMessage = await llm.ainvoke(messages)
-        append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response)
+        append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node="narrator")
         messages.append(response)
         final_content = response.content or ""
 
