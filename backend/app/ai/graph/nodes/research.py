@@ -63,8 +63,11 @@ async def research_node(state: ChatPipelineState) -> dict:
             HumanMessage(
                 content=(
                     "[RESEARCH PLAN — from planner]\n"
-                    "Follow this plan exactly. Use the indicator_id and database_id "
-                    "listed for each task — do NOT re-search or ask for clarification:\n"
+                    "Use this research plan as your primary directive. Use the indicator_id and database_id "
+                    "listed for each task — do NOT re-search or ask for clarification.\n"
+                    "If the query explicitly requests additional countries or time ranges beyond "
+                    "what's listed in the plan, fetch them using the same indicator_id and database_id "
+                    "before writing the research packet. A partial packet is NEVER acceptable.\n"
                     f"```json\n{plan_json}\n```"
                 )
             )

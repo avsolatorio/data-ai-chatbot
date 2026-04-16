@@ -54,16 +54,27 @@ FAILURE_SIGNALS = (
 
 
 def _is_research_failed(packet: str) -> bool:
-    """Return True when research_packet indicates no data was retrieved."""
+    """Return True when research_packet indicates no data was retrieved.
+
+    Failure = the research node produced nothing usable.
+    NOT failure = research found the indicator but the exact year/country had no
+    observation value (narrator can handle "not available" gracefully).
+    """
     if not packet or len(packet.strip()) < 50:
         return True
-    # New format: explicit NO_DATA section means search found nothing
-    if "### no_data:" in packet.lower():
-        return True
-    # Old/new format: claim tags confirm real data was retrieved
-    if "<claim" in packet.lower():
-        return False
     lower = packet.lower()
+    # Explicit NO_DATA section means the search found nothing at all
+    if "### no_data:" in lower:
+        return True
+    # Claim tags confirm real observation values were retrieved — definitive success
+    if "<claim" in lower:
+        return False
+    # A structured packet (has DATA or EVIDENCE NOTES sections) means research ran
+    # properly and identified the indicator, even if the specific year/country had
+    # no observation. Don't trigger recovery — narrator handles "not available" fine.
+    if "### data:" in lower or "### evidence notes:" in lower:
+        return False
+    # Unstructured response — fall back to keyword signals
     return any(sig in lower for sig in FAILURE_SIGNALS)
 
 

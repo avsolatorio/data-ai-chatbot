@@ -37,7 +37,7 @@ SCOUT_TOOL_NAMES: frozenset[str] = frozenset(
     }
 )
 
-MAX_TOOL_ITERATIONS = 4  # scout is lightweight; rarely needs more than 3 calls
+MAX_TOOL_ITERATIONS = 3  # scout is lightweight: codelist + search + optional disaggregation
 
 
 def _parse_scout_response(text: str) -> dict:
