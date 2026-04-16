@@ -137,15 +137,9 @@ _THINKING_NODES = frozenset({"research", "explain", "recovery"})
 # Nodes whose LLM tokens are emitted as plain visible text
 _ANSWER_NODES = frozenset({"narrator", "direct", "clarifier", "suggester", "followup"})
 
-# Non-streaming pre-research nodes — we emit stage/status text on their lifecycle events
-_PREPROCESSING_NODES = frozenset({"transformer", "scout", "planner"})
-
-# Human-readable status shown in the thinking panel when each preprocessing node starts
-_PREPROCESSING_STATUS: dict[str, str] = {
-    "transformer": "Analyzing question…",
-    "scout": "Checking data availability…",
-    "planner": "Building research plan…",
-}
+# Non-streaming pre-research nodes — transformer/scout/planner removed in refactor
+_PREPROCESSING_NODES: frozenset[str] = frozenset()  # transformer/scout/planner removed
+_PREPROCESSING_STATUS: dict[str, str] = {}
 
 _LLM_NODES = _THINKING_NODES | _ANSWER_NODES
 
@@ -315,61 +309,7 @@ class _SseBridgeState:
         data: dict = event.get("data", {})
         node: str = metadata.get("langgraph_node", "")
 
-        if evt_type == "on_chain_start" and evt_name in _PREPROCESSING_NODES:
-            # Emit "interpreting" stage (once) + animated node-progress "running" event
-            stage_bytes = self.make_stage_sse("interpreting")
-            if stage_bytes:
-                chunks.append(stage_bytes)
-            status_msg = _PREPROCESSING_STATUS.get(evt_name, "")
-            if status_msg:
-                chunks.extend(self._node_progress_chunks(evt_name, "running", status_msg))
-
-        elif evt_type == "on_chain_end" and evt_name == "transformer":
-            output: dict = data.get("output", {}) or {}
-            translated: list = output.get("translated_queries") or []
-            if translated:
-                lines = " · ".join(translated[:4])  # compact inline list
-                done_msg = f"Queries identified: {lines}"
-                if len(translated) > 4:
-                    done_msg += f" (+{len(translated) - 4} more)"
-            else:
-                done_msg = "Routing to definition lookup"
-            chunks.extend(self._node_progress_chunks("transformer", "done", done_msg))
-
-        elif evt_type == "on_chain_end" and evt_name == "scout":
-            output = data.get("output", {}) or {}
-            findings: dict = output.get("scout_findings") or {}
-            available = findings.get("available", True)
-            indicators = findings.get("indicators") or []
-            if available and indicators:
-                names = ", ".join(i.get("name", "") for i in indicators[:3] if i.get("name"))
-                done_msg = f"Data found: {names}" if names else "Data available"
-            elif available:
-                done_msg = "Data available"
-            else:
-                done_msg = "No matching data — will try alternatives"
-            chunks.extend(self._node_progress_chunks("scout", "done", done_msg))
-
-        elif evt_type == "on_chain_end" and evt_name == "planner":
-            output = data.get("output", {}) or {}
-            plan: list = output.get("query_plan") or []
-            if plan:
-                purposes = [
-                    t.get("purpose") or t.get("indicator_id", "")
-                    for t in plan[:3]
-                    if t.get("purpose") or t.get("indicator_id")
-                ]
-                summary = "; ".join(p for p in purposes if p)
-                done_msg = (
-                    f"{len(plan)} task{'s' if len(plan) != 1 else ''}: {summary}"
-                    if summary
-                    else f"{len(plan)} tasks planned"
-                )
-            else:
-                done_msg = "Plan ready"
-            chunks.extend(self._node_progress_chunks("planner", "done", done_msg))
-
-        elif evt_type == "on_chain_start" and evt_name in _THINKING_NODES:
+        if evt_type == "on_chain_start" and evt_name in _THINKING_NODES:
             stage_bytes = self.make_stage_sse("interpreting")
             if stage_bytes:
                 chunks.append(stage_bytes)

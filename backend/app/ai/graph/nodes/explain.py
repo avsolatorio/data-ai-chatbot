@@ -10,7 +10,7 @@ narrator can consume it without modification.  Token-budget trimming uses the
 
 import logging
 
-from langchain_core.messages import BaseMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
 from app.ai.prompts import get_explain_system_prompt
 from app.config import ModelType
@@ -61,19 +61,27 @@ async def explain_node(state: ChatPipelineState) -> dict:
     system_prompt: str = get_explain_system_prompt(language=language)
 
     history = openai_to_langchain(state.get("openai_messages", []))
+
+    # Inject session summary so the agent retains context across long conversations.
+    session_summary: str = state.get("session_summary", "") or ""
+    if session_summary:
+        history = [HumanMessage(content=f"[CONVERSATION SUMMARY]\n{session_summary}")] + history
+
     messages: list[BaseMessage] = trim_for_node(
         [SystemMessage(content=system_prompt)] + history,
         node="explain",
     )
 
     tool_map = {t.name: t for t in explain_tools}
-    final_content, _ = await run_tool_loop(
+    final_content, _, _ = await run_tool_loop(
         llm=llm,
         messages=messages,
         tool_map=tool_map,
         max_iterations=MAX_TOOL_ITERATIONS,
         state=state,
         graph_node="explain",
+        # explain outputs metadata prose, not raw data rows — no tool result passthrough needed
+        collect_tool_results=False,
     )
 
     logger.info("[explain_node] research_packet length=%d", len(final_content))

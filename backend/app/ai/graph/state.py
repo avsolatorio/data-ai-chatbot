@@ -29,7 +29,10 @@ class ChatPipelineState(TypedDict):
     detected_language: NotRequired[str]
 
     # ── Research / Explain node output ────────────────────────────────────────
-    research_packet: str  # Planner's notes / data summary for the Writer
+    research_packet: str  # Routing metadata packet from the Research Agent
+    # Raw tool outputs from the research loop — injected into narrator directly
+    # so numbers never have to be re-transcribed through an extra LLM pass.
+    research_tool_results: NotRequired[list[dict]]
 
     # ── Clarifier node output ─────────────────────────────────────────────────
     clarification_question: NotRequired[str]  # the single question emitted to the user
@@ -46,21 +49,12 @@ class ChatPipelineState(TypedDict):
     # Same object as graph input; nodes append usage if stream events omit token counts
     _usage_fallback_bucket: NotRequired[Any]
 
-    # ── Multi-agent expansion fields ──────────────────────────────────────────
-    # Rolling summary of compressed older turns; injected as context by research/narrator/explain
+    # ── Session memory ────────────────────────────────────────────────────────
+    # Rolling summary of compressed older turns; injected as context by nodes
     session_summary: NotRequired[str]
-    # Data availability check results from scout node
-    scout_findings: NotRequired[dict]
-    # Structured execution plan from planner node
-    query_plan: NotRequired[list[dict]]
+    # How many openai_messages were captured in the current session_summary
+    summarized_message_count: NotRequired[int]
     # Follow-up questions generated post-narrator
     followup_questions: NotRequired[list[str]]
-    # Flag to prevent double recovery loops
-    recovery_attempted: NotRequired[bool]
-    # Translated data queries produced by the transformer node for analytical questions
-    # (e.g. "What are Ghana's economic challenges?" → ["Ghana GDP growth 2014-2024", ...])
-    translated_queries: NotRequired[list[str]]
-    # How many openai_messages were captured in the current session_summary (for incremental re-summarization)
-    summarized_message_count: NotRequired[int]
-    # Internal agent outputs from scout/planner/transformer nodes for debugging/analytics
+    # Internal agent outputs for debugging/analytics
     agent_trace_parts: NotRequired[list[dict]]

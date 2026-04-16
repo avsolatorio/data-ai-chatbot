@@ -12,6 +12,7 @@ Token-budget trimming is applied to the conversation history injected as context
 and the SSE bridge maps them to plain text-delta events (visible to the user).
 """
 
+import json
 import logging
 from typing import Any
 
@@ -65,20 +66,74 @@ async def narrator_node(state: ChatPipelineState) -> dict:
     # Build message list: trimmed history only (research packet goes into system message)
     history = openai_to_langchain(state.get("openai_messages", []))
     research_packet: str = state.get("research_packet", "")
+    tool_results: list[dict] = state.get("research_tool_results") or []
 
-    if research_packet:
-        # Embed research findings in the system message (trusted context) rather than
-        # as a HumanMessage — HumanMessage injection of structured XML-like content
-        # triggers Azure Prompt Shields' indirect-injection detection.
-        system_prompt = (
-            system_prompt
-            + "\n\n"
-            + "─" * 60
-            + "\nRESEARCH FINDINGS (retrieved by the Research agent):\n\n"
-            + research_packet
-            + "\n"
-            + "─" * 60
-        )
+    if research_packet or tool_results:
+        # Build the research context block that is prepended to the system prompt.
+        # Placed in the system message (not a HumanMessage) to avoid Azure Prompt Shields.
+        #
+        # Structure:
+        #   1. RAW TOOL RESULTS — the actual data values with claim IDs, as returned
+        #      by the MCP tools. Narrator reads numbers directly from here; no
+        #      intermediate transcription through an extra LLM pass.
+        #   2. RESEARCH AGENT ROUTING PACKET — PATH classification, indicator
+        #      selection rationale, GAPS, EVIDENCE NOTES, VIZ params, API URL.
+        #      This is the research agent's intelligence layer.
+        context_parts: list[str] = []
+
+        if tool_results:
+            # Emit only data-bearing tools (get_data, get_metadata) — skip
+            # search/codelist calls which are lookup scaffolding, not content.
+            data_tools = frozenset(
+                {
+                    "data360_get_data",
+                    "data360_get_metadata",
+                    "data360_list_indicators",
+                }
+            )
+            data_outputs = [r for r in tool_results if r.get("tool_name") in data_tools]
+            if data_outputs:
+                tool_block_lines = [
+                    "─" * 60,
+                    "RAW TOOL RESULTS",
+                    "These are the exact outputs returned by the MCP data tools.",
+                    "All numeric values and claim IDs come from here — use them directly.",
+                    "─" * 60,
+                    "",
+                ]
+                for i, r in enumerate(data_outputs, 1):
+                    tool_block_lines.append(f"[Tool {i}: {r['tool_name']}]")
+                    args_str = ", ".join(f"{k}={v!r}" for k, v in r.get("tool_args", {}).items())
+                    if args_str:
+                        tool_block_lines.append(f"Args: {args_str}")
+                    output = r.get("output", "")
+                    # Pretty-print JSON if the output is structured
+                    if isinstance(output, (dict, list)):
+                        tool_block_lines.append(json.dumps(output, ensure_ascii=False, indent=2))
+                    else:
+                        tool_block_lines.append(str(output))
+                    tool_block_lines.append("")
+                tool_block_lines += [
+                    "─" * 60,
+                    "END OF RAW TOOL RESULTS",
+                    "─" * 60,
+                    "",
+                ]
+                context_parts.append("\n".join(tool_block_lines))
+
+        if research_packet:
+            routing_block = (
+                "─" * 60 + "\n"
+                "RESEARCH AGENT ROUTING PACKET\n"
+                "PATH classification, indicator selection, gaps, and methodology notes.\n"
+                "This IS the research packet referenced in the instructions below.\n"
+                "─" * 60 + "\n\n" + research_packet + "\n\n" + "─" * 60 + "\n"
+                "END OF RESEARCH AGENT ROUTING PACKET — rendering instructions follow.\n"
+                "─" * 60 + "\n\n"
+            )
+            context_parts.append(routing_block)
+
+        system_prompt = "".join(context_parts) + system_prompt
 
     messages: list[BaseMessage] = trim_for_node(
         [SystemMessage(content=system_prompt)] + history,

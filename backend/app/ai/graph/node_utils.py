@@ -25,24 +25,30 @@ async def run_tool_loop(
     max_iterations: int,
     state: dict,
     graph_node: str,
-) -> tuple[str, dict | None]:
+    collect_tool_results: bool = False,
+) -> tuple[str, dict | None, list[dict]]:
     """Run a ReAct-style tool call loop until the LLM stops requesting tools.
 
     Args:
-        llm:            LangChain LLM already bound with tools (``llm.bind_tools(...)``).
-        messages:       Initial message list (system + history). Modified in-place.
-        tool_map:       Dict mapping tool name → LangChain tool callable.
-        max_iterations: Maximum number of LLM call rounds (safety cap).
-        state:          Pipeline state dict (used for usage tracking and SSE queue).
-        graph_node:     LangGraph node name (used for SSE tool notifications and logging).
+        llm:                  LangChain LLM already bound with tools.
+        messages:             Initial message list (system + history). Modified in-place.
+        tool_map:             Dict mapping tool name → LangChain tool callable.
+        max_iterations:       Maximum number of LLM call rounds (safety cap).
+        state:                Pipeline state dict (usage tracking and SSE queue).
+        graph_node:           LangGraph node name (SSE notifications and logging).
+        collect_tool_results: When True, accumulate raw tool outputs for the caller.
+                              Used by research_node to pass results directly to narrator.
 
     Returns:
-        (final_content, final_usage):
-          - final_content: the last plain-text LLM response (the research/explain packet)
-          - final_usage:   token usage dict from the last response, or None
+        (final_content, final_usage, tool_results):
+          - final_content:  the last plain-text LLM response (routing/metadata packet)
+          - final_usage:    token usage dict from the last response, or None
+          - tool_results:   list of {"tool_name", "tool_args", "output"} dicts
+                            (empty list when collect_tool_results=False)
     """
     final_content: str = ""
     final_usage: dict | None = None
+    tool_results: list[dict] = []
 
     for iteration in range(max_iterations):
         logger.info("[%s] LLM call iteration=%d", graph_node, iteration)
@@ -104,7 +110,16 @@ async def run_tool_loop(
                 output=tool_result,
             )
             messages.append(ToolMessage(content=str(tool_result), tool_call_id=tool_call_id))
+
+            if collect_tool_results:
+                tool_results.append(
+                    {
+                        "tool_name": tool_name,
+                        "tool_args": tool_args,
+                        "output": tool_result,
+                    }
+                )
     else:
         logger.warning("[%s] reached max_iterations=%d", graph_node, max_iterations)
 
-    return final_content, final_usage
+    return final_content, final_usage, tool_results
