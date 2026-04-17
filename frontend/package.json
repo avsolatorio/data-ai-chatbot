@@ -24,8 +24,8 @@
     "build:prod": "node scripts/run-build.js prod",
     "start": "next start",
     "start:dev": "cross-env PHASE=dev NEXT_PUBLIC_APP_ENV=dev next dev -p 4200",
-    "lint": "npx ultracite@latest check",
-    "format": "npx ultracite@latest fix",
+    "lint": "npx ultracite check",
+    "format": "npx ultracite fix",
     "env:check": "tsx scripts/env-check.ts",
     "test": "export PLAYWRIGHT=True && pnpm exec playwright test",
     "test:unit": "tsx --test lib/__tests__/**/*.test.ts"
