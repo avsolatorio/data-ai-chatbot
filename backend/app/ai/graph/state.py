@@ -56,5 +56,7 @@ class ChatPipelineState(TypedDict):
     summarized_message_count: NotRequired[int]
     # Follow-up questions generated post-narrator
     followup_questions: NotRequired[list[str]]
+    # Set when followup (or another node) surfaces LLM_POLICY_BLOCKED_TEXT under policy
+    content_policy_blocked: NotRequired[bool]
     # Internal agent outputs for debugging/analytics
     agent_trace_parts: NotRequired[list[dict]]

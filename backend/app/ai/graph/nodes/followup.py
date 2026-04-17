@@ -9,13 +9,19 @@ Returns ``{"followup_questions": list, "assistant_parts": updated_list}``.
 import logging
 import re
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
 from app.ai.observability.token_usage import append_llm_usage_fallback
 from app.ai.prompts import get_followup_system_prompt
 from app.config import ModelType
 
 from ..llm_factory import get_chat_llm
+from ..llm_invoke import (
+    LLM_POLICY_BLOCKED_TEXT,
+    LLM_STEP_FAILED_TEXT,
+    assistant_text_part,
+    safe_llm_ainvoke,
+)
 from ..memory import trim_for_node
 from ..message_utils import openai_to_langchain
 from ..state import ChatPipelineState
@@ -77,7 +83,25 @@ async def followup_node(state: ChatPipelineState) -> dict:
     )
 
     logger.info("[followup_node] generating follow-up questions")
-    response: AIMessage = await llm.ainvoke(messages)
+    response, outcome = await safe_llm_ainvoke(llm, messages, context="followup")
+    existing_parts: list[dict] = state.get("assistant_parts", [])
+
+    if outcome == "policy":
+        return {
+            "followup_questions": [],
+            "assistant_parts": existing_parts + [assistant_text_part(LLM_POLICY_BLOCKED_TEXT)],
+            "final_usage": None,
+            "content_policy_blocked": True,
+        }
+
+    if outcome != "ok":
+        return {
+            "followup_questions": [],
+            "assistant_parts": existing_parts + [assistant_text_part(LLM_STEP_FAILED_TEXT)],
+            "final_usage": None,
+        }
+
+    assert response is not None
     append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node="followup")
 
     final_content: str = response.content or ""

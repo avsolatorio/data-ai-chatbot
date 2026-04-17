@@ -1,9 +1,10 @@
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
-from app.ai.client import get_async_ai_client
-from app.ai.observability.token_usage import usage_dict_from_openai_completion_usage
+from langchain_core.messages import AIMessage as LCAIMessage
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from app.ai.prompts import get_routing_system_prompt
 from app.config import IntentType, settings
 
@@ -52,66 +53,67 @@ def _simplify_content_for_routing(content: Any) -> str:
 async def check_intent(
     messages: List[Dict[str, Any]],
     session_summary: str = "",
-) -> Tuple[IntentType, str, Optional[Dict[str, Any]], List[str], str]:
-    """
-    Analyzes the user's latest message and conversation context to determine
-    the routing intent.
+) -> Tuple[IntentType, str, List[str], str]:
+    """Classify the user's latest message into one of five routing intents.
+
+    Uses a ``ChatLiteLLM`` instance (via :func:`get_routing_llm`) so that the
+    LLM call participates in LangChain's callback system.  When invoked from
+    inside ``router_node`` — a LangGraph node — LangGraph automatically tags the
+    resulting ``on_chat_model_end`` event with ``langgraph_node="router"``, so
+    token usage is accumulated by the SSE bridge through the standard path
+    (no manual ``router_usage`` plumbing required).
 
     Args:
-        messages: Conversation history in OpenAI format.
+        messages:        Conversation history in OpenAI format.
         session_summary: Optional compressed summary of earlier turns — injected
-            as a user message so the router retains context (country, topic, etc.)
-            even when the full history exceeds ROUTING_HISTORY_LIMIT.
+                         as a user message so the router retains context
+                         (country, topic, etc.) even when the full history
+                         exceeds ROUTING_HISTORY_LIMIT.
 
     Returns:
-        (intent, reasoning, router_usage, missing_slots, detected_language):
-          - intent: one of RESEARCH, DIRECT, CLARIFY, OUT_OF_SCOPE, EXPLAIN
-          - reasoning: brief explanation from the routing LLM
-          - router_usage: token-usage dict (OpenAI-shaped), or None if unavailable
-          - missing_slots: list of missing slot names when intent is CLARIFY
-            (e.g. ["country", "time_period"]), empty list otherwise
-          - detected_language: full English name of the user's language (e.g. "French"),
-            defaults to "English"
+        (intent, reasoning, missing_slots, detected_language):
+          - intent:            one of RESEARCH, DIRECT, CLARIFY, OUT_OF_SCOPE, EXPLAIN
+          - reasoning:         brief English explanation from the routing LLM
+          - missing_slots:     slot names absent when intent is CLARIFY, else []
+          - detected_language: full English name of the user's language (e.g. "French")
     """
+    # Import here to avoid a module-level circular dependency
+    # (routing.py ← nodes/router.py ← pipeline.py ← llm_factory.py would
+    # all be loaded in the same package; deferred import keeps the chain clean).
+    from app.ai.graph.llm_factory import get_routing_llm
+
     logger.info("[routing] check_intent start messages_count=%d", len(messages))
 
-    client = get_async_ai_client()
     system_prompt = get_routing_system_prompt()
 
     try:
-        # We only need the last few messages for intent
+        # Only the most recent turns are needed for intent classification.
         limit = settings.ROUTING_HISTORY_LIMIT
-        if len(messages) > limit:
-            recent_history = messages[-limit:]
-        else:
-            recent_history = messages
+        recent_history = messages[-limit:] if len(messages) > limit else messages
 
-        # Build clean, simple messages for routing LLM.
-        # The routing LLM just needs user/assistant text to decide intent.
-        # We must strip: tool messages, tool_calls, multi-part content structures.
-        routing_messages = []
+        # Build a clean, minimal message list for the routing LLM.
+        # Strip tool messages, tool_calls, and multi-part content structures.
+        routing_messages: list[dict] = []
 
-        # Prepend session summary (if available) as a user message so the router
-        # retains context (country, topic, indicator names) even after the history
-        # window truncates older turns.
+        # Prepend session summary (if any) so the router retains context even
+        # after the history window truncates older turns.
         if session_summary:
             routing_messages.append(
                 {
                     "role": "user",
-                    "content": f"[CONVERSATION SUMMARY — context from earlier turns]\n{session_summary}",
+                    "content": (
+                        "[CONVERSATION SUMMARY — context from earlier turns]\n" + session_summary
+                    ),
                 }
             )
 
         for msg in recent_history:
             role = msg.get("role")
-            # Skip tool messages entirely
             if role == "tool":
-                continue
-            # Build a clean message with just role + simple text content
+                continue  # tool results carry no useful intent signal
             content = _simplify_content_for_routing(msg.get("content", ""))
             if not content:
-                continue  # Skip messages with no usable text
-            # Only include role and content - no tool_calls, no other keys
+                continue
             routing_messages.append({"role": role, "content": content})
 
         logger.info(
@@ -126,9 +128,9 @@ async def check_intent(
                 [
                     {
                         "role": m["role"],
-                        "content": m["content"][:120] + "..."
-                        if len(m["content"]) > 120
-                        else m["content"],
+                        "content": (
+                            m["content"][:120] + "..." if len(m["content"]) > 120 else m["content"]
+                        ),
                     }
                     for m in routing_messages
                 ],
@@ -136,26 +138,23 @@ async def check_intent(
             ),
         )
 
-        response = await client.chat.completions.create(
-            model=settings.ROUTING_MODEL,
-            messages=[{"role": "system", "content": system_prompt}, *routing_messages],
-            response_format={"type": "json_object"},
-            temperature=0,
-            max_tokens=300,
-            stream=False,
-        )
+        # Convert simplified dicts → LangChain messages for the LLM call.
+        lc_messages: list = [SystemMessage(content=system_prompt)]
+        for msg in routing_messages:
+            role = msg["role"]
+            content = msg["content"]
+            if role == "user":
+                lc_messages.append(HumanMessage(content=content))
+            elif role == "assistant":
+                lc_messages.append(LCAIMessage(content=content))
+            # Other roles (system duplicates, etc.) are skipped.
 
-        raw_content = response.choices[0].message.content
-        finish_reason = response.choices[0].finish_reason
-        logger.info("[routing] routing LLM response received finish_reason=%s", finish_reason)
-        logger.debug("Routing raw response (finish_reason=%s): %r", finish_reason, raw_content)
+        llm = get_routing_llm()
+        response_msg: LCAIMessage = await llm.ainvoke(lc_messages)
+        raw_content: str = str(response_msg.content or "")
 
-        router_usage = usage_dict_from_openai_completion_usage(getattr(response, "usage", None))
-        # Embed the actual deployed model name so the SSE bridge can resolve it
-        # precisely instead of falling back to the settings.ROUTING_MODEL string.
-        if router_usage is not None and hasattr(response, "model") and response.model:
-            router_usage = dict(router_usage)  # don't mutate the original
-            router_usage["_model"] = str(response.model)
+        logger.info("[routing] routing LLM response received")
+        logger.debug("Routing raw response: %r", raw_content)
 
         result = json.loads(raw_content)
         raw_intent = result.get("intent", IntentType.RESEARCH.value)
@@ -164,7 +163,8 @@ async def check_intent(
         except ValueError:
             logger.warning("[routing] unknown intent value=%r, defaulting to RESEARCH", raw_intent)
             intent = IntentType.RESEARCH
-        reasoning = result.get("reasoning", "").strip()
+
+        reasoning: str = result.get("reasoning", "").strip()
         missing_slots: List[str] = result.get("missing_slots", [])
         if not isinstance(missing_slots, list):
             missing_slots = []
@@ -177,16 +177,16 @@ async def check_intent(
             detected_language,
             len(reasoning),
         )
-        return (intent, reasoning, router_usage, missing_slots, detected_language)
+        return (intent, reasoning, missing_slots, detected_language)
 
     except json.JSONDecodeError as json_err:
-        content = response.choices[0].message.content if "response" in locals() else "No response"
+        raw = raw_content if "raw_content" in locals() else "No response"
         logger.error(
             "Error parsing routing response as JSON: %s. Response content: %r",
             str(json_err),
-            content,
+            raw,
         )
-        return (IntentType.RESEARCH, "", None, [], "English")
+        return (IntentType.RESEARCH, "", [], "English")
     except Exception as e:
         logger.error("Error in intent routing: %s. Defaulting to RESEARCH.", str(e))
-        return (IntentType.RESEARCH, "", None, [], "English")
+        return (IntentType.RESEARCH, "", [], "English")

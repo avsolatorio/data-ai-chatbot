@@ -2,7 +2,9 @@
 
 All tests mock check_intent() so no LLM calls or DB connections are made.
 
-check_intent() now returns a 4-tuple: (intent, reasoning, router_usage, missing_slots)
+check_intent() returns a 4-tuple: (intent, reasoning, missing_slots, detected_language)
+Token usage is now tracked automatically via on_chat_model_end (LangChain path),
+so there is no router_usage in the return value or in graph state.
 """
 
 from unittest.mock import AsyncMock
@@ -30,9 +32,9 @@ def _state(**overrides) -> dict:
     return {**base, **overrides}
 
 
-def _mock_ci(intent, reasoning="", usage=None, missing_slots=None, language="English"):
-    """Return an AsyncMock for check_intent with the new 5-tuple signature."""
-    return AsyncMock(return_value=(intent, reasoning, usage, missing_slots or [], language))
+def _mock_ci(intent, reasoning="", missing_slots=None, language="English"):
+    """Return an AsyncMock for check_intent with the 4-tuple signature."""
+    return AsyncMock(return_value=(intent, reasoning, missing_slots or [], language))
 
 
 @pytest.mark.asyncio
@@ -231,15 +233,15 @@ async def test_openai_messages_passed_to_check_intent(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_router_usage_forwarded_when_present(monkeypatch):
-    """When check_intent returns usage, router_node exposes router_usage."""
-    usage = {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12}
+async def test_router_usage_not_in_state(monkeypatch):
+    """router_node must NOT put router_usage in state — usage is now tracked
+    automatically via on_chat_model_end (check_intent uses ChatLiteLLM)."""
     monkeypatch.setattr(
         "app.ai.graph.nodes.router.check_intent",
-        _mock_ci(IntentType.DIRECT, "ok", usage=usage),
+        _mock_ci(IntentType.DIRECT, "ok"),
     )
     result = await router_node(_state(query_text="hello"))
-    assert result["router_usage"] == usage
+    assert "router_usage" not in result
 
 
 @pytest.mark.asyncio

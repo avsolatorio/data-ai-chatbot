@@ -499,7 +499,7 @@ Document tools are not available. When asked to write code, provide it in markdo
 # ---------------------------------------------------------------------------
 def get_routing_system_prompt() -> str:
     """Intent router: classifies user message into one of five intent types."""
-    return """You are an intent router for the Data360 Chat assistant. Classify the user's message into exactly one of five intents. Respond in the user's language. Push back politely on stereotypes, bias, or unfounded generalizations.
+    return """You are an intent router for the Data360 Chat assistant. Classify the user's message into exactly one of five intents. Push back politely on stereotypes, bias, or unfounded generalizations.
 
 INTENT DEFINITIONS:
 
@@ -541,13 +541,14 @@ CLASSIFICATION PRIORITY (apply in this order):
 Return ONLY this JSON:
 {
   "intent": "RESEARCH" | "EXPLAIN" | "CLARIFY" | "OUT_OF_SCOPE" | "DIRECT",
-  "reasoning": "brief explanation in the user's language",
+  "reasoning": "brief explanation in English",
   "missing_slots": [],
   "confidence": 0.95,
   "detected_language": "English"
 }
 
 Notes:
+- "reasoning" must ALWAYS be written in English, regardless of the user's language. It is an internal log field shown to developers, not to end users.
 - "missing_slots" is an array: include slot names ["country", "indicator", "time_period"] only when intent is CLARIFY; otherwise leave as empty array [].
 - "confidence" is a float 0.0–1.0 representing your certainty.
 - "detected_language" is the full English name of the language the user wrote in (e.g., "French", "Spanish", "Arabic", "Portuguese", "English"). Always include this field. Default to "English" if uncertain.

@@ -64,8 +64,9 @@ from app.ai.protocols.stream import (
     ToolInputStartPart,
     ToolOutputAvailablePart,
 )
-from app.config import settings
 from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
+
+from .llm_invoke import LLM_POLICY_BLOCKED_TEXT, LLM_STEP_FAILED_TEXT
 
 try:
     from litellm.exceptions import ContentPolicyViolationError
@@ -137,8 +138,10 @@ _THINKING_NODES = frozenset({"research", "explain", "recovery"})
 # Nodes whose LLM tokens are emitted as plain visible text
 _ANSWER_NODES = frozenset({"narrator", "direct", "clarifier", "suggester", "followup"})
 
-# Non-streaming background nodes (no SSE text emitted, but tokens must be counted)
-_BACKGROUND_NODES: frozenset[str] = frozenset({"summarizer"})
+# Non-streaming background nodes (no SSE text emitted, but tokens must be counted).
+# "router" uses ChatLiteLLM via check_intent() so its on_chat_model_end fires here;
+# "summarizer" compresses history in the background.
+_BACKGROUND_NODES: frozenset[str] = frozenset({"router", "summarizer"})
 
 # Non-streaming pre-research nodes — transformer/scout/planner removed in refactor
 _PREPROCESSING_NODES: frozenset[str] = frozenset()  # transformer/scout/planner removed
@@ -366,18 +369,11 @@ class _SseBridgeState:
             self._final_graph_state = data["output"]
 
         elif evt_type == "on_chain_end" and evt_name == "router":
+            # Usage is now tracked automatically via on_chat_model_end (router is in
+            # _BACKGROUND_NODES) — no manual router_usage extraction needed here.
             output: dict = data.get("output", {}) or {}
             reasoning: str = output.get("routing_reasoning", "")
             self._routing_reasoning = reasoning
-            ru = output.get("router_usage")
-            if isinstance(ru, dict):
-                ru = dict(ru)  # copy before mutating
-                # routing.py embeds the actual deployed model name under "_model";
-                # pop it here so it doesn't confuse token-count parsing downstream.
-                routing_model = ru.pop("_model", None) or str(
-                    getattr(settings, "ROUTING_MODEL", "") or ""
-                )
-                self.add_usage_from_usage_fragment(ru, model_key=routing_model, node="router")
             if reasoning:
                 reason_id = f"routing-reason-{self.message_id}"
                 for part in (
@@ -644,6 +640,16 @@ class _SseBridgeState:
         self.flush_narrator_segment_to_db()
         if self.answer_text_started:
             chunks.append(TextEndPart(id=self.text_part_id).to_sse().encode("utf-8"))
+        if isinstance(self._final_graph_state, dict) and self._final_graph_state.get(
+            "content_policy_blocked"
+        ):
+            blocked_id = f"followup-blocked-{self.message_id}"
+            for part in (
+                TextStartPart(id=blocked_id),
+                TextDeltaPart(id=blocked_id, delta=LLM_POLICY_BLOCKED_TEXT),
+                TextEndPart(id=blocked_id),
+            ):
+                chunks.append(part.to_sse().encode("utf-8"))
         finish_metadata: dict = {}
         if self._usage_accum:
             finish_metadata["usage"] = DataUsageEvent(data=self._usage_accum).model_dump()
@@ -709,6 +715,22 @@ class _SseBridgeState:
             trace_parts = self._final_graph_state.get("agent_trace_parts") or []
             if trace_parts:
                 self._db_parts.extend(trace_parts)
+            # Non-streaming follow-up may only exist on graph state — persist short markers
+            assistant_tail = self._final_graph_state.get("assistant_parts") or []
+            for p in assistant_tail:
+                if not isinstance(p, dict) or p.get("type") != "text":
+                    continue
+                tx = (p.get("text") or "").strip()
+                if tx not in (LLM_POLICY_BLOCKED_TEXT, LLM_STEP_FAILED_TEXT):
+                    continue
+                if any(
+                    isinstance(x, dict)
+                    and x.get("type") == "text"
+                    and (x.get("text") or "").strip() == tx
+                    for x in self._db_parts
+                ):
+                    continue
+                self._db_parts.append(dict(p))
 
 
 async def stream_graph_to_sse(

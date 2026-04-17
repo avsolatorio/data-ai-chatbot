@@ -25,6 +25,29 @@ def _streaming_usage_model_kwargs(streaming: bool) -> dict[str, Any]:
     return {"stream_options": {"include_usage": True}}
 
 
+def get_routing_llm() -> ChatLiteLLM:
+    """Return a ChatLiteLLM instance for the intent router.
+
+    The routing model is configured independently from the main chat model via
+    ``settings.ROUTING_MODEL``.  Fixed at temperature=0 (deterministic JSON
+    classification), no streaming (we need a complete response before routing),
+    and JSON response format so the output is always parseable.
+
+    Because this LLM is called inside the ``router_node`` LangGraph node,
+    LangGraph automatically tags the resulting ``on_chat_model_end`` event with
+    ``langgraph_node="router"``.  The SSE bridge then accumulates usage via the
+    standard path — no manual ``router_usage`` plumbing needed.
+    """
+    full_model = f"{settings.models.MODEL_PROVIDER}{settings.ROUTING_MODEL}"
+    return ChatLiteLLM(
+        model=full_model,
+        temperature=0,
+        streaming=False,
+        max_tokens=300,
+        model_kwargs={"response_format": {"type": "json_object"}},
+    )
+
+
 def get_chat_llm(
     model_type: ModelType | str,
     temperature: float = 0.7,
