@@ -32,7 +32,7 @@
 
 /* define design tokens (light mode) */
 :root {
-  --background: hsl(0 0% 100%);
+  --background: #f9f9f9;
   --foreground: hsl(240 10% 3.9%);
   --card: hsl(0 0% 100%);
   --card-foreground: hsl(240 10% 3.9%);
@@ -66,7 +66,7 @@
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
   /* border radius unit */
   --radius: 0.5rem;
-  --sidebar: hsl(0 0% 98%);
+  --sidebar: hsl(0, 0%, 100%);
   /* Default header height when data header is enabled. Sidebar starts below this until data-header-script measures the real header. Change this to set the default sidebar top offset (e.g. 64px, 80px). */
   --data-header-default-height: 107.5px;
   /* Height of the data header; sidebar and main content start below this. Updated by data-header-script when header loads. */

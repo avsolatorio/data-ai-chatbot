@@ -3,7 +3,6 @@
 import { isToday, isYesterday, subMonths, subWeeks } from "date-fns";
 import { motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
-import type { User } from "@/lib/auth-service-client";
 import { useState } from "react";
 import { toast } from "sonner";
 import useSWRInfinite from "swr/infinite";
@@ -24,6 +23,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { apiFetch } from "@/lib/api-client";
+import type { User } from "@/lib/auth-service-client";
 import type { Chat } from "@/lib/db/schema";
 import { fetcher } from "@/lib/utils";
 import { LoaderIcon } from "./icons";
@@ -73,13 +73,13 @@ const groupChatsByDate = (chats: Chat[]): GroupedChats => {
       lastWeek: [],
       lastMonth: [],
       older: [],
-    } as GroupedChats
+    } as GroupedChats,
   );
 };
 
 export function getChatHistoryPaginationKey(
   pageIndex: number,
-  previousPageData: ChatHistory
+  previousPageData: ChatHistory,
 ) {
   if (previousPageData && previousPageData.hasMore === false) {
     return null;
@@ -216,13 +216,14 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
             {paginatedChatHistories &&
               (() => {
                 const chatsFromHistory = paginatedChatHistories.flatMap(
-                  (paginatedChatHistory) => paginatedChatHistory.chats
+                  (paginatedChatHistory) => paginatedChatHistory.chats,
                 );
                 // Sort by createdAt descending so grouping order is consistent (newest first within each section).
                 // API returns UTC ISO strings (with Z); new Date() parses as UTC so isToday/isYesterday use local day.
                 const sorted = [...chatsFromHistory].sort(
                   (a, b) =>
-                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                    new Date(b.createdAt).getTime() -
+                    new Date(a.createdAt).getTime(),
                 );
 
                 const groupedChats = groupChatsByDate(sorted);
