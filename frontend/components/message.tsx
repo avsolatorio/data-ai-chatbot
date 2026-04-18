@@ -170,7 +170,8 @@ function renderMessagePart(
             : true) && (
             <MessageContent
               className={cn({
-                "w-fit break-words rounded-2xl px-3 py-2 text-right text-white":
+                // iMessage-style: soft corners except a tight bottom-right (anchor side)
+                "w-fit break-words rounded-none rounded-br-[4px] rounded-bl-[20px] rounded-tl-[20px] rounded-tr-[20px] max-w-[40rem] px-3 py-3 text-left text-white":
                   message.role === "user",
                 "bg-transparent px-0 py-0 text-left":
                   message.role === "assistant",
@@ -861,7 +862,7 @@ const PurePreviewMessage = ({
         )}
 
         <div
-          className={cn("flex min-w-0 flex-col", {
+          className={cn("flex min-w-0 flex-col max-w-[50rem]", {
             "gap-2 md:gap-4": message.parts?.some(
               (p) => p.type === "text" && p.text?.trim(),
             ),
