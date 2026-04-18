@@ -10,7 +10,7 @@ import { type Dispatch, memo, type SetStateAction, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
 import type { ProcessingStage } from "@/hooks/use-data-thinking-stream";
 import { buildChartUrlRegexes } from "@/lib/chart-url";
-import { getBasePath, getData360ToolDefaultOpen } from "@/lib/config";
+import { getBasePath } from "@/lib/config";
 import {
   type Data360SourceEntry,
   getData360SourcesFromParts,
@@ -19,6 +19,7 @@ import {
 import type { Vote } from "@/lib/db/schema";
 import { parseFollowUps } from "@/lib/parse-follow-ups";
 import { splitDataThinkingPrefixParts } from "@/lib/split-thinking-parts";
+import { defaultOpenForData360Tool } from "@/lib/tool-display";
 import {
   type ChatMessage,
   isNonRenderableStreamEvent,
@@ -72,8 +73,6 @@ import { Weather } from "./weather";
 
 const { bare: CHART_URL_REGEX, markdownLink: CHART_MARKDOWN_LINK_REGEX } =
   buildChartUrlRegexes();
-
-const DATA360_TOOL_DEFAULT_OPEN = getData360ToolDefaultOpen();
 
 /** Splits text at the first chart URL (or markdown link with chart URL) so it can be replaced by ChartPreview inline. */
 function splitTextAtChartUrl(text: string): {
@@ -360,7 +359,7 @@ function renderMessagePart(
 
     if (!parsed.success) {
       return (
-        <Tool defaultOpen={DATA360_TOOL_DEFAULT_OPEN} key={toolCallId}>
+        <Tool defaultOpen={false} key={toolCallId}>
           <ToolHeader state={state} type={toolHeaderType} />
           <ToolContent>
             {state === "output-available" && (
@@ -377,7 +376,7 @@ function renderMessagePart(
 
     if (output?.error) {
       return (
-        <Tool defaultOpen={DATA360_TOOL_DEFAULT_OPEN} key={toolCallId}>
+        <Tool defaultOpen={false} key={toolCallId}>
           <ToolHeader state={state} type={toolHeaderType} />
           <ToolContent>
             {state === "output-available" && (
@@ -405,7 +404,10 @@ function renderMessagePart(
       vizSubtitleParts.length > 0 ? vizSubtitleParts.join(" · ") : undefined;
 
     return (
-      <Tool defaultOpen={DATA360_TOOL_DEFAULT_OPEN} key={toolCallId}>
+      <Tool
+        defaultOpen={defaultOpenForData360Tool(toolHeaderType)}
+        key={toolCallId}
+      >
         <ToolHeader state={state} type={toolHeaderType} />
         <ToolContent>
           {state === "input-available" && toolPart.input !== undefined && (
@@ -451,7 +453,12 @@ function renderMessagePart(
       };
     };
     return (
-      <Tool defaultOpen={DATA360_TOOL_DEFAULT_OPEN} key={toolPart.toolCallId}>
+      <Tool
+        defaultOpen={defaultOpenForData360Tool(
+          "tool-ai4data_ai4data_mcpget_wdi_data",
+        )}
+        key={toolPart.toolCallId}
+      >
         <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
         <ToolContent>
           {toolPart.state === "input-available" && (
@@ -486,7 +493,12 @@ function renderMessagePart(
       };
     };
     return (
-      <Tool defaultOpen={DATA360_TOOL_DEFAULT_OPEN} key={toolPart.toolCallId}>
+      <Tool
+        defaultOpen={defaultOpenForData360Tool(
+          "tool-ai4data_ai4data_mcpsearch_relevant_indicators",
+        )}
+        key={toolPart.toolCallId}
+      >
         <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
         <ToolContent>
           {toolPart.state === "input-available" && (
@@ -590,7 +602,10 @@ function renderMessagePart(
           })()
         : undefined;
     return (
-      <Tool defaultOpen={DATA360_TOOL_DEFAULT_OPEN} key={toolPart.toolCallId}>
+      <Tool
+        defaultOpen={defaultOpenForData360Tool("tool-data360_get_data")}
+        key={toolPart.toolCallId}
+      >
         <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
         <ToolContent>
           {toolPart.state === "input-available" &&
@@ -667,7 +682,12 @@ function renderMessagePart(
           })()
         : undefined;
     return (
-      <Tool defaultOpen={DATA360_TOOL_DEFAULT_OPEN} key={toolPart.toolCallId}>
+      <Tool
+        defaultOpen={defaultOpenForData360Tool(
+          "tool-data360_search_indicators",
+        )}
+        key={toolPart.toolCallId}
+      >
         <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
         <ToolContent>
           {toolPart.state === "input-available" &&
@@ -722,8 +742,13 @@ function renderMessagePart(
       }
     }
 
+    const defaultOpenGeneric =
+      typeof type === "string" && type.startsWith("tool-data360_")
+        ? defaultOpenForData360Tool(type)
+        : false;
+
     return (
-      <Tool defaultOpen={false} key={toolPart.toolCallId}>
+      <Tool defaultOpen={defaultOpenGeneric} key={toolPart.toolCallId}>
         <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
         <ToolContent>
           {(toolPart.state === "input-available" ||

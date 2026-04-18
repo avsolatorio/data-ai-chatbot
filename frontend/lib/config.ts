@@ -102,7 +102,7 @@ function getData360IndicatorBaseUrl(): string {
   );
 }
 
-/** When true, Data360 MCP tool panels start expanded. Default false. */
+/** When true, all Data360 MCP tool panels start expanded. When false, only chart + get_data expand by default. */
 export function getData360ToolDefaultOpen(): boolean {
   const v =
     process.env.NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN?.trim().toLowerCase();
@@ -261,8 +261,9 @@ export const appConfig = {
   data360IndicatorBaseUrl: getData360IndicatorBaseUrl(),
 
   /**
-   * When true, Data360 tool UI (get_data, search, viz, legacy ai4data tools) starts expanded.
-   * Default false. Set via NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN=true.
+   * When true, all Data360 tool panels start expanded.
+   * When false (default), only chart + get_data expand; others stay collapsed.
+   * Set via NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN.
    */
   data360ToolDefaultOpen: getData360ToolDefaultOpen(),
 
