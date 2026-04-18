@@ -73,6 +73,7 @@ async def explain_node(state: ChatPipelineState) -> dict:
     )
 
     tool_map = {t.name: t for t in explain_tools}
+    # require_tool_before_finish: model cannot emit the final packet until search has run once.
     final_content, _, _ = await run_tool_loop(
         llm=llm,
         messages=messages,
@@ -80,8 +81,8 @@ async def explain_node(state: ChatPipelineState) -> dict:
         max_iterations=MAX_TOOL_ITERATIONS,
         state=state,
         graph_node="explain",
-        # explain outputs metadata prose, not raw data rows — no tool result passthrough needed
         collect_tool_results=False,
+        require_tool_before_finish="data360_search_indicators",
     )
 
     logger.info("[explain_node] research_packet length=%d", len(final_content))

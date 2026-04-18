@@ -171,7 +171,7 @@ async def test_check_intent_called_once_for_normal_query(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_forced_intent_direct_skips_check_intent(monkeypatch):
-    """forced_intent=DIRECT must skip check_intent (v1 chat stream)."""
+    """forced_intent=DIRECT must skip check_intent (callers that pin intent)."""
     mock_ci = AsyncMock()
     monkeypatch.setattr("app.ai.graph.nodes.router.check_intent", mock_ci)
 

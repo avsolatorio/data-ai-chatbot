@@ -7,7 +7,7 @@ Provides a reusable ReAct-style tool call loop used by both the research node
 import logging
 from typing import Any
 
-from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 
 from app.ai.observability.token_usage import append_llm_usage_fallback
 
@@ -26,6 +26,7 @@ async def run_tool_loop(
     state: dict,
     graph_node: str,
     collect_tool_results: bool = False,
+    require_tool_before_finish: str | None = None,
 ) -> tuple[str, dict | None, list[dict]]:
     """Run a ReAct-style tool call loop until the LLM stops requesting tools.
 
@@ -38,6 +39,9 @@ async def run_tool_loop(
         graph_node:           LangGraph node name (SSE notifications and logging).
         collect_tool_results: When True, accumulate raw tool outputs for the caller.
                               Used by research_node to pass results directly to narrator.
+        require_tool_before_finish: If set, the model may not finish with plain text until
+            this tool name has been executed at least once. If it tries to stop early,
+            the last assistant message is removed and a reminder is injected (explain_node).
 
     Returns:
         (final_content, final_usage, tool_results):
@@ -49,6 +53,7 @@ async def run_tool_loop(
     final_content: str = ""
     final_usage: dict | None = None
     tool_results: list[dict] = []
+    tools_executed: set[str] = set()
 
     for iteration in range(max_iterations):
         logger.info("[%s] LLM call iteration=%d", graph_node, iteration)
@@ -81,6 +86,23 @@ async def run_tool_loop(
             )
 
         if not response.tool_calls:
+            if require_tool_before_finish and require_tool_before_finish not in tools_executed:
+                logger.info(
+                    "[%s] model finished without tools but %s not run yet — retry",
+                    graph_node,
+                    require_tool_before_finish,
+                )
+                messages.pop()
+                messages.append(
+                    HumanMessage(
+                        content=(
+                            f"You must call `{require_tool_before_finish}` at least once "
+                            "with the user's term or topic before writing the RESEARCH PACKET. "
+                            "Do not answer from memory."
+                        )
+                    )
+                )
+                continue
             logger.info(
                 "[%s] no more tool calls after %d iterations — done",
                 graph_node,
@@ -120,6 +142,7 @@ async def run_tool_loop(
                 output=tool_result,
             )
             messages.append(ToolMessage(content=str(tool_result), tool_call_id=tool_call_id))
+            tools_executed.add(tool_name)
 
             if collect_tool_results:
                 tool_results.append(
@@ -131,5 +154,18 @@ async def run_tool_loop(
                 )
     else:
         logger.warning("[%s] reached max_iterations=%d", graph_node, max_iterations)
+
+    if require_tool_before_finish and require_tool_before_finish not in tools_executed:
+        logger.warning(
+            "[%s] iteration cap reached without required tool=%s",
+            graph_node,
+            require_tool_before_finish,
+        )
+        final_content = (
+            "### RESEARCH PACKET:\n"
+            "- User intent: Metadata lookup was required but the search tool did not run in time.\n"
+            "### NO_DATA:\n"
+            "Repeat or narrow the question; do not invent definitions without Data360 metadata.\n"
+        )
 
     return final_content, final_usage, tool_results
