@@ -78,6 +78,8 @@ const nextConfig: NextConfig = {
     ];
   },
   transpilePackages: [
+    "@data360/mcp-ui",
+    "@data360/tool-types",
     "@pcn-js/core",
     "@pcn-js/ui",
     "@pcn-js/data360",

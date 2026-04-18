@@ -1,5 +1,6 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
+import { parseData360VizToolResult } from "@data360/tool-types";
 import { DATA360_GET_DATA_TOOL } from "@pcn-js/data360";
 import { IngestToolOutput } from "@pcn-js/ui";
 import type { ToolUIPart } from "ai";
@@ -24,7 +25,6 @@ import {
   type NodeProgressPart,
   type StreamingThinkingPart,
 } from "@/lib/types";
-import { NodeProgress } from "./elements/node-progress";
 import type { AppUsage } from "@/lib/usage";
 import { cn, sanitizeText } from "@/lib/utils";
 import { ASK_ABOUT_SELECTION_CONTEXT_ATTR } from "./ask-about-selection-toolbar";
@@ -41,6 +41,7 @@ import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
 import { CodeBlock } from "./elements/code-block";
 import { MessageContent } from "./elements/message";
+import { NodeProgress } from "./elements/node-progress";
 import { Response } from "./elements/response";
 import {
   Source,
@@ -335,7 +336,14 @@ function renderMessagePart(
     );
   }
 
-  if ((type as string) === "tool-data360_get_viz_spec") {
+  if (
+    (type as string) === "tool-data360_get_viz_spec" ||
+    (type as string) === "tool-data360_get_multi_indicator_viz_spec"
+  ) {
+    const toolHeaderType =
+      (type as string) === "tool-data360_get_multi_indicator_viz_spec"
+        ? "tool-data360_get_multi_indicator_viz_spec"
+        : "tool-data360_get_viz_spec";
     const toolPart = part as {
       toolCallId: string;
       state:
@@ -344,15 +352,33 @@ function renderMessagePart(
         | "input-streaming"
         | "output-error";
       input?: unknown;
-      output?: { url: string | null; error: string | null };
+      output?: unknown;
     };
     const { toolCallId, state } = toolPart;
-    const output = toolPart.output;
+    const parsed = parseData360VizToolResult(toolPart.output ?? {});
+    const output = parsed.success ? parsed.data : null;
+
+    if (!parsed.success) {
+      return (
+        <Tool defaultOpen={DATA360_TOOL_DEFAULT_OPEN} key={toolCallId}>
+          <ToolHeader state={state} type={toolHeaderType} />
+          <ToolContent>
+            {state === "output-available" && (
+              <ToolOutput
+                errorText="Invalid visualization tool output"
+                output={null}
+                useDefaultFormat={true}
+              />
+            )}
+          </ToolContent>
+        </Tool>
+      );
+    }
 
     if (output?.error) {
       return (
         <Tool defaultOpen={DATA360_TOOL_DEFAULT_OPEN} key={toolCallId}>
-          <ToolHeader state={state} type="tool-data360_get_viz_spec" />
+          <ToolHeader state={state} type={toolHeaderType} />
           <ToolContent>
             {state === "output-available" && (
               <ToolOutput
@@ -366,9 +392,21 @@ function renderMessagePart(
       );
     }
 
+    const vizSubtitleParts: string[] = [];
+    if (output?.warning) {
+      vizSubtitleParts.push(output.warning);
+    }
+    if (output?.strategy || output?.reason) {
+      vizSubtitleParts.push(
+        [output.strategy, output.reason].filter(Boolean).join(" — "),
+      );
+    }
+    const vizSubtitle =
+      vizSubtitleParts.length > 0 ? vizSubtitleParts.join(" · ") : undefined;
+
     return (
       <Tool defaultOpen={DATA360_TOOL_DEFAULT_OPEN} key={toolCallId}>
-        <ToolHeader state={state} type="tool-data360_get_viz_spec" />
+        <ToolHeader state={state} type={toolHeaderType} />
         <ToolContent>
           {state === "input-available" && toolPart.input !== undefined && (
             <ToolInput input={toolPart.input as ToolUIPart["input"]} />
@@ -381,6 +419,7 @@ function renderMessagePart(
                   chartUrl={output.url}
                   isReadonly={isReadonly}
                   messageId={message.id}
+                  subtitle={vizSubtitle}
                 />
               }
               useDefaultFormat={false}

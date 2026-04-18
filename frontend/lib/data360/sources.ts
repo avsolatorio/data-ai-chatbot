@@ -1,6 +1,7 @@
 /**
  * Extracts Data360 source entries from chat message parts for display in the
  * "Sources" block. Supports tool-data360_get_data, tool-data360_get_viz_spec,
+ * tool-data360_get_multi_indicator_viz_spec,
  * and tool-ai4data_ai4data_mcpget_wdi_data.
  */
 
@@ -93,7 +94,10 @@ export function getData360SourcesFromParts(
       }
     }
 
-    if (type === "tool-data360_get_viz_spec") {
+    if (
+      type === "tool-data360_get_viz_spec" ||
+      type === "tool-data360_get_multi_indicator_viz_spec"
+    ) {
       const url = typeof out.url === "string" && out.url ? out.url : null;
       if (url) {
         const key = `viz:${url}`;

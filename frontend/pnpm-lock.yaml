@@ -41,6 +41,12 @@ importers:
       '@codemirror/view':
         specifier: ^6.35.3
         version: 6.36.4
+      '@data360/mcp-ui':
+        specifier: file:../../data360-mcp/packages/mcp-ui
+        version: file:../../data360-mcp/packages/mcp-ui(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
+      '@data360/tool-types':
+        specifier: file:../../data360-mcp/packages/tool-types
+        version: file:../../data360-mcp/packages/tool-types
       '@icons-pack/react-simple-icons':
         specifier: ^13.7.0
         version: 13.8.0(react@19.0.0-rc-45804af1-20241021)
@@ -529,6 +535,18 @@ packages:
 
   '@codemirror/view@6.36.4':
     resolution: {integrity: sha512-ZQ0V5ovw/miKEXTvjgzRyjnrk9TwriUB1k4R5p7uNnHR9Hus+D1SXHGdJshijEzPFjU25xea/7nhIeSqYFKdbA==}
+
+  '@data360/mcp-ui@file:../../data360-mcp/packages/mcp-ui':
+    resolution: {directory: ../../data360-mcp/packages/mcp-ui, type: directory}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
+      vega: '>=5.0.0'
+      vega-embed: '>=6.0.0'
+      vega-lite: '>=5.0.0'
+
+  '@data360/tool-types@file:../../data360-mcp/packages/tool-types':
+    resolution: {directory: ../../data360-mcp/packages/tool-types, type: directory}
 
   '@emnapi/runtime@1.7.1':
     resolution: {integrity: sha512-PVtJr5CmLwYAU9PZDMITZoR5iAOShYREoR45EyyLrbntV50mdePTgUn4AmOw90Ifcj+x2kRjdzr1HP3RrNiHGA==}
@@ -4743,6 +4761,18 @@ snapshots:
       '@codemirror/state': 6.5.2
       style-mod: 4.1.2
       w3c-keyname: 2.2.8
+
+  '@data360/mcp-ui@file:../../data360-mcp/packages/mcp-ui(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
+    dependencies:
+      react: 19.0.0-rc-45804af1-20241021
+      react-dom: 19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021)
+      vega: 5.33.1
+      vega-embed: 6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
+      vega-lite: 5.23.0(vega@5.33.1)
+
+  '@data360/tool-types@file:../../data360-mcp/packages/tool-types':
+    dependencies:
+      zod: 3.25.76
 
   '@emnapi/runtime@1.7.1':
     dependencies:

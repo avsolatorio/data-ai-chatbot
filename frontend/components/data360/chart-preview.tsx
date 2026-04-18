@@ -1,185 +1,35 @@
 "use client";
 
+import type { VLSpec } from "@data360/mcp-ui/viz-card";
+import { VegaChartCard } from "@data360/mcp-ui/viz-card";
 import type { MouseEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
 import { proxyChartUrlForFetch } from "@/lib/chart-url";
 import { getBasePath } from "@/lib/config";
+import { normalizeChartPayloadFromJson } from "@/lib/data360/normalize-chart-payload";
 import type { UIArtifact } from "../artifact";
 import { FullscreenIcon, LoaderIcon } from "../icons";
 
-const DEFAULT_VEGA_THEME_URL =
-  "https://worldbank.github.io/data-visualization-style-guide/vega/wb-vega-theme.json";
-
-function getVegaThemeUrl(): string {
-  const url = process.env.NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL?.trim();
-  return url ?? DEFAULT_VEGA_THEME_URL;
-}
-
-function applyThemeToSpec(
-  spec: Record<string, unknown>,
-  theme: Record<string, unknown>,
-): Record<string, unknown> {
-  const mergedConfig = {
-    ...(typeof spec.config === "object" && spec.config !== null
-      ? (spec.config as Record<string, unknown>)
-      : {}),
-    ...theme,
-  };
-  return { ...spec, config: mergedConfig };
-}
-
-type ChartApiResponse = {
-  id: string;
-  title: string;
-  createdAt: string;
-  spec: Record<string, unknown>;
-};
-
-type ChartPreviewProps = {
+export type ChartPreviewProps = {
   chartUrl: string;
   isReadonly?: boolean;
   /** Message that contains this chart; used to scroll chat to it when artifact scroll behavior is "trigger". */
   messageId?: string;
+  /** Shown as the card subtitle (e.g. multi-indicator strategy). */
+  subtitle?: string;
 };
 
-/** Aspect ratio for the chart preview (width / height). 16/9 is a good default for charts. */
-const PREVIEW_ASPECT_RATIO = 16 / 9;
-
-/** Renders a small Vega-Lite chart from a spec string (with theme). Fills container width with aspect-ratio height. */
-function ChartThumbnail({ specJson }: { specJson: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  type VegaViewRef = {
-    width: (w?: number) => VegaViewRef;
-    height: (h?: number) => VegaViewRef;
-    run: () => unknown;
-    finalize?: () => void;
-  };
-  const viewRef = useRef<VegaViewRef | null>(null);
-  const [themeConfig, setThemeConfig] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(getVegaThemeUrl())
-      .then((res) => res.json())
-      .then((data: Record<string, unknown>) => {
-        if (!cancelled) setThemeConfig(data);
-      })
-      .catch(() => {
-        if (!cancelled) setThemeConfig({});
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!containerRef.current || !specJson.trim() || themeConfig === null) {
-      return;
-    }
-    let spec: Record<string, unknown>;
-    try {
-      spec = JSON.parse(specJson) as Record<string, unknown>;
-    } catch {
-      return;
-    }
-    const specWithTheme = applyThemeToSpec(spec, themeConfig);
-    const el = containerRef.current;
-    let resizeObserver: ResizeObserver | null = null;
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const { default: embed } = await import("vega-embed");
-        let hasEmbedded = false;
-
-        const CHART_PADDING = 24;
-        const padTotalX = CHART_PADDING * 2;
-        const padTotalY = CHART_PADDING * 2;
-
-        const runEmbed = (w: number, h: number) => {
-          if (cancelled || !el.isConnected) return;
-          const width = Math.max(1, Math.floor(w));
-          const height = Math.max(1, Math.floor(h));
-          const innerWidth = Math.max(1, width - padTotalX);
-          const innerHeight = Math.max(1, height - padTotalY);
-          if (viewRef.current) {
-            viewRef.current.width(innerWidth).height(innerHeight).run();
-            return;
-          }
-          if (hasEmbedded) return;
-          hasEmbedded = true;
-          // Force the chart to fit inside the container. With autosize "fit", padding can
-          // be applied after size and expand the view, so use inner dimensions so the
-          // total rendered chart (content + padding) stays within the container.
-          const specForContainer: Record<string, unknown> = {
-            ...specWithTheme,
-            width: innerWidth,
-            height: innerHeight,
-            padding: CHART_PADDING,
-            autosize: { type: "fit", contain: "padding" },
-          };
-          embed(el, specForContainer, {
-            renderer: "canvas",
-            actions: false,
-          })
-            .then((result) => {
-              if (cancelled) {
-                result.view.finalize();
-                return;
-              }
-              viewRef.current = result.view as VegaViewRef;
-            })
-            .catch(() => {
-              if (!cancelled) viewRef.current = null;
-            });
-        };
-
-        resizeObserver = new ResizeObserver((entries) => {
-          const entry = entries[0];
-          if (!entry) return;
-          const { width } = entry.contentRect;
-          const height = width / PREVIEW_ASPECT_RATIO;
-          runEmbed(width, height);
-        });
-        resizeObserver.observe(el);
-        const w = el.clientWidth;
-        const h = el.clientHeight;
-        if (w > 0 && h > 0) runEmbed(w, h);
-      } catch {
-        if (!cancelled) viewRef.current = null;
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      resizeObserver?.disconnect();
-      const view = viewRef.current;
-      viewRef.current = null;
-      if (view?.finalize) view.finalize();
-      el.replaceChildren();
-    };
-  }, [specJson, themeConfig]);
-
-  return (
-    <div
-      className="relative w-full overflow-hidden bg-white dark:bg-zinc-900"
-      style={{ aspectRatio: PREVIEW_ASPECT_RATIO }}
-    >
-      <div ref={containerRef} className="absolute inset-0 size-full" />
-    </div>
-  );
-}
+const PREVIEW_CHART_HEIGHT = 280;
 
 export function ChartPreview({
   chartUrl,
   isReadonly,
   messageId,
+  subtitle,
 }: ChartPreviewProps) {
   const { setArtifact } = useArtifact();
+  const cardRef = useRef<HTMLDivElement>(null);
   const [chartData, setChartData] = useState<{
     spec: Record<string, unknown>;
     specJson: string;
@@ -195,20 +45,20 @@ export function ChartPreview({
   useEffect(() => {
     let cancelled = false;
     setLoadError(null);
+    setChartData(null);
     fetch(proxiedUrl)
       .then((res) => {
         if (!res.ok) throw new Error(`Failed to load chart: ${res.status}`);
-        return res.json() as Promise<ChartApiResponse>;
+        return res.json() as Promise<unknown>;
       })
       .then((data) => {
         if (cancelled) return;
-        const spec =
-          typeof data.spec === "object" && data.spec !== null ? data.spec : {};
+        const { spec, title } = normalizeChartPayloadFromJson(data);
         const specJson = JSON.stringify(spec);
         setChartData({
           spec,
           specJson,
-          title: data.title ?? "Chart",
+          title,
         });
       })
       .catch((err) => {
@@ -223,12 +73,13 @@ export function ChartPreview({
     };
   }, [proxiedUrl]);
 
-  const handleClick = useCallback(
-    (event: MouseEvent<HTMLElement>) => {
+  const handleOpenArtifact = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
       if (isReadonly || !chartData) return;
       setIsOpening(true);
       const target = event.currentTarget;
       const boundingBox = target.getBoundingClientRect();
+      const cardBox = cardRef.current?.getBoundingClientRect();
       setArtifact((artifact: UIArtifact) => ({
         ...artifact,
         kind: "chart",
@@ -237,7 +88,7 @@ export function ChartPreview({
         content: chartData.specJson,
         isVisible: true,
         status: "idle",
-        boundingBox: {
+        boundingBox: cardBox ?? {
           left: boundingBox.x,
           top: boundingBox.y,
           width: boundingBox.width,
@@ -259,38 +110,45 @@ export function ChartPreview({
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={isReadonly || !chartData || isOpening}
-      className="flex w-full flex-col overflow-hidden rounded-xl border border-zinc-200 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:hover:bg-zinc-800"
+    <div
+      ref={cardRef}
+      className="flex w-full flex-col overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700"
     >
-      {/* Preview area inside the same card */}
       <div className="border-b border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-900/30">
         {chartData ? (
-          <ChartThumbnail specJson={chartData.specJson} />
+          <VegaChartCard
+            chartHeight={PREVIEW_CHART_HEIGHT}
+            source="World Bank — Data360"
+            spec={chartData.spec as VLSpec}
+            subtitle={subtitle}
+            title={chartData.title}
+          />
         ) : (
-          <div
-            className="flex w-full items-center justify-center bg-white dark:bg-zinc-900"
-            style={{ aspectRatio: PREVIEW_ASPECT_RATIO }}
-          >
+          <div className="flex min-h-[200px] w-full items-center justify-center bg-white dark:bg-zinc-900">
             <span className="animate-spin">
               <LoaderIcon />
             </span>
           </div>
         )}
       </div>
-      {/* Label row */}
       <div className="flex flex-row items-center justify-between gap-2 p-4">
         <span className="font-medium">View Vega-Lite chart</span>
-        {isOpening ? (
-          <span className="animate-spin">
-            <LoaderIcon />
-          </span>
-        ) : (
-          <FullscreenIcon />
-        )}
+        <button
+          disabled={isReadonly || !chartData || isOpening}
+          onClick={handleOpenArtifact}
+          type="button"
+          className="inline-flex shrink-0 items-center justify-center rounded-md p-2 text-zinc-600 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-zinc-400 dark:hover:bg-zinc-800"
+        >
+          {isOpening ? (
+            <span className="animate-spin">
+              <LoaderIcon />
+            </span>
+          ) : (
+            <FullscreenIcon />
+          )}
+          <span className="sr-only">Open chart in viewer</span>
+        </button>
       </div>
-    </button>
+    </div>
   );
 }
