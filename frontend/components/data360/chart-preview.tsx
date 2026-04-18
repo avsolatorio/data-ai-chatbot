@@ -29,7 +29,8 @@ export function ChartPreview({
   subtitle,
 }: ChartPreviewProps) {
   const { setArtifact } = useArtifact();
-  const cardRef = useRef<HTMLDivElement>(null);
+  /** Bounds for chart artifact animation (full VegaChartCard including right rail). */
+  const chartRegionRef = useRef<HTMLDivElement>(null);
   const [chartData, setChartData] = useState<{
     spec: Record<string, unknown>;
     specJson: string;
@@ -79,7 +80,7 @@ export function ChartPreview({
       setIsOpening(true);
       const target = event.currentTarget;
       const boundingBox = target.getBoundingClientRect();
-      const cardBox = cardRef.current?.getBoundingClientRect();
+      const cardBox = chartRegionRef.current?.getBoundingClientRect();
       setArtifact((artifact: UIArtifact) => ({
         ...artifact,
         kind: "chart",
@@ -109,46 +110,45 @@ export function ChartPreview({
     );
   }
 
-  return (
-    <div
-      ref={cardRef}
-      className="flex w-full flex-col overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700"
+  const showExpand = Boolean(chartData) && !isReadonly;
+
+  const expandButton = showExpand ? (
+    <button
+      aria-label="Open chart in viewer"
+      disabled={isOpening}
+      onClick={handleOpenArtifact}
+      title="Open chart in viewer"
+      type="button"
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-[0.5px] border-zinc-300/90 bg-transparent text-zinc-600 transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800/80"
     >
-      <div className="border-b border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-900/30">
-        {chartData ? (
-          <VegaChartCard
-            chartHeight={PREVIEW_CHART_HEIGHT}
-            source="World Bank — Data360"
-            spec={chartData.spec as VLSpec}
-            subtitle={subtitle}
-            title={chartData.title}
-          />
-        ) : (
-          <div className="flex min-h-[200px] w-full items-center justify-center bg-white dark:bg-zinc-900">
-            <span className="animate-spin">
-              <LoaderIcon />
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="flex flex-row items-center justify-between gap-2 p-4">
-        <span className="font-medium">View Vega-Lite chart</span>
-        <button
-          disabled={isReadonly || !chartData || isOpening}
-          onClick={handleOpenArtifact}
-          type="button"
-          className="inline-flex shrink-0 items-center justify-center rounded-md p-2 text-zinc-600 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-zinc-400 dark:hover:bg-zinc-800"
-        >
-          {isOpening ? (
-            <span className="animate-spin">
-              <LoaderIcon />
-            </span>
-          ) : (
-            <FullscreenIcon />
-          )}
-          <span className="sr-only">Open chart in viewer</span>
-        </button>
-      </div>
+      {isOpening ? (
+        <span className="animate-spin">
+          <LoaderIcon />
+        </span>
+      ) : (
+        <FullscreenIcon size={14} />
+      )}
+    </button>
+  ) : undefined;
+
+  return (
+    <div ref={chartRegionRef} className="w-full min-w-0">
+      {chartData ? (
+        <VegaChartCard
+          chartHeight={PREVIEW_CHART_HEIGHT}
+          railTopSlot={expandButton}
+          source="World Bank — Data360"
+          spec={chartData.spec as VLSpec}
+          subtitle={subtitle}
+          title={chartData.title}
+        />
+      ) : (
+        <div className="flex min-h-[200px] w-full items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20">
+          <span className="animate-spin">
+            <LoaderIcon />
+          </span>
+        </div>
+      )}
     </div>
   );
 }

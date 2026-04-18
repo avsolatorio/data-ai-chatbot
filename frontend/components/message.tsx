@@ -1,6 +1,9 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
-import { parseData360VizToolResult } from "@data360/tool-types";
+import {
+  isData360VizToolSuccess,
+  parseData360VizToolResult,
+} from "@data360/tool-types";
 import { DATA360_GET_DATA_TOOL } from "@pcn-js/data360";
 import { IngestToolOutput } from "@pcn-js/ui";
 import type { ToolUIPart } from "ai";
@@ -58,7 +61,7 @@ import {
   ToolInput,
   ToolOutput,
 } from "./elements/tool";
-import { SparklesIcon } from "./icons";
+import { LoaderIcon, SparklesIcon } from "./icons";
 import { MessageActions } from "./message-actions";
 import { MessageEditor } from "./message-editor";
 import { MessageReasoning } from "./message-reasoning";
@@ -357,40 +360,6 @@ function renderMessagePart(
     const parsed = parseData360VizToolResult(toolPart.output ?? {});
     const output = parsed.success ? parsed.data : null;
 
-    if (!parsed.success) {
-      return (
-        <Tool defaultOpen={false} key={toolCallId}>
-          <ToolHeader state={state} type={toolHeaderType} />
-          <ToolContent>
-            {state === "output-available" && (
-              <ToolOutput
-                errorText="Invalid visualization tool output"
-                output={null}
-                useDefaultFormat={true}
-              />
-            )}
-          </ToolContent>
-        </Tool>
-      );
-    }
-
-    if (output?.error) {
-      return (
-        <Tool defaultOpen={false} key={toolCallId}>
-          <ToolHeader state={state} type={toolHeaderType} />
-          <ToolContent>
-            {state === "output-available" && (
-              <ToolOutput
-                errorText={output.error}
-                output={null}
-                useDefaultFormat={true}
-              />
-            )}
-          </ToolContent>
-        </Tool>
-      );
-    }
-
     const vizSubtitleParts: string[] = [];
     if (output?.warning) {
       vizSubtitleParts.push(output.warning);
@@ -409,24 +378,62 @@ function renderMessagePart(
         key={toolCallId}
       >
         <ToolHeader state={state} type={toolHeaderType} />
-        <ToolContent>
+        <ToolContent className="ml-0 border-l-0 pl-0">
           {state === "input-available" && toolPart.input !== undefined && (
             <ToolInput input={toolPart.input as ToolUIPart["input"]} />
           )}
-          {state === "output-available" && output?.url && (
+          {(state === "input-streaming" ||
+            (state === "input-available" && toolPart.input === undefined)) && (
+            <div className="flex items-center gap-2 px-1 py-2 text-muted-foreground text-sm">
+              <span className="animate-spin">
+                <LoaderIcon />
+              </span>
+              Preparing chart…
+            </div>
+          )}
+          {state === "output-available" && !parsed.success && (
             <ToolOutput
-              errorText={undefined}
-              output={
-                <ChartPreview
-                  chartUrl={output.url}
-                  isReadonly={isReadonly}
-                  messageId={message.id}
-                  subtitle={vizSubtitle}
-                />
-              }
-              useDefaultFormat={false}
+              errorText="Invalid visualization tool output"
+              output={null}
+              useDefaultFormat={true}
             />
           )}
+          {state === "output-available" && parsed.success && output?.error && (
+            <ToolOutput
+              errorText={output.error}
+              output={null}
+              useDefaultFormat={true}
+            />
+          )}
+          {state === "output-available" &&
+            parsed.success &&
+            output &&
+            !output.error &&
+            isData360VizToolSuccess(output) && (
+              <ToolOutput
+                errorText={undefined}
+                output={
+                  <ChartPreview
+                    chartUrl={output.url}
+                    isReadonly={isReadonly}
+                    messageId={message.id}
+                    subtitle={vizSubtitle}
+                  />
+                }
+                useDefaultFormat={false}
+              />
+            )}
+          {state === "output-available" &&
+            parsed.success &&
+            output &&
+            !output.error &&
+            !isData360VizToolSuccess(output) && (
+              <ToolOutput
+                errorText="Chart data unavailable."
+                output={null}
+                useDefaultFormat={true}
+              />
+            )}
         </ToolContent>
       </Tool>
     );
