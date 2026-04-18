@@ -158,6 +158,25 @@ const rawEnvSchema = z.object({
   MAINTENANCE_MODE: booleanEnv.describe(
     "Redirect to maintenance page when true",
   ),
+  MAINTENANCE_ON_BACKEND_UNREADY: booleanEnv.describe(
+    "When true, redirect like MAINTENANCE_MODE if GET {SERVER_API_URL}/ready is not OK (cached)",
+  ),
+  BACKEND_READY_CACHE_MS: z
+    .string()
+    .optional()
+    .transform((v) => {
+      if (!v?.trim()) return undefined;
+      const n = Number.parseInt(v.trim(), 10);
+      return Number.isFinite(n) && n >= 0 ? n : undefined;
+    }),
+  BACKEND_READY_FETCH_TIMEOUT_MS: z
+    .string()
+    .optional()
+    .transform((v) => {
+      if (!v?.trim()) return undefined;
+      const n = Number.parseInt(v.trim(), 10);
+      return Number.isFinite(n) && n > 0 ? n : undefined;
+    }),
 
   // --- CSP ---
   CSP_ENABLED: booleanEnv.describe("Enable Content-Security-Policy headers"),
@@ -226,6 +245,9 @@ export type Env = RawEnv & {
   NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_INTERVAL_MS: number;
   NEXT_PUBLIC_SKIP_LOGIN_PAGE: boolean;
   MAINTENANCE_MODE: boolean;
+  MAINTENANCE_ON_BACKEND_UNREADY: boolean;
+  BACKEND_READY_CACHE_MS: number;
+  BACKEND_READY_FETCH_TIMEOUT_MS: number;
   CSP_ENABLED: boolean;
   CSP_REPORT_ENABLED: boolean;
 };

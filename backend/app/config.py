@@ -190,6 +190,10 @@ class Settings(BaseSettings):
     # When True, users can set chats to public (share via link). Default False.
     ENABLE_SHARE_CONVERSATION: bool = False
 
+    # When False, GET /ready returns 200 immediately with readiness_checks=disabled (no MCP probe).
+    # Use to bypass readiness for ops without changing MCP_* vars.
+    READINESS_ENABLED: bool = True
+
     # Feedback review: only these users (by email) can list feedback. Comma-separated, case-insensitive.
     # Empty = no one can access review; set in production to e.g. "admin@example.com,reviewer@example.com"
     FEEDBACK_REVIEWER_EMAILS: str = ""
@@ -237,6 +241,10 @@ class MCPSettings(BaseSettings):
     headers_json: str = ""
     # If set, adds Authorization: Bearer <value> (in addition to headers_json)
     authorization_bearer: str = ""
+    # When False, GET /ready skips the Data360 MCP probe (reports data360_mcp as skipped).
+    readiness_enabled: bool = True
+    # Max seconds for MCP get_tools during /ready; 0 means use load_timeout.
+    readiness_timeout: float = 0.0
 
     model_config = ConfigDict(
         extra="forbid",

@@ -31,6 +31,7 @@ from app.core.csrf import CSRFMiddleware
 from app.core.rate_limit import RateLimitMiddleware
 from app.core.redis import close_redis_client
 from app.core.request_logging import RequestLoggingMiddleware
+from app.ready import run_readiness
 from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
 
 # Resolve log level from config (DEBUG, INFO, WARNING, ERROR)
@@ -190,6 +191,12 @@ app.include_router(models_router.router, prefix="/api/models", tags=["models"])
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "version": "1.0.0"}
+
+
+@app.get("/ready")
+async def ready_check():
+    status_code, body = await run_readiness()
+    return JSONResponse(content=body, status_code=status_code)
 
 
 @app.get("/")

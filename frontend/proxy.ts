@@ -171,7 +171,52 @@ function isMaintenanceBypass(request: NextRequest): boolean {
   return v === "true" || v === "1";
 }
 
-export function proxy(request: NextRequest) {
+/** Cached GET /ready result (Next proxy runs on the server). */
+let backendReadyCache: { expiresAt: number; ok: boolean } | null = null;
+
+function backendHealthBaseUrl(): string | undefined {
+  const env = getEnv();
+  const raw =
+    env.SERVER_API_URL?.trim() || env.NEXT_PUBLIC_API_URL?.trim() || "";
+  if (!raw) return undefined;
+  return raw.replace(/\/+$/, "");
+}
+
+/**
+ * When MAINTENANCE_ON_BACKEND_UNREADY is true, probes FastAPI GET /ready.
+ * Fail-open if no SERVER_API_URL/NEXT_PUBLIC_API_URL (misconfig should not lock users out).
+ */
+async function isBackendReadyCached(): Promise<boolean> {
+  const env = getEnv();
+  if (!env.MAINTENANCE_ON_BACKEND_UNREADY) {
+    return true;
+  }
+  const base = backendHealthBaseUrl();
+  if (!base) {
+    return true;
+  }
+  const now = Date.now();
+  if (backendReadyCache !== null && now < backendReadyCache.expiresAt) {
+    return backendReadyCache.ok;
+  }
+  const ttl = env.BACKEND_READY_CACHE_MS;
+  const timeoutMs = env.BACKEND_READY_FETCH_TIMEOUT_MS;
+  try {
+    const res = await fetch(`${base}/ready`, {
+      method: "GET",
+      cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const ok = res.ok;
+    backendReadyCache = { expiresAt: now + ttl, ok };
+    return ok;
+  } catch {
+    backendReadyCache = { expiresAt: now + ttl, ok: false };
+    return false;
+  }
+}
+
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   /*
@@ -208,7 +253,10 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  if (isMaintenanceMode() && !isMaintenanceBypass(request)) {
+  const backendReady = await isBackendReadyCached();
+  const effectiveMaintenance = isMaintenanceMode() || !backendReady;
+
+  if (effectiveMaintenance && !isMaintenanceBypass(request)) {
     const maintenancePath = `${BASE_PATH}/maintenance`;
     const isMaintenance =
       pathMatches(pathname, "/maintenance") || pathname === maintenancePath;
@@ -288,7 +336,9 @@ export function proxy(request: NextRequest) {
   if (authProvider === "data360" && !authenticated) {
     const data360AuthUrl = getEnv().NEXT_PUBLIC_DATA360_AUTH_URL;
     if (data360AuthUrl) {
-      const returnTo = encodeURIComponent(getPublicReturnUrlFromRequest(request));
+      const returnTo = encodeURIComponent(
+        getPublicReturnUrlFromRequest(request),
+      );
       const redirectUrl = `${data360AuthUrl}${data360AuthUrl.includes("?") ? "&" : "?"}returnTo=${returnTo}`;
       return NextResponse.redirect(redirectUrl);
     }
