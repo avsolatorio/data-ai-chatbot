@@ -53,6 +53,7 @@ from app.db.queries.chat_queries import (
     update_chat_visibility_by_id,
 )
 from app.db.queries.suggestion_queries import get_suggestions_by_document_id
+from app.ready import ensure_chat_ready_or_raise
 from app.utils.chat_visibility import effective_visibility
 from app.utils.message_converter import convert_messages_to_openai_format
 from app.utils.resumable_stream import mark_stream_complete
@@ -167,6 +168,8 @@ async def create_chat(
         user_id,
         type(user_id).__name__,
     )
+
+    await ensure_chat_ready_or_raise()
 
     # Note: User should already exist in database (created during registration/guest creation)
     # No need to check or create users here

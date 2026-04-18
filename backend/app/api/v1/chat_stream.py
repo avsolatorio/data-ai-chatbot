@@ -28,6 +28,7 @@ from app.config import IntentType
 from app.core.database import get_db
 from app.core.errors import ChatSDKError
 from app.db.queries.chat_queries import create_stream_id, get_chat_by_id
+from app.ready import ensure_chat_ready_or_raise
 from app.utils.message_converter import convert_messages_to_openai_format
 from app.utils.resumable_stream import mark_stream_complete
 from app.utils.stream import patch_response_with_headers
@@ -56,6 +57,8 @@ async def stream_chat(
     logger.info("=== STREAM CHAT ENDPOINT CALLED (v1 LangGraph) ===")
     logger.info("Chat ID: %s", request.id)
     try:
+        await ensure_chat_ready_or_raise()
+
         user_id = get_user_id_uuid(current_user["id"])
 
         existing_chat = await get_chat_by_id(db, request.id)

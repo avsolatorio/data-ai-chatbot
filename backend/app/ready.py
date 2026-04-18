@@ -60,3 +60,21 @@ async def run_readiness() -> tuple[int, dict[str, Any]]:
     if not ok:
         return 503, {"status": "not_ready", "checks": checks}
     return 200, {"status": "ready", "checks": checks}
+
+
+async def ensure_chat_ready_or_raise() -> None:
+    """
+    Enforce the same rules as GET /ready before starting a chat turn (POST /api/chat, stream).
+    Raises ChatSDKError 503 when Data360 MCP is required but not reachable.
+    """
+    from fastapi import status
+
+    from app.core.errors import ChatSDKError
+
+    code, _body = await run_readiness()
+    if code == 200:
+        return
+    raise ChatSDKError(
+        "not_ready:chat",
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )

@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import ready as ready_mod
+from app.core.errors import ChatSDKError
 from app.main import app
 
 client = TestClient(app)
@@ -100,6 +101,25 @@ def test_ready_mcp_no_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     response = client.get("/ready")
     assert response.status_code == 503
     assert response.json()["checks"]["data360_mcp"]["detail"] == "no_tools"
+
+
+async def test_ensure_chat_ready_or_raise_ok(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_run() -> tuple[int, dict]:
+        return 200, {"status": "ready", "checks": {}}
+
+    monkeypatch.setattr(ready_mod, "run_readiness", fake_run)
+    await ready_mod.ensure_chat_ready_or_raise()
+
+
+async def test_ensure_chat_ready_or_raise_503(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_run() -> tuple[int, dict]:
+        return 503, {"status": "not_ready", "checks": {}}
+
+    monkeypatch.setattr(ready_mod, "run_readiness", fake_run)
+    with pytest.raises(ChatSDKError) as exc_info:
+        await ready_mod.ensure_chat_ready_or_raise()
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.error_code == "not_ready:chat"
 
 
 def test_ready_mcp_timeout(monkeypatch: pytest.MonkeyPatch) -> None:

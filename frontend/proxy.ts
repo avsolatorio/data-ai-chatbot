@@ -254,10 +254,23 @@ export async function proxy(request: NextRequest) {
   }
 
   const backendReady = await isBackendReadyCached();
+  const maintenancePath = `${BASE_PATH}/maintenance`;
+  const isMaintenanceRoute =
+    pathMatches(pathname, "/maintenance") || pathname === maintenancePath;
+
+  /*
+   * No env-driven maintenance, but user is still on /maintenance (e.g. sent here when
+   * MAINTENANCE_ON_BACKEND_UNREADY was true and the API was down). Once GET /ready is OK,
+   * send them to app home on refresh instead of leaving them stuck on the maintenance page.
+   */
+  if (isMaintenanceRoute && !isMaintenanceMode() && backendReady) {
+    const baseOrigin = getRequestOrigin(request);
+    return NextResponse.redirect(new URL(`${BASE_PATH}/`, baseOrigin));
+  }
+
   const effectiveMaintenance = isMaintenanceMode() || !backendReady;
 
   if (effectiveMaintenance && !isMaintenanceBypass(request)) {
-    const maintenancePath = `${BASE_PATH}/maintenance`;
     const isMaintenance =
       pathMatches(pathname, "/maintenance") || pathname === maintenancePath;
     const isNextOrApi =
