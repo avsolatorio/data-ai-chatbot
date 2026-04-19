@@ -75,6 +75,7 @@ function PureMessages({
     containerRef: messagesContainerRef,
     endRef: messagesEndRef,
     isAtBottom,
+    isScrollSettled,
     scrollToBottom,
     hasSentMessage,
   } = useMessages({
@@ -355,10 +356,11 @@ function PureMessages({
       <button
         aria-label="Scroll to bottom"
         className={`-translate-x-1/2 absolute bottom-4 left-1/2 z-10 rounded-full border bg-background p-2 shadow-lg transition-all hover:bg-muted ${
-          isAtBottom
+          isAtBottom || !isScrollSettled
             ? "pointer-events-none scale-0 opacity-0"
             : "pointer-events-auto scale-100 opacity-100"
         }`}
+        data-testid="scroll-to-bottom-button"
         onClick={() => scrollToBottom("smooth")}
         type="button"
       >

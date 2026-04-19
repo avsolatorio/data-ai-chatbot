@@ -4,7 +4,7 @@ import { getData360ToolDefaultOpen } from "@/lib/config";
 const DATA360_EXPAND_BY_DEFAULT = new Set([
   "tool-data360_get_viz_spec",
   "tool-data360_get_multi_indicator_viz_spec",
-  "tool-data360_get_data",
+  // "tool-data360_get_data",
 ]);
 
 /**

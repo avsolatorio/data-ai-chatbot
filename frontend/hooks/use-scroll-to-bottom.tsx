@@ -5,8 +5,10 @@ export function useScrollToBottom(options?: { disableAutoScroll?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [isScrollSettled, setIsScrollSettled] = useState(true);
   const isAtBottomRef = useRef(true);
   const isUserScrollingRef = useRef(false);
+  const scrollQuietRef = useRef(true);
   const lastScrollTimeRef = useRef(0);
 
   // Keep ref in sync with state
@@ -45,6 +47,10 @@ export function useScrollToBottom(options?: { disableAutoScroll?: boolean }) {
     const handleScroll = () => {
       lastScrollTimeRef.current = Date.now();
       isUserScrollingRef.current = true;
+      if (scrollQuietRef.current) {
+        scrollQuietRef.current = false;
+        setIsScrollSettled(false);
+      }
       clearTimeout(scrollTimeout);
 
       if (rafId === null) {
@@ -57,8 +63,10 @@ export function useScrollToBottom(options?: { disableAutoScroll?: boolean }) {
 
       scrollTimeout = setTimeout(() => {
         isUserScrollingRef.current = false;
+        scrollQuietRef.current = true;
+        setIsScrollSettled(true);
         setIsAtBottom(isAtBottomRef.current);
-      }, 200);
+      }, 500);
     };
 
     container.addEventListener("scroll", handleScroll, { passive: true });
@@ -140,6 +148,7 @@ export function useScrollToBottom(options?: { disableAutoScroll?: boolean }) {
     containerRef,
     endRef,
     isAtBottom,
+    isScrollSettled,
     scrollToBottom,
     onViewportEnter,
     onViewportLeave,
