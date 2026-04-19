@@ -13,6 +13,7 @@ class Chat(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)  # noqa: N815
+    updatedAt = Column(DateTime, nullable=False, default=datetime.utcnow)  # noqa: N815
     title = Column(String, nullable=False)
     userId = Column(UUID(as_uuid=True), ForeignKey("User.id"), nullable=False)  # noqa: N815
     visibility = Column(String, nullable=False, default="private")

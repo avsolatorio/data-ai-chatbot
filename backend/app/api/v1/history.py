@@ -51,12 +51,13 @@ async def get_chat_history(
     )
 
     # Convert Chat objects to dict format matching frontend expectations.
-    # createdAt is serialized as UTC (Z suffix) so sidebar grouping by local day is correct.
+    # Timestamps are UTC (Z suffix) so sidebar grouping by local day is correct.
     chats = [
         {
             "id": str(chat.id),
             "title": chat.title,
             "createdAt": _iso_utc(chat.createdAt),
+            "updatedAt": _iso_utc(chat.updatedAt),
             "visibility": effective_visibility(chat.visibility),
             "userId": str(chat.userId),
             "lastContext": chat.lastContext,

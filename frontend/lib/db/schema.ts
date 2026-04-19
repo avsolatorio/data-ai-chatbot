@@ -15,6 +15,8 @@ export type User = {
 export type Chat = {
   id: string;
   createdAt: Date | string;
+  /** Last activity (messages, context, visibility); falls back to createdAt if absent (older API). */
+  updatedAt?: Date | string;
   title: string;
   userId: string;
   visibility: "public" | "private";

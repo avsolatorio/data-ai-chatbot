@@ -44,6 +44,12 @@ export type ChatHistory = {
 
 const PAGE_SIZE = 20;
 
+/** Last activity for ordering and sidebar sections (message activity, context updates). */
+function chatActivityTimeMs(chat: Chat): number {
+  const raw = chat.updatedAt ?? chat.createdAt;
+  return new Date(raw).getTime();
+}
+
 const groupChatsByDate = (chats: Chat[]): GroupedChats => {
   const now = new Date();
   const oneWeekAgo = subWeeks(now, 1);
@@ -51,7 +57,7 @@ const groupChatsByDate = (chats: Chat[]): GroupedChats => {
 
   return chats.reduce(
     (groups, chat) => {
-      const chatDate = new Date(chat.createdAt);
+      const chatDate = new Date(chat.updatedAt ?? chat.createdAt);
 
       if (isToday(chatDate)) {
         groups.today.push(chat);
@@ -218,12 +224,10 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                 const chatsFromHistory = paginatedChatHistories.flatMap(
                   (paginatedChatHistory) => paginatedChatHistory.chats,
                 );
-                // Sort by createdAt descending so grouping order is consistent (newest first within each section).
+                // Sort by last activity (updatedAt) so resumed threads surface to the top.
                 // API returns UTC ISO strings (with Z); new Date() parses as UTC so isToday/isYesterday use local day.
                 const sorted = [...chatsFromHistory].sort(
-                  (a, b) =>
-                    new Date(b.createdAt).getTime() -
-                    new Date(a.createdAt).getTime(),
+                  (a, b) => chatActivityTimeMs(b) - chatActivityTimeMs(a),
                 );
 
                 const groupedChats = groupChatsByDate(sorted);

@@ -140,11 +140,14 @@ async def save_chat(
             chat_id,
         )
         return existing
+    now = datetime.utcnow()
     new_chat = Chat(
         id=chat_id,
         userId=user_id,
         title=title,
         visibility=visibility,
+        createdAt=now,
+        updatedAt=now,
     )
     session.add(new_chat)
     await session.commit()
@@ -225,6 +228,17 @@ async def save_messages(
         logger.info("No new messages to commit (all already existed)")
         return message_objects
 
+    latest_by_chat: dict[UUID, datetime] = {}
+    for msg in message_objects:
+        cid = msg.chatId
+        t = msg.createdAt
+        prev = latest_by_chat.get(cid)
+        if prev is None or t > prev:
+            latest_by_chat[cid] = t
+
+    for cid, ts in latest_by_chat.items():
+        await session.execute(update(Chat).where(Chat.id == cid).values(updatedAt=ts))
+
     await session.commit()
     logger.info("Messages committed to database")
     # Refresh all newly saved messages
@@ -291,6 +305,7 @@ async def update_chat_visibility_by_id(
     if not chat:
         return None
     chat.visibility = visibility
+    chat.updatedAt = datetime.utcnow()
     await session.commit()
     await session.refresh(chat)
     return chat
@@ -328,6 +343,7 @@ async def update_chat_last_context_by_id(
         new_context["summarized_message_count"] = summarized_message_count or 0
 
     chat.lastContext = new_context
+    chat.updatedAt = datetime.utcnow()
     await session.commit()
     logger.info("Chat context updated successfully")
     await session.refresh(chat)
@@ -381,7 +397,7 @@ async def get_chats_by_user_id(
 
     # Handle pagination
     if starting_after:
-        # Get chats created after the specified chat (newer chats)
+        # Chats more recently active than the reference (newer updatedAt)
         reference_chat = await get_chat_by_id(session, starting_after)
         if not reference_chat:
             from fastapi import status
@@ -393,14 +409,14 @@ async def get_chats_by_user_id(
                 f"Chat with id {starting_after} not found",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-        # Get chats with createdAt > reference (newer), ordered descending
+        # Get chats with updatedAt > reference (more recently active), ordered descending
         query = (
             select(Chat)
-            .where(and_(base_condition, Chat.createdAt > reference_chat.createdAt))
-            .order_by(desc(Chat.createdAt))
+            .where(and_(base_condition, Chat.updatedAt > reference_chat.updatedAt))
+            .order_by(desc(Chat.updatedAt))
         )
     elif ending_before:
-        # Get chats created before the specified chat (older chats)
+        # Chats less recently active than the reference (older updatedAt)
         reference_chat = await get_chat_by_id(session, ending_before)
         if not reference_chat:
             from fastapi import status
@@ -412,15 +428,15 @@ async def get_chats_by_user_id(
                 f"Chat with id {ending_before} not found",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-        # Get chats with createdAt < reference (older), ordered descending
+        # Get chats with updatedAt < reference (less recently active), ordered descending
         query = (
             select(Chat)
-            .where(and_(base_condition, Chat.createdAt < reference_chat.createdAt))
-            .order_by(desc(Chat.createdAt))
+            .where(and_(base_condition, Chat.updatedAt < reference_chat.updatedAt))
+            .order_by(desc(Chat.updatedAt))
         )
     else:
-        # No pagination - get most recent chats
-        query = select(Chat).where(base_condition).order_by(desc(Chat.createdAt))
+        # No pagination - most recently active chats first
+        query = select(Chat).where(base_condition).order_by(desc(Chat.updatedAt))
 
     # Apply limit
     query = query.limit(extended_limit)
