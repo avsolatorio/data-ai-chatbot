@@ -241,6 +241,7 @@ export async function proxy(request: NextRequest) {
     const isKnownAppPath =
       pathMatches(pathname, "/api") ||
       pathMatches(pathname, "/chat") ||
+      pathMatches(pathname, "/review") ||
       pathMatches(pathname, "/login") ||
       pathMatches(pathname, "/register") ||
       pathMatches(pathname, "/maintenance") ||
