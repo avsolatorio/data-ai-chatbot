@@ -215,35 +215,55 @@ export function SearchIndicators({
     );
   }
 
-  // Build a subtitle from queries + countries for context
   const queries = output.queries ?? (output.query ? [output.query] : []);
-  const subtitle = queries.length > 1
-    ? queries.join(" · ")
-    : (output.required_country
-        ? `${queries[0] ?? "Search"} · ${output.required_country}`
-        : undefined);
 
-  // by_query layout: use groups from output.results
+  // ── query_groups: different indicators searched per country ───────────────
   if (output.result_layout === "by_query" && output.results && output.results.length > 0) {
+    // subtitle: "CHN: GDP per capita · JPN: Life expectancy"
+    const groupSubtitle = output.results
+      .map((g) => (g.country_code ? `${g.country_code}: ${g.query}` : g.query))
+      .join(" · ");
+
     return (
       <div className="flex flex-col gap-3">
         {requestSummary}
         <SearchResultCard
           groups={output.results}
-          title="Search Results"
+          title="Multi-country Search"
+          subtitle={groupSubtitle}
+        />
+      </div>
+    );
+  }
+
+  // ── queries: multiple topics, shared country ──────────────────────────────
+  if (queries.length > 1) {
+    const country = output.required_country ? ` · ${output.required_country}` : "";
+    const subtitle = queries.join(" · ") + country;
+
+    return (
+      <div className="flex flex-col gap-3">
+        {requestSummary}
+        <SearchResultCard
+          indicators={output.indicators}
+          title="Multi-query Search"
           subtitle={subtitle}
         />
       </div>
     );
   }
 
-  // merged / single-query layout: flat indicator list
+  // ── query: single topic ───────────────────────────────────────────────────
+  const singleQuery = queries[0] ?? output.query ?? "Search";
+  const country = output.required_country ? ` · ${output.required_country}` : "";
+  const subtitle = `${singleQuery}${country}`;
+
   return (
     <div className="flex flex-col gap-3">
       {requestSummary}
       <SearchResultCard
         indicators={output.indicators}
-        title="Search Results"
+        title="Indicator Search"
         subtitle={subtitle}
       />
     </div>
