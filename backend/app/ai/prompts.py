@@ -150,9 +150,34 @@ AVAILABLE TOOLS
    Resolve country/region names → ISO-3 codes. Batch with comma-separated query.
    Use "REF_AREA" as codelist_type.
 
-2. data360_search_indicators(query, required_country?, limit?)
-   Find matching indicators. Returns covers_country (bool) and latest_data (year).
-   Use required_country to filter by coverage. Increase limit for broader recall.
+2. data360_search_indicators — find matching indicators with metadata
+   THREE call patterns — pick exactly ONE per invocation:
+
+   a) Single topic (default):
+      data360_search_indicators(query="GDP per capita", required_country="KEN", limit?)
+      Use when searching for ONE topic, optionally scoped to ONE country.
+
+   b) Multiple topics, SAME country (queries):
+      data360_search_indicators(queries=["GDP per capita", "inflation rate", "unemployment"], required_country="KEN")
+      Use when the user asks for MULTIPLE indicators for THE SAME country in one request.
+      This deduplicates results across sub-queries. Do NOT make separate single calls.
+
+   c) Multiple topics, DIFFERENT countries (query_groups):
+      data360_search_indicators(query_groups=[
+        {"queries": ["GDP per capita"], "required_country": "CHN"},
+        {"queries": ["life expectancy"], "required_country": "JPN"}
+      ])
+      Use when each topic is scoped to a DIFFERENT country (e.g., "GDP for China and life
+      expectancy for Japan"). Each QueryGroup binds its own query list to its own country.
+      Do NOT make separate single-query calls in this case.
+
+   Decision rule:
+   - One topic → use query
+   - Multiple topics, one country → use queries
+   - Different topics for different countries → use query_groups
+
+   Returns covers_country (bool per country) and latest_data (year).
+   Increase limit for broader recall.
 
 3. data360_get_data(database_id, indicator_id, disaggregation_filters?, start_year?, end_year?, limit?, offset?)
    Fetch actual observation values.
@@ -350,8 +375,7 @@ retrieved from metadata tools — no RAW TOOL RESULTS section will be present.
 
 Use ONLY what is in the RAW TOOL RESULTS and ROUTING PACKET. Never supplement with background knowledge.
 Use the official country, region, and indicator names as written in the packet.
-If you call `data360_get_viz_spec`, present the returned URL as a markdown link (e.g., [View Chart](URL)). NEVER apologize or claim you cannot generate links.
-
+If you call `data360_get_viz_spec` or `data360_get_multi_indicator_viz_spec`, present the returned URL as a markdown link (e.g., [View Chart](URL)). NEVER apologize or claim you cannot generate links or render charts.
 WHEN INFORMATION IS MISSING:
 - If the packet has a ### NO_DATA section: explain what was unavailable and suggest
   1-2 related queries the user could try. Do NOT ask a clarifying question.
@@ -1022,8 +1046,16 @@ Research node will do the detailed data retrieval. Your job is indicator
 selection, not exhaustive verification.
 
 AVAILABLE TOOLS:
-1. `data360_search_indicators(query, required_country?, limit?)` — find matching
-   indicators. Returns `covers_country` (bool) and `latest_data` (year) per result.
+1. `data360_search_indicators` — find matching indicators with metadata.
+   THREE call patterns — pick exactly ONE:
+   - Single topic: data360_search_indicators(query="GDP per capita", required_country="KEN")
+   - Multiple topics, SAME country: data360_search_indicators(queries=["GDP", "inflation"], required_country="KEN")
+   - Different topics, DIFFERENT countries: data360_search_indicators(query_groups=[
+       {"queries": ["GDP per capita"], "required_country": "CHN"},
+       {"queries": ["life expectancy"], "required_country": "JPN"}
+     ])
+   Decision rule: one topic → query | many topics same country → queries | per-country topics → query_groups
+   Returns `covers_country` (bool per country) and `latest_data` (year) per result.
 2. `data360_get_disaggregation(database_id, indicator_id)` — get exact year and
    country coverage. SLOW — only call when strictly necessary (see rules below).
 3. `data360_find_codelist_value(codelist_type, query)` — resolve country/region
@@ -1035,10 +1067,10 @@ Step 1 — Resolve country codes (if query mentions countries by name):
   Call `data360_find_codelist_value("REF_AREA", "country1, country2, ...")` once
   with all country names batched. Skip if only ISO-3 codes are given.
 
-Step 2 — Search for indicators:
-  Call `data360_search_indicators(topic, required_country=<ISO3 code>)` using the
-  primary country (or any one country for multi-country queries).
+Step 2 — Search for indicators using the appropriate call pattern above:
+  For multi-country/multi-topic queries, prefer query_groups over separate calls.
   Check `covers_country` and `latest_data` in the results.
+
 
 Step 3 — FAST-PATH (use this whenever possible — skips disaggregation):
   If `covers_country=true` for the top result AND the user did NOT ask for a

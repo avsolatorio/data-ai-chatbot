@@ -36,7 +36,10 @@ export type SearchIndicatorItem = {
   periodicity: string;
   latest_data: string;
   time_period_range: string;
-  covers_country: string | null;
+  /** Per-country boolean map e.g. { KEN: true, GHA: false }. Null when no country was requested. */
+  covers_country: Record<string, boolean> | null;
+  /** Resolved country code this indicator was evaluated against (set for query_groups per-group country). */
+  requested_country: string | null;
   dimensions: string[] | null;
 };
 
@@ -50,15 +53,23 @@ export type SearchIndicatorsInput = {
 
 export type SearchIndicatorsOutput = {
   count: number;
-  total_count: number;
-  offset: number;
-  has_more: boolean;
-  next_offset: number;
+  total_count: number | null;
+  offset: number | null;
+  has_more: boolean | null;
+  next_offset: number | null;
   indicators: SearchIndicatorItem[];
   required_country: string | null;
   error: string | null;
-  /** Query used for the search (may come from tool input when not in API response). */
+  /** Query used for single-query path (from tool input). */
   query?: string | null;
+  /** Sub-queries used (multi-query paths: queries= or query_groups=). Length > 1 means multi-query was used. */
+  queries?: string[] | null;
+  /** Layout mode returned by the MCP: 'merged' or 'by_query'. */
+  result_layout?: "merged" | "by_query" | null;
+  /** Total indicators found before deduplication (multi-query paths only). */
+  total_candidates?: number | null;
+  /** Number of duplicates removed (multi-query merged layout only). */
+  deduplicated_count?: number | null;
 };
 
 export type GetDataDataPoint = {

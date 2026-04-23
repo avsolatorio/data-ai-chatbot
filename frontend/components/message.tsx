@@ -649,10 +649,10 @@ function renderMessagePart(
       input: Record<string, unknown> | unknown;
       output: {
         count: number;
-        total_count: number;
-        offset: number;
-        has_more: boolean;
-        next_offset: number;
+        total_count: number | null;
+        offset: number | null;
+        has_more: boolean | null;
+        next_offset: number | null;
         indicators: Array<{
           idno: string;
           name: string;
@@ -661,11 +661,17 @@ function renderMessagePart(
           periodicity: string;
           latest_data: string;
           time_period_range: string;
-          covers_country: string | null;
+          covers_country: Record<string, boolean> | null;
+          requested_country: string | null;
           dimensions: string[] | null;
         }>;
         required_country: string | null;
         error: string | null;
+        // multi-query fields
+        queries?: string[] | null;
+        result_layout?: "merged" | "by_query" | null;
+        total_candidates?: number | null;
+        deduplicated_count?: number | null;
       };
     };
     const searchIndicatorsInput =
@@ -714,6 +720,7 @@ function renderMessagePart(
                   output={{
                     ...toolPart.output,
                     query: searchIndicatorsInput?.query,
+                    queries: toolPart.output.queries ?? undefined,
                   }}
                 />
               }

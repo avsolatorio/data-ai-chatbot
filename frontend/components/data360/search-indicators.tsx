@@ -15,6 +15,22 @@ const SearchIconComponent = () => (
   <SearchIcon className="size-5 text-muted-foreground" />
 );
 
+/** Derives whether the result came from query_groups, queries (shared country), or a single query. */
+function getSearchMode(
+  output: SearchIndicatorsOutput,
+): "query_groups" | "queries" | "query" {
+  const queries = output.queries;
+  if (!queries || queries.length <= 1) return "query";
+
+  // query_groups: indicators have per-indicator requested_country that differ across results
+  const countries = new Set(
+    output.indicators.map((i) => i.requested_country).filter(Boolean),
+  );
+  if (countries.size > 1) return "query_groups";
+
+  return "queries";
+}
+
 export function SearchIndicatorsRequestSummary({
   input,
 }: {
@@ -72,6 +88,109 @@ export function SearchIndicatorsRequestSummary({
   );
 }
 
+/** Badge showing search mode. */
+function SearchModeBadge({
+  mode,
+}: {
+  mode: "query_groups" | "queries" | "query";
+}) {
+  if (mode === "query") return null;
+
+  const label =
+    mode === "query_groups" ? "Multi-query (grouped)" : "Multi-query";
+  const title =
+    mode === "query_groups"
+      ? "Different indicators searched per country group"
+      : "Multiple indicators searched with shared country scope";
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 font-medium text-blue-400 text-[10px] leading-tight cursor-default">
+          {label}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        <p className="max-w-xs text-xs">{title}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Sub-query tags shown for multi-query results. */
+function QueryTags({ queries }: { queries: string[] }) {
+  if (!queries || queries.length <= 1) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {queries.map((q) => (
+        <span
+          key={q}
+          className="inline-flex items-center rounded border border-border bg-muted/40 px-2 py-0.5 font-mono text-muted-foreground text-[10px]"
+        >
+          {q}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Dedup summary shown for merged multi-query results. */
+function DedupBadge({
+  totalCandidates,
+  dedupCount,
+}: {
+  totalCandidates: number;
+  dedupCount: number | null | undefined;
+}) {
+  if (!dedupCount) return null;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-medium text-amber-400 text-[10px] leading-tight cursor-default">
+          {dedupCount} deduped
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        <p className="max-w-xs text-xs">
+          {totalCandidates} total candidates found across all sub-queries.{" "}
+          {dedupCount} duplicate{dedupCount !== 1 ? "s" : ""} removed.
+        </p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Renders the covers_country map as colored country code pills. */
+function CoversCountryPills({
+  coversCountry,
+}: {
+  coversCountry: Record<string, boolean> | null | undefined;
+}) {
+  if (!coversCountry) return null;
+  const entries = Object.entries(coversCountry);
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {entries.map(([code, covers]) => (
+        <span
+          key={code}
+          className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[10px] leading-tight ${
+            covers
+              ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+              : "border border-muted bg-muted/30 text-muted-foreground"
+          }`}
+        >
+          <span
+            className={`size-1.5 rounded-full ${covers ? "bg-emerald-400" : "bg-muted-foreground/40"}`}
+          />
+          {code}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function SearchIndicators({
   input,
   output,
@@ -107,151 +226,235 @@ export function SearchIndicators({
     );
   }
 
+  const mode = getSearchMode(output);
+  const isMultiQuery = mode !== "query";
+  const queries = output.queries ?? [];
+
   return (
     <TooltipProvider>
       <div className="flex w-full flex-col gap-4 overflow-hidden rounded-sm bg-background px-4 pb-4">
         {requestSummary}
+
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-col gap-1.5 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
               <SearchIconComponent />
               <div className="font-semibold text-sm">Search Results</div>
+              <SearchModeBadge mode={mode} />
+              {isMultiQuery && output.total_candidates != null && output.deduplicated_count != null && (
+                <DedupBadge
+                  totalCandidates={output.total_candidates}
+                  dedupCount={output.deduplicated_count}
+                />
+              )}
             </div>
+            {/* Sub-query tags for multi-query */}
+            {isMultiQuery && queries.length > 0 && (
+              <QueryTags queries={queries} />
+            )}
           </div>
-          <div className="flex flex-col items-end gap-1">
+
+          <div className="flex flex-col items-end gap-1 shrink-0">
             <div className="text-muted-foreground text-xs">
-              Showing {output.count} of {output.total_count.toLocaleString()}{" "}
-              indicator{output.total_count !== 1 ? "s" : ""}
+              {output.total_count != null ? (
+                <>
+                  Showing {output.count} of {output.total_count.toLocaleString()}{" "}
+                  indicator{output.total_count !== 1 ? "s" : ""}
+                </>
+              ) : (
+                <>
+                  Showing {output.indicators.length} indicator
+                  {output.indicators.length !== 1 ? "s" : ""}
+                </>
+              )}
             </div>
-            {/* {output.has_more && (
-              <div className="text-muted-foreground text-[10px]">
-                More results available
-              </div>
-            )} */}
           </div>
         </div>
 
-        {/* Horizontal Scrollable Cards */}
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex w-max gap-3 pb-4">
-            {output.indicators.map((indicator, index) => (
-              <Card
-                className="min-w-[360px] max-w-[420px] shrink-0 border-border transition-colors hover:border-primary/50"
-                key={`${indicator.idno}-${index}`}
-              >
-                <CardHeader className="pb-3">
-                  <CardTitle className="line-clamp-2 font-medium text-sm leading-tight">
-                    {indicator.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex flex-col gap-3">
-                    {/* ID and Database */}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground text-xs">
-                      <div>
-                        <span className="font-medium">ID:</span> {indicator.idno}
-                      </div>
-                      <div>
-                        <span className="font-medium">Database:</span>{" "}
-                        {indicator.database_id}
-                      </div>
-                    </div>
-
-                    {/* Definition */}
-                    {indicator.truncated_definition && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="rounded border border-border bg-muted/30 p-2.5">
-                            <div className="line-clamp-3 text-muted-foreground text-xs leading-relaxed">
-                              {indicator.truncated_definition}
-                            </div>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-md" side="top">
-                          <p className="whitespace-normal text-xs">
-                            {indicator.truncated_definition}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-
-                    {/* Metadata Grid */}
-                    <div className="grid grid-cols-2 gap-2 rounded border border-border bg-muted/20 p-2">
-                      {indicator.periodicity && (
-                        <div className="text-muted-foreground text-xs">
-                          <span className="font-medium">Periodicity:</span>{" "}
-                          <span className="text-foreground">
-                            {indicator.periodicity}
-                          </span>
-                        </div>
-                      )}
-                      {indicator.latest_data && (
-                        <div className="text-muted-foreground text-xs">
-                          <span className="font-medium">Latest:</span>{" "}
-                          <span className="text-foreground">
-                            {indicator.latest_data}
-                          </span>
-                        </div>
-                      )}
-                      {indicator.time_period_range && (
-                        <div className="col-span-2 text-muted-foreground text-xs">
-                          <span className="font-medium">Range:</span>{" "}
-                          <span className="text-foreground">
-                            {indicator.time_period_range}
-                          </span>
-                        </div>
-                      )}
-                      {indicator.dimensions &&
-                        indicator.dimensions.length > 0 && (
-                          <div className="col-span-2 text-muted-foreground text-xs">
-                            <span className="font-medium">Dimensions:</span>{" "}
-                            <span className="text-foreground">
-                              {indicator.dimensions.join(", ")}
-                            </span>
-                          </div>
-                        )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
-
-        {/* Pagination Info
-        {output.has_more && (
-          <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3 dark:border-blue-800 dark:bg-blue-950/20">
-            <div className="flex items-start gap-2">
-              <div className="mt-0.5 text-blue-600 dark:text-blue-400">
-                <svg
-                  fill="none"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  width="16"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M13 16H12V12H11M12 8H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                  />
-                </svg>
-              </div>
-              <div className="text-blue-800 text-xs leading-relaxed dark:text-blue-200">
-                Showing results {output.offset + 1}-
-                {output.offset + output.count} of{" "}
-                {output.total_count.toLocaleString()}.
-                {output.has_more &&
-                  ` Next page starts at offset ${output.next_offset}.`}
-              </div>
-            </div>
-          </div>
-        )} */}
+        {/* Cards — grouped by country for query_groups, flat for query/queries */}
+        {mode === "query_groups" ? (
+          <GroupedIndicatorRows output={output} />
+        ) : (
+          <FlatIndicatorRow indicators={output.indicators} mode={mode} />
+        )}
       </div>
     </TooltipProvider>
+  );
+}
+
+/** Renders a single indicator card (shared between flat and grouped layouts). */
+function IndicatorCard({
+  indicator,
+  index,
+  mode,
+}: {
+  indicator: SearchIndicatorsOutput["indicators"][number];
+  index: number;
+  mode: "query_groups" | "queries" | "query";
+}) {
+  return (
+    <Tooltip>
+      <Card
+        className="min-w-[360px] max-w-[420px] shrink-0 border-border transition-colors hover:border-primary/50"
+        key={`${indicator.idno}-${index}`}
+      >
+        <CardHeader className="pb-3">
+          <CardTitle className="line-clamp-2 font-medium text-sm leading-tight whitespace-normal">
+            {indicator.name}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex flex-col gap-3">
+            {/* ID and Database */}
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground text-xs">
+              <div>
+                <span className="font-medium">ID:</span> {indicator.idno}
+              </div>
+              <div>
+                <span className="font-medium">Database:</span>{" "}
+                {indicator.database_id}
+              </div>
+            </div>
+
+            {/* Country coverage pills — for queries (shared country) shows green/grey per country */}
+            {indicator.covers_country && (
+              <CoversCountryPills coversCountry={indicator.covers_country} />
+            )}
+
+            {/* Definition */}
+            {indicator.truncated_definition && (
+              <TooltipTrigger asChild>
+                <div className="rounded border border-border bg-muted/30 p-2.5 cursor-default">
+                  <div className="line-clamp-3 text-muted-foreground text-xs leading-relaxed whitespace-normal">
+                    {indicator.truncated_definition}
+                  </div>
+                </div>
+              </TooltipTrigger>
+            )}
+            {indicator.truncated_definition && (
+              <TooltipContent className="max-w-md" side="top">
+                <p className="whitespace-normal text-xs">
+                  {indicator.truncated_definition}
+                </p>
+              </TooltipContent>
+            )}
+
+            {/* Metadata Grid */}
+            <div className="grid grid-cols-2 gap-2 rounded border border-border bg-muted/20 p-2">
+              {indicator.periodicity && (
+                <div className="text-muted-foreground text-xs">
+                  <span className="font-medium">Periodicity:</span>{" "}
+                  <span className="text-foreground">{indicator.periodicity}</span>
+                </div>
+              )}
+              {indicator.latest_data && (
+                <div className="text-muted-foreground text-xs">
+                  <span className="font-medium">Latest:</span>{" "}
+                  <span className="text-foreground">{indicator.latest_data}</span>
+                </div>
+              )}
+              {indicator.time_period_range && (
+                <div className="col-span-2 text-muted-foreground text-xs">
+                  <span className="font-medium">Range:</span>{" "}
+                  <span className="text-foreground">{indicator.time_period_range}</span>
+                </div>
+              )}
+              {indicator.dimensions && indicator.dimensions.length > 0 && (
+                <div className="col-span-2 text-muted-foreground text-xs">
+                  <span className="font-medium">Dimensions:</span>{" "}
+                  <span className="text-foreground">
+                    {indicator.dimensions.join(", ")}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </Tooltip>
+  );
+}
+
+/** Flat single-row horizontal scroll — used for `query` and `queries` modes. */
+function FlatIndicatorRow({
+  indicators,
+  mode,
+}: {
+  indicators: SearchIndicatorsOutput["indicators"];
+  mode: "query_groups" | "queries" | "query";
+}) {
+  return (
+    <ScrollArea className="w-full whitespace-nowrap">
+      <div className="flex w-max gap-3 pb-4">
+        {indicators.map((indicator, index) => (
+          <IndicatorCard
+            key={`${indicator.idno}-${index}`}
+            indicator={indicator}
+            index={index}
+            mode={mode}
+          />
+        ))}
+      </div>
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
+  );
+}
+
+/** Grouped layout for `query_groups` — one horizontal scroll row per country. */
+function GroupedIndicatorRows({
+  output,
+}: {
+  output: SearchIndicatorsOutput;
+}) {
+  const { indicators } = output;
+
+  // Group indicators by requested_country; preserve insertion order of countries
+  const countryOrder: string[] = [];
+  const groups: Record<string, typeof indicators> = {};
+
+  for (const ind of indicators) {
+    const key = ind.requested_country ?? "Unknown";
+    if (!groups[key]) {
+      groups[key] = [];
+      countryOrder.push(key);
+    }
+    groups[key].push(ind);
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {countryOrder.map((country) => {
+        const groupIndicators = groups[country];
+        return (
+          <div key={country} className="flex flex-col gap-2">
+            {/* Country section header */}
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 font-mono font-semibold text-emerald-400 text-xs">
+                <span className="size-1.5 rounded-full bg-emerald-400" />
+                {country}
+              </span>
+              <span className="text-muted-foreground text-xs">
+                {groupIndicators.length} indicator{groupIndicators.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            {/* Horizontal scroll row for this country's indicators */}
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex w-max gap-3 pb-3">
+                {groupIndicators.map((indicator, index) => (
+                  <IndicatorCard
+                    key={`${indicator.idno}-${index}`}
+                    indicator={indicator}
+                    index={index}
+                    mode="query_groups"
+                  />
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </div>
+        );
+      })}
+    </div>
   );
 }
