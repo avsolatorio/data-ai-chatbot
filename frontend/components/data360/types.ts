@@ -32,6 +32,7 @@ export type SearchIndicatorItem = {
   idno: string;
   name: string;
   database_id: string;
+  database_name?: string | null;
   truncated_definition: string;
   periodicity: string;
   latest_data: string;
@@ -41,6 +42,15 @@ export type SearchIndicatorItem = {
   /** Resolved country code this indicator was evaluated against (set for query_groups per-group country). */
   requested_country: string | null;
   dimensions: string[] | null;
+};
+
+/** Per-query result group returned by data360_search_indicators with result_layout="by_query". */
+export type QueryGroupResult = {
+  query: string;
+  country_code?: string | null;
+  indicators: SearchIndicatorItem[];
+  count: number;
+  error?: string | null;
 };
 
 /** Tool input for data360_search_indicators (from tool call arguments). */
@@ -70,6 +80,8 @@ export type SearchIndicatorsOutput = {
   total_candidates?: number | null;
   /** Number of duplicates removed (multi-query merged layout only). */
   deduplicated_count?: number | null;
+  /** Per-query result groups (result_layout="by_query"). Each group has its own indicators list. */
+  results?: QueryGroupResult[] | null;
 };
 
 export type GetDataDataPoint = {
