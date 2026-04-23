@@ -117,7 +117,7 @@ class Settings(BaseSettings):
     ROUTING_HISTORY_LIMIT: int = 10
 
     # App
-    ENVIRONMENT: str = "development"
+    ENVIRONMENT: str = "production"
     CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3001"
     # When True, require Origin/Referer for all state-changing requests (POST/PUT/PATCH/DELETE).
     # Closes "Absence of Origin Headers" finding; set True in production if you do not need API clients that omit Origin.
