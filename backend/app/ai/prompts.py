@@ -167,14 +167,20 @@ AVAILABLE TOOLS
         {"queries": ["GDP per capita"], "required_country": "CHN"},
         {"queries": ["life expectancy"], "required_country": "JPN"}
       ])
-      Use when each topic is scoped to a DIFFERENT country (e.g., "GDP for China and life
-      expectancy for Japan"). Each QueryGroup binds its own query list to its own country.
-      Do NOT make separate single-query calls in this case.
+      Use when each topic is scoped to a DIFFERENT country.
+      Each group can have MULTIPLE queries — e.g. comparing inflation in Japan to
+      population AND GDP per capita in China uses three queries across two groups:
+        query_groups=[
+          {"queries": ["inflation rate"], "required_country": "JPN"},
+          {"queries": ["population", "GDP per capita"], "required_country": "CHN"}
+        ]
+      NEVER make separate single-query calls in this case — one query_groups call handles it all.
 
-   Decision rule:
-   - One topic → use query
-   - Multiple topics, one country → use queries
-   - Different topics for different countries → use query_groups
+   Decision rule (STRICT — do not deviate):
+   - One topic, one country → query
+   - Multiple topics, one country → queries
+   - Any topics spanning DIFFERENT countries → query_groups (always, even if counts differ)
+   - NEVER call data360_search_indicators multiple times for a cross-country comparison.
 
    Returns covers_country (bool per country) and latest_data (year).
    Increase limit for broader recall.
@@ -1050,11 +1056,13 @@ AVAILABLE TOOLS:
    THREE call patterns — pick exactly ONE:
    - Single topic: data360_search_indicators(query="GDP per capita", required_country="KEN")
    - Multiple topics, SAME country: data360_search_indicators(queries=["GDP", "inflation"], required_country="KEN")
-   - Different topics, DIFFERENT countries: data360_search_indicators(query_groups=[
-       {"queries": ["GDP per capita"], "required_country": "CHN"},
-       {"queries": ["life expectancy"], "required_country": "JPN"}
-     ])
-   Decision rule: one topic → query | many topics same country → queries | per-country topics → query_groups
+   - Different topics, DIFFERENT countries (even asymmetric counts):
+       data360_search_indicators(query_groups=[
+         {"queries": ["inflation rate"], "required_country": "JPN"},
+         {"queries": ["population", "GDP per capita"], "required_country": "CHN"}
+       ])
+   Decision rule (STRICT): one topic → query | many topics same country → queries | any cross-country → query_groups
+   NEVER make multiple separate calls for a cross-country comparison — use query_groups.
    Returns `covers_country` (bool per country) and `latest_data` (year) per result.
 2. `data360_get_disaggregation(database_id, indicator_id)` — get exact year and
    country coverage. SLOW — only call when strictly necessary (see rules below).
