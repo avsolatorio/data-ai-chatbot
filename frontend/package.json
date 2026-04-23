@@ -7,7 +7,10 @@
     "copymainfile": "node copymain.js",
     "postbuild": "node scripts/postbuild.js",
     "clean": "pnpm exec rimraf ./dist/ ./next/ ./.next/",
+    "build:data360": "npm --prefix ../../data360-mcp/packages/tool-types run build && npm --prefix ../../data360-mcp/packages/mcp-ui run build",
+    "copy:data360": "node scripts/copy-data360.js",
     "build:pcn": "pnpm --dir ../../pcn/packages/core build && pnpm --dir ../../pcn/packages/ui build && pnpm --dir ../../pcn/packages/data360 build",
+
     "copy:pcn": "node scripts/copy-pcn.js",
     "unlink:pcn": "pnpm install",
     "update:pcn": "pnpm update @pcn-js/core @pcn-js/ui @pcn-js/data360",

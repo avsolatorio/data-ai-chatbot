@@ -22,6 +22,11 @@ export function applyBasePathToChartPath(
 /**
  * Normalize chart URL to a same-origin path for `fetch()` (proxy via Next.js).
  * Strips absolute URLs to pathname + search, then applies `basePath` when needed.
+ *
+ * In development, rewrites /static/... paths (served by the local MCP server) to
+ * /api/mcp-static/... so the Next.js dev proxy can serve them from the same origin.
+ * This keeps production unaffected — the MCP server in production serves its own
+ * static files and the URL returned by the tool is already absolute/resolvable.
  */
 export function proxyChartUrlForFetch(url: string, basePath: string): string {
   const trimmed = url.trim();
@@ -36,8 +41,19 @@ export function proxyChartUrlForFetch(url: string, basePath: string): string {
   } else {
     pathPart = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
   }
+
+  // In development: rewrite /static/... → /api/mcp-static/... so Next.js proxies
+  // the request to the local MCP server instead of returning 404.
+  if (
+    process.env.NODE_ENV === "development" &&
+    pathPart.startsWith("/static/")
+  ) {
+    pathPart = `/api/mcp-static/${pathPart.slice("/static/".length)}`;
+  }
+
   return applyBasePathToChartPath(pathPart, basePath);
 }
+
 
 /**
  * Regexes for detecting chart URLs in assistant text. When `basePath` is set,
