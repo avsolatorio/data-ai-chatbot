@@ -217,7 +217,7 @@ export function SearchIndicators({
 
   const queries = output.queries ?? (output.query ? [output.query] : []);
 
-  // ── query_groups: different indicators searched per country ───────────────
+  // ── query_groups with result_layout="by_query": grouped accordion ────────
   if (output.result_layout === "by_query" && output.results && output.results.length > 0) {
     // subtitle: "CHN: GDP per capita · JPN: Life expectancy"
     const groupSubtitle = output.results
@@ -231,6 +231,28 @@ export function SearchIndicators({
           groups={output.results}
           title="Multi-country Search"
           subtitle={groupSubtitle}
+        />
+      </div>
+    );
+  }
+
+  // ── query_groups fallback: merged layout but multiple countries ───────────
+  // Detected by semicolon in required_country (e.g. "CHN;JPN") or query count
+  const isCrossCountry =
+    output.required_country?.includes(";") ||
+    output.required_country?.includes(",");
+
+  if (queries.length > 1 && isCrossCountry) {
+    const countries = output.required_country ?? "";
+    const subtitle = `${queries.join(" · ")} (${countries.replace(/;/g, ", ")})`;
+
+    return (
+      <div className="flex flex-col gap-3">
+        {requestSummary}
+        <SearchResultCard
+          indicators={output.indicators}
+          title="Multi-country Search"
+          subtitle={subtitle}
         />
       </div>
     );

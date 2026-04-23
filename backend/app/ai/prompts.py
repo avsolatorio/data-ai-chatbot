@@ -166,20 +166,21 @@ AVAILABLE TOOLS
       data360_search_indicators(query_groups=[
         {"queries": ["GDP per capita"], "required_country": "CHN"},
         {"queries": ["life expectancy"], "required_country": "JPN"}
-      ])
+      ], result_layout="by_query")
       Use when each topic is scoped to a DIFFERENT country.
       Each group can have MULTIPLE queries — e.g. comparing inflation in Japan to
       population AND GDP per capita in China uses three queries across two groups:
         query_groups=[
           {"queries": ["inflation rate"], "required_country": "JPN"},
           {"queries": ["population", "GDP per capita"], "required_country": "CHN"}
-        ]
+        ], result_layout="by_query"
+      ALWAYS pass result_layout="by_query" with query_groups so results are grouped per country.
       NEVER make separate single-query calls in this case — one query_groups call handles it all.
 
    Decision rule (STRICT — do not deviate):
    - One topic, one country → query
    - Multiple topics, one country → queries
-   - Any topics spanning DIFFERENT countries → query_groups (always, even if counts differ)
+   - Any topics spanning DIFFERENT countries → query_groups with result_layout="by_query"
    - NEVER call data360_search_indicators multiple times for a cross-country comparison.
 
    Returns covers_country (bool per country) and latest_data (year).
@@ -1060,8 +1061,8 @@ AVAILABLE TOOLS:
        data360_search_indicators(query_groups=[
          {"queries": ["inflation rate"], "required_country": "JPN"},
          {"queries": ["population", "GDP per capita"], "required_country": "CHN"}
-       ])
-   Decision rule (STRICT): one topic → query | many topics same country → queries | any cross-country → query_groups
+       ], result_layout="by_query")
+   Decision rule (STRICT): one topic → query | many topics same country → queries | any cross-country → query_groups with result_layout="by_query"
    NEVER make multiple separate calls for a cross-country comparison — use query_groups.
    Returns `covers_country` (bool per country) and `latest_data` (year) per result.
 2. `data360_get_disaggregation(database_id, indicator_id)` — get exact year and
