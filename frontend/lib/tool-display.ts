@@ -1,9 +1,9 @@
 import { getData360ToolDefaultOpen } from "@/lib/config";
 
-/** Tools that stay expanded when `NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN` is false (high-signal UIs). */
 const DATA360_EXPAND_BY_DEFAULT = new Set([
   "tool-data360_get_viz_spec",
   "tool-data360_get_multi_indicator_viz_spec",
+  "tool-data360_search_indicators",
   // "tool-data360_get_data",
 ]);
 
@@ -27,6 +27,9 @@ const TOOL_DISPLAY_LABELS: Record<string, string> = {
   "tool-data360_find_codelist_value": "Find codelist value",
   "tool-data360_list_indicators": "List indicators",
   "tool-data360_get_data_api_url": "Data API URL",
+  "tool-data360_get_disaggregation": "Get disaggregation",
+  "tool-data360_get_supported_chart_types": "Chart types",
+  "tool-data360_analyze_development_topic": "Analyze topic",
   "tool-ai4data_ai4data_mcpget_wdi_data": "WDI data",
   "tool-ai4data_ai4data_mcpsearch_relevant_indicators":
     "Search relevant indicators",

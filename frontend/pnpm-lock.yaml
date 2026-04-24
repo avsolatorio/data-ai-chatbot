@@ -42,11 +42,11 @@ importers:
         specifier: ^6.35.3
         version: 6.36.4
       '@data360/mcp-ui':
-        specifier: ^0.0.1
-        version: 0.0.1(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
+        specifier: ^0.0.3
+        version: 0.0.3(@data360/tool-types@0.0.3)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
       '@data360/tool-types':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.0.3
+        version: 0.0.3
       '@icons-pack/react-simple-icons':
         specifier: ^13.7.0
         version: 13.8.0(react@19.0.0-rc-45804af1-20241021)
@@ -536,17 +536,18 @@ packages:
   '@codemirror/view@6.36.4':
     resolution: {integrity: sha512-ZQ0V5ovw/miKEXTvjgzRyjnrk9TwriUB1k4R5p7uNnHR9Hus+D1SXHGdJshijEzPFjU25xea/7nhIeSqYFKdbA==}
 
-  '@data360/mcp-ui@0.0.1':
-    resolution: {integrity: sha512-E90KLeThAUjs6udD7vJ+JD1W2bYbaFAujyVFTRYvgiNGWLvfQnU8pwwBpfpsCTD1iRIhkkP1bRcdY4AzqSrhGw==}
+  '@data360/mcp-ui@0.0.3':
+    resolution: {integrity: sha512-58wT68gejr/7LUJm1tmXBjW+k8JVPKurwb9Uqe2iAnhvcMsPqVmZyQtpvKSLzXQagmHpuaYqJYxiJU3y1VMt7w==}
     peerDependencies:
+      '@data360/tool-types': '>=0.0.1'
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
       vega: '>=5.0.0'
       vega-embed: '>=6.0.0'
       vega-lite: '>=5.0.0'
 
-  '@data360/tool-types@0.0.1':
-    resolution: {integrity: sha512-kdFmq4p4t+XWOq4X6mZSKJRWHPbHiZ4m569BjVQcBtDeRRQWGBGORGhQYp527YOM6E1FLsJNqY9Ao2F6W3QW7w==}
+  '@data360/tool-types@0.0.3':
+    resolution: {integrity: sha512-rijot4OP+TL8qzZT4tukX+DHy2dvaKvYFMhWSACkQVqyrJyuF9e/7O6DmVkpYBbKp0D+KEgaBTGn49LixyBW2A==}
 
   '@emnapi/runtime@1.7.1':
     resolution: {integrity: sha512-PVtJr5CmLwYAU9PZDMITZoR5iAOShYREoR45EyyLrbntV50mdePTgUn4AmOw90Ifcj+x2kRjdzr1HP3RrNiHGA==}
@@ -4762,15 +4763,16 @@ snapshots:
       style-mod: 4.1.2
       w3c-keyname: 2.2.8
 
-  '@data360/mcp-ui@0.0.1(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
+  '@data360/mcp-ui@0.0.3(@data360/tool-types@0.0.3)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
     dependencies:
+      '@data360/tool-types': 0.0.3
       react: 19.0.0-rc-45804af1-20241021
       react-dom: 19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021)
       vega: 5.33.1
       vega-embed: 6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
       vega-lite: 5.23.0(vega@5.33.1)
 
-  '@data360/tool-types@0.0.1':
+  '@data360/tool-types@0.0.3':
     dependencies:
       zod: 3.25.76
 

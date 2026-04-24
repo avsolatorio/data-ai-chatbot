@@ -35,11 +35,8 @@ import { ASK_ABOUT_SELECTION_CONTEXT_ATTR } from "./ask-about-selection-toolbar"
 import { useDataStream } from "./data-stream-provider";
 import { ChartPreview } from "./data360/chart-preview";
 import { GetData, GetDataRequestSummary } from "./data360/get-data";
+import { SearchIndicators } from "./data360/search-indicators";
 import { GetWdiData } from "./data360/get-wdi-data";
-import {
-  SearchIndicators,
-  SearchIndicatorsRequestSummary,
-} from "./data360/search-indicators";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
@@ -645,50 +642,18 @@ function renderMessagePart(
   if ((type as string) === "tool-data360_search_indicators") {
     const toolPart = part as {
       toolCallId: string;
-      state: "input-available" | "output-available";
-      input: Record<string, unknown> | unknown;
-      output: {
-        count: number;
-        total_count: number;
-        offset: number;
-        has_more: boolean;
-        next_offset: number;
-        indicators: Array<{
-          idno: string;
-          name: string;
-          database_id: string;
-          truncated_definition: string;
-          periodicity: string;
-          latest_data: string;
-          time_period_range: string;
-          covers_country: string | null;
-          dimensions: string[] | null;
-        }>;
-        required_country: string | null;
-        error: string | null;
-      };
+      state:
+        | "input-available"
+        | "output-available"
+        | "input-streaming"
+        | "output-error";
+      input?: unknown;
+      output?: unknown;
     };
-    const searchIndicatorsInput =
+    const rawInput =
       typeof toolPart.input === "object" && toolPart.input !== null
-        ? (() => {
-            const raw = toolPart.input as Record<string, unknown>;
-            return {
-              query: typeof raw.query === "string" ? raw.query : undefined,
-              required_country:
-                typeof raw.required_country === "string"
-                  ? raw.required_country
-                  : undefined,
-              limit:
-                typeof raw.limit === "number" && Number.isFinite(raw.limit)
-                  ? raw.limit
-                  : undefined,
-              offset:
-                typeof raw.offset === "number" && Number.isFinite(raw.offset)
-                  ? raw.offset
-                  : undefined,
-            };
-          })()
-        : undefined;
+        ? (toolPart.input as Record<string, unknown>)
+        : null;
     return (
       <Tool
         defaultOpen={defaultOpenForData360Tool(
@@ -699,22 +664,17 @@ function renderMessagePart(
         <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
         <ToolContent>
           {toolPart.state === "input-available" &&
-            (searchIndicatorsInput != null ? (
-              <SearchIndicatorsRequestSummary input={searchIndicatorsInput} />
-            ) : (
-              <ToolInput input={toolPart.input} />
-            ))}
+            toolPart.input !== undefined && (
+              <ToolInput input={toolPart.input as ToolUIPart["input"]} />
+            )}
           {toolPart.state === "output-available" && (
             <ToolOutput
               errorText={undefined}
               useDefaultFormat={false}
               output={
                 <SearchIndicators
-                  input={searchIndicatorsInput}
-                  output={{
-                    ...toolPart.output,
-                    query: searchIndicatorsInput?.query,
-                  }}
+                  output={toolPart.output}
+                  input={rawInput}
                 />
               }
             />
