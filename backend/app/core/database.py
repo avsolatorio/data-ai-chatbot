@@ -15,7 +15,9 @@ engine = create_async_engine(
     future=True,
     pool_pre_ping=True,
     pool_recycle=300,
-    connect_args={"ssl": True},
+    # SSL is required in production (cloud DB); disabled locally where Postgres
+    # is a plain Docker container without TLS configured.
+    connect_args={"ssl": settings.ENVIRONMENT not in ("development", "local", "dev")},
 )
 
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
