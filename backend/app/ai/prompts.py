@@ -150,9 +150,10 @@ AVAILABLE TOOLS
    Resolve country/region names → ISO-3 codes. Batch with comma-separated query.
    Use "REF_AREA" as codelist_type.
 
-2. data360_search_indicators(query?, queries?, query_groups?, required_country?, limit?)
+2. data360_search_indicators(query?, queries?, query_groups?, required_country?, limit?, result_layout?)
    Find indicators. Use `query` for one topic, `queries` for many in one country,
    and `query_groups` for different topics across different countries.
+   CRITICAL: If using `query_groups`, you MUST also pass `result_layout="by_query"`.
    Use `required_country` to filter by coverage. Increase limit for broader recall.
 
 3. data360_get_data(database_id, indicator_id, disaggregation_filters?, start_year?, end_year?, limit?, offset?)
@@ -792,7 +793,8 @@ PURPOSE:
 - Use metadata tools only — do NOT call `data360_get_data` or `data360_get_disaggregation`.
 
 AVAILABLE TOOLS:
-1. `data360_search_indicators(query?, queries?, query_groups?, limit?)` — find indicators matching a topic. Use `query_groups` for cross-country topics.
+1. `data360_search_indicators(query?, queries?, query_groups?, limit?, result_layout?)` — find indicators matching a topic. Use `query_groups` for cross-country topics.
+   CRITICAL: If using `query_groups`, you MUST pass `result_layout="by_query"`.
 2. `data360_get_metadata(database_id, indicator_id, select_fields?)` — retrieve definition,
    methodology, limitations, relevance, statistical concept for a specific indicator.
 3. `data360_list_indicators(database_id)` — list all indicators in a database.
@@ -1023,8 +1025,9 @@ Research node will do the detailed data retrieval. Your job is indicator
 selection, not exhaustive verification.
 
 AVAILABLE TOOLS:
-1. `data360_search_indicators(query?, queries?, query_groups?, required_country?, limit?)` —
+1. `data360_search_indicators(query?, queries?, query_groups?, required_country?, limit?, result_layout?)` —
    find indicators. Use `query_groups` for queries targeting specific countries.
+   CRITICAL: If using `query_groups`, you MUST also pass `result_layout="by_query"`.
    Returns `covers_country` (bool) and `latest_data` (year) per result.
 2. `data360_get_disaggregation(database_id, indicator_id)` — get exact year and
    country coverage. SLOW — only call when strictly necessary (see rules below).
