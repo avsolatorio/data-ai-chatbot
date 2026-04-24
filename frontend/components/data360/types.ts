@@ -28,38 +28,7 @@ export type SearchRelevantIndicatorsOutput = {
   note?: string;
 };
 
-export type SearchIndicatorItem = {
-  idno: string;
-  name: string;
-  database_id: string;
-  truncated_definition: string;
-  periodicity: string;
-  latest_data: string;
-  time_period_range: string;
-  covers_country: string | null;
-  dimensions: string[] | null;
-};
 
-/** Tool input for data360_search_indicators (from tool call arguments). */
-export type SearchIndicatorsInput = {
-  query?: string | null;
-  required_country?: string | null;
-  limit?: number | null;
-  offset?: number | null;
-};
-
-export type SearchIndicatorsOutput = {
-  count: number;
-  total_count: number;
-  offset: number;
-  has_more: boolean;
-  next_offset: number;
-  indicators: SearchIndicatorItem[];
-  required_country: string | null;
-  error: string | null;
-  /** Query used for the search (may come from tool input when not in API response). */
-  query?: string | null;
-};
 
 export type GetDataDataPoint = {
   OBS_VALUE: string;
