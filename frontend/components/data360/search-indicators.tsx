@@ -148,25 +148,21 @@ export function SearchIndicators({ output, input }: SearchIndicatorsProps) {
       // by_query layout → grouped accordion
       if (data.result_layout === "by_query" && data.results && data.results.length > 0) {
         return (
-          <div className="data360-mcp-ui-reset">
-            <SearchResultCard
-              groups={data.results}
-              subtitle={subtitle}
-              title="Search Results"
-            />
-          </div>
+          <SearchResultCard
+            groups={data.results}
+            subtitle={subtitle}
+            title="Search Results"
+          />
         );
       }
 
       // merged layout → flat rail
       return (
-        <div className="data360-mcp-ui-reset">
-          <SearchResultCard
-            indicators={data.indicators}
-            subtitle={subtitle}
-            title="Search Results"
-          />
-        </div>
+        <SearchResultCard
+          indicators={data.indicators}
+          subtitle={subtitle}
+          title="Search Results"
+        />
       );
     }
   }
@@ -181,13 +177,11 @@ export function SearchIndicators({ output, input }: SearchIndicatorsProps) {
     const subtitle = buildSubtitle(data, input);
 
     return (
-      <div className="data360-mcp-ui-reset">
-        <SearchResultCard
-          indicators={data.indicators}
-          subtitle={subtitle}
-          title="Search Results"
-        />
-      </div>
+      <SearchResultCard
+        indicators={data.indicators}
+        subtitle={subtitle}
+        title="Search Results"
+      />
     );
   }
 

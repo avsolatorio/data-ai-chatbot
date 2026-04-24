@@ -493,11 +493,3 @@ button.home-suggestion-chip:hover {
     animation: none;
   }
 }
-
-/* Reset Tailwind overrides for MCP UI components */
-.data360-mcp-ui-reset * {
-  border-color: unset;
-}
-.data360-mcp-ui-reset span[style] {
-  color: inherit;
-}
