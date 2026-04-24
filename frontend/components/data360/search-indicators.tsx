@@ -9,7 +9,6 @@ import type {
   Data360SearchToolResult,
   Data360MultiQuerySearchToolResult,
 } from "@data360/tool-types";
-import { alpha3ToName, alpha3ListToNames } from "@/lib/country-names";
 
 // ─── Type guard helpers ───────────────────────────────────────────────────────
 
@@ -24,71 +23,101 @@ function isMultiQueryShape(raw: unknown): boolean {
   );
 }
 
-// ─── Build subtitle from parsed result ────────────────────────────────────────
+// ─── Subtitle helpers ─────────────────────────────────────────────────────────
+
+type InputQueryGroup = {
+  queries?: string[];
+  query?: string;
+  country?: string | null;
+};
 
 /**
- * For `by_query` layout: group results by country_code and format as
- * "Japan: GDP per capita, Inflation · Philippines: Population".
- * Results with no country are listed without a prefix.
+ * For `by_query` layout: prefer the original human-readable country names from
+ * `input.query_groups` (e.g. "Japan") over the resolved alpha-3 codes in the
+ * output (e.g. "JPN"). Falls back to country_code from the output if input is
+ * unavailable.
+ *
+ * Output format: "Japan: GDP per capita, Inflation · Philippines: Population"
  */
-function subtitleFromByQueryResults(
+function subtitleFromByQuery(
   results: Array<{ query: string; country_code?: string | null }>,
+  inputQueryGroups: InputQueryGroup[] | null,
 ): string | undefined {
   if (!results.length) return undefined;
 
-  // Group queries by country_code
+  if (inputQueryGroups && inputQueryGroups.length > 0) {
+    // Use input groups directly — country name is already human-readable
+    const parts = inputQueryGroups
+      .filter((g) => {
+        const qs = g.queries ?? (g.query ? [g.query] : []);
+        return qs.length > 0;
+      })
+      .map((g) => {
+        const qs = g.queries ?? (g.query ? [g.query] : []);
+        const queryList = qs.join(", ");
+        return g.country ? `${g.country}: ${queryList}` : queryList;
+      });
+    return parts.join(" · ") || undefined;
+  }
+
+  // Fallback: group output results by country_code (raw code, e.g. "JPN")
   const grouped = new Map<string, string[]>();
   for (const r of results) {
     const key = r.country_code ?? "";
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key)!.push(r.query);
   }
-
   const parts: string[] = [];
-  for (const [countryCode, queries] of grouped) {
-    const queryList = queries.join(", ");
-    // Convert alpha-3 code to full name (e.g. "JPN" → "Japan")
-    const countryLabel = countryCode ? alpha3ToName(countryCode) : "";
-    parts.push(countryLabel ? `${countryLabel}: ${queryList}` : queryList);
+  for (const [code, queries] of grouped) {
+    parts.push(code ? `${code}: ${queries.join(", ")}` : queries.join(", "));
   }
-
-  return parts.join(" · ");
+  return parts.join(" · ") || undefined;
 }
 
 function buildSubtitle(
   parsed: Data360SearchToolResult | Data360MultiQuerySearchToolResult,
-  inputQuery?: string | null,
+  input?: Record<string, unknown> | null,
 ): string | undefined {
-  // by_query layout — derive subtitle from per-group country+query
+  // by_query layout — use input.query_groups for human-readable country names
   if (
     "result_layout" in parsed &&
     parsed.result_layout === "by_query" &&
     Array.isArray(parsed.results) &&
     parsed.results.length > 0
   ) {
-    return subtitleFromByQueryResults(
+    const inputGroups = Array.isArray(input?.query_groups)
+      ? (input.query_groups as InputQueryGroup[])
+      : null;
+    return subtitleFromByQuery(
       parsed.results as Array<{ query: string; country_code?: string | null }>,
+      inputGroups,
     );
   }
 
-  // merged multi-query — list queries, append shared country name if present
+  // merged multi-query — list the queries; use input.required_country for the
+  // country label (preserves the original string the LLM passed, e.g. "China")
   if ("queries" in parsed && Array.isArray(parsed.queries) && parsed.queries.length > 0) {
     const queryPart = parsed.queries.join(" · ");
-    const country = parsed.required_country;
-    // required_country may be semicolon-separated alpha-3 codes e.g. "CHN;JPN"
-    const countryLabel = country ? alpha3ListToNames(country) : null;
-    return countryLabel ? `${queryPart} — ${countryLabel}` : queryPart;
+    // Prefer input country string (human-readable) over the resolved code in output
+    const country =
+      typeof input?.required_country === "string"
+        ? input.required_country
+        : parsed.required_country;
+    return country ? `${queryPart} — ${country}` : queryPart;
   }
 
-  // single-query — use the query string from the input or the response
-  const country = parsed.required_country;
-  const countryLabel = country ? alpha3ListToNames(country) : null;
-  if (inputQuery && countryLabel) return `${inputQuery} — ${countryLabel}`;
-  if (inputQuery) return inputQuery;
-  if (countryLabel) return countryLabel;
+  // single-query — use input.query and input.required_country directly
+  const query =
+    typeof input?.query === "string" ? input.query : null;
+  const country =
+    typeof input?.required_country === "string"
+      ? input.required_country
+      : parsed.required_country;
+  if (query && country) return `${query} — ${country}`;
+  if (query) return query;
+  if (country) return country;
   return undefined;
 }
-
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
@@ -114,9 +143,7 @@ export function SearchIndicators({ output, input }: SearchIndicatorsProps) {
       if (data.error) {
         return <ErrorBanner message={data.error} />;
       }
-      const inputQuery =
-        typeof input?.query === "string" ? input.query : null;
-      const subtitle = buildSubtitle(data, inputQuery);
+      const subtitle = buildSubtitle(data, input);
 
       // by_query layout → grouped accordion
       if (data.result_layout === "by_query" && data.results && data.results.length > 0) {
@@ -147,9 +174,7 @@ export function SearchIndicators({ output, input }: SearchIndicatorsProps) {
     if (data.error) {
       return <ErrorBanner message={data.error} />;
     }
-    const inputQuery =
-      typeof input?.query === "string" ? input.query : null;
-    const subtitle = buildSubtitle(data, inputQuery);
+    const subtitle = buildSubtitle(data, input);
 
     return (
       <SearchResultCard
