@@ -9,6 +9,7 @@ import type {
   Data360SearchToolResult,
   Data360MultiQuerySearchToolResult,
 } from "@data360/tool-types";
+import { alpha3ToName, alpha3ListToNames } from "@/lib/country-names";
 
 // ─── Type guard helpers ───────────────────────────────────────────────────────
 
@@ -25,27 +26,69 @@ function isMultiQueryShape(raw: unknown): boolean {
 
 // ─── Build subtitle from parsed result ────────────────────────────────────────
 
+/**
+ * For `by_query` layout: group results by country_code and format as
+ * "Japan: GDP per capita, Inflation · Philippines: Population".
+ * Results with no country are listed without a prefix.
+ */
+function subtitleFromByQueryResults(
+  results: Array<{ query: string; country_code?: string | null }>,
+): string | undefined {
+  if (!results.length) return undefined;
+
+  // Group queries by country_code
+  const grouped = new Map<string, string[]>();
+  for (const r of results) {
+    const key = r.country_code ?? "";
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(r.query);
+  }
+
+  const parts: string[] = [];
+  for (const [countryCode, queries] of grouped) {
+    const queryList = queries.join(", ");
+    // Convert alpha-3 code to full name (e.g. "JPN" → "Japan")
+    const countryLabel = countryCode ? alpha3ToName(countryCode) : "";
+    parts.push(countryLabel ? `${countryLabel}: ${queryList}` : queryList);
+  }
+
+  return parts.join(" · ");
+}
+
 function buildSubtitle(
   parsed: Data360SearchToolResult | Data360MultiQuerySearchToolResult,
   inputQuery?: string | null,
 ): string | undefined {
-  const parts: string[] = [];
+  // by_query layout — derive subtitle from per-group country+query
+  if (
+    "result_layout" in parsed &&
+    parsed.result_layout === "by_query" &&
+    Array.isArray(parsed.results) &&
+    parsed.results.length > 0
+  ) {
+    return subtitleFromByQueryResults(
+      parsed.results as Array<{ query: string; country_code?: string | null }>,
+    );
+  }
 
-  // For multi-query, list the queries
+  // merged multi-query — list queries, append shared country name if present
   if ("queries" in parsed && Array.isArray(parsed.queries) && parsed.queries.length > 0) {
-    parts.push(parsed.queries.join(" · "));
-  } else if (inputQuery) {
-    parts.push(inputQuery);
+    const queryPart = parsed.queries.join(" · ");
+    const country = parsed.required_country;
+    // required_country may be semicolon-separated alpha-3 codes e.g. "CHN;JPN"
+    const countryLabel = country ? alpha3ListToNames(country) : null;
+    return countryLabel ? `${queryPart} — ${countryLabel}` : queryPart;
   }
 
-  // Country context
+  // single-query — use the query string from the input or the response
   const country = parsed.required_country;
-  if (country) {
-    parts.push(country);
-  }
-
-  return parts.length > 0 ? parts.join(" — ") : undefined;
+  const countryLabel = country ? alpha3ListToNames(country) : null;
+  if (inputQuery && countryLabel) return `${inputQuery} — ${countryLabel}`;
+  if (inputQuery) return inputQuery;
+  if (countryLabel) return countryLabel;
+  return undefined;
 }
+
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
