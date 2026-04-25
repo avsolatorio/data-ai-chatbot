@@ -148,21 +148,25 @@ export function SearchIndicators({ output, input }: SearchIndicatorsProps) {
       // by_query layout → grouped accordion
       if (data.result_layout === "by_query" && data.results && data.results.length > 0) {
         return (
-          <SearchResultCard
-            groups={data.results}
-            subtitle={subtitle}
-            title="Search Results"
-          />
+          <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
+            <SearchResultCard
+              groups={data.results}
+              subtitle={subtitle}
+              title="Search Results"
+            />
+          </div>
         );
       }
 
       // merged layout → flat rail
       return (
-        <SearchResultCard
-          indicators={data.indicators}
-          subtitle={subtitle}
-          title="Search Results"
-        />
+        <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
+          <SearchResultCard
+            indicators={data.indicators}
+            subtitle={subtitle}
+            title="Search Results"
+          />
+        </div>
       );
     }
   }
@@ -177,11 +181,13 @@ export function SearchIndicators({ output, input }: SearchIndicatorsProps) {
     const subtitle = buildSubtitle(data, input);
 
     return (
-      <SearchResultCard
-        indicators={data.indicators}
-        subtitle={subtitle}
-        title="Search Results"
-      />
+      <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
+        <SearchResultCard
+          indicators={data.indicators}
+          subtitle={subtitle}
+          title="Search Results"
+        />
+      </div>
     );
   }
 
