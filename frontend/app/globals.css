@@ -494,9 +494,9 @@ button.home-suggestion-chip:hover {
   }
 }
 
-/* ── Thinking panel: mute prose text without bleeding into tool-result cards ── */
-/* Targets response-markdown (prose text) inside the thinking step container.
-   The search card wrapper uses .search-indicators-escape which resets the cascade for its subtree. */
+/* ── Thinking panel: mute prose text inside the thinking steps container ── */
+/* Scoped to .thinking-steps-content (set in message-thinking.tsx) so it
+   only affects the collapsible "Show agent actions" panel, not the main answer. */
 .thinking-steps-content .response-markdown {
   color: var(--muted-foreground);
   font-size: 14px;
@@ -508,8 +508,3 @@ button.home-suggestion-chip:hover {
 .thinking-steps-content .response-markdown h4 {
   font-size: 16px;
 }
-/*
-.thinking-steps-content .search-indicators-escape .response-markdown {
-  color: inherit;
-}
-*/
