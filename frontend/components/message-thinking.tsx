@@ -55,7 +55,7 @@ function getThinkingStage(
 }
 
 const stepsContentClassName =
-  "relative space-y-4 pl-8 pb-2 text-sm text-muted-foreground [&_button]:text-foreground [&_button]:text-sm [&_a]:text-foreground [&_a]:text-sm [&_[role='button']]:text-foreground [&_[role='button']]:text-sm [&_[data-radix-tooltip-content]]:text-popover-foreground [&_[data-radix-tooltip-content]_*]:text-popover-foreground";
+  "thinking-steps-content relative space-y-4 pl-8 pb-2 text-sm text-muted-foreground [&_button]:text-foreground [&_button]:text-sm [&_a]:text-foreground [&_a]:text-sm [&_[role='button']]:text-foreground [&_[role='button']]:text-sm [&_[data-radix-tooltip-content]]:text-popover-foreground [&_[data-radix-tooltip-content]_*]:text-popover-foreground";
 
 const stepsContentClassNameSheet =
   "relative space-y-4 pl-8 pb-2 text-sm text-foreground [&_button]:text-foreground [&_button]:text-sm [&_a]:text-foreground [&_a]:text-sm [&_[role='button']]:text-foreground [&_[role='button']]:text-sm [&_[data-radix-tooltip-content]]:text-popover-foreground [&_[data-radix-tooltip-content]_*]:text-popover-foreground";
