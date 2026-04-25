@@ -493,3 +493,23 @@ button.home-suggestion-chip:hover {
     animation: none;
   }
 }
+
+/* ── Thinking panel: mute prose text without bleeding into tool-result cards ── */
+/* Targets response-markdown (prose text) inside the thinking step container.
+   The search card wrapper uses .search-indicators-escape which resets the cascade for its subtree. */
+.thinking-steps-content .response-markdown {
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.thinking-steps-content .response-markdown strong,
+.thinking-steps-content .response-markdown h1,
+.thinking-steps-content .response-markdown h2,
+.thinking-steps-content .response-markdown h3,
+.thinking-steps-content .response-markdown h4 {
+  font-size: 16px;
+}
+/*
+.thinking-steps-content .search-indicators-escape .response-markdown {
+  color: inherit;
+}
+*/
