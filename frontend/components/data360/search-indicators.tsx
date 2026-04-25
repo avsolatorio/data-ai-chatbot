@@ -199,16 +199,7 @@ export function SearchIndicators({ output, input }: SearchIndicatorsProps) {
 
 function ErrorBanner({ message }: { message: string }) {
   return (
-    <div
-      style={{
-        padding: "12px 16px",
-        borderRadius: 8,
-        border: "1px solid rgba(183, 28, 28, 0.3)",
-        background: "rgba(183, 28, 28, 0.06)",
-        color: "#B71C1C",
-        fontSize: 13,
-      }}
-    >
+    <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
       <strong>Error:</strong> {message}
     </div>
   );
