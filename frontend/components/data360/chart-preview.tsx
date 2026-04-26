@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
 import { proxyChartUrlForFetch } from "@/lib/chart-url";
 import { getBasePath } from "@/lib/config";
+import { DATA360_CHART_SOURCE_FALLBACK } from "@/lib/data360/chart-source";
 import { normalizeChartPayloadFromJson } from "@/lib/data360/normalize-chart-payload";
 import type { UIArtifact } from "../artifact";
 import { FullscreenIcon, LoaderIcon } from "../icons";
@@ -18,6 +19,8 @@ export type ChartPreviewProps = {
   messageId?: string;
   /** Shown as the card subtitle (e.g. multi-indicator strategy). */
   subtitle?: string;
+  /** Chart card footer (World Bank attribution). Defaults to generic Data360 line. */
+  source?: string;
 };
 
 const PREVIEW_CHART_HEIGHT = 280;
@@ -27,6 +30,7 @@ export function ChartPreview({
   isReadonly,
   messageId,
   subtitle,
+  source = DATA360_CHART_SOURCE_FALLBACK,
 }: ChartPreviewProps) {
   const { setArtifact } = useArtifact();
   /** Bounds for chart artifact animation (full VegaChartCard including right rail). */
@@ -137,7 +141,7 @@ export function ChartPreview({
         <VegaChartCard
           chartHeight={PREVIEW_CHART_HEIGHT}
           railTopSlot={expandButton}
-          source="World Bank — Data360"
+          source={source}
           spec={chartData.spec as VLSpec}
           subtitle={subtitle}
           title={chartData.title}

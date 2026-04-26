@@ -39,6 +39,14 @@ export function proxyChartUrlForFetch(url: string, basePath: string): string {
   return applyBasePathToChartPath(pathPart, basePath);
 }
 
+/** True when two chart URLs refer to the same proxied fetch path (inline vs tool output). */
+export function chartUrlsReferToSameChart(a: string, b: string): boolean {
+  const bp = getBasePath();
+  return (
+    proxyChartUrlForFetch(a.trim(), bp) === proxyChartUrlForFetch(b.trim(), bp)
+  );
+}
+
 /**
  * Regexes for detecting chart URLs in assistant text. When `basePath` is set,
  * matches both `/api/v1/charts/...` and `/basePath/api/v1/charts/...`.

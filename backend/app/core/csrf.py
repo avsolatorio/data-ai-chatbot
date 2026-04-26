@@ -15,6 +15,11 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
+def _should_skip_csrf(request: Request) -> bool:
+    """Allow service-to-service ingestion endpoint without browser Origin headers."""
+    return request.method == "POST" and request.url.path == "/api/v1/charts"
+
+
 def _get_origin_from_headers(request: Request) -> str | None:
     """
     Extract client origin from request headers, in order of preference:
@@ -142,6 +147,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         if request.method not in ("POST", "PUT", "DELETE", "PATCH"):
+            return await call_next(request)
+        if _should_skip_csrf(request):
             return await call_next(request)
 
         # Debug: log CSRF validation attempt for state-changing requests

@@ -16,6 +16,8 @@ import { buildChartUrlRegexes } from "@/lib/chart-url";
 import { getBasePath } from "@/lib/config";
 import {
   type Data360SourceEntry,
+  findVizOutputMatchingChartUrl,
+  formatData360VizChartSource,
   getData360SourcesFromParts,
   isIndicatorUrl,
 } from "@/lib/data360";
@@ -191,6 +193,13 @@ function renderMessagePart(
                     return <Response>{sanitizeText(part.text)}</Response>;
                   }
                   const { before, chartUrl, after } = split;
+                  const matchedViz = findVizOutputMatchingChartUrl(
+                    message.parts,
+                    chartUrl,
+                  );
+                  const inlineChartSource = matchedViz
+                    ? formatData360VizChartSource(matchedViz)
+                    : undefined;
                   return (
                     <>
                       {before.trim().length > 0 ? (
@@ -200,6 +209,9 @@ function renderMessagePart(
                         chartUrl={chartUrl}
                         isReadonly={isReadonly}
                         messageId={message.id}
+                        {...(inlineChartSource
+                          ? { source: inlineChartSource }
+                          : {})}
                       />
                       {after.trim().length > 0 ? (
                         <Response>{sanitizeText(after)}</Response>
@@ -415,6 +427,7 @@ function renderMessagePart(
                     chartUrl={output.url}
                     isReadonly={isReadonly}
                     messageId={message.id}
+                    source={formatData360VizChartSource(output)}
                     subtitle={vizSubtitle}
                   />
                 }

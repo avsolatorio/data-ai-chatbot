@@ -190,6 +190,10 @@ class Settings(BaseSettings):
     # When True, users can set chats to public (share via link). Default False.
     ENABLE_SHARE_CONVERSATION: bool = False
 
+    # Service-to-service auth for POST /api/v1/charts.
+    # Set to a strong random value and send it as `Authorization: Bearer <token>`.
+    CHARTS_API_WRITE_TOKEN: str = ""
+
     # When False, GET /ready returns 200 immediately with readiness_checks=disabled (no MCP probe).
     # Use to bypass readiness for ops without changing MCP_* vars.
     READINESS_ENABLED: bool = True

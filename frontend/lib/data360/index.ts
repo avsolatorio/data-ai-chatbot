@@ -1,3 +1,8 @@
+export { findVizOutputMatchingChartUrl } from "./chart-inline-attribution";
+export {
+  DATA360_CHART_SOURCE_FALLBACK,
+  formatData360VizChartSource,
+} from "./chart-source";
 export {
   type Data360SourceEntry,
   getData360SourcesFromParts,
