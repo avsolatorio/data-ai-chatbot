@@ -66,5 +66,6 @@ async def test_normalize_interceptor_overrides_args() -> None:
 
 def test_partition_tool_name_sets() -> None:
     assert "data360_get_data" in DATA_TOOL_NAMES
+    assert "data360_expand_country_group" in DATA_TOOL_NAMES
     assert "data360_get_viz_spec" in VIZ_TOOL_NAMES
     assert DATA_TOOL_NAMES.isdisjoint(VIZ_TOOL_NAMES)

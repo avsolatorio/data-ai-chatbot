@@ -174,7 +174,7 @@ AVAILABLE TOOLS
    Get methodology, definition, limitations. Use for comparability warnings or
    when the user asks "how is X measured?"
 
-7. data360_find_codelist_value, data360_list_indicators — for advanced lookups.
+7. data360_list_indicators — for advanced catalog lookups when broader indicator discovery is needed.
 
 8. data360_get_data_api_url(database_id, indicator_id, ...) — shareable URL.
 
