@@ -19,6 +19,7 @@ Available tools (injected at runtime by tool_setup.py):
     - data360_get_data             — fetch data with pagination
     - data360_get_disaggregation   — list available filters (years, countries, dims)
     - data360_find_codelist_value  — resolve country/unit codes
+    - data360_expand_country_group — expand region/group to country codes
     - data360_list_indicators      — list all indicator IDs for a database
     - data360_get_data_api_url     — generate an API URL (no fetch)
   MCP — visualization (narrator_node / writer only):
@@ -150,29 +151,32 @@ AVAILABLE TOOLS
    Resolve country/region names → ISO-3 codes. Batch with comma-separated query.
    Use "REF_AREA" as codelist_type.
 
-2. data360_search_indicators(query?, queries?, query_groups?, required_country?, limit?, result_layout?)
+2. data360_expand_country_group(group_code)
+   Expand a region or income group code (e.g., "SAS", "LIC") into individual member country codes.
+
+3. data360_search_indicators(query?, queries?, query_groups?, required_country?, limit?, result_layout?)
    Find indicators. Use `query` for one topic, `queries` for many in one country,
    and `query_groups` for different topics across different countries.
    CRITICAL: If using `query_groups`, you MUST also pass `result_layout="by_query"`.
    Use `required_country` to filter by coverage. Increase limit for broader recall.
 
-3. data360_get_data(database_id, indicator_id, disaggregation_filters?, start_year?, end_year?, limit?, offset?)
+4. data360_get_data(database_id, indicator_id, disaggregation_filters?, start_year?, end_year?, limit?, offset?)
    Fetch actual observation values.
    - Always use disaggregation_filters={"REF_AREA": "ISO1,ISO2,..."} for countries.
    - Paginate if has_more=True.
 
-4. data360_get_disaggregation(database_id, indicator_id)
+5. data360_get_disaggregation(database_id, indicator_id)
    Check exact year and country coverage. ONLY call when:
    - User asked for a specific year AND covers_country result was ambiguous/false.
    - NEVER call just to confirm general coverage when covers_country=true.
 
-5. data360_get_metadata(database_id, indicator_id, select_fields?)
+6. data360_get_metadata(database_id, indicator_id, select_fields?)
    Get methodology, definition, limitations. Use for comparability warnings or
    when the user asks "how is X measured?"
 
-6. data360_find_codelist_value, data360_list_indicators — for advanced lookups.
+7. data360_find_codelist_value, data360_list_indicators — for advanced lookups.
 
-7. data360_get_data_api_url(database_id, indicator_id, ...) — shareable URL.
+8. data360_get_data_api_url(database_id, indicator_id, ...) — shareable URL.
 
 ═══════════════════════════════════════════════════════════════════════════════
 DATA RETRIEVAL RULES
