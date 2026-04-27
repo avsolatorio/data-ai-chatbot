@@ -42,8 +42,8 @@ importers:
         specifier: ^6.35.3
         version: 6.36.4
       '@data360/mcp-ui':
-        specifier: ^0.0.3
-        version: 0.0.3(@data360/tool-types@0.0.3)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
+        specifier: ^0.0.4
+        version: 0.0.4(@data360/tool-types@0.0.3)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
       '@data360/tool-types':
         specifier: ^0.0.3
         version: 0.0.3
@@ -536,8 +536,8 @@ packages:
   '@codemirror/view@6.36.4':
     resolution: {integrity: sha512-ZQ0V5ovw/miKEXTvjgzRyjnrk9TwriUB1k4R5p7uNnHR9Hus+D1SXHGdJshijEzPFjU25xea/7nhIeSqYFKdbA==}
 
-  '@data360/mcp-ui@0.0.3':
-    resolution: {integrity: sha512-58wT68gejr/7LUJm1tmXBjW+k8JVPKurwb9Uqe2iAnhvcMsPqVmZyQtpvKSLzXQagmHpuaYqJYxiJU3y1VMt7w==}
+  '@data360/mcp-ui@0.0.4':
+    resolution: {integrity: sha512-q4waSm7+gUtH8eu+lEwjtcC48Aql/YNktoAzqqli+xx4Df8MeRHqf832Ru+9Q85RNwsXWYskE2899UCuZlQ2cQ==}
     peerDependencies:
       '@data360/tool-types': '>=0.0.1'
       react: '>=18.0.0'
@@ -545,6 +545,9 @@ packages:
       vega: '>=5.0.0'
       vega-embed: '>=6.0.0'
       vega-lite: '>=5.0.0'
+
+  '@data360/mcp-viz-core@0.0.1':
+    resolution: {integrity: sha512-EXB0maN4LXSVQyuy8kYn12pO+E7+xmWVyxIwnC46EpJE59qH5KAEsXHd/KyJZ9LGHqBpH587Nn7Idx4MoTVy7w==}
 
   '@data360/tool-types@0.0.3':
     resolution: {integrity: sha512-rijot4OP+TL8qzZT4tukX+DHy2dvaKvYFMhWSACkQVqyrJyuF9e/7O6DmVkpYBbKp0D+KEgaBTGn49LixyBW2A==}
@@ -3034,6 +3037,9 @@ packages:
   highlightjs-vue@1.0.0:
     resolution: {integrity: sha512-PDEfEF102G23vHmPhLyPboFCD+BkMGu+GuJe2d9/eH4FsCwvgBpnc9n0pGE+ffKdph38s6foEZiEjdgHdzp+IA==}
 
+  html-to-image@1.11.13:
+    resolution: {integrity: sha512-cuOPoI7WApyhBElTTb9oqsawRvZ0rHhaHwghRLlTuffoD1B2aDemlCruLeZrUIIdvG7gs9xeELEPm6PhuASqrg==}
+
   html-url-attributes@3.0.1:
     resolution: {integrity: sha512-ol6UPyBWqsrO6EJySPz2O7ZSr856WDrEzM5zMqp+FJJLGMW35cLYmmZnl0vztAZxRUoNZJFTCohfjuIJ8I4QBQ==}
 
@@ -4763,14 +4769,18 @@ snapshots:
       style-mod: 4.1.2
       w3c-keyname: 2.2.8
 
-  '@data360/mcp-ui@0.0.3(@data360/tool-types@0.0.3)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
+  '@data360/mcp-ui@0.0.4(@data360/tool-types@0.0.3)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
     dependencies:
+      '@data360/mcp-viz-core': 0.0.1
       '@data360/tool-types': 0.0.3
+      html-to-image: 1.11.13
       react: 19.0.0-rc-45804af1-20241021
       react-dom: 19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021)
       vega: 5.33.1
       vega-embed: 6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
       vega-lite: 5.23.0(vega@5.33.1)
+
+  '@data360/mcp-viz-core@0.0.1': {}
 
   '@data360/tool-types@0.0.3':
     dependencies:
@@ -7205,6 +7215,8 @@ snapshots:
   highlight.js@10.7.3: {}
 
   highlightjs-vue@1.0.0: {}
+
+  html-to-image@1.11.13: {}
 
   html-url-attributes@3.0.1: {}
 
