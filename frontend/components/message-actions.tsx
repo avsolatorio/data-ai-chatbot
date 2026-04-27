@@ -11,6 +11,7 @@ import { Action, Actions } from "./elements/actions";
 import { CopyIcon, FeedbackIcon, PencilEditIcon, ThumbDownIcon, ThumbUpIcon } from "./icons";
 import { MessageFeedback } from "./message-feedback";
 import { MessageTokenUsage } from "./message-token-usage";
+import { useCanViewTokenUsage } from "@/contexts/token-usage-visibility";
 
 export function PureMessageActions({
   chatId,
@@ -31,6 +32,7 @@ export function PureMessageActions({
   const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const canViewTokenUsage = useCanViewTokenUsage();
 
   if (isLoading) {
     return null;
@@ -277,7 +279,7 @@ export function PureMessageActions({
           </div>
         </Action>
 
-        {usageData && (
+        {canViewTokenUsage && usageData && (
           <MessageTokenUsage usage={usageData} />
         )}
       </Actions>

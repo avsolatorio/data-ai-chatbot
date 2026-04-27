@@ -25,6 +25,8 @@ export type User = {
   type: UserType;
   /** Display name (e.g. from MSAL/Azure AD). Present when backend returns it. */
   name?: string | null;
+  /** Whether this user can view token usage in the UI. Derived from FEEDBACK_REVIEWER_EMAILS on the backend. */
+  canViewTokenUsage?: boolean;
 };
 
 /**

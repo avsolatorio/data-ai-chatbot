@@ -637,6 +637,14 @@ async def get_current_user_info(
     if hasattr(user, "name") and user.name:
         response_data["name"] = user.name
 
+    # Determine if this user can view token usage in the UI.
+    # Mirrors the FEEDBACK_REVIEWER_EMAILS allowlist used by require_feedback_reviewer.
+    allowed_raw = getattr(settings, "FEEDBACK_REVIEWER_EMAILS", "") or ""
+    allowed_emails = {e.strip().lower() for e in allowed_raw.split(",") if e.strip()}
+    response_data["canViewTokenUsage"] = bool(
+        user.email and user.email.strip().lower() in allowed_emails
+    )
+
     # If this was a user restoration (guest or regular), issue new JWT token
     is_restoration = current_user.get("_restore_guest") or current_user.get("_restore_user")
     # Use type from database (already set in response_data above)

@@ -28,6 +28,7 @@ import { appConfig, getBasePath } from "@/lib/config";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
 import { cn } from "@/lib/utils";
+import { useCanViewTokenUsage } from "@/contexts/token-usage-visibility";
 import { Context } from "./elements/context";
 import {
   PromptInput,
@@ -302,11 +303,13 @@ const PureMultimodalInput = forwardRef<
     [],
   );
 
+  const canViewTokenUsage = useCanViewTokenUsage();
+
   const contextProps = useMemo(
     () => ({
-      usage,
+      usage: canViewTokenUsage ? usage : undefined,
     }),
-    [usage],
+    [usage, canViewTokenUsage],
   );
 
   const handleFileChange = useCallback(

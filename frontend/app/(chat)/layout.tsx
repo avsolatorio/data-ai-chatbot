@@ -9,6 +9,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { authProvider } from "@/lib/auth/config";
 import { getCurrentUser } from "@/lib/auth-service";
 import type { User } from "@/lib/auth-service-client";
+import { TokenUsageVisibilityProvider } from "@/contexts/token-usage-visibility";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -53,10 +54,17 @@ async function SidebarWrapper({ children }: { children: React.ReactNode }) {
   // The sidebar will show "Login to your account" for guest users
   const currentUser: User | null = user;
 
+  // Derive canViewTokenUsage from the server-resolved user.
+  // For MSAL/data360 providers where user is null at server time, we default to false
+  // (token usage stays hidden until the user is fully resolved via /api/auth/me on the client).
+  const canViewTokenUsage = currentUser?.canViewTokenUsage ?? false;
+
   return (
     <SidebarProvider defaultOpen={!isCollapsed}>
-      <AppSidebar user={currentUser ?? undefined} />
-      <SidebarInset>{children}</SidebarInset>
+      <TokenUsageVisibilityProvider canViewTokenUsage={canViewTokenUsage}>
+        <AppSidebar user={currentUser ?? undefined} />
+        <SidebarInset>{children}</SidebarInset>
+      </TokenUsageVisibilityProvider>
     </SidebarProvider>
   );
 }
