@@ -192,7 +192,7 @@ const rawEnvSchema = z.object({
     "Base URL for Data360 indicator pages; used to build source links from tool-data360_get_data (no trailing slash required)",
   ),
   NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN: booleanEnv.describe(
-    "When true, all Data360 MCP tool panels start expanded. When false (default), only chart and get_data expand; other tools start collapsed.",
+    "When true, all Data360 MCP tool panels start expanded. When false (default), only selected tools (e.g. search indicators) expand; chart tools start collapsed.",
   ),
   NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_URL: optionalString.describe(
     "Same-origin path or absolute URL for POST search-token refresh (e.g. /wbg/aem/service/refresh-search-token). Used only when NEXT_PUBLIC_AUTH_PROVIDER=data360; empty disables.",

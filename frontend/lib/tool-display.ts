@@ -1,15 +1,13 @@
 import { getData360ToolDefaultOpen } from "@/lib/config";
 
 const DATA360_EXPAND_BY_DEFAULT = new Set([
-  "tool-data360_get_viz_spec",
-  "tool-data360_get_multi_indicator_viz_spec",
   "tool-data360_search_indicators",
   // "tool-data360_get_data",
 ]);
 
 /**
  * When `NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN` is true, all Data360-style tools expand.
- * Otherwise only chart + tabular data tools expand; plumbing tools start collapsed.
+ * Otherwise only selected tools (e.g. search indicators) expand; charts and plumbing start collapsed.
  */
 export function defaultOpenForData360Tool(toolType: string): boolean {
   if (getData360ToolDefaultOpen()) {

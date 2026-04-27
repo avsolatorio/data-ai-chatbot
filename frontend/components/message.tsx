@@ -172,7 +172,8 @@ function renderMessagePart(
                 // iMessage-style: soft corners except a tight bottom-right (anchor side)
                 "w-fit break-words rounded-none rounded-br-[4px] rounded-bl-[20px] rounded-tl-[20px] rounded-tr-[20px] max-w-[40rem] px-3 py-3 text-left text-white":
                   message.role === "user",
-                "bg-transparent px-0 py-0 text-left":
+                // Allow Vega-Lite / vega-embed tooltips to extend past the bubble (inline charts).
+                "overflow-visible bg-transparent px-0 py-0 text-left":
                   message.role === "assistant",
               })}
               data-testid="message-content"

@@ -102,7 +102,7 @@ function getData360IndicatorBaseUrl(): string {
   );
 }
 
-/** When true, all Data360 MCP tool panels start expanded. When false, only chart + get_data expand by default. */
+/** When true, all Data360 MCP tool panels start expanded. When false, only a small allowlist (e.g. search indicators) expands by default. */
 export function getData360ToolDefaultOpen(): boolean {
   const v =
     process.env.NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN?.trim().toLowerCase();
@@ -262,7 +262,7 @@ export const appConfig = {
 
   /**
    * When true, all Data360 tool panels start expanded.
-   * When false (default), only chart + get_data expand; others stay collapsed.
+   * When false (default), only selected tools expand (e.g. search indicators); charts stay collapsed unless this is true.
    * Set via NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN.
    */
   data360ToolDefaultOpen: getData360ToolDefaultOpen(),
