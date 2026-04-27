@@ -68,3 +68,83 @@ export function buildChartUrlRegexes(): {
   );
   return { bare, markdownLink };
 }
+
+export type ChartInlineSegment =
+  | { kind: "text"; text: string; startOffset: number }
+  | { kind: "chart"; chartUrl: string; startOffset: number };
+
+/**
+ * Split assistant message text into alternating prose and chart URL segments so each
+ * chart can render as an inline {@link ChartPreview}. Preserves first-match behavior:
+ * when a markdown link and a bare URL start at the same index, the markdown link wins.
+ */
+export function splitAssistantTextIntoChartSegments(
+  text: string,
+  regexes: { bare: RegExp; markdownLink: RegExp } = buildChartUrlRegexes(),
+): ChartInlineSegment[] {
+  const { bare, markdownLink } = regexes;
+  const segments: ChartInlineSegment[] = [];
+  let pos = 0;
+
+  while (pos < text.length) {
+    const remainder = text.slice(pos);
+    const mdMatch = remainder.match(markdownLink);
+    const bareMatch = remainder.match(bare);
+
+    const mdCand =
+      mdMatch && mdMatch.index !== undefined
+        ? {
+            start: mdMatch.index,
+            end: mdMatch.index + mdMatch[0].length,
+            url: (mdMatch[1] ?? mdMatch[0]).trim(),
+          }
+        : null;
+    const bareCand =
+      bareMatch && bareMatch.index !== undefined
+        ? {
+            start: bareMatch.index,
+            end: bareMatch.index + bareMatch[0].length,
+            url: bareMatch[0].trim(),
+          }
+        : null;
+
+    let chosen: { start: number; end: number; url: string } | null = null;
+    if (mdCand && bareCand) {
+      if (mdCand.start < bareCand.start) {
+        chosen = mdCand;
+      } else if (bareCand.start < mdCand.start) {
+        chosen = bareCand;
+      } else {
+        chosen = mdCand;
+      }
+    } else {
+      chosen = mdCand ?? bareCand;
+    }
+
+    if (!chosen) {
+      segments.push({ kind: "text", text: text.slice(pos), startOffset: pos });
+      break;
+    }
+
+    if (chosen.start > 0) {
+      segments.push({
+        kind: "text",
+        text: text.slice(pos, pos + chosen.start),
+        startOffset: pos,
+      });
+    }
+    const chartStart = pos + chosen.start;
+    segments.push({
+      kind: "chart",
+      chartUrl: chosen.url,
+      startOffset: chartStart,
+    });
+    pos = pos + chosen.end;
+  }
+
+  if (segments.length === 0) {
+    return [{ kind: "text", text, startOffset: 0 }];
+  }
+
+  return segments;
+}
