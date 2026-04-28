@@ -4,7 +4,7 @@ import { Data360ChartFromVizTool } from "@data360/mcp-ui/viz-card";
 import type { Data360VizToolResult } from "@data360/tool-types";
 import { isData360VizToolSuccess } from "@data360/tool-types";
 import type { MouseEvent } from "react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
 import { proxyChartUrlForFetch } from "@/lib/chart-url";
 import { getBasePath } from "@/lib/config";
@@ -33,6 +33,13 @@ export function ChartPreview({
     title: string;
   } | null>(null);
   const [isOpening, setIsOpening] = useState(false);
+  const chartIdentity = isData360VizToolSuccess(toolResult) ? toolResult.url : "";
+
+  useEffect(() => {
+    // Reset stale preview payload when a different chart result is rendered.
+    setChartData(null);
+    setIsOpening(false);
+  }, [chartIdentity]);
 
   const mapUrlForFetch = useCallback(
     (u: string) => proxyChartUrlForFetch(u, getBasePath()),
