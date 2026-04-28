@@ -16,7 +16,49 @@ type PartLike = {
   type?: string;
   output?: unknown;
   data?: unknown;
+  input?: unknown;
 };
+
+/**
+ * MCP `data360_get_data` strips DATABASE_ID / INDICATOR from each row (`_strip_data_row`
+ * in data360-mcp) to save tokens. IDs still appear on the tool call input.
+ */
+function readGetDataToolInputIds(part: PartLike): {
+  databaseId: string;
+  indicatorId: string;
+} {
+  const raw = part.input;
+  if (raw === null || typeof raw !== "object") {
+    return { databaseId: "", indicatorId: "" };
+  }
+  const inp = raw as Record<string, unknown>;
+  const databaseId =
+    typeof inp.database_id === "string"
+      ? inp.database_id
+      : typeof inp.databaseId === "string"
+        ? inp.databaseId
+        : "";
+  const indicatorId =
+    typeof inp.indicator_id === "string"
+      ? inp.indicator_id
+      : typeof inp.indicatorId === "string"
+        ? inp.indicatorId
+        : "";
+  return { databaseId, indicatorId };
+}
+
+/** Indicator display name from `get_data` response metadata when rows omit INDICATOR_NAME. */
+function readGetDataMetadataName(out: Record<string, unknown>): string {
+  const meta = out.metadata;
+  if (meta === null || typeof meta !== "object") {
+    return "";
+  }
+  const m = meta as Record<string, unknown>;
+  if (typeof m.name === "string") {
+    return m.name.trim();
+  }
+  return "";
+}
 
 /**
  * Flattens message parts so that both top-level parts and parts nested inside
@@ -67,28 +109,59 @@ export function getData360SourcesFromParts(
     const out = output as Record<string, unknown>;
 
     if (type === "tool-data360_get_data") {
+      const { databaseId: inputDb, indicatorId: inputInd } =
+        readGetDataToolInputIds(part);
+      const metaName = readGetDataMetadataName(out);
       const data = Array.isArray(out.data) ? out.data : [];
+
+      const pushSource = (
+        databaseId: string,
+        indicator: string,
+        indicatorName: string,
+      ) => {
+        const title =
+          indicatorName.trim() ||
+          indicator ||
+          databaseId ||
+          "Data360 data";
+        const key = `${databaseId}:${indicator}`;
+        if (!databaseId && !indicator) {
+          return;
+        }
+        if (seen.has(key)) {
+          return;
+        }
+        seen.add(key);
+        const base = appConfig.data360IndicatorBaseUrl.replace(/\/+$/, "");
+        const href = indicator ? `${base}/${indicator}` : undefined;
+        entries.push({ title, href });
+      };
+
       for (const row of data) {
         const r = row as Record<string, unknown>;
         const databaseId =
-          typeof r.DATABASE_ID === "string" ? r.DATABASE_ID : "";
-        const indicator = typeof r.INDICATOR === "string" ? r.INDICATOR : "";
+          typeof r.DATABASE_ID === "string" ? r.DATABASE_ID : inputDb;
+        const indicator =
+          typeof r.INDICATOR === "string" ? r.INDICATOR : inputInd;
         const indicatorName =
-          typeof r.INDICATOR_NAME === "string" ? r.INDICATOR_NAME : "";
-        const title =
-          indicatorName.trim() || indicator || databaseId || "Data360 data";
-        const key = `${databaseId}:${indicator}`;
-        if (key && !seen.has(key)) {
-          seen.add(key);
-          const base = appConfig.data360IndicatorBaseUrl.replace(/\/+$/, "");
-          const href = indicator ? `${base}/${indicator}` : undefined;
-          entries.push({ title, href });
-        }
+          typeof r.INDICATOR_NAME === "string" ? r.INDICATOR_NAME : metaName;
+        pushSource(databaseId, indicator, indicatorName);
       }
+
       if (data.length === 0 && (out.error == null || out.error === null)) {
-        const key = "data360_get_data:empty";
-        if (!seen.has(key)) {
+        const key = `empty:${inputDb}:${inputInd}`;
+        if (!seen.has(key) && (inputDb || inputInd)) {
           seen.add(key);
+          const title =
+            metaName ||
+            inputInd ||
+            inputDb ||
+            "Data360 (no data returned)";
+          const base = appConfig.data360IndicatorBaseUrl.replace(/\/+$/, "");
+          const href = inputInd ? `${base}/${inputInd}` : undefined;
+          entries.push({ title, href });
+        } else if (!seen.has("data360_get_data:empty_fallback")) {
+          seen.add("data360_get_data:empty_fallback");
           entries.push({ title: "Data360 (no data returned)" });
         }
       }
