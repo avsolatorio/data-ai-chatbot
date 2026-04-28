@@ -12,6 +12,7 @@ Covers the improvements introduced in the per-node usage disaggregation work:
 
 import json
 
+from app.ai.graph.message_utils import plain_text_from_ai_message_content
 from app.ai.graph.sse_bridge import _SseBridgeState
 
 # ---------------------------------------------------------------------------
@@ -269,3 +270,67 @@ def test_fill_out_dict_no_by_node_key_when_no_named_nodes():
     final_usage = out.get("final_usage")
     assert final_usage is not None
     assert "byNode" not in final_usage
+
+
+# ---------------------------------------------------------------------------
+# plain_text_from_ai_message_content (narrator / SSE chunk normalization)
+# ---------------------------------------------------------------------------
+
+
+def test_plain_text_from_ai_message_content_list_blocks():
+    content = [{"type": "text", "text": "Hello"}, {"type": "text", "text": " world"}]
+    assert plain_text_from_ai_message_content(content) == "Hello world"
+
+
+def test_plain_text_from_ai_message_content_truthy_list_not_empty_string():
+    """Regression: ``content or ''`` is wrong for list-shaped AIMessage.content."""
+    content = [{"type": "text", "text": "x"}]
+    assert bool(content or "") is True
+    assert plain_text_from_ai_message_content(content) == "x"
+
+
+# ---------------------------------------------------------------------------
+# Narrator / answer-node text fallback (on_chat_model_end without stream)
+# ---------------------------------------------------------------------------
+
+
+def test_answer_fallback_emits_full_text_when_no_stream_for_run():
+    """If no on_chat_model_stream arrived, end-of-call message text must still be emitted."""
+    from types import SimpleNamespace
+
+    br = _make_bridge()
+    chunks = br._chunks_answer_text_fallback_from_end(
+        run_id="run-narrator-1",
+        output=SimpleNamespace(content="Complete answer without token stream."),
+    )
+    assert br.answer_text_started is True
+    assert "".join(br._answer_text_parts) == "Complete answer without token stream."
+    raw = b"".join(chunks).decode("utf-8")
+    assert "Complete answer" in raw
+
+
+def test_answer_fallback_no_duplicate_when_streamed_matches_final():
+    from types import SimpleNamespace
+
+    br = _make_bridge()
+    br._answer_run_stream_acc["run-1"] = "Hello"
+    chunks = br._chunks_answer_text_fallback_from_end(
+        run_id="run-1",
+        output=SimpleNamespace(content="Hello"),
+    )
+    assert chunks == []
+    assert br._answer_text_parts == []
+
+
+def test_answer_fallback_emits_suffix_after_partial_stream():
+    from types import SimpleNamespace
+
+    br = _make_bridge()
+    br._answer_run_stream_acc["run-2"] = "Hello"
+    chunks = br._chunks_answer_text_fallback_from_end(
+        run_id="run-2",
+        output=SimpleNamespace(content="Hello world"),
+    )
+    assert "".join(br._answer_text_parts) == " world"
+    raw = b"".join(chunks).decode("utf-8")
+    assert "world" in raw

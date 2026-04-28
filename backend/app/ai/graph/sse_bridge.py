@@ -18,6 +18,7 @@ Event → SSE mapping by langgraph_node (when LangGraph emits them):
     router    → routing reasoning wrapped in DataThinkingPart (after node ends)
     research  → on_chat_model_stream  → DataThinkingPart(TextDeltaPart)
     narrator  → on_chat_model_stream  → TextStartPart / TextDeltaPart / TextEndPart
+                (+ on_chat_model_end fallback when the provider omits token streams)
     direct    → same as narrator
 
 DB persistence (``assistant_parts_for_db``): mirrors :class:`StreamEventProcessor`
@@ -67,6 +68,7 @@ from app.ai.protocols.stream import (
 from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
 
 from .llm_invoke import LLM_POLICY_BLOCKED_TEXT, LLM_STEP_FAILED_TEXT
+from .message_utils import plain_text_from_ai_message_content
 
 try:
     from litellm.exceptions import ContentPolicyViolationError
@@ -160,6 +162,13 @@ def _unwrap_chat_model_end_output(output: Any) -> Any:
     return output
 
 
+def _text_from_chat_model_end_message(msg: Any) -> str:
+    """Plain text from an ``AIMessage``-like object at ``on_chat_model_end`` (no tool JSON)."""
+    if msg is None:
+        return ""
+    return plain_text_from_ai_message_content(getattr(msg, "content", None))
+
+
 def _extract_model_id_from_message(msg: Any) -> str | None:
     """Try to read the real deployed model name from an AIMessage's response_metadata.
 
@@ -203,6 +212,7 @@ class _SseBridgeState:
         "_stream_failed",
         "_final_graph_state",
         "_preprocessing_run_ids",
+        "_answer_run_stream_acc",
     )
 
     def __init__(
@@ -234,6 +244,9 @@ class _SseBridgeState:
         # Stable run-id per preprocessing node — shared between start and end events
         # so the frontend can match them and animate running → done in place.
         self._preprocessing_run_ids: dict[str, str] = {}
+        # Per LangGraph LLM ``run_id``: streamed text for that invocation only (narrator
+        # may call the model multiple times in one node — prefix match must be local).
+        self._answer_run_stream_acc: dict[str, str] = {}
 
     def _node_progress_chunks(
         self,
@@ -299,6 +312,48 @@ class _SseBridgeState:
             "providerMetadata": {"openai": {"itemId": f"narrator-{uuid4().hex}"}},
         }
         self._db_parts.append(inner)
+
+    def _emit_answer_text_delta(self, text: str, chunks: list[bytes]) -> None:
+        if not text:
+            return
+        self._answer_text_parts.append(text)
+        self._narrator_segment.append(text)
+        if not self.answer_text_started:
+            self.answer_text_started = True
+            chunks.append(TextStartPart(id=self.text_part_id).to_sse().encode("utf-8"))
+        chunks.append(TextDeltaPart(id=self.text_part_id, delta=text).to_sse().encode("utf-8"))
+
+    def _chunks_answer_text_fallback_from_end(self, *, run_id: str, output: Any) -> list[bytes]:
+        """Emit answer text from ``on_chat_model_end`` when token stream events were absent.
+
+        Narrator/direct/clarifier use ``llm.ainvoke`` with ``streaming=True``. LangGraph
+        usually forwards ``on_chat_model_stream``, but some LiteLLM/provider paths only
+        surface the assembled message on ``on_chat_model_end``, which produced empty UI
+        and empty ``assistant_parts_for_db`` text before this fallback.
+        """
+        chunks: list[bytes] = []
+        full_text = _text_from_chat_model_end_message(_unwrap_chat_model_end_output(output))
+        if not full_text.strip():
+            self._answer_run_stream_acc.pop(run_id, None)
+            return chunks
+        streamed = self._answer_run_stream_acc.pop(run_id, "")
+        if full_text.startswith(streamed):
+            gap = full_text[len(streamed) :]
+        elif not streamed:
+            gap = full_text
+        else:
+            gap = ""
+            logger.debug(
+                "[sse_bridge] answer fallback skipped (stream prefix mismatch) "
+                "message_id=%s run_id=%s streamed_len=%d full_len=%d",
+                self.message_id,
+                run_id,
+                len(streamed),
+                len(full_text),
+            )
+        if gap:
+            self._emit_answer_text_delta(gap, chunks)
+        return chunks
 
     def _accumulate_node_usage(self, node: str, piece: DataUsageData) -> None:
         """Add piece to both the total accumulator and the per-node accumulator."""
@@ -392,7 +447,9 @@ class _SseBridgeState:
 
         elif evt_type == "on_chat_model_stream" and node in _THINKING_NODES:
             chunk = data.get("chunk")
-            content: str = chunk.content if (chunk and hasattr(chunk, "content")) else ""
+            content = plain_text_from_ai_message_content(
+                chunk.content if (chunk and hasattr(chunk, "content")) else None
+            )
             if content:
                 self._research_text_buf.append(content)
                 inner_id = f"research-{self.message_id}"
@@ -409,6 +466,13 @@ class _SseBridgeState:
 
         elif evt_type == "on_chat_model_end" and node in _LLM_NODES:
             self.add_usage_from_message(data.get("output"), node=node)
+            if node in _ANSWER_NODES:
+                chunks.extend(
+                    self._chunks_answer_text_fallback_from_end(
+                        run_id=str(run_id or ""),
+                        output=data.get("output"),
+                    )
+                )
 
         elif not self._manual_tool_sse and evt_type == "on_tool_start" and node in _THINKING_NODES:
             chunks.extend(
@@ -431,16 +495,15 @@ class _SseBridgeState:
 
         elif evt_type == "on_chat_model_stream" and node in _ANSWER_NODES:
             chunk = data.get("chunk")
-            content = chunk.content if (chunk and hasattr(chunk, "content")) else ""
+            content = plain_text_from_ai_message_content(
+                chunk.content if (chunk and hasattr(chunk, "content")) else None
+            )
             if content:
-                self._answer_text_parts.append(content)
-                self._narrator_segment.append(content)
-                if not self.answer_text_started:
-                    self.answer_text_started = True
-                    chunks.append(TextStartPart(id=self.text_part_id).to_sse().encode("utf-8"))
-                chunks.append(
-                    TextDeltaPart(id=self.text_part_id, delta=content).to_sse().encode("utf-8")
+                run_key = str(run_id or "")
+                self._answer_run_stream_acc[run_key] = (
+                    self._answer_run_stream_acc.get(run_key, "") + content
                 )
+                self._emit_answer_text_delta(content, chunks)
 
         elif not self._manual_tool_sse and evt_type == "on_tool_start" and node in _ANSWER_NODES:
             chunks.extend(

@@ -152,3 +152,29 @@ def _extract_text(content: Any) -> str:
                 parts.append(item.get("text", ""))
         return "\n".join(parts)
     return str(content) if content else ""
+
+
+def plain_text_from_ai_message_content(content: Any) -> str:
+    """Flatten ``AIMessage.content`` from an LLM response to a single string for DB / UI.
+
+    LangChain may return a string, OpenAI-style ``[{"type":"text","text":"..."}]`` blocks,
+    a list of plain strings, or objects with a ``.text`` attribute. Using ``content or ""``
+    in callers is wrong for non-empty lists (truthy but not displayable text).
+    """
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        pieces: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                pieces.append(block)
+            elif isinstance(block, dict) and block.get("type") == "text":
+                pieces.append(str(block.get("text", "")))
+            else:
+                inner = getattr(block, "text", None)
+                if isinstance(inner, str):
+                    pieces.append(inner)
+        return "".join(pieces)
+    return str(content) if content else ""
