@@ -7,7 +7,7 @@ from pydantic import BaseModel, EmailStr, field_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_reviewer_emails
 from app.config import settings
 from app.core.auth import (
     create_access_token,
@@ -638,11 +638,11 @@ async def get_current_user_info(
         response_data["name"] = user.name
 
     # Determine if this user can view token usage in the UI.
-    # Mirrors the FEEDBACK_REVIEWER_EMAILS allowlist used by require_feedback_reviewer.
-    allowed_raw = getattr(settings, "FEEDBACK_REVIEWER_EMAILS", "") or ""
-    allowed_emails = {e.strip().lower() for e in allowed_raw.split(",") if e.strip()}
+    # Uses the shared helper that mirrors the FEEDBACK_REVIEWER_EMAILS allowlist
+    # used by require_feedback_reviewer in deps.py.
+    reviewer_emails = get_reviewer_emails()
     response_data["canViewTokenUsage"] = bool(
-        user.email and user.email.strip().lower() in allowed_emails
+        user.email and user.email.strip().lower() in reviewer_emails
     )
 
     # If this was a user restoration (guest or regular), issue new JWT token

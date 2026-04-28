@@ -14,7 +14,6 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -305,12 +304,6 @@ const PureMultimodalInput = forwardRef<
 
   const canViewTokenUsage = useCanViewTokenUsage();
 
-  const contextProps = useMemo(
-    () => ({
-      usage: canViewTokenUsage ? usage : undefined,
-    }),
-    [usage, canViewTokenUsage],
-  );
 
   const handleFileChange = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
@@ -512,7 +505,7 @@ const PureMultimodalInput = forwardRef<
             rows={1}
             value={input}
           />{" "}
-          <Context {...contextProps} />
+          {canViewTokenUsage && <Context usage={usage} />}
         </div>
         <PromptInputToolbar className="!border-top-0 border-t-0! p-0 shadow-none dark:border-0 dark:border-transparent!">
           <PromptInputTools className="gap-0 sm:gap-0.5">

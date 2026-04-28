@@ -1,5 +1,6 @@
 """
-Unit tests for the canViewTokenUsage field on GET /api/auth/me.
+Unit tests for the canViewTokenUsage field on GET /api/auth/me
+and the shared get_reviewer_emails() helper in deps.py.
 
 These tests exercise the logic that determines whether a given user's email
 is in the FEEDBACK_REVIEWER_EMAILS allowlist. They mock the DB user lookup
@@ -10,6 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from app.api.deps import get_reviewer_emails
 from app.api.v1.auth import get_current_user_info
 
 # ---------------------------------------------------------------------------
@@ -32,7 +34,36 @@ def _make_request() -> MagicMock:
 
 
 # ---------------------------------------------------------------------------
-# Tests
+# Tests for get_reviewer_emails() helper
+# ---------------------------------------------------------------------------
+
+
+def test_get_reviewer_emails_parses_comma_separated():
+    with patch("app.api.deps.settings") as mock_settings:
+        mock_settings.FEEDBACK_REVIEWER_EMAILS = "a@example.com, B@example.com , c@example.com"
+        result = get_reviewer_emails()
+    assert result == {"a@example.com", "b@example.com", "c@example.com"}
+
+
+def test_get_reviewer_emails_returns_empty_set_when_blank():
+    with patch("app.api.deps.settings") as mock_settings:
+        mock_settings.FEEDBACK_REVIEWER_EMAILS = ""
+        result = get_reviewer_emails()
+    assert result == set()
+
+
+def test_get_reviewer_emails_handles_none():
+    with patch("app.api.deps.settings") as mock_settings:
+        mock_settings.FEEDBACK_REVIEWER_EMAILS = None
+        result = get_reviewer_emails()
+    assert result == set()
+
+
+# ---------------------------------------------------------------------------
+# Integration tests for canViewTokenUsage field on /api/auth/me
+#
+# NOTE: patch target is app.api.deps.settings because get_reviewer_emails()
+# now reads settings from that module (not from auth.py).
 # ---------------------------------------------------------------------------
 
 
@@ -44,7 +75,7 @@ async def test_can_view_token_usage_is_true_for_reviewer():
 
     with (
         patch("app.api.v1.auth.get_user_by_id", new=AsyncMock(return_value=user)),
-        patch("app.api.v1.auth.settings") as mock_settings,
+        patch("app.api.deps.settings") as mock_settings,
     ):
         mock_settings.FEEDBACK_REVIEWER_EMAILS = reviewer_emails
         current_user = {"id": str(user.id), "type": "regular"}
@@ -73,7 +104,7 @@ async def test_can_view_token_usage_is_false_for_non_reviewer():
 
     with (
         patch("app.api.v1.auth.get_user_by_id", new=AsyncMock(return_value=user)),
-        patch("app.api.v1.auth.settings") as mock_settings,
+        patch("app.api.deps.settings") as mock_settings,
     ):
         mock_settings.FEEDBACK_REVIEWER_EMAILS = reviewer_emails
         current_user = {"id": str(user.id), "type": "regular"}
@@ -100,7 +131,7 @@ async def test_can_view_token_usage_is_false_when_list_empty():
 
     with (
         patch("app.api.v1.auth.get_user_by_id", new=AsyncMock(return_value=user)),
-        patch("app.api.v1.auth.settings") as mock_settings,
+        patch("app.api.deps.settings") as mock_settings,
     ):
         mock_settings.FEEDBACK_REVIEWER_EMAILS = ""
         current_user = {"id": str(user.id), "type": "regular"}
@@ -128,7 +159,7 @@ async def test_can_view_token_usage_is_case_insensitive():
 
     with (
         patch("app.api.v1.auth.get_user_by_id", new=AsyncMock(return_value=user)),
-        patch("app.api.v1.auth.settings") as mock_settings,
+        patch("app.api.deps.settings") as mock_settings,
     ):
         mock_settings.FEEDBACK_REVIEWER_EMAILS = reviewer_emails
         current_user = {"id": str(user.id), "type": "regular"}

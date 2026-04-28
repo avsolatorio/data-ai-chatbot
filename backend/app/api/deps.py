@@ -401,6 +401,17 @@ async def get_optional_user(
         return None
 
 
+def get_reviewer_emails() -> set[str]:
+    """
+    Parse FEEDBACK_REVIEWER_EMAILS into a lower-cased set of email addresses.
+
+    Centralised here so that both require_feedback_reviewer (access control) and
+    /api/auth/me (canViewTokenUsage flag) use identical parsing logic.
+    """
+    raw = getattr(settings, "FEEDBACK_REVIEWER_EMAILS", "") or ""
+    return {e.strip().lower() for e in raw.split(",") if e.strip()}
+
+
 async def require_feedback_reviewer(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -409,8 +420,7 @@ async def require_feedback_reviewer(
     Require authenticated user whose email is in FEEDBACK_REVIEWER_EMAILS.
     Use for feedback review/list endpoints. Raises 403 if not allowed.
     """
-    allowed_raw = getattr(settings, "FEEDBACK_REVIEWER_EMAILS", "") or ""
-    allowed = [e.strip().lower() for e in allowed_raw.split(",") if e.strip()]
+    allowed = get_reviewer_emails()
     if not allowed:
         logger.warning("require_feedback_reviewer: FEEDBACK_REVIEWER_EMAILS is empty")
         raise HTTPException(
