@@ -48,6 +48,13 @@ def _extract_questions(text: str) -> list[str]:
     return questions
 
 
+def _normalize_markdown_newlines(text: str) -> str:
+    """Convert accidentally escaped newlines to real line breaks."""
+    if r"\n" not in text:
+        return text
+    return text.replace(r"\n", "\n")
+
+
 async def followup_node(state: ChatPipelineState) -> dict:
     """Generate 2-3 follow-up questions and append them to assistant_parts.
 
@@ -105,6 +112,7 @@ async def followup_node(state: ChatPipelineState) -> dict:
     append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node="followup")
 
     final_content: str = plain_text_from_ai_message_content(getattr(response, "content", None))
+    final_content = _normalize_markdown_newlines(final_content)
     final_usage: dict | None = None
     if hasattr(response, "usage_metadata") and response.usage_metadata:
         final_usage = dict(response.usage_metadata)

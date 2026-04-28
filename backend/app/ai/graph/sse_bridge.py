@@ -213,6 +213,7 @@ class _SseBridgeState:
         "_final_graph_state",
         "_preprocessing_run_ids",
         "_answer_run_stream_acc",
+        "_prepend_sep_before_next_answer_delta",
     )
 
     def __init__(
@@ -247,6 +248,9 @@ class _SseBridgeState:
         # Per LangGraph LLM ``run_id``: streamed text for that invocation only (narrator
         # may call the model multiple times in one node — prefix match must be local).
         self._answer_run_stream_acc: dict[str, str] = {}
+        # After narrator (or any visible answer), the next answer node (e.g. followup)
+        # must not concatenate flush against the prior character (e.g. "estimate---").
+        self._prepend_sep_before_next_answer_delta: bool = False
 
     def _node_progress_chunks(
         self,
@@ -316,6 +320,10 @@ class _SseBridgeState:
     def _emit_answer_text_delta(self, text: str, chunks: list[bytes]) -> None:
         if not text:
             return
+        if self._prepend_sep_before_next_answer_delta:
+            if not text.startswith(("\n", "\r")):
+                text = "\n\n" + text
+            self._prepend_sep_before_next_answer_delta = False
         self._answer_text_parts.append(text)
         self._narrator_segment.append(text)
         if not self.answer_text_started:
@@ -415,6 +423,10 @@ class _SseBridgeState:
 
         elif evt_type == "on_chain_start" and evt_name in _ANSWER_NODES:
             self.flush_research_text_to_db()
+            # New answer subgraph after we already streamed user-visible text — insert a
+            # paragraph break before the next delta (narrator → followup, etc.).
+            if self._answer_text_parts and "".join(self._answer_text_parts).strip():
+                self._prepend_sep_before_next_answer_delta = True
             stage_bytes = self.make_stage_sse("generating")
             if stage_bytes:
                 chunks.append(stage_bytes)
