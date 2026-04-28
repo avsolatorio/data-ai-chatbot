@@ -13,6 +13,7 @@ from app.ai.observability.token_usage import append_llm_usage_fallback
 
 from .graph_debug_log import log_llm_messages_preview
 from .graph_tool_notify import notify_tool_end, notify_tool_start
+from .message_utils import plain_text_from_ai_message_content
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ async def run_tool_loop(
         response: AIMessage = await llm.ainvoke(messages)
         append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node=graph_node)
         messages.append(response)
-        final_content = response.content or ""
+        final_content = plain_text_from_ai_message_content(getattr(response, "content", None))
 
         # Capture full usage metadata if available
         if hasattr(response, "usage_metadata") and response.usage_metadata:

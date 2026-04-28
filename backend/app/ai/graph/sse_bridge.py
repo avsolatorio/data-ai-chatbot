@@ -336,6 +336,10 @@ class _SseBridgeState:
         if not full_text.strip():
             self._answer_run_stream_acc.pop(run_id, None)
             return chunks
+        if not run_id:
+            # Avoid cross-run collisions when providers omit run_id. In this case we
+            # cannot safely correlate stream/end events for prefix-diff fallback.
+            return chunks
         streamed = self._answer_run_stream_acc.pop(run_id, "")
         if full_text.startswith(streamed):
             gap = full_text[len(streamed) :]
@@ -500,9 +504,10 @@ class _SseBridgeState:
             )
             if content:
                 run_key = str(run_id or "")
-                self._answer_run_stream_acc[run_key] = (
-                    self._answer_run_stream_acc.get(run_key, "") + content
-                )
+                if run_key:
+                    self._answer_run_stream_acc[run_key] = (
+                        self._answer_run_stream_acc.get(run_key, "") + content
+                    )
                 self._emit_answer_text_delta(content, chunks)
 
         elif not self._manual_tool_sse and evt_type == "on_tool_start" and node in _ANSWER_NODES:

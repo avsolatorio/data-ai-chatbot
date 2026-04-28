@@ -26,7 +26,7 @@ from app.config import ModelType
 
 from ..llm_factory import get_chat_llm
 from ..memory import trim_for_node
-from ..message_utils import openai_to_langchain
+from ..message_utils import openai_to_langchain, plain_text_from_ai_message_content
 from ..state import ChatPipelineState
 
 logger = logging.getLogger(__name__)
@@ -86,7 +86,8 @@ async def transformer_node(state: ChatPipelineState) -> dict:
     response = await llm.ainvoke(messages)
     append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response)
 
-    result = _parse_transformer_response(response.content or "")
+    content_text = plain_text_from_ai_message_content(getattr(response, "content", None))
+    result = _parse_transformer_response(content_text)
     decision: str = result.get("decision", "DEFINITIONAL")
     translated_queries: list[str] = result.get("translated_queries") or []
 

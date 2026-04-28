@@ -18,7 +18,7 @@ from app.ai.prompts import get_summarizer_system_prompt
 from app.config import ModelType
 
 from ..llm_factory import get_chat_llm
-from ..message_utils import openai_to_langchain
+from ..message_utils import openai_to_langchain, plain_text_from_ai_message_content
 from ..state import ChatPipelineState
 
 logger = logging.getLogger(__name__)
@@ -99,7 +99,7 @@ async def summarizer_node(state: ChatPipelineState) -> dict:
     llm = get_chat_llm(model_type, streaming=False)
     response = await llm.ainvoke(messages)
     append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node="summarizer")
-    summary_text: str = response.content or ""
+    summary_text: str = plain_text_from_ai_message_content(getattr(response, "content", None))
 
     logger.info(
         "[summarizer_node] history_len=%d → summary_len=%d",

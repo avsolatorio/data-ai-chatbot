@@ -17,7 +17,7 @@ from app.config import ModelType
 
 from ..llm_factory import get_chat_llm
 from ..memory import trim_for_node
-from ..message_utils import openai_to_langchain
+from ..message_utils import openai_to_langchain, plain_text_from_ai_message_content
 from ..state import ChatPipelineState
 
 logger = logging.getLogger(__name__)
@@ -96,7 +96,7 @@ async def planner_node(state: ChatPipelineState) -> dict:
         ]
 
     response = await llm.ainvoke(messages)
-    final_content: str = response.content or ""
+    final_content: str = plain_text_from_ai_message_content(getattr(response, "content", None))
 
     query_plan = _parse_plan_response(final_content)
     logger.info(

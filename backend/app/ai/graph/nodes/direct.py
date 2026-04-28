@@ -17,7 +17,7 @@ from app.config import ModelType
 from ..graph_tool_notify import notify_tool_end, notify_tool_start
 from ..llm_factory import get_chat_llm
 from ..memory import trim_for_node
-from ..message_utils import openai_to_langchain
+from ..message_utils import openai_to_langchain, plain_text_from_ai_message_content
 from ..state import ChatPipelineState
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ async def direct_node(state: ChatPipelineState) -> dict:
         response: AIMessage = await llm.ainvoke(messages)
         append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node="direct")
         messages.append(response)
-        final_content = response.content or ""
+        final_content = plain_text_from_ai_message_content(getattr(response, "content", None))
 
         if hasattr(response, "usage_metadata") and response.usage_metadata:
             final_usage = dict(response.usage_metadata)
