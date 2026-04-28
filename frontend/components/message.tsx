@@ -3,6 +3,7 @@ import type { UseChatHelpers } from "@ai-sdk/react";
 import {
   isData360VizToolSuccess,
   parseData360VizToolResult,
+  type Data360VizToolResult,
 } from "@data360/tool-types";
 import { DATA360_GET_DATA_TOOL } from "@pcn-js/data360";
 import { IngestToolOutput } from "@pcn-js/ui";
@@ -20,7 +21,6 @@ import { getBasePath } from "@/lib/config";
 import {
   type Data360SourceEntry,
   findVizOutputMatchingChartUrl,
-  formatData360VizChartSource,
   getData360SourcesFromParts,
   isIndicatorUrl,
 } from "@/lib/data360";
@@ -189,18 +189,16 @@ function renderMessagePart(
                           message.parts,
                           segment.chartUrl,
                         );
-                        const inlineChartSource = matchedViz
-                          ? formatData360VizChartSource(matchedViz)
-                          : undefined;
+                        const inlineToolResult: Data360VizToolResult =
+                          matchedViz != null
+                            ? (matchedViz as Data360VizToolResult)
+                            : { url: segment.chartUrl, error: null };
                         return (
                           <ChartPreview
-                            chartUrl={segment.chartUrl}
                             isReadonly={isReadonly}
                             key={`${key}-chart-${segment.startOffset}`}
                             messageId={message.id}
-                            {...(inlineChartSource
-                              ? { source: inlineChartSource }
-                              : {})}
+                            toolResult={inlineToolResult}
                           />
                         );
                       })}
@@ -358,18 +356,6 @@ function renderMessagePart(
     const parsed = parseData360VizToolResult(toolPart.output ?? {});
     const output = parsed.success ? parsed.data : null;
 
-    const vizSubtitleParts: string[] = [];
-    if (output?.warning) {
-      vizSubtitleParts.push(output.warning);
-    }
-    if (output?.strategy || output?.reason) {
-      vizSubtitleParts.push(
-        [output.strategy, output.reason].filter(Boolean).join(" — "),
-      );
-    }
-    const vizSubtitle =
-      vizSubtitleParts.length > 0 ? vizSubtitleParts.join(" · ") : undefined;
-
     return (
       <Tool
         defaultOpen={defaultOpenForData360Tool(toolHeaderType)}
@@ -412,11 +398,9 @@ function renderMessagePart(
                 errorText={undefined}
                 output={
                   <ChartPreview
-                    chartUrl={output.url}
                     isReadonly={isReadonly}
                     messageId={message.id}
-                    source={formatData360VizChartSource(output)}
-                    subtitle={vizSubtitle}
+                    toolResult={output}
                   />
                 }
                 useDefaultFormat={false}

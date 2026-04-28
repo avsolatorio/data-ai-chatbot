@@ -1,86 +1,59 @@
 "use client";
 
-import type { VLSpec } from "@data360/mcp-ui/viz-card";
-import { VegaChartCard } from "@data360/mcp-ui/viz-card";
+import { Data360ChartFromVizTool } from "@data360/mcp-ui/viz-card";
+import type { Data360VizToolResult } from "@data360/tool-types";
+import { isData360VizToolSuccess } from "@data360/tool-types";
 import type { MouseEvent } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
 import { proxyChartUrlForFetch } from "@/lib/chart-url";
 import { getBasePath } from "@/lib/config";
-import { DATA360_CHART_SOURCE_FALLBACK } from "@/lib/data360/chart-source";
-import { normalizeChartPayloadFromJson } from "@/lib/data360/normalize-chart-payload";
 import type { UIArtifact } from "../artifact";
 import { FullscreenIcon, LoaderIcon } from "../icons";
 
 export type ChartPreviewProps = {
-  chartUrl: string;
+  /** Full viz tool result (or a minimal `{ url, error: null }` for inline URL-only embeds). */
+  toolResult: Data360VizToolResult;
   isReadonly?: boolean;
   /** Message that contains this chart; used to scroll chat to it when artifact scroll behavior is "trigger". */
   messageId?: string;
-  /** Shown as the card subtitle (e.g. multi-indicator strategy). */
-  subtitle?: string;
-  /** Chart card footer (World Bank attribution). Defaults to generic Data360 line. */
-  source?: string;
 };
 
 const PREVIEW_CHART_HEIGHT = 280;
 
 export function ChartPreview({
-  chartUrl,
+  toolResult,
   isReadonly,
   messageId,
-  subtitle,
-  source = DATA360_CHART_SOURCE_FALLBACK,
 }: ChartPreviewProps) {
   const { setArtifact } = useArtifact();
-  /** Bounds for chart artifact animation (full VegaChartCard including right rail). */
   const chartRegionRef = useRef<HTMLDivElement>(null);
   const [chartData, setChartData] = useState<{
-    spec: Record<string, unknown>;
     specJson: string;
     title: string;
   } | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [isOpening, setIsOpening] = useState(false);
-  const proxiedUrl = useMemo(
-    () => proxyChartUrlForFetch(chartUrl, getBasePath()),
-    [chartUrl],
+
+  const mapUrlForFetch = useCallback(
+    (u: string) => proxyChartUrlForFetch(u, getBasePath()),
+    [],
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoadError(null);
-    setChartData(null);
-    fetch(proxiedUrl)
-      .then((res) => {
-        if (!res.ok) throw new Error(`Failed to load chart: ${res.status}`);
-        return res.json() as Promise<unknown>;
-      })
-      .then((data) => {
-        if (cancelled) return;
-        const { spec, title } = normalizeChartPayloadFromJson(data);
-        const specJson = JSON.stringify(spec);
-        setChartData({
-          spec,
-          specJson,
-          title,
-        });
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setLoadError(
-            err instanceof Error ? err.message : "Failed to load chart",
-          );
-        }
+  const onChartReady = useCallback(
+    (info: { specJson: string; title: string }) => {
+      setChartData({
+        specJson: info.specJson,
+        title: info.title,
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [proxiedUrl]);
+    },
+    [],
+  );
 
   const handleOpenArtifact = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
-      if (isReadonly || !chartData) return;
+      if (isReadonly || !chartData) {
+        return;
+      }
       setIsOpening(true);
       const target = event.currentTarget;
       const boundingBox = target.getBoundingClientRect();
@@ -106,12 +79,8 @@ export function ChartPreview({
     [chartData, isReadonly, messageId, setArtifact],
   );
 
-  if (loadError) {
-    return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-500 dark:border-red-950/50 dark:bg-red-950/30">
-        {loadError}
-      </div>
-    );
+  if (!isData360VizToolSuccess(toolResult)) {
+    return null;
   }
 
   const showExpand = Boolean(chartData) && !isReadonly;
@@ -137,22 +106,21 @@ export function ChartPreview({
 
   return (
     <div ref={chartRegionRef} className="w-full min-w-0">
-      {chartData ? (
-        <VegaChartCard
-          chartHeight={PREVIEW_CHART_HEIGHT}
-          railTopSlot={expandButton}
-          source={source}
-          spec={chartData.spec as VLSpec}
-          subtitle={subtitle}
-          title={chartData.title}
-        />
-      ) : (
-        <div className="flex min-h-[200px] w-full items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20">
-          <span className="animate-spin">
-            <LoaderIcon />
-          </span>
-        </div>
-      )}
+      <Data360ChartFromVizTool
+        chartHeight={PREVIEW_CHART_HEIGHT}
+        className="w-full"
+        mapUrlForFetch={mapUrlForFetch}
+        onChartReady={onChartReady}
+        railTopSlot={expandButton}
+        toolResult={toolResult}
+        loadingFallback={
+          <div className="flex min-h-[200px] w-full items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20">
+            <span className="animate-spin">
+              <LoaderIcon />
+            </span>
+          </div>
+        }
+      />
     </div>
   );
 }

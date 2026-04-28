@@ -29,4 +29,14 @@ describe("formatData360VizChartSource", () => {
   it("uses generic fallback when nothing useful", () => {
     assert.equal(formatData360VizChartSource({}), DATA360_CHART_SOURCE_FALLBACK);
   });
+
+  it("prefers server source_line when present", () => {
+    assert.equal(
+      formatData360VizChartSource({
+        database_name: "Ignored",
+        source_line: "World Bank — Custom line",
+      }),
+      "World Bank — Custom line",
+    );
+  });
 });
