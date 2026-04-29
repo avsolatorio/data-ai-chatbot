@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
 import { ClaimMark } from "@pcn-js/ui";
+import { useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -47,8 +47,10 @@ export function GetDataRequestSummary({
   input: GetDataInput;
   indicatorName?: string | null;
 }) {
-  const hasDatabase = input.database_id != null && String(input.database_id).trim() !== "";
-  const hasIndicator = input.indicator_id != null && String(input.indicator_id).trim() !== "";
+  const hasDatabase =
+    input.database_id != null && String(input.database_id).trim() !== "";
+  const hasIndicator =
+    input.indicator_id != null && String(input.indicator_id).trim() !== "";
   const hasIndicatorName =
     indicatorName != null && String(indicatorName).trim() !== "";
   const filters = input.disaggregation_filters
@@ -88,7 +90,9 @@ export function GetDataRequestSummary({
         )}
         {hasIndicatorName && (
           <>
-            <dt className="font-medium text-muted-foreground">Indicator name</dt>
+            <dt className="font-medium text-muted-foreground">
+              Indicator name
+            </dt>
             <dd className="text-foreground">{indicatorName}</dd>
           </>
         )}
@@ -303,123 +307,124 @@ export function GetData({
           <CardHeader className="border-border border-b pb-4">
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-              <ChartIcon size={18} />
-              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                Indicator Data
-              </span>
-            </div>
-            <CardTitle className="font-semibold text-xl leading-snug">
-              {point.INDICATOR_NAME || point.INDICATOR}
-            </CardTitle>
-            <CardDescription>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                {point.INDICATOR_NAME && (
-                  <span>
-                    <span className="font-medium">ID:</span> {point.INDICATOR}
-                  </span>
-                )}
-                <span>
-                  <span className="font-medium">Database:</span>{" "}
-                  {point.DATABASE_ID}
+                <ChartIcon size={18} />
+                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                  Indicator Data
                 </span>
-                {point.REF_AREA && point.REF_AREA !== "_T" && (
+              </div>
+              <CardTitle className="font-semibold text-xl leading-snug">
+                {point.INDICATOR_NAME || point.INDICATOR}
+              </CardTitle>
+              <CardDescription>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                  {point.INDICATOR_NAME && (
+                    <span>
+                      <span className="font-medium">ID:</span> {point.INDICATOR}
+                    </span>
+                  )}
                   <span>
-                    <span className="font-medium">Area:</span> {point.REF_AREA}
+                    <span className="font-medium">Database:</span>{" "}
+                    {point.DATABASE_ID}
                   </span>
-                )}
-                {point.TIME_PERIOD && (
-                  <span>
-                    <span className="font-medium">Period:</span>{" "}
-                    {point.TIME_PERIOD}
+                  {point.REF_AREA && point.REF_AREA !== "_T" && (
+                    <span>
+                      <span className="font-medium">Area:</span>{" "}
+                      {point.REF_AREA}
+                    </span>
+                  )}
+                  {point.TIME_PERIOD && (
+                    <span>
+                      <span className="font-medium">Period:</span>{" "}
+                      {point.TIME_PERIOD}
+                    </span>
+                  )}
+                </div>
+              </CardDescription>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-5 pt-6">
+            {/* Value Display */}
+            <div className="rounded-lg border border-border bg-muted/30 p-6">
+              <div className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                Value
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="font-semibold text-3xl text-foreground">
+                  <ClaimMark
+                    id={point.claim_id}
+                    policy={{
+                      type: "rounded",
+                      decimals: point.DECIMALS ?? 2,
+                    }}
+                  >
+                    {formatValue(point.OBS_VALUE, point.DECIMALS)}
+                  </ClaimMark>
+                </span>
+                {point.UNIT_MEASURE && (
+                  <span className="text-muted-foreground text-sm">
+                    {point.UNIT_MEASURE}
                   </span>
                 )}
               </div>
-            </CardDescription>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-5 pt-6">
-          {/* Value Display */}
-          <div className="rounded-lg border border-border bg-muted/30 p-6">
-            <div className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-              Value
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="font-semibold text-3xl text-foreground">
-                <ClaimMark
-                  id={point.claim_id}
-                  policy={{
-                    type: "rounded",
-                    decimals: point.DECIMALS ?? 2,
-                  }}
-                >
-                  {formatValue(point.OBS_VALUE, point.DECIMALS)}
-                </ClaimMark>
-              </span>
-              {point.UNIT_MEASURE && (
-                <span className="text-muted-foreground text-sm">
-                  {point.UNIT_MEASURE}
-                </span>
+              {point.LATEST_DATA && (
+                <div className="mt-2 text-muted-foreground text-xs">
+                  <span className="rounded bg-primary/10 px-2 py-0.5 text-primary">
+                    Latest Data
+                  </span>
+                </div>
               )}
             </div>
-            {point.LATEST_DATA && (
-              <div className="mt-2 text-muted-foreground text-xs">
-                <span className="rounded bg-primary/10 px-2 py-0.5 text-primary">
-                  Latest Data
-                </span>
-              </div>
-            )}
-          </div>
 
-          {/* Metadata Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            {point.FREQ && (
-              <div className="rounded-lg border border-border bg-background p-4">
-                <div className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                  Frequency
+            {/* Metadata Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              {point.FREQ && (
+                <div className="rounded-lg border border-border bg-background p-4">
+                  <div className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                    Frequency
+                  </div>
+                  <div className="font-semibold text-foreground text-sm">
+                    {point.FREQ}
+                  </div>
                 </div>
-                <div className="font-semibold text-foreground text-sm">
-                  {point.FREQ}
+              )}
+              {point.OBS_STATUS && (
+                <div className="rounded-lg border border-border bg-background p-4">
+                  <div className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                    Status
+                  </div>
+                  <div className="font-semibold text-foreground text-sm">
+                    {point.OBS_STATUS === "A"
+                      ? "Actual"
+                      : point.OBS_STATUS === "E"
+                        ? "Estimated"
+                        : "Others"}
+                  </div>
                 </div>
-              </div>
-            )}
-            {point.OBS_STATUS && (
-              <div className="rounded-lg border border-border bg-background p-4">
-                <div className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                  Status
+              )}
+              {point.SEX && point.SEX !== "_T" && (
+                <div className="rounded-lg border border-border bg-background p-4">
+                  <div className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                    Sex
+                  </div>
+                  <div className="font-semibold text-foreground text-sm">
+                    {point.SEX}
+                  </div>
                 </div>
-                <div className="font-semibold text-foreground text-sm">
-                  {point.OBS_STATUS === "A"
-                    ? "Actual"
-                    : point.OBS_STATUS === "E"
-                      ? "Estimated"
-                      : "Others"}
+              )}
+              {point.AGE && point.AGE !== "_T" && (
+                <div className="rounded-lg border border-border bg-background p-4">
+                  <div className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                    Age
+                  </div>
+                  <div className="font-semibold text-foreground text-sm">
+                    {point.AGE}
+                  </div>
                 </div>
-              </div>
-            )}
-            {point.SEX && point.SEX !== "_T" && (
-              <div className="rounded-lg border border-border bg-background p-4">
-                <div className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                  Sex
-                </div>
-                <div className="font-semibold text-foreground text-sm">
-                  {point.SEX}
-                </div>
-              </div>
-            )}
-            {point.AGE && point.AGE !== "_T" && (
-              <div className="rounded-lg border border-border bg-background p-4">
-                <div className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                  Age
-                </div>
-                <div className="font-semibold text-foreground text-sm">
-                  {point.AGE}
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -471,7 +476,7 @@ export function GetData({
       </div>
 
       {/* Time Series Chart */}
-      {hasTimeSeries && timeSeriesData.length > 0 && (
+      {/* {hasTimeSeries && timeSeriesData.length > 0 && (
         <div className="rounded-lg border border-border bg-muted/30 p-4">
           <div className="mb-3 font-medium text-sm">Trend Over Time</div>
           <TimeSeriesChart
@@ -485,7 +490,7 @@ export function GetData({
             title=""
           />
         </div>
-      )}
+      )} */}
 
       {/* Data Table */}
       <div className="rounded-lg border border-border bg-muted/30">
