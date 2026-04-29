@@ -7,6 +7,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { getApiUrl } from "@/lib/api-client";
 import { getAuthTokenFromDocument } from "@/lib/auth/cookies";
 
 /**
@@ -38,7 +39,7 @@ export function TokenUsageVisibilityProvider({
     if (authToken) {
       headers.set("Authorization", `Bearer ${authToken}`);
     }
-    fetch("/api/auth/me", {
+    fetch(getApiUrl("/api/auth/me"), {
       credentials: "include",
       cache: "no-store",
       headers,
