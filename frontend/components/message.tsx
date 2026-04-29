@@ -1,9 +1,9 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import {
+  type Data360VizToolResult,
   isData360VizToolSuccess,
   parseData360VizToolResult,
-  type Data360VizToolResult,
 } from "@data360/tool-types";
 import { DATA360_GET_DATA_TOOL } from "@pcn-js/data360";
 import { IngestToolOutput } from "@pcn-js/ui";
@@ -40,8 +40,8 @@ import { ASK_ABOUT_SELECTION_CONTEXT_ATTR } from "./ask-about-selection-toolbar"
 import { useDataStream } from "./data-stream-provider";
 import { ChartPreview } from "./data360/chart-preview";
 import { GetData, GetDataRequestSummary } from "./data360/get-data";
-import { SearchIndicators } from "./data360/search-indicators";
 import { GetWdiData } from "./data360/get-wdi-data";
+import { SearchIndicators } from "./data360/search-indicators";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
@@ -166,7 +166,9 @@ function renderMessagePart(
                     part.text,
                     CHART_URL_REGEXES,
                   );
-                  const hasInlineChart = segments.some((s) => s.kind === "chart");
+                  const hasInlineChart = segments.some(
+                    (s) => s.kind === "chart",
+                  );
                   if (!hasInlineChart) {
                     return <Response>{sanitizeText(part.text)}</Response>;
                   }
@@ -178,9 +180,7 @@ function renderMessagePart(
                             return null;
                           }
                           return (
-                            <Response
-                              key={`${key}-txt-${segment.startOffset}`}
-                            >
+                            <Response key={`${key}-txt-${segment.startOffset}`}>
                               {sanitizeText(segment.text)}
                             </Response>
                           );
@@ -597,6 +597,14 @@ function renderMessagePart(
         key={toolPart.toolCallId}
       >
         <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        {toolPart.state === "output-available" && (
+          <IngestToolOutput
+            output={toolPart.output}
+            toolName={DATA360_GET_DATA_TOOL}
+          >
+            {null}
+          </IngestToolOutput>
+        )}
         <ToolContent>
           {toolPart.state === "input-available" &&
             (getDataInput != null ? (
@@ -608,14 +616,7 @@ function renderMessagePart(
             <ToolOutput
               errorText={undefined}
               useDefaultFormat={false}
-              output={
-                <IngestToolOutput
-                  toolName={DATA360_GET_DATA_TOOL}
-                  output={toolPart.output}
-                >
-                  <GetData input={getDataInput} output={toolPart.output} />
-                </IngestToolOutput>
-              }
+              output={<GetData input={getDataInput} output={toolPart.output} />}
             />
           )}
         </ToolContent>
@@ -657,10 +658,7 @@ function renderMessagePart(
               errorText={undefined}
               useDefaultFormat={false}
               output={
-                <SearchIndicators
-                  output={toolPart.output}
-                  input={rawInput}
-                />
+                <SearchIndicators output={toolPart.output} input={rawInput} />
               }
             />
           )}
