@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import List, Union
 
@@ -249,6 +251,44 @@ class MCPSettings(BaseSettings):
     readiness_enabled: bool = True
     # Max seconds for MCP get_tools during /ready; 0 means use load_timeout.
     readiness_timeout: float = 0.0
+
+    # APIM / internal deployment authentication
+    # When True, the MCP client acquires an Azure AD bearer token (client credentials flow)
+    # and attaches it to every request. Required when the MCP server is deployed internally
+    # behind Azure APIM. When False (default), no auth is performed (external / direct access).
+    internal: bool = False
+    # OAuth scope for the APIM resource, e.g. "a1dd6401-acf2-43b5-a37c-c3230ef1be7d/.default"
+    # Must be set when internal=True. The service principal credentials (tenant, client ID,
+    # client secret) are read from the global AZURE_TENANT_ID / AZURE_CLIENT_ID /
+    # AZURE_CLIENT_SECRET env vars -- the same ones used for Azure OpenAI.
+    auth_scope: str = ""
+
+    @model_validator(mode="after")
+    def validate_internal_auth(self) -> "MCPSettings":
+        """When internal=True, ensure APIM scope and Azure credentials are present."""
+        if not self.internal:
+            return self
+        import os
+
+        tenant_id = os.environ.get("AZURE_TENANT_ID", "")
+        client_id = os.environ.get("AZURE_CLIENT_ID", "")
+        client_secret = os.environ.get("AZURE_CLIENT_SECRET", "")
+
+        missing = [
+            name
+            for name, val in [
+                ("AZURE_TENANT_ID", tenant_id),
+                ("AZURE_CLIENT_ID", client_id),
+                ("AZURE_CLIENT_SECRET", client_secret),
+                ("MCP_AUTH_SCOPE", self.auth_scope),
+            ]
+            if not val
+        ]
+        if missing:
+            raise ValueError(
+                "MCP_INTERNAL=true requires the following env vars to be set: " + ", ".join(missing)
+            )
+        return self
 
     model_config = ConfigDict(
         extra="forbid",

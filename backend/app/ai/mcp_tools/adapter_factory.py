@@ -12,6 +12,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.interceptors import MCPToolCallRequest
 from langchain_mcp_adapters.sessions import Connection, McpHttpClientFactory
 
+from app.ai.mcp_tools._apim_auth import build_apim_auth
 from app.config import get_mcp_settings
 
 if TYPE_CHECKING:
@@ -38,7 +39,7 @@ def _effective_transport(url: str, configured: str) -> str:
     return "http"
 
 
-def _parse_headers(settings: Any) -> dict[str, Any]:
+def _parse_headers(settings: Any, dynamic_auth_active: bool = False) -> dict[str, Any]:
     headers: dict[str, Any] = {}
     raw = (settings.headers_json or "").strip()
     if raw:
@@ -51,22 +52,26 @@ def _parse_headers(settings: Any) -> dict[str, Any]:
                 headers.update(parsed)
             else:
                 logger.warning("[mcp] MCP_HEADERS_JSON must be a JSON object")
-    bearer = (settings.authorization_bearer or "").strip()
-    if bearer:
-        headers["Authorization"] = f"Bearer {bearer}"
+    # Skip static bearer when dynamic APIM auth is active to avoid conflicts.
+    if not dynamic_auth_active:
+        bearer = (settings.authorization_bearer or "").strip()
+        if bearer:
+            headers["Authorization"] = f"Bearer {bearer}"
     return headers
 
 
-def _httpx_factory(settings: Any) -> McpHttpClientFactory:
+def _httpx_factory(settings: Any, apim_auth: httpx.Auth | None = None) -> McpHttpClientFactory:
     def factory(
         headers: dict[str, str] | None = None,
         timeout: httpx.Timeout | None = None,
         auth: httpx.Auth | None = None,
     ) -> httpx.AsyncClient:
+        # Dynamic APIM auth takes precedence over any auth passed by the adapter.
+        resolved_auth = apim_auth if apim_auth is not None else auth
         return httpx.AsyncClient(
             headers=headers,
             timeout=timeout or httpx.Timeout(settings.timeout),
-            auth=auth,
+            auth=resolved_auth,
             verify=settings.ssl_verify,
         )
 
@@ -78,8 +83,14 @@ def build_data360_connection() -> Connection:
     settings = get_mcp_settings()
     url = settings.server_url
     transport = _effective_transport(url, settings.transport)
-    headers = _parse_headers(settings) or None
-    httpx_client_factory = _httpx_factory(settings)
+    apim_auth = build_apim_auth(settings)
+    headers = _parse_headers(settings, dynamic_auth_active=apim_auth is not None) or None
+    httpx_client_factory = _httpx_factory(settings, apim_auth=apim_auth)
+
+    if apim_auth is not None:
+        logger.info("[mcp] APIM bearer auth enabled (MCP_INTERNAL=True) url=%s", url)
+    else:
+        logger.info("[mcp] No APIM auth (MCP_INTERNAL=False) url=%s", url)
 
     if transport == "sse":
         conn: Connection = {
