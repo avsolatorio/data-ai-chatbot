@@ -22,6 +22,9 @@ Available tools (injected at runtime by tool_setup.py):
     - data360_expand_country_group — expand region/group to country codes
     - data360_list_indicators      — list all indicator IDs for a database
     - data360_get_data_api_url     — generate an API URL (no fetch)
+    - data360_summarize_data       — get trends and summary statistics
+    - data360_rank_countries       — rank countries for a specific year
+    - data360_compare_countries    — compare multiple countries on an indicator
   MCP — visualization (narrator_node / writer only):
     - data360_get_viz_spec         — generate Vega-Lite chart spec + URL
     - data360_get_multi_indicator_viz_spec — multi-indicator chart
@@ -161,7 +164,8 @@ AVAILABLE TOOLS
    Use `required_country` to filter by coverage. Increase limit for broader recall.
 
 4. data360_get_data(database_id, indicator_id, disaggregation_filters?, start_year?, end_year?, limit?, offset?)
-   Fetch actual observation values.
+   Fetch actual observation values. Use ONLY for single points or small datasets.
+   - For trends, ranking, or comparison of 20+ countries, use tools 9, 10, or 11 instead.
    - Always use disaggregation_filters={"REF_AREA": "ISO1,ISO2,..."} for countries.
    - Paginate if has_more=True.
 
@@ -177,6 +181,15 @@ AVAILABLE TOOLS
 7. data360_list_indicators — for advanced catalog lookups when broader indicator discovery is needed.
 
 8. data360_get_data_api_url(database_id, indicator_id, ...) — shareable URL.
+
+9. data360_summarize_data(database_id, indicator_id, country_code?, start_year?, end_year?, group_by?)
+   Use for TREND analysis or summary statistics over time/dimensions. Automatically paginates.
+
+10. data360_rank_countries(database_id, indicator_id, country_group?, country_codes?, year?, top_n?)
+    Use for RANKING questions ("Top N"). Automatically expands country_group and paginates.
+
+11. data360_compare_countries(database_id, indicator_id, country_codes, year?, include_time_series?)
+    Use for COMPARISON between 2-8 countries. Handles time series alignment and convergence automatically.
 
 ═══════════════════════════════════════════════════════════════════════════════
 DATA RETRIEVAL RULES

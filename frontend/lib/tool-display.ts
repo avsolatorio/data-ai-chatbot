@@ -28,6 +28,9 @@ const TOOL_DISPLAY_LABELS: Record<string, string> = {
   "tool-data360_get_disaggregation": "Get disaggregation",
   "tool-data360_get_supported_chart_types": "Chart types",
   "tool-data360_analyze_development_topic": "Analyze topic",
+  "tool-data360_summarize_data": "Summarize data",
+  "tool-data360_rank_countries": "Rank countries",
+  "tool-data360_compare_countries": "Compare countries",
   "tool-ai4data_ai4data_mcpget_wdi_data": "WDI data",
   "tool-ai4data_ai4data_mcpsearch_relevant_indicators":
     "Search relevant indicators",
