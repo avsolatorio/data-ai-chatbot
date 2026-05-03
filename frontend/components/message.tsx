@@ -706,7 +706,10 @@ function renderMessagePart(
       if (typeof output === "string") {
         outputNode = <div className="whitespace-pre-wrap">{output}</div>;
       } else {
-        const jsonOutput = JSON.stringify(output, null, 2);
+        let jsonOutput = JSON.stringify(output, null, 2);
+        if (jsonOutput.length > 5000) {
+          jsonOutput = jsonOutput.slice(0, 5000) + "\n\n... (truncated for display. Full output processed by agent)";
+        }
         outputNode = <CodeBlock code={jsonOutput} language="json" />;
       }
     }
