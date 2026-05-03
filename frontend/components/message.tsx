@@ -78,6 +78,10 @@ import { Weather } from "./weather";
 
 const CHART_URL_REGEXES = buildChartUrlRegexes();
 
+// Maximum characters of generic JSON tool output to render in the UI.
+// Prevents react-syntax-highlighter from blocking the main thread on large payloads.
+const MAX_GENERIC_OUTPUT_CHARS = 5000;
+
 // Helper function to render a single message part
 // This is extracted to be reusable for nested parts in data-thinking
 function renderMessagePart(
@@ -707,8 +711,12 @@ function renderMessagePart(
         outputNode = <div className="whitespace-pre-wrap">{output}</div>;
       } else {
         let jsonOutput = JSON.stringify(output, null, 2);
-        if (jsonOutput.length > 5000) {
-          jsonOutput = jsonOutput.slice(0, 5000) + "\n\n... (truncated for display. Full output processed by agent)";
+        if (jsonOutput.length > MAX_GENERIC_OUTPUT_CHARS) {
+          // Snap to the last newline within the limit so we don't split mid-token.
+          const cutAt = jsonOutput.lastIndexOf("\n", MAX_GENERIC_OUTPUT_CHARS);
+          jsonOutput =
+            jsonOutput.slice(0, cutAt > 0 ? cutAt : MAX_GENERIC_OUTPUT_CHARS) +
+            "\n\n... (truncated for display. Full output processed by agent)";
         }
         outputNode = <CodeBlock code={jsonOutput} language="json" />;
       }

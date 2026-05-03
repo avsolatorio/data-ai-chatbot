@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/collapsible";
 import { getToolDisplayName } from "@/lib/tool-display";
 import { cn } from "@/lib/utils";
-import { CodeBlock } from "./code-block";
+
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
@@ -121,7 +121,7 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
   >
     <p className="text-muted-foreground text-xs">Parameters</p>
     <div className="min-w-0 rounded-md bg-muted/40 p-3 overflow-x-auto">
-      <pre className="font-mono text-xs text-foreground whitespace-pre-wrap break-all">
+      <pre className="font-mono text-xs text-foreground whitespace-pre-wrap break-words">
         {JSON.stringify(input, null, 2)}
       </pre>
     </div>

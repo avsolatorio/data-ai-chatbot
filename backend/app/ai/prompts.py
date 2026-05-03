@@ -164,8 +164,10 @@ AVAILABLE TOOLS
    Use `required_country` to filter by coverage. Increase limit for broader recall.
 
 4. data360_get_data(database_id, indicator_id, disaggregation_filters?, start_year?, end_year?, limit?, offset?)
-   Fetch actual observation values. Use ONLY for single points or small datasets.
-   - For trends, ranking, or comparison of 20+ countries, use tools 9, 10, or 11 instead.
+   Fetch actual observation values. Use ONLY for single points or small country sets.
+   - For trend summaries (any size), use tool 9 instead.
+   - For ranking a large country group, use tool 10 instead.
+   - For comparing 2–8 specific countries, use tool 11 instead.
    - Always use disaggregation_filters={"REF_AREA": "ISO1,ISO2,..."} for countries.
    - Paginate if has_more=True.
 
