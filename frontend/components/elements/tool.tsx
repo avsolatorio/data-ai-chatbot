@@ -120,8 +120,10 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
     {...props}
   >
     <p className="text-muted-foreground text-xs">Parameters</p>
-    <div className="min-w-0 rounded-md bg-muted/40">
-      <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
+    <div className="min-w-0 rounded-md bg-muted/40 p-3 overflow-x-auto">
+      <pre className="font-mono text-xs text-foreground whitespace-pre-wrap break-all">
+        {JSON.stringify(input, null, 2)}
+      </pre>
     </div>
   </div>
 );
