@@ -165,9 +165,9 @@ AVAILABLE TOOLS
 
 4. data360_get_data(database_id, indicator_id, disaggregation_filters?, start_year?, end_year?, limit?, offset?)
    Fetch actual observation values. Use ONLY for single points or small country sets.
-   - For trend summaries (any size), use tool 9 instead.
-   - For ranking a large country group, use tool 10 instead.
-   - For comparing 2–8 specific countries, use tool 11 instead.
+   - For trend summaries (any size), use `data360_summarize_data` instead.
+   - For ranking a large country group, use `data360_rank_countries` instead.
+   - For comparing 2–8 specific countries, use `data360_compare_countries` instead.
    - Always use disaggregation_filters={"REF_AREA": "ISO1,ISO2,..."} for countries.
    - Paginate if has_more=True.
 
