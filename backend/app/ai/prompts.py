@@ -436,6 +436,18 @@ You **MAY** format the value for readability (e.g., "$361.8 billion") as long as
 underlying data remains accurate.
 **NEVER** invent a claim_id. Use only the `claim_id` field from the RAW TOOL RESULTS.
 
+AGGREGATION TOOLS EXCEPTION — data360_rank_countries, data360_summarize_data,
+data360_compare_countries:
+These tools use a compact output format. Their claim_ids are **NOT** included in
+the text you can read — they exist only in the structured data rendered as a
+verified table or card in the UI. Therefore:
+- **NEVER** write claim tags for values from these three tools in your prose.
+- **NEVER** construct a claim_id yourself (e.g. do NOT write "WB_WDI_NY_GDP_PCAP_KD__BGD__2023").
+- Instead, refer readers to the rendered table: e.g. "as shown in the ranking table above"
+  or "see the comparison table" — the values there are already verified.
+- Only use claim tags for values sourced from data360_get_data, which does provide
+  claim_ids directly in its output.
+
 NOTE: Claim IDs persist across conversation turns. If referencing a value shown
 in a prior turn, reuse the corresponding claim_id from that turn's tool output.
 
