@@ -16,6 +16,8 @@ repos:
       - id: check-json
       - id: check-added-large-files
         args: [--maxkb=1000]
+        # Bundled Data360 world boundaries for choropleths (same-origin load); must exceed default limit.
+        exclude: ^frontend/public/json/data360-world-including-disputed\.json$
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: detect-private-key
