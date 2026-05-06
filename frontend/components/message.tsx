@@ -41,8 +41,11 @@ import { useDataStream } from "./data-stream-provider";
 import { ChartPreview } from "./data360/chart-preview";
 import { GetData, GetDataRequestSummary } from "./data360/get-data";
 import { GetWdiData } from "./data360/get-wdi-data";
+import { CompareCountries } from "./data360/compare-countries";
+import { RankCountries } from "./data360/rank-countries";
 import { SearchIndicators } from "./data360/search-indicators";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
+import { SummarizeData } from "./data360/summarize-data";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
 import { CodeBlock } from "./elements/code-block";
@@ -664,6 +667,119 @@ function renderMessagePart(
               output={
                 <SearchIndicators output={toolPart.output} input={rawInput} />
               }
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  // --- Aggregation tool renderers (compact output from data360-mcp) ---
+
+  if ((type as string) === "tool-data360_rank_countries") {
+    const toolPart = part as {
+      toolCallId: string;
+      state: "input-available" | "output-available" | "input-streaming" | "output-error";
+      input?: unknown;
+      output?: unknown;
+      errorText?: string;
+    };
+    return (
+      <Tool
+        defaultOpen={defaultOpenForData360Tool(type as string)}
+        key={toolPart.toolCallId}
+      >
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        <ToolContent>
+          {(toolPart.state === "input-available" ||
+            toolPart.state === "input-streaming") &&
+            toolPart.input !== undefined && (
+              <ToolInput input={toolPart.input as ToolUIPart["input"]} />
+            )}
+          {(toolPart.state === "output-available" ||
+            toolPart.state === "output-error") && (
+            <ToolOutput
+              errorText={toolPart.errorText}
+              output={
+                toolPart.output !== undefined && toolPart.output !== null ? (
+                  <RankCountries output={toolPart.output} />
+                ) : null
+              }
+              useDefaultFormat={false}
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  if ((type as string) === "tool-data360_summarize_data") {
+    const toolPart = part as {
+      toolCallId: string;
+      state: "input-available" | "output-available" | "input-streaming" | "output-error";
+      input?: unknown;
+      output?: unknown;
+      errorText?: string;
+    };
+    return (
+      <Tool
+        defaultOpen={defaultOpenForData360Tool(type as string)}
+        key={toolPart.toolCallId}
+      >
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        <ToolContent>
+          {(toolPart.state === "input-available" ||
+            toolPart.state === "input-streaming") &&
+            toolPart.input !== undefined && (
+              <ToolInput input={toolPart.input as ToolUIPart["input"]} />
+            )}
+          {(toolPart.state === "output-available" ||
+            toolPart.state === "output-error") && (
+            <ToolOutput
+              errorText={toolPart.errorText}
+              output={
+                toolPart.output !== undefined && toolPart.output !== null ? (
+                  <SummarizeData output={toolPart.output} />
+                ) : null
+              }
+              useDefaultFormat={false}
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  if ((type as string) === "tool-data360_compare_countries") {
+    const toolPart = part as {
+      toolCallId: string;
+      state: "input-available" | "output-available" | "input-streaming" | "output-error";
+      input?: unknown;
+      output?: unknown;
+      errorText?: string;
+    };
+    return (
+      <Tool
+        defaultOpen={defaultOpenForData360Tool(type as string)}
+        key={toolPart.toolCallId}
+      >
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        <ToolContent>
+          {(toolPart.state === "input-available" ||
+            toolPart.state === "input-streaming") &&
+            toolPart.input !== undefined && (
+              <ToolInput input={toolPart.input as ToolUIPart["input"]} />
+            )}
+          {(toolPart.state === "output-available" ||
+            toolPart.state === "output-error") && (
+            <ToolOutput
+              errorText={toolPart.errorText}
+              output={
+                toolPart.output !== undefined && toolPart.output !== null ? (
+                  <CompareCountries output={toolPart.output} />
+                ) : null
+              }
+              useDefaultFormat={false}
             />
           )}
         </ToolContent>

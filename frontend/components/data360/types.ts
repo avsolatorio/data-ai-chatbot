@@ -79,3 +79,100 @@ export type GetDataOutput = {
   data: GetDataDataPoint[];
   error: string | null;
 };
+
+// ---------------------------------------------------------------------------
+// Compact aggregation output types (data360-mcp compact serializer, PR #78)
+// These mirror the to_compact() output shapes on the server side.
+// ---------------------------------------------------------------------------
+
+/** A single ranked country entry from rank_countries compact output. */
+export type CompactRankedCountry = {
+  rank: number;
+  code: string;
+  country: string;
+  value: number;
+  claim_id: string | null;
+};
+
+/** Top-level compact output for data360_rank_countries. */
+export type CompactRankingOutput = {
+  year: string | null;
+  year_selection_note: string | null;
+  order: "asc" | "desc";
+  counts: { with_data: number; requested: number };
+  unit: string | null;
+  indicator: string | null;
+  rankings: CompactRankedCountry[];
+  excluded_count: number;
+  excluded_sample: Array<{ code: string; name: string | null }>;
+  error: string | null;
+};
+
+/** Stats block inside a compact group summary. */
+export type CompactGroupStats = {
+  min: number | null;
+  max: number | null;
+  mean: number | null;
+  median: number | null;
+};
+
+/** A single group entry from summarize_data compact output. */
+export type CompactGroupSummary = {
+  /** Dimension key, e.g. {ref_area: "KEN"} or {ref_area: "KEN", sex: "F"}. */
+  key: Record<string, string>;
+  n: number;
+  first: number | null;
+  last: number | null;
+  range: [string | null, string | null];
+  stats: CompactGroupStats;
+  change: { abs: number | null; pct: number | null };
+  trend: string | null;
+  claim_ids: string[];
+};
+
+/** Top-level compact output for data360_summarize_data. */
+export type CompactSummarizeOutput = {
+  indicator: string | null;
+  unit: string | null;
+  ambiguous_dimensions: string[] | null;
+  groups: CompactGroupSummary[];
+  error: string | null;
+};
+
+/** A snapshot (single-year) ranked entry inside compare_countries output. */
+export type CompactSnapshotEntry = {
+  rank: number;
+  code: string;
+  country: string;
+  value: number;
+  claim_id: string | null;
+};
+
+/** Compact snapshot block inside compare_countries output. */
+export type CompactSnapshot = {
+  year: string | null;
+  rankings: CompactSnapshotEntry[];
+  spread: Record<string, unknown> | null;
+};
+
+/**
+ * Compact time-series block inside compare_countries output.
+ * series values are positional arrays: [time_period, obs_value, claim_id].
+ */
+export type CompactTimeSeries = {
+  year_range: string | null;
+  n_aligned_years: number;
+  convergence: string | null;
+  series_schema: ["time_period", "obs_value", "claim_id"];
+  series: Record<string, [string, number | null, string | null][]>;
+  cagr: Record<string, number | null>;
+};
+
+/** Top-level compact output for data360_compare_countries. */
+export type CompactCompareOutput = {
+  indicator: string | null;
+  unit: string | null;
+  snapshot: CompactSnapshot | null;
+  time_series: CompactTimeSeries | null;
+  error: string | null;
+};

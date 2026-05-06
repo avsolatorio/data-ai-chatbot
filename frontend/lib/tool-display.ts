@@ -2,6 +2,9 @@ import { getData360ToolDefaultOpen } from "@/lib/config";
 
 const DATA360_EXPAND_BY_DEFAULT = new Set([
   "tool-data360_search_indicators",
+  "tool-data360_rank_countries",
+  "tool-data360_summarize_data",
+  "tool-data360_compare_countries",
   // "tool-data360_get_data",
 ]);
 
