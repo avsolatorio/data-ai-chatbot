@@ -28,8 +28,19 @@ export const DATA360_COMPARE_COUNTRIES_TOOL = "data360_compare_countries";
 export const rankCountriesExtractor: ToolResultExtractor = (
   result: unknown,
 ): ClaimEntry[] => {
-  if (typeof result !== "object" || result === null) return [];
-  const r = result as Record<string, unknown>;
+  // Handle raw JSON string (non-thinking / non-normalized path)
+  let r: Record<string, unknown>;
+  if (typeof result === "string") {
+    try {
+      r = JSON.parse(result);
+    } catch {
+      return [];
+    }
+  } else if (typeof result === "object" && result !== null) {
+    r = result as Record<string, unknown>;
+  } else {
+    return [];
+  }
   if (!Array.isArray(r.rankings)) return [];
 
   const entries: ClaimEntry[] = [];
@@ -58,8 +69,19 @@ export const rankCountriesExtractor: ToolResultExtractor = (
 export const compareCountriesExtractor: ToolResultExtractor = (
   result: unknown,
 ): ClaimEntry[] => {
-  if (typeof result !== "object" || result === null) return [];
-  const r = result as Record<string, unknown>;
+  // Handle raw JSON string (non-thinking / non-normalized path)
+  let r: Record<string, unknown>;
+  if (typeof result === "string") {
+    try {
+      r = JSON.parse(result);
+    } catch {
+      return [];
+    }
+  } else if (typeof result === "object" && result !== null) {
+    r = result as Record<string, unknown>;
+  } else {
+    return [];
+  }
 
   const entries: ClaimEntry[] = [];
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { Data360ClaimsProvider } from "@pcn-js/data360";
 import { useClaimsManager } from "@pcn-js/ui";
 import {
@@ -17,7 +17,10 @@ import {
  */
 function AggregationExtractorRegistrar() {
   const manager = useClaimsManager();
-  useEffect(() => {
+  // useLayoutEffect (not useEffect) so registration fires before IngestToolOutput's
+  // useEffect calls manager.ingest() — effects run bottom-up, so a deeper
+  // IngestToolOutput's useEffect would otherwise beat a parent's useEffect.
+  useLayoutEffect(() => {
     if (!manager) return;
     manager.registerExtractor(DATA360_RANK_COUNTRIES_TOOL, rankCountriesExtractor);
     manager.registerExtractor(DATA360_COMPARE_COUNTRIES_TOOL, compareCountriesExtractor);
