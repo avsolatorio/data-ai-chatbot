@@ -9,7 +9,13 @@ import type { CompactGroupSummary, CompactSummarizeOutput } from "./types";
 function isCompactSummarizeOutput(v: unknown): v is CompactSummarizeOutput {
   if (typeof v !== "object" || v === null) return false;
   const o = v as Record<string, unknown>;
-  return Array.isArray(o.groups) && "indicator" in o;
+  if (!Array.isArray(o.groups) || !("indicator" in o)) return false;
+  // Verify at least the first group has the compact shape ("group" key, not "group_key")
+  if (o.groups.length > 0) {
+    const first = o.groups[0] as Record<string, unknown>;
+    if (!("group" in first)) return false;
+  }
+  return true;
 }
 
 function parseSummarizeOutput(output: unknown): CompactSummarizeOutput | null {
@@ -71,15 +77,16 @@ function trendLabel(trend: string | null): {
 }
 
 /** Derive a human-readable label from a group key dict. */
-function groupLabel(key: Record<string, string>): string {
+function groupLabel(groupKey: Record<string, string> | null | undefined): string {
+  if (!groupKey || typeof groupKey !== "object") return "Total";
   const parts: string[] = [];
-  if (key.ref_area) parts.push(key.ref_area);
-  if (key.sex && key.sex !== "_T") parts.push(key.sex);
-  if (key.age && key.age !== "_T") parts.push(key.age);
-  if (key.urbanisation && key.urbanisation !== "_T")
-    parts.push(key.urbanisation);
+  if (groupKey.ref_area) parts.push(groupKey.ref_area);
+  if (groupKey.sex && groupKey.sex !== "_T") parts.push(groupKey.sex);
+  if (groupKey.age && groupKey.age !== "_T") parts.push(groupKey.age);
+  if (groupKey.urbanisation && groupKey.urbanisation !== "_T")
+    parts.push(groupKey.urbanisation);
   // Any remaining dimensions not handled above
-  for (const [k, v] of Object.entries(key)) {
+  for (const [k, v] of Object.entries(groupKey)) {
     if (
       !["ref_area", "sex", "age", "urbanisation"].includes(k) &&
       v !== "_T"
@@ -92,17 +99,16 @@ function groupLabel(key: Record<string, string>): string {
 
 function GroupRow({ group }: { group: CompactGroupSummary }) {
   const { label: trendText, className: trendClass } = trendLabel(group.trend);
-  const yearSpan =
-    group.range[0] && group.range[1]
-      ? `${group.range[0]}–${group.range[1]}`
-      : group.range[0] ?? group.range[1] ?? "—";
+
+  // range is a string like "2004-2023" or null
+  const yearSpan = group.range ?? "—";
 
   return (
     <div className="rounded-lg border border-border bg-background p-3 text-xs">
       {/* Group label + trend badge */}
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="font-semibold text-foreground text-sm">
-          {groupLabel(group.key)}
+          {groupLabel(group.group)}
         </span>
         <span
           className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${trendClass}`}
@@ -119,7 +125,14 @@ function GroupRow({ group }: { group: CompactGroupSummary }) {
         </div>
         <div>
           <dt className="text-muted-foreground">Latest value</dt>
-          <dd className="font-medium text-foreground">{fmtNum(group.last)}</dd>
+          <dd className="font-medium text-foreground">
+            {fmtNum(group.latest?.value ?? null)}
+            {group.latest?.year ? (
+              <span className="ml-1 text-muted-foreground text-[10px]">
+                ({group.latest.year})
+              </span>
+            ) : null}
+          </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">Change</dt>

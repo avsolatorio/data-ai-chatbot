@@ -119,11 +119,12 @@ export type CompactGroupStats = {
 /** A single group entry from summarize_data compact output. */
 export type CompactGroupSummary = {
   /** Dimension key, e.g. {ref_area: "KEN"} or {ref_area: "KEN", sex: "F"}. */
-  key: Record<string, string>;
+  group: Record<string, string>;
   n: number;
-  first: number | null;
-  last: number | null;
-  range: [string | null, string | null];
+  latest: { value: number | null; year: string | null };
+  earliest: { value: number | null; year: string | null };
+  /** Time range string, e.g. "2004-2023" */
+  range: string | null;
   stats: CompactGroupStats;
   change: { abs: number | null; pct: number | null };
   trend: string | null;
