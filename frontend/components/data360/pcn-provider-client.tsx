@@ -1,6 +1,29 @@
 "use client";
 
+import { useEffect } from "react";
 import { Data360ClaimsProvider } from "@pcn-js/data360";
+import { useClaimsManager } from "@pcn-js/ui";
+import {
+  DATA360_RANK_COUNTRIES_TOOL,
+  DATA360_COMPARE_COUNTRIES_TOOL,
+  rankCountriesExtractor,
+  compareCountriesExtractor,
+} from "./aggregation-claim-extractors";
+
+/**
+ * Registers custom ToolResultExtractors for rank_countries and compare_countries
+ * on the ClaimsManager so IngestToolOutput + ClaimMark can resolve claim_ids.
+ * Runs once on mount inside Data360ClaimsProvider.
+ */
+function AggregationExtractorRegistrar() {
+  const manager = useClaimsManager();
+  useEffect(() => {
+    if (!manager) return;
+    manager.registerExtractor(DATA360_RANK_COUNTRIES_TOOL, rankCountriesExtractor);
+    manager.registerExtractor(DATA360_COMPARE_COUNTRIES_TOOL, compareCountriesExtractor);
+  }, [manager]);
+  return null;
+}
 
 /**
  * Client-only wrapper for Data360ClaimsProvider so the layout (Server Component)
@@ -12,5 +35,10 @@ export function PcnProviderClient({
 }: {
   children: React.ReactNode;
 }) {
-  return <Data360ClaimsProvider>{children}</Data360ClaimsProvider>;
+  return (
+    <Data360ClaimsProvider>
+      <AggregationExtractorRegistrar />
+      {children}
+    </Data360ClaimsProvider>
+  );
 }

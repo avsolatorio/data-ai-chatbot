@@ -1,5 +1,6 @@
 "use client";
 
+import { ClaimMark } from "@pcn-js/ui";
 import type { CompactRankingOutput } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -143,7 +144,16 @@ export function RankCountries({ output }: RankCountriesProps) {
                     </div>
                   </td>
                   <td className="px-3 py-2 text-right font-medium">
-                    {fmt(entry.value, null)}
+                    {entry.claim_id ? (
+                      <ClaimMark
+                        id={entry.claim_id}
+                        policy={{ type: "rounded", decimals: 2 }}
+                      >
+                        {fmt(entry.value, null)}
+                      </ClaimMark>
+                    ) : (
+                      fmt(entry.value, null)
+                    )}
                   </td>
                 </tr>
               ))}

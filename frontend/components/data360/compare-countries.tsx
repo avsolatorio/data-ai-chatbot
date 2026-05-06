@@ -1,5 +1,6 @@
 "use client";
 
+import { ClaimMark } from "@pcn-js/ui";
 import type {
   CompactCompareOutput,
   CompactSnapshotEntry,
@@ -116,7 +117,16 @@ function SnapshotTable({
                   </div>
                 </td>
                 <td className="px-3 py-2 text-right font-medium">
-                  {fmtNum(entry.value)}
+                  {entry.claim_id ? (
+                    <ClaimMark
+                      id={entry.claim_id}
+                      policy={{ type: "rounded", decimals: 2 }}
+                    >
+                      {fmtNum(entry.value)}
+                    </ClaimMark>
+                  ) : (
+                    fmtNum(entry.value)
+                  )}
                 </td>
               </tr>
             ))}
@@ -221,7 +231,20 @@ function TimeSeriesTable({ ts }: { ts: CompactTimeSeries }) {
                         className="px-3 py-2 text-right font-medium"
                         key={c}
                       >
-                        {pt !== undefined ? fmtNum(pt.value) : "—"}
+                        {pt !== undefined ? (
+                          pt.claim_id ? (
+                            <ClaimMark
+                              id={pt.claim_id}
+                              policy={{ type: "rounded", decimals: 2 }}
+                            >
+                              {fmtNum(pt.value)}
+                            </ClaimMark>
+                          ) : (
+                            fmtNum(pt.value)
+                          )
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     );
                   })}

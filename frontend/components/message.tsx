@@ -6,6 +6,10 @@ import {
   parseData360VizToolResult,
 } from "@data360/tool-types";
 import { DATA360_GET_DATA_TOOL } from "@pcn-js/data360";
+import {
+  DATA360_COMPARE_COUNTRIES_TOOL,
+  DATA360_RANK_COUNTRIES_TOOL,
+} from "./data360/aggregation-claim-extractors";
 import { IngestToolOutput } from "@pcn-js/ui";
 import type { ToolUIPart } from "ai";
 import equal from "fast-deep-equal";
@@ -690,6 +694,14 @@ function renderMessagePart(
         key={toolPart.toolCallId}
       >
         <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        {toolPart.state === "output-available" && (
+          <IngestToolOutput
+            output={toolPart.output}
+            toolName={DATA360_RANK_COUNTRIES_TOOL}
+          >
+            {null}
+          </IngestToolOutput>
+        )}
         <ToolContent>
           {(toolPart.state === "input-available" ||
             toolPart.state === "input-streaming") &&
@@ -764,6 +776,14 @@ function renderMessagePart(
         key={toolPart.toolCallId}
       >
         <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        {toolPart.state === "output-available" && (
+          <IngestToolOutput
+            output={toolPart.output}
+            toolName={DATA360_COMPARE_COUNTRIES_TOOL}
+          >
+            {null}
+          </IngestToolOutput>
+        )}
         <ToolContent>
           {(toolPart.state === "input-available" ||
             toolPart.state === "input-streaming") &&
