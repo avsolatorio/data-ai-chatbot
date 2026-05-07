@@ -116,7 +116,7 @@ per_turn_metrics:
 
   - name: "Per-Turn Data Accuracy"
     type: "geval"
-    threshold: 0.8
+    threshold: 0.9
     requires: "tool_data"
     aggregates_to: "Data Accuracy"
     aggregation: "min"
@@ -220,7 +220,9 @@ per_turn_metrics:
       Kenya", a follow-up turn must maintain that assertion — not
       contradict it or silently fabricate the missing data.
       (4) Does the assistant avoid re-asking questions the user already
-      answered in prior turns?
+      answered in prior turns (e.g. asking for a time period, year,
+      geographic scope, or country when the user just provided it in
+      the previous turn)? Re-asking for established context is a failure.
 
     evaluation_steps:
       - >
@@ -232,9 +234,13 @@ per_turn_metrics:
       - >
         Check consistency: if prior context says data was unavailable,
         does this turn maintain that assertion?
+      - >
+        CRITICAL: Check if the assistant asks the user for information
+        (like year, country, or scope) that was ALREADY established
+        in prior context. If it does, score 3 or lower immediately.
     rubric:
       - score_range: [8, 10]
-        expected_outcome: "Correctly retains context, reuses IDs and claim_ids, maintains consistency."
+        expected_outcome: "Correctly retains context, reuses IDs and claim_ids, maintains consistency, and DOES NOT re-ask for known context."
       - score_range: [4, 7]
         expected_outcome: "Partially retains context — re-searches or misses some prior data."
       - score_range: [0, 3]
@@ -706,7 +712,7 @@ per_turn_metrics:
   - name: "Per-Turn Visualization & API URLs"
     type: "geval"
     threshold: 0.6
-    requires: "tool_calls"
+    requires: "visualization"
     aggregates_to: "Visualization & API URLs"
     aggregation: "min"
     criteria: >
@@ -752,3 +758,397 @@ per_turn_metrics:
         expected_outcome: "Intent mismatch (separate charts for combined request), or get_viz_spec called but URL missing."
       - score_range: [0, 3]
         expected_outcome: "Viz requested but ignored, apologized for, or get_viz_spec NOT called."
+
+  # ── Narrator Fidelity Metrics (feat/compact-agg-renderers) ────────────────
+  # These two metrics target narrator-side failures specific to the compact
+  # aggregation output format. Run via suite_agentic_flow.yaml.
+  # Both use requires: "tool_calls" which maps to has_tool_calls in per_turn_eval.py.
+
+  - name: "Per-Turn Narrator Claim Fabrication"
+    type: "geval"
+    threshold: 0.9
+    requires: "tool_calls"
+    aggregates_to: "Narrator Claim Fabrication"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn. You are given:
+        - Tool call details with tool names, arguments, and RESULTS
+          (including claim_id fields in each tool output row/entry).
+        - CURRENT ASSISTANT OUTPUT with <claim id="..."> tags.
+        - PRIOR CONTEXT showing tool outputs from previous turns (if any).
+
+      Evaluate whether EVERY claim_id in the assistant's response exists
+      in the tool output from THIS turn or a prior turn in context.
+
+      FABRICATED (score low):
+        A <claim id="XYZ"> tag appears in the response, but "XYZ" does
+        NOT appear anywhere in any tool output result (neither this turn
+        nor prior turns). Common fabrication patterns:
+        - Sequential numeric suffixes: c1, c2, c3, c4, c5, c6, ...
+          These are placeholder IDs the LLM invented, not real PCN UUIDs.
+        - Hex-looking strings that do not match any claim_id in tool output.
+        Any fabricated ID indicates the Narrator ignored the RAW TOOL
+        RESULTS and generated claim tags from its own knowledge.
+
+      CORRECT (score high):
+        Every claim_id in the response can be traced to a specific tool
+        output result. The claim_id matches exactly (character for character).
+
+      If no <claim> tags appear in the response, score 5 (ambiguous:
+      the Narrator may have correctly omitted tags for derived values,
+      or it may have failed to tag required values).
+
+    evaluation_steps:
+      - >
+        Extract all claim_ids from the assistant response by scanning
+        for <claim id="..."> patterns. List each unique ID found.
+      - >
+        Build the set of VALID claim_ids by extracting claim_id values from:
+        (a) the tool output results in THIS CURRENT TURN (highest priority),
+        and (b) all prior turns visible in context.
+        IMPORTANT: If a new tool call was made this turn (e.g., fetching data
+        for a second country), its results contain NEW valid claim_ids that
+        will NOT have appeared in prior turns. These are correct, not fabricated.
+        Include ALL claim_ids from THIS turn's tool results in the valid set
+        before checking prior turns.
+      - >
+        For each response claim_id, check: does it exist in the valid set?
+        If not, flag it as fabricated.
+      - >
+        Special check: does any response claim_id match the pattern
+        /^c\d+$/ (e.g., c1, c2, c3)? These are always fabricated --
+        real PCN claim_ids are hex UUIDs, never sequential labels.
+        Also flag any ID that looks like an indicator code (e.g.,
+        WB_WDI_NY_GDP_PCAP_KD) -- these are never valid claim_ids.
+      - >
+        Compute ratio of valid (traceable) claim_ids to total claim_ids
+        in the response. Score accordingly.
+    rubric:
+      - score_range: [9, 10]
+        expected_outcome: >
+          Every claim_id in the response traces to a real tool output entry.
+          No fabricated or sequential-pattern IDs present.
+      - score_range: [4, 8]
+        expected_outcome: >
+          Most claim_ids are valid, but 1-2 cannot be found in any tool
+          output or match a fabrication pattern.
+      - score_range: [0, 3]
+        expected_outcome: >
+          Multiple claim_ids do not exist in any tool output. Sequential
+          patterns like c1, c2, c3 are a clear indicator of this failure.
+
+  - name: "Per-Turn Ranking Fidelity"
+    type: "geval"
+    threshold: 0.8
+    requires: "tool_calls"
+    aggregates_to: "Ranking Fidelity"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn where rank_countries
+      or compare_countries (snapshot) was called. You are given:
+        - Tool call details including the rankings array or snapshot
+          returned by the tool.
+        - CURRENT ASSISTANT OUTPUT with a table or list of ranked values.
+
+      Evaluate whether the Narrator faithfully reproduced the ranking
+      order and values from the tool output.
+
+      DRIFT (score low):
+        - Countries appear in a DIFFERENT ORDER than the tool output's
+          rankings array (e.g., the highest-value country presented as lowest).
+        - Values differ from what the tool returned -- wrong numbers, wrong
+          country assigned to a value, or values transposed between countries.
+          Acceptable: minor display formatting (1000 -> 1,000, consistent rounding).
+        - Countries in the tool output's top-N are missing without explanation.
+        - The response contains two or more ranking tables/lists with DIFFERENT
+          values for the same turn (dual contradictory outputs).
+
+      FAITHFUL (score high):
+        - Country order matches the tool output exactly.
+        - Values match the tool output (display formatting differences acceptable).
+        - All top-N countries from the tool output are present.
+        - Only one ranking table or list appears in the response.
+
+      If rank_countries or compare_countries was not called in this turn,
+      this metric is trivially satisfied. Score 10.
+
+    evaluation_steps:
+      - >
+        Check if rank_countries or compare_countries was called. If not, score 10.
+      - >
+        Extract the ranking order from the tool output (rankings array,
+        ordered by rank field). Note each country code and obs_value.
+      - >
+        Extract the ranking order from the assistant response (table rows
+        or bullet list entries). Note each country and value.
+      - >
+        Compare order and values. Flag reordering, value changes, or transpositions.
+      - >
+        Check for dual contradictory ranking blocks in the same response.
+    rubric:
+      - score_range: [9, 10]
+        expected_outcome: >
+          Ranking order, values, and country set match the tool output exactly.
+          Only one ranking presentation. Display formatting differences acceptable.
+      - score_range: [4, 8]
+        expected_outcome: >
+          Minor discrepancies: 1-2 values rounded differently, or one position
+          swapped. No value transposition between countries.
+      - score_range: [0, 3]
+        expected_outcome: >
+          Significant ranking drift: wrong ordering (e.g., highest-value country
+          presented as lowest), fabricated values, values transposed between
+          countries, or two contradictory ranking tables in the same response.
+
+  - name: "Per-Turn Research-Narrator Transcription Fidelity"
+    type: "geval"
+    threshold: 0.8
+    requires: "tool_calls"
+    aggregates_to: "Research-Narrator Transcription Fidelity"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn. You are given:
+        - Tool call details with tool names, arguments, and complete RESULTS
+          (the raw payload returned by each tool call for this turn).
+        - CURRENT ASSISTANT OUTPUT: what the narrator wrote to the user.
+
+      Your task is a VALUE-BY-VALUE FIDELITY check.
+
+      For every numeric figure that appears in the assistant's output
+      (percentages, counts, dollar amounts, ranks, years, rates, etc.),
+      determine whether that exact value is present in the tool result
+      payloads for this turn.
+
+      TRANSCRIPTION ERROR (score low):
+        A number appears in the assistant's output that does NOT match
+        any value in the tool results for this turn. This includes:
+        - Wrong value for a country (e.g., tool says 10.4 but narrator
+          says 3.8 for the same country and year).
+        - Value assigned to wrong entity (e.g., Nepal's value reported
+          under Bangladesh).
+        - Values that appear to be fabricated (no match anywhere in the
+          tool payload, not even in a different country's row).
+        - Summary statistics (e.g., "average of 5.2%") that cannot be
+          derived from the tool payload values.
+
+        CRITICAL MULTI-TURN RULE: Do NOT flag a value as an error or transposition
+        if it differs from a PRIOR turn, as long as it matches a tool result in
+        THIS CURRENT TURN. New tool calls in the current turn often fetch newer
+        or different data. The current turn's tool output is the absolute ground truth.
+
+      FAITHFUL TRANSCRIPTION (score high):
+        Every numeric value in the assistant output is present in the
+        tool result payload for the corresponding country/year/entity.
+        Minor acceptable differences:
+        - Rounding (3.778 shown as 3.8 is acceptable).
+        - Formatting (1000 shown as 1,000 is acceptable).
+
+      If no numeric values appear in the tool results (e.g., the tool
+      returned an error or the turn was CLARIFY), score 10 (not applicable).
+
+      If the assistant output has no numeric figures at all (purely
+      qualitative response), score 10 (not applicable).
+
+    evaluation_steps:
+      - >
+        Scan the tool result payloads for this turn and collect all
+        numeric values with their associated entity labels (country name
+        or code, year, indicator). Build a lookup table:
+        entity+year -> value.
+      - >
+        Scan the assistant output and extract every numeric value along
+        with its surrounding entity label (what country/year does the
+        narrator associate with this number?).
+      - >
+        For each narrator value, check: does it match (within rounding)
+        a value in the tool payload for the same entity? Flag mismatches.
+      - >
+        Check for entity-value transpositions: is a value from entity A
+        being reported under entity B?
+      - >
+        Compute: (correctly transcribed values) / (total narrator numeric
+        values). Apply penalty for transpositions (they are more severe
+        than simple wrong values since they actively mislead the user).
+    rubric:
+      - score_range: [9, 10]
+        expected_outcome: >
+          Every numeric value in the narrator output matches the tool payload
+          exactly (within rounding). No transpositions, no fabricated values.
+      - score_range: [5, 8]
+        expected_outcome: >
+          Most values are correct but 1-2 minor mismatches exist (wrong
+          rounding, one value off). No transpositions.
+      - score_range: [0, 4]
+        expected_outcome: >
+          Multiple values don't match tool payload, OR at least one
+          transposition detected (value from country A reported under
+          country B), OR narrator presents values with no correspondence
+          to any entry in the tool result.
+
+  - name: "Per-Turn Unnecessary Clarification"
+    type: "geval"
+    threshold: 0.8
+    requires: "routing"
+    aggregates_to: "Unnecessary Clarification"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn to determine whether
+      the chatbot asked the user an unnecessary clarification question
+      when it had the tools to resolve the ambiguity itself.
+
+      The system has access to:
+        - data360_find_codelist_value: resolves natural-language names
+          to standard codes (e.g., "South Asia" -> "SAS", "Kenya" -> "KEN")
+        - data360_expand_country_group: expands a group code like "SAS"
+          into member country ISO codes
+        - data360_rank_countries: ranks countries within a group by indicator
+
+      UNNECESSARY CLARIFICATION (score low):
+        The chatbot's primary response is a disambiguation or clarification
+        question when the user's query contained resolvable terms.
+        Examples of unnecessary clarification:
+        - User says "South Asian countries" -> chatbot asks which
+          definition to use, instead of calling find_codelist_value.
+        - User says "Sub-Saharan Africa" -> chatbot asks user to confirm
+          the region, instead of looking up "SSF".
+        - User says "unemployment rate" -> chatbot asks which specific
+          indicator, instead of calling data360_search_indicators.
+        - User says "latest year" -> chatbot asks which year, instead of
+          letting the tool select the latest available year automatically.
+
+        A clarification question is NOT unnecessary if:
+        - The user's query is genuinely ambiguous in a way tools cannot
+          resolve (e.g., "compare these two economic policies").
+        - The chatbot provides the data AND offers clarifying context.
+
+      AUTONOMOUS RESOLUTION (score high):
+        The chatbot uses its tools to resolve the scope, delivers a
+        complete data response, and does NOT ask the user to provide
+        information the tools can retrieve.
+
+      If the assistant output contains no clarification question at all
+      (it just delivers data), score 10 (best).
+
+    evaluation_steps:
+      - >
+        Identify whether the primary content of the assistant response
+        is a question addressed to the user, or a data-driven answer.
+      - >
+        If the response is primarily a question: identify the subject of
+        the clarification. Is it something the system's tools could
+        resolve autonomously (geographic scope, indicator names, time
+        periods, country codes)?
+      - >
+        Check the tool call list for this turn. Did the chatbot attempt
+        to use find_codelist_value, expand_country_group, or
+        search_indicators before asking? If yes, the clarification may
+        be justified (tools failed). If no tools were called, the
+        clarification is unnecessary.
+      - >
+        Score based on: 10 = data delivered, no clarification needed.
+        5 = clarification question asked but data also partially
+        provided. 0 = primary response is a clarification question
+        on a term that tools can resolve, with no data returned.
+    rubric:
+      - score_range: [9, 10]
+        expected_outcome: >
+          The chatbot resolved all ambiguous terms autonomously using
+          tools and delivered a complete data response. No clarification
+          question was asked.
+      - score_range: [4, 8]
+        expected_outcome: >
+          The chatbot partially resolved the query but asked one
+          justified clarification question (e.g., after a tool call
+          returned ambiguous results).
+      - score_range: [0, 3]
+        expected_outcome: >
+          The chatbot's primary response was a disambiguation question
+          on a resolvable term (geographic group, indicator, year)
+          without attempting any tool call to resolve it first. No
+          data was returned in this turn.
+
+  - name: "Per-Turn Search Deduplication"
+    type: "geval"
+    threshold: 0.8
+    requires: "tool_calls"
+    aggregates_to: "Search Deduplication"
+    aggregation: "min"
+    criteria: >
+      You are evaluating a SINGLE assistant turn for search call
+      efficiency. You are given:
+        - PRIOR CONTEXT: the serialized tool calls from previous turns,
+          including indicator_ids and search queries already resolved.
+        - Tool Sequence and Tool Call details for THIS turn (tool names
+          and arguments).
+        - CURRENT USER INPUT and ASSISTANT OUTPUT.
+
+      The tool `data360_search_indicators` is a DISCOVERY tool.
+      It should be called ONCE per topic (or batched via the `queries`
+      parameter), not repeatedly with synonymous terms.
+
+      REDUNDANT SEARCH (score low) — any of:
+        (1) WITHIN-TURN DUPLICATION: `data360_search_indicators` is
+            called 3 or more times in this turn, AND the query terms
+            overlap semantically. Examples of overlapping terms:
+            - "unemployment rate" + "unemployment" + "total unemployment"
+            - "GDP per capita" + "GDP growth" + "economic output per person"
+            Two calls with DIFFERENT topics are NOT redundant:
+            - "unemployment rate" + "labor force participation" = OK
+        (2) CROSS-TURN DUPLICATION: `data360_search_indicators` is
+            called with a query that was ALREADY resolved in a prior
+            turn. If prior context shows `search_indicators(query=poverty
+            headcount)` returned `indicator_id=WB_WDI_SI_POV_DDAY`, and
+            this turn calls `search_indicators(query=poverty rate)` for
+            the same dimension, that is redundant.
+        (3) INDICATOR RE-RESOLUTION: `data360_search_indicators` is
+            called when an `indicator_id` was already established in
+            prior context and the user's request is a follow-up on the
+            same indicator (e.g., "how does that compare to Bangladesh?"
+            should NOT trigger a new search for the same indicator).
+
+      EFFICIENT SEARCH (score high) — any of:
+        (1) `data360_search_indicators` called once or twice with
+            clearly distinct topic queries.
+        (2) `data360_search_indicators` called with `queries` parameter
+            batching multiple distinct topics in a single call.
+        (3) No `data360_search_indicators` called because the
+            indicator_id was already known from prior context.
+
+      If `data360_search_indicators` is not called this turn at all,
+      score 10 (not applicable).
+
+    evaluation_steps:
+      - >
+        Count how many times `data360_search_indicators` (or
+        `search_indicators`) appears in the Tool Sequence for this turn.
+        If 0 or 1 call, score 10 (no duplication possible).
+      - >
+        If 2+ calls: compare the query terms across all calls.
+        Identify any pairs where the queries are semantically equivalent
+        or one is a near-synonym of the other (same root concept, same
+        indicator domain). Flag those pairs as redundant.
+      - >
+        If 1+ calls: check PRIOR CONTEXT for any Tool Call that already
+        resolved a `search_indicators` query for the same indicator
+        domain. Flag any cross-turn redundancy.
+      - >
+        Score: start at 10. Deduct 3 for each redundant within-turn
+        call pair. Deduct 4 for each cross-turn redundant call.
+        Floor at 0.
+    rubric:
+      - score_range: [9, 10]
+        expected_outcome: >
+          search_indicators called 0-2 times with clearly distinct
+          topic queries, OR not called because indicator_id already
+          known. No redundancy detected.
+      - score_range: [5, 8]
+        expected_outcome: >
+          search_indicators called 2 times with slightly overlapping
+          but distinguishable queries. Minor inefficiency but
+          functionally acceptable.
+      - score_range: [0, 4]
+        expected_outcome: >
+          search_indicators called 3+ times with synonymous queries
+          (e.g., "unemployment rate" + "unemployment" + "total
+          unemployment"), OR called in this turn to re-resolve an
+          indicator already established in prior context.

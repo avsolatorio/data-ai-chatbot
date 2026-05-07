@@ -1,0 +1,97 @@
+# Agentic Flow Evaluation Suite — feat/compact-agg-renderers
+# ─────────────────────────────────────────────────────────────────────────────
+# Tests the agentic flow for two layers of issues:
+#
+# Layer 1 — Issue #122 failures (from upstream/dev, inherited here):
+#   AF-2: Redundant near-identical search_indicators calls
+#   AF-3: System asks user for info already in conversation context
+#
+# Layer 2 — Narrator claim inconsistencies (compact output specific):
+#   AF-4: Narrator invents claim_ids not present in tool output
+#   AF-5: Narrator reorders or changes ranking values vs tool output
+#   AF-6: Compact compare_countries pool mixing (snapshot vs time-series)
+#   AF-7: Complete value fabrication + sequential c1-c6 fake claim_ids +
+#         order inversion (reproduces observed South Asia unemployment bug)
+#
+# Targeted metrics:
+#   Per-Turn Narrator Claim Fabrication  → AF-4, AF-7
+#   Per-Turn Ranking Fidelity            → AF-5, AF-7
+#   Per-Turn Derived Value Claim Integrity → AF-6
+#   Per-Turn Cross-Turn Redundant Fetch  → AF-2
+#   Per-Turn Tool Selection              → AF-2, AF-3
+#   Per-Turn Context Retention           → AF-3
+#   Per-Turn Routing Correctness         → AF-3
+#   Per-Turn Claim Tagging & PCN         → AF-4, AF-7
+#
+# Run before/after applying fixes to measure improvement:
+#   Before:  git checkout feat/compact-agg-renderers
+#            docker compose up -d --build
+#            cd backend && PYTHONPATH=. uv run python -m evals batch \
+#              --suite evals/configs/suite_agentic_flow.yaml --http
+#   After:   (apply fixes, rebuild) && same command
+#   Compare: PYTHONPATH=. uv run python -m evals compare <BEFORE_TS> <AFTER_TS>
+#
+# Preflight requirements:
+#   - Frontend (chatbot UI):  http://localhost:3001
+#   - Backend:                http://localhost:8001
+#   - MCP server (on host):   http://localhost:8021
+# ─────────────────────────────────────────────────────────────────────────────
+
+personas:
+
+  # AF-4: Narrator invents claim_ids not present in tool output
+  # Uses GDP per capita for Morocco and Tunisia -- simple point lookup
+  # that isolates the claim_id sourcing behavior.
+  - flat: agentic_narrator_claim_hallucination
+    runs: 3
+    known_failures: []
+
+  # AF-5: Narrator reorders or changes ranking values vs tool output
+  # Uses SSF GDP per capita ranking -- large result set increases the
+  # chance of value drift or reordering.
+  - flat: agentic_narrator_ranking_drift
+    runs: 3
+    known_failures: []
+
+  # AF-6: Compact positional array pool mixing (snapshot vs time-series)
+  # Uses IND/BGD compare_countries with time series -- forces the Narrator
+  # to decode series_schema and keep pool A and pool B separate.
+  - flat: agentic_compact_compare_decoding
+    runs: 3
+    known_failures: []
+
+  # AF-2: Redundant near-identical search_indicators calls
+  # Uses Morocco multi-dimension unemployment query -- batching failure
+  # produces 3+ search calls with synonymous terms.
+  - flat: agentic_redundant_search_dedup
+    runs: 3
+    known_failures: []
+
+  # AF-3: System ignores context and asks user for info already available
+  # Uses India/Bangladesh poverty comparison -- follow-ups must not
+  # route to CLARIFY when context fills the required slots.
+  - flat: agentic_context_ignore_year
+    runs: 3
+    known_failures: []
+
+  # AF-7: Complete value fabrication + sequential fake claim_ids + order inversion
+  # Directly reproduces the observed South Asia unemployment bug where the
+  # Narrator wrote c1-c6 IDs, inverted ordering, and produced two
+  # contradictory answer blocks.
+  - flat: agentic_sas_ranking_value_fabrication
+    runs: 3
+    known_failures: []
+
+  # Existing agg grounding regression personas -- included for completeness
+  # and to verify no regressions on the already-known failure modes.
+  - flat: regression_rank_countries_grounding
+    runs: 2
+    known_failures: []
+
+  - flat: regression_compare_countries_grounding
+    runs: 2
+    known_failures: []
+
+  - flat: regression_summarize_data_grounding
+    runs: 2
+    known_failures: []

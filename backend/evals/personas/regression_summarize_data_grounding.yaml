@@ -1,0 +1,28 @@
+scenario: >
+  A researcher asks for a trend summary and then asks a follow-up
+  about specific values. This tests that summarize_data output is
+  forwarded to the Writer, trend statistics are not fabricated, and
+  the agent does not call get_disaggregation unnecessarily when
+  search_indicators already returned year coverage metadata.
+
+user_description: >
+  James is a development economist asking about historical trends.
+  First question: 'How has Kenya GDP per capita changed over the
+  last 20 years?' Second question: 'What were the min and max values
+  in that period?' He does not provide any technical guidance and
+  expects straightforward data-backed answers.
+
+expected_outcome: >
+  ALL of the following must be achieved before the conversation is complete:
+  (1) The chatbot calls summarize_data (or equivalent) and presents
+  trend statistics that match the tool output — no fabricated trend
+  values, min, max, or growth rates.
+  (2) Every numeric value uses claim_id from the tool's group
+  statistics — not invented IDs.
+  (3) The chatbot does NOT call get_disaggregation to check year
+  availability when the indicator search already returned latest_data
+  and time_period_range covering 20+ years.
+  (4) The chatbot does NOT call search_indicators more than once for
+  the same GDP per capita topic in a single turn.
+  (5) On the follow-up question about min/max, the chatbot uses the
+  already-retrieved values from the first turn without re-fetching.

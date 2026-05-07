@@ -326,6 +326,7 @@ def _select_metrics_for_turn(ctx: dict, all_metric_defs: list) -> set:
         "technical_terms": "has_technical_terms",
         "prior_context": None,
         "routing": None,  # always applicable
+        "visualization": "is_viz_request",
     }
 
     is_deliverable = ctx.get("is_deliverable_request", False)
@@ -537,13 +538,16 @@ def _evaluate_per_turn(test_cases, persona_keys, config, turn_data_store):
             # Determine which metrics apply to this turn
             metrics_to_run = _select_metrics_for_turn(ctx, per_turn_defs)
 
-            # Auto-score all non-applicable metrics as 1.0
+            # Auto-score all non-applicable metrics as N/A.
+            # IMPORTANT: prefiltered=True so the aggregation loop skips these --
+            # they must NOT contribute to min/mean aggregation.
             skipped_names = all_metric_names - metrics_to_run
             for name in skipped_names:
                 per_turn_scores[turn_idx][name] = {
                     "score": 1.0,
                     "reason": "N/A -- pre-filtered (metric not applicable to this turn).",
                     "passed": True,
+                    "prefiltered": True,
                 }
             skipped_count += len(skipped_names)
 
@@ -596,6 +600,42 @@ def _evaluate_per_turn(test_cases, persona_keys, config, turn_data_store):
                         "reason": f"Evaluation error: {e}",
                         "passed": False,
                     }
+
+            # -- Cross-metric contamination penalty --
+            # Data provenance is a prerequisite for accuracy. If claim fabrication
+            # or value transcription errors are detected on this turn, cap the
+            # accuracy and consistency scores to reflect that the values cannot
+            # be independently verified.
+            _provenance_metrics = [
+                "Per-Turn Narrator Claim Fabrication",
+                "Per-Turn Research-Narrator Transcription Fidelity",
+            ]
+            _downstream_metrics = [
+                "Per-Turn Data Accuracy",
+                "Per-Turn Claim Consistency",
+            ]
+            provenance_threshold = 0.8
+            for prov_name in _provenance_metrics:
+                prov = per_turn_scores[turn_idx].get(prov_name)
+                if prov and not prov.get("prefiltered", False):
+                    if prov["score"] < provenance_threshold:
+                        for down_name in _downstream_metrics:
+                            down = per_turn_scores[turn_idx].get(down_name)
+                            if down and not down.get("prefiltered", False):
+                                capped = min(down["score"], prov["score"])
+                                per_turn_scores[turn_idx][down_name] = {
+                                    "score": capped,
+                                    "reason": (
+                                        f"[CONTAMINATED] Capped from {down['score']:.2f} to "
+                                        f"{capped:.2f} because {prov_name} scored "
+                                        f"{prov['score']:.2f} < {provenance_threshold} on this turn. "
+                                        "Accuracy cannot be asserted when provenance is broken. "
+                                        f"Original reason: {down.get('reason', '')}"
+                                    ),
+                                    "passed": capped >= provenance_threshold,
+                                    "prefiltered": False,
+                                    "contaminated": True,
+                                }
 
             # Add structured context for next iteration
             condensed_context_dicts.append(ctx)

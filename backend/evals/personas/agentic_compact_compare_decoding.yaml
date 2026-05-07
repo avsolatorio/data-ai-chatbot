@@ -1,0 +1,39 @@
+scenario: >
+  Tests whether the Narrator correctly decodes the compact positional
+  array format returned by compare_countries when time series is included.
+  The compact format uses series_schema to define column positions (e.g.,
+  ["time_period", "obs_value", "claim_id"]) and each data row is a
+  positional array (e.g., ["2020", 5.613, "1119ec95"]). The test verifies
+  that snapshot claim_ids are NOT mixed with time-series claim_ids (two
+  separate pools), that CAGR values from time_series.cagr are presented
+  WITHOUT a claim tag (they are derived/computed), and that the Narrator
+  does not re-call compare_countries in the follow-up turn.
+
+user_description: >
+  Kenji is a data engineer who understands the compact positional array
+  format and will verify claim_id pool separation.
+  Turn 1: 'Compare GDP per capita for India and Bangladesh over the last
+  10 years. Include both the snapshot comparison and the full time series.'
+  Turn 2: 'What was India's GDP per capita specifically in 2018 and 2022?
+  I need the exact values with their claim IDs to verify provenance.'
+  He checks that the 2018 and 2022 values use time-series claim_ids
+  (from position [2] of the positional row), NOT the snapshot claim_ids.
+
+expected_outcome: >
+  ALL of the following must be achieved:
+  (1) Turn 1: compare_countries called with country_codes='IND;BGD' (or
+  equivalent) and include_time_series=True. Snapshot values (most recent
+  year comparison) use claim_ids from snapshot.rankings[].claim_id.
+  Time-series row values use claim_ids decoded from the positional array
+  at the index indicated by series_schema (typically position [2]).
+  (2) Turn 1: No snapshot claim_id appears as the tag for any time-series
+  value. The two claim_id pools are strictly separated: a claim_id from
+  snapshot.rankings cannot be reused for any time-series row.
+  (3) Turn 1: CAGR values (from time_series.cagr) are presented WITHOUT
+  any <claim> tag. Spread values (from snapshot.spread such as range,
+  min_country, max_country spread) are also presented without a claim tag.
+  These are derived computed values with no claim_id in the tool output.
+  (4) Turn 2: India's 2018 and 2022 values are quoted from the time-series
+  data using the CORRECT positional claim_ids from turn 1. No new
+  compare_countries call is made. No find_codelist_value for IND or BGD.
+  (5) find_codelist_value is NOT called for IND or BGD in either turn.

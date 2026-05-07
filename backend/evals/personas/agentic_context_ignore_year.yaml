@@ -1,0 +1,37 @@
+scenario: >
+  Tests whether the system ignores information that is already in context
+  and asks the user to re-specify it. The user establishes a data context
+  in turn 1 (indicator, time range, country), then makes follow-up requests
+  that reference that context. The system must NOT route follow-ups to
+  CLARIFY or ask 'what year?' / 'which indicator?' when the conversation
+  history already contains the required information. This is a known
+  Issue #122 failure mode from upstream/dev where the Research Agent
+  ignores the session summary and re-asks for context already provided.
+
+user_description: >
+  David is a researcher who builds a multi-turn analysis session.
+  Turn 1: 'Show me poverty headcount ratio for India over the last 10 years.'
+  Turn 2: 'How does that compare to Bangladesh?'
+  Turn 3: 'Can you create a chart of both countries?'
+  He expects the system to carry context forward automatically without
+  asking clarifying questions at any step.
+
+expected_outcome: >
+  ALL of the following must be achieved:
+  (1) Turn 1: Data retrieved for India (IND) using a poverty headcount
+  indicator. The response shows values for specific years. No clarifying
+  question is asked.
+  (2) Turn 2: The system routes this as RESEARCH (not CLARIFY). The
+  Research Agent uses the SAME indicator_id from turn 1 without
+  re-calling search_indicators. It fetches Bangladesh (BGD) data and
+  presents a comparison. It does NOT ask 'which indicator?' or 'what
+  time period?' -- the context fills these gaps.
+  (3) Turn 3: The system routes this as RESEARCH (not CLARIFY). The
+  Narrator calls get_viz_spec or get_multi_indicator_viz_spec using the
+  indicator_id, country codes (IND, BGD), and time range already
+  established in the conversation. It does NOT ask 'which countries?'
+  or 'which chart type?' before producing the chart.
+  (4) No turn is routed to CLARIFY at any point. If the routing
+  classification for turn 2 or turn 3 is CLARIFY when context fills
+  the gap, that is a routing error and a failure.
+  (5) find_codelist_value is NOT called for IND or BGD in any turn.

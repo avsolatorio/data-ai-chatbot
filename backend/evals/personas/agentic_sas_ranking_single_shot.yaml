@@ -1,0 +1,47 @@
+scenario: >
+  Tests whether the chatbot can autonomously resolve a well-known
+  geographic scope term ("South Asian countries") without asking the
+  user to clarify which definition to use.
+
+  The system has access to data360_find_codelist_value and
+  data360_expand_country_group tools. "South Asia" maps unambiguously
+  to the World Bank SAS region group (AFG, BGD, BTN, IND, MDV, NPL,
+  PAK, LKA). The chatbot should call these tools internally rather
+  than surfacing a disambiguation question to the user.
+
+  Observed failure: the chatbot responds to this straightforward
+  ranking request with "Should 'South Asian countries' follow the
+  World Bank South Asia region (Afghanistan, Bangladesh, Bhutan,
+  India, Maldives, Nepal, Pakistan, Sri Lanka) or a broader
+  definition?" -- a clarification question that wastes a user turn
+  and demonstrates the chatbot is not leveraging its own tools.
+
+  This is a single-shot test: the user sends exactly ONE message.
+  The chatbot must answer in ONE response with a complete ranking.
+  There is no follow-up. If the chatbot asks a clarification question
+  instead of delivering the ranking, the test fails.
+
+user_description: >
+  Marcus is a policy analyst who wants a quick unemployment ranking
+  for South Asia. He sends the single message:
+  "Can you rank the south asian countries to get the top 10 in terms
+  of latest year unemployment rate"
+  He expects a ranked data table with values and sources.
+  He does NOT expect to be asked a clarification question.
+
+expected_outcome: >
+  The chatbot MUST:
+  (1) Call data360_rank_countries (or equivalent) with country_group='SAS'
+      or equivalent SAS-member country codes. The call must NOT require
+      a user follow-up to identify the country scope.
+  (2) Optionally call data360_find_codelist_value('REF_AREA', 'South Asia')
+      and data360_expand_country_group('SAS') to resolve the scope
+      autonomously -- this is the correct tool-assisted behavior.
+  (3) Deliver a ranked table of South Asian countries by unemployment
+      rate in the SAME response as the first turn.
+  (4) MUST NOT ask the user "Should 'South Asian countries' follow
+      the World Bank South Asia region or a broader definition?" or
+      any equivalent disambiguation question. The chatbot has tools
+      to resolve this itself.
+  (5) MUST NOT reply with any question as the primary response --
+      a clarification-only reply with no data is a complete failure.

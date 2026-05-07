@@ -1,0 +1,35 @@
+scenario: >
+  Tests whether the Narrator faithfully reproduces the ranking order and
+  exact values from rank_countries tool output, or if it re-interprets,
+  reorders, or narrates different values. The user asks for a full ranking
+  table, then asks follow-up questions about specific positions to verify
+  that the Narrator's prose is consistent with the table it just produced.
+  Any drift between the ranking table and the follow-up confirmation answer
+  is a provenance error -- the Narrator is either ignoring the tool output
+  or re-generating values from its own (stale) knowledge.
+
+user_description: >
+  Carlos is a data fact-checker who will compare the Narrator's output
+  against the raw tool results.
+  Turn 1: 'Rank the top 10 countries in Sub-Saharan Africa by GDP per
+  capita from highest to lowest. Show the exact values.'
+  Turn 2: 'Which country was ranked 3rd and which was ranked 7th?
+  What were their exact GDP per capita values? I want to verify these
+  match what you showed in turn 1.'
+  He flags any discrepancy between the ranking table and the follow-up.
+
+expected_outcome: >
+  ALL of the following must be achieved:
+  (1) Turn 1: rank_countries called with country_group='SSF' and
+  order='desc'. The response table lists countries in the EXACT order
+  returned by the tool (rank 1 = highest value, rank 10 = lowest).
+  Values match rankings[].obs_value exactly -- no rounding to different
+  precision, no transposed values between countries. Each value is tagged
+  with the matching rankings[].claim_id (a real hex UUID from the tool,
+  not a sequential placeholder like c1, c2, ..., c10).
+  (2) Turn 2: The 3rd and 7th ranked countries and their values are
+  EXACTLY consistent with the turn 1 table. The claim_ids used are the
+  SAME as in turn 1 (no re-fetch, no new IDs generated).
+  (3) No rank_countries or find_codelist_value call in turn 2.
+  (4) The Narrator does NOT reorder entries, use different values, or
+  present a different set of countries than what the tool returned.

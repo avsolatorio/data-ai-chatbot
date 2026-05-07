@@ -1,0 +1,36 @@
+scenario: >
+  Tests whether the Narrator invents claim_ids not present in the Research
+  Agent's tool output. The user asks a simple point lookup question, then
+  asks to see the same data for a second country. The Narrator must use
+  ONLY claim_ids from the RAW TOOL RESULTS block -- never invent IDs that
+  look plausible but are not in the tool output. This specifically probes
+  the compact aggregation output path where the Narrator may generate
+  sequential fake IDs (e.g., c1, c2) or hex-looking fabrications instead
+  of copying the actual claim_id values returned by the MCP tool.
+
+user_description: >
+  Fatima is a data auditor who will cross-check every claim_id against
+  the raw tool output. She asks one country at a time.
+  Turn 1: 'What is the GDP per capita for Morocco in the latest available year?'
+  Turn 2: 'Now show me the same for Tunisia. Present both countries side
+  by side with exact values.'
+  She pays close attention to whether each numeric value is tagged with the
+  exact claim_id from the tool output, not a fabricated one.
+
+expected_outcome: >
+  ALL of the following must be achieved:
+  (1) Turn 1: search_indicators called for GDP per capita, then get_data
+  or summarize_data called for Morocco (MAR). find_codelist_value is NOT
+  called -- MAR is a well-known code. Every numeric value in the response
+  has a <claim> tag whose id matches a claim_id actually present in the
+  tool output. No claim_id is sequential (c1, c2, ...) or otherwise
+  fabricated -- all must be hex UUIDs present in the tool results.
+  (2) Turn 2: The same indicator_id from turn 1 is reused without
+  re-calling search_indicators. get_data or summarize_data called for
+  Tunisia (TUN). Each Tunisia value is claim-tagged with claim_ids from
+  the NEW tool call for Tunisia. Morocco values referenced from turn 1
+  reuse the SAME claim_ids from turn 1, not new ones.
+  (3) No claim_id appears in either response that does not exist in the
+  RAW TOOL RESULTS from the corresponding turn. This is the critical test:
+  zero fabricated IDs across both turns.
+  (4) find_codelist_value is NOT called for Morocco or Tunisia.

@@ -1,0 +1,36 @@
+# Aggregation Grounding Suite — Issue #122
+# ─────────────────────────────────────────────────────────────────────────────
+# Tests that rank_countries, compare_countries, and summarize_data outputs are
+# forwarded to the Writer (fix: narrator.py tool filter), that the Writer uses
+# actual claim_ids from tool output (not invented ones), and that the research
+# agent avoids redundant search calls and unnecessary get_disaggregation calls.
+#
+# Run before/after applying fix/agentic-flow-grounding to measure improvement.
+#   Before:  python -m evals batch --suite suite_agg_grounding.yaml --http
+#   After:   git checkout fix/agentic-flow-grounding && docker compose up -d backend
+#            python -m evals batch --suite suite_agg_grounding.yaml --http
+#   Compare: python -m evals compare <BEFORE_TS> <AFTER_TS>
+#
+# Key metrics to watch:
+#   Data Accuracy       — was ~2-3 before fix (hallucinated values)
+#   Claim Tagging & PCN — was ~1-2 before fix (invented claim IDs)
+#   Tool Selection      — should improve (fewer redundant calls)
+#   Context Retention   — should improve (metadata reuse)
+# ─────────────────────────────────────────────────────────────────────────────
+
+personas:
+
+  # rank_countries: values must match tool output, claim_ids from rankings array
+  - flat: regression_rank_countries_grounding
+    runs: 3
+    known_failures: []
+
+  # compare_countries: values must match snapshot.rankings, no invented claim_ids
+  - flat: regression_compare_countries_grounding
+    runs: 3
+    known_failures: []
+
+  # summarize_data: trend stats must match tool output, no redundant searches
+  - flat: regression_summarize_data_grounding
+    runs: 3
+    known_failures: []
