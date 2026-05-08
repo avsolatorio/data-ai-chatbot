@@ -70,6 +70,12 @@ const DIMENSION_LABELS: Record<string, string> = {
   comp_breakdown_2: "Breakdown 2",
 };
 
+function groupIdentity(group: Record<string, string>): string {
+  return Object.entries(group)
+    .map(([dim, value]) => `${dim}:${value}`)
+    .join("|");
+}
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -169,7 +175,7 @@ function DegenerateTimeSeriesTable({
               group.latest.year ?? Object.values(group.group)[0] ?? "—";
             const value = group.latest.value;
             const claimId = group.claim_ids[0] ?? null;
-            const rowKey = `${year}-${claimId ?? "no-claim"}-${JSON.stringify(group.group)}`;
+            const rowKey = `${year}-${claimId ?? "no-claim"}-${groupIdentity(group.group)}`;
             return (
               <tr
                 key={rowKey}
@@ -434,7 +440,7 @@ export function SummarizeData({ output }: { output: CompactSummaryOutput }) {
           {output.groups.map((group) => (
             <GroupCard
               group={group}
-              key={`${JSON.stringify(group.group)}-${group.latest.year ?? "na"}-${group.earliest.year ?? "na"}`}
+              key={`${groupIdentity(group.group)}-${group.latest.year ?? "na"}-${group.earliest.year ?? "na"}`}
               unit={output.unit}
             />
           ))}
