@@ -55,6 +55,7 @@ const TREND_ICONS: Record<string, { icon: string; className: string }> = {
 
 const DIMENSION_LABELS: Record<string, string> = {
   ref_area: "Area",
+  time_period: "Year",
   sex: "Sex",
   age: "Age",
   urbanisation: "Urbanisation",
@@ -124,6 +125,81 @@ function TrendBadge({ trend }: { trend: string | null }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Degenerate time-series table
+// Rendered when ALL groups have n=1 — the result of group_by=["time_period"].
+// Shows a compact year → value table sorted newest-first.
+// ---------------------------------------------------------------------------
+
+function DegenerateTimeSeriesTable({
+  groups,
+  unit,
+}: {
+  groups: CompactGroupSummary[];
+  unit: string | null;
+}) {
+  // Each group's "latest" is the single observation for that period.
+  const rows = [...groups].sort((a, b) => {
+    const ya = a.latest.year ?? "";
+    const yb = b.latest.year ?? "";
+    return yb.localeCompare(ya); // newest first
+  });
+
+  return (
+    <div className="rounded-lg border border-border bg-background overflow-hidden">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-border bg-muted/40">
+            <th className="px-3 py-1.5 text-left text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+              Year
+            </th>
+            <th className="px-3 py-1.5 text-right text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+              Value{unit ? ` (${unit})` : ""}
+            </th>
+            <th className="px-3 py-1.5 text-right text-[10px] uppercase tracking-wide text-muted-foreground font-medium w-8">
+              {/* claim */}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((group, idx) => {
+            const year = group.latest.year ?? Object.values(group.group)[0] ?? "—";
+            const value = group.latest.value;
+            const claimId = group.claim_ids[0] ?? null;
+            return (
+              <tr
+                key={idx}
+                className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors"
+              >
+                <td className="px-3 py-1.5 tabular-nums font-medium text-foreground">
+                  {year}
+                </td>
+                <td className="px-3 py-1.5 tabular-nums text-right text-foreground">
+                  {value !== null ? formatNum(value) : "—"}
+                </td>
+                <td className="px-3 py-1.5 text-right">
+                  {claimId && (
+                    <ClaimMark
+                      id={claimId}
+                      policy={{ type: "rounded", decimals: 2 }}
+                    >
+                      {""}
+                    </ClaimMark>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Normal group card — used when n > 1 (multi-observation groups)
+// ---------------------------------------------------------------------------
+
 function GroupCard({
   group,
   unit,
@@ -131,8 +207,12 @@ function GroupCard({
   group: CompactGroupSummary;
   unit: string | null;
 }) {
+  // n=1 guard: suppress degenerate stats on individual cards when only some
+  // groups are single-observation (mixed grouping edge case).
+  const isDegenerate = group.n <= 1;
   const hasChange =
-    group.change.abs !== null || group.change.pct !== null;
+    !isDegenerate &&
+    (group.change.abs !== null || group.change.pct !== null);
 
   return (
     <div className="rounded-lg border border-border bg-background p-3 flex flex-col gap-2">
@@ -140,12 +220,12 @@ function GroupCard({
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <GroupKeyPills group={group.group} />
         <div className="flex items-center gap-1.5 shrink-0">
-          {group.range && (
+          {group.range && !isDegenerate && (
             <span className="text-muted-foreground text-[10px]">
               {group.range}
             </span>
           )}
-          <TrendBadge trend={group.trend} />
+          {!isDegenerate && <TrendBadge trend={group.trend} />}
           {/*
             claim_ids is a flat list of ALL source observation IDs for this group —
             order is not guaranteed to match temporal order. Render as a batch
@@ -166,7 +246,7 @@ function GroupCard({
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="rounded bg-muted/40 p-2">
           <div className="text-muted-foreground text-[10px] uppercase tracking-wide mb-0.5">
-            Latest
+            {isDegenerate ? "Value" : "Latest"}
           </div>
           <div className="font-semibold text-foreground">
             {group.latest.value !== null ? (
@@ -189,47 +269,51 @@ function GroupCard({
           )}
         </div>
 
-        <div className="rounded bg-muted/40 p-2">
-          <div className="text-muted-foreground text-[10px] uppercase tracking-wide mb-0.5">
-            Earliest
-          </div>
-          <div className="font-semibold text-foreground">
-            {group.earliest.value !== null ? (
-              <>
-                {formatNum(group.earliest.value)}
-                {unit && (
-                  <span className="ml-1 font-normal text-muted-foreground text-[10px]">
-                    {unit}
-                  </span>
-                )}
-              </>
-            ) : (
-              "\u2014"
+        {!isDegenerate && (
+          <div className="rounded bg-muted/40 p-2">
+            <div className="text-muted-foreground text-[10px] uppercase tracking-wide mb-0.5">
+              Earliest
+            </div>
+            <div className="font-semibold text-foreground">
+              {group.earliest.value !== null ? (
+                <>
+                  {formatNum(group.earliest.value)}
+                  {unit && (
+                    <span className="ml-1 font-normal text-muted-foreground text-[10px]">
+                      {unit}
+                    </span>
+                  )}
+                </>
+              ) : (
+                "\u2014"
+              )}
+            </div>
+            {group.earliest.year && (
+              <div className="text-muted-foreground text-[10px]">
+                {group.earliest.year}
+              </div>
             )}
           </div>
-          {group.earliest.year && (
-            <div className="text-muted-foreground text-[10px]">
-              {group.earliest.year}
+        )}
+      </div>
+
+      {/* Stats row — suppressed for degenerate single-observation groups */}
+      {!isDegenerate && (
+        <div className="grid grid-cols-4 gap-1 text-[10px]">
+          {(["min", "max", "mean", "median"] as const).map((key) => (
+            <div key={key} className="flex flex-col items-center rounded bg-muted/30 px-1 py-1">
+              <span className="text-muted-foreground uppercase tracking-wide text-[9px]">
+                {key}
+              </span>
+              <span className="font-medium text-foreground tabular-nums">
+                {formatNum(group.stats[key], 2)}
+              </span>
             </div>
-          )}
+          ))}
         </div>
-      </div>
+      )}
 
-      {/* Stats row */}
-      <div className="grid grid-cols-4 gap-1 text-[10px]">
-        {(["min", "max", "mean", "median"] as const).map((key) => (
-          <div key={key} className="flex flex-col items-center rounded bg-muted/30 px-1 py-1">
-            <span className="text-muted-foreground uppercase tracking-wide text-[9px]">
-              {key}
-            </span>
-            <span className="font-medium text-foreground tabular-nums">
-              {formatNum(group.stats[key], 2)}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* Change row */}
+      {/* Change row — suppressed for degenerate groups */}
       {hasChange && (
         <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
           <span>
@@ -270,6 +354,14 @@ export function SummarizeData({ output }: { output: CompactSummaryOutput }) {
     );
   }
 
+  // Detect degenerate output: ALL groups have n=1.
+  // This happens when group_by=["time_period"] is used for a single-country
+  // trend query — it produces one group per year with exactly one observation,
+  // making all stats (min/max/mean/median/change/trend) mathematically trivial.
+  // In this case we render a compact time-series table instead of per-year cards.
+  const allDegenerate =
+    output.groups.length > 1 && output.groups.every((g) => g.n <= 1);
+
   return (
     <div className="flex w-full flex-col gap-3 overflow-hidden rounded-sm bg-background px-4 pb-4">
       {/* Header */}
@@ -281,9 +373,15 @@ export function SummarizeData({ output }: { output: CompactSummaryOutput }) {
         )}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground text-xs">
           {output.unit && <span>{output.unit}</span>}
-          <span className="rounded bg-muted px-1.5 py-0.5">
-            {output.groups.length} group{output.groups.length !== 1 ? "s" : ""}
-          </span>
+          {allDegenerate ? (
+            <span className="rounded bg-muted px-1.5 py-0.5">
+              {output.groups.length} observations
+            </span>
+          ) : (
+            <span className="rounded bg-muted px-1.5 py-0.5">
+              {output.groups.length} group{output.groups.length !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
       </div>
 
@@ -292,11 +390,14 @@ export function SummarizeData({ output }: { output: CompactSummaryOutput }) {
         <AmbiguousDimensionsWarning dimensions={output.ambiguous_dimensions} />
       )}
 
-      {/* Group cards */}
+      {/* Body */}
       {output.groups.length === 0 ? (
         <div className="rounded-lg border border-border bg-background p-4 text-muted-foreground text-sm">
           No groups returned.
         </div>
+      ) : allDegenerate ? (
+        // Fallback: compact time-series table when every group has n=1
+        <DegenerateTimeSeriesTable groups={output.groups} unit={output.unit} />
       ) : (
         <div className="flex flex-col gap-2">
           {output.groups.map((group, idx) => (
