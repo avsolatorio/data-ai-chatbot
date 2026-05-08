@@ -65,11 +65,7 @@ function ErrorBanner({ message }: { message: string }) {
   );
 }
 
-function RankingHeader({
-  output,
-}: {
-  output: CompactRankingOutput;
-}) {
+function RankingHeader({ output }: { output: CompactRankingOutput }) {
   const coverage =
     output.counts.requested > 0
       ? `${output.counts.with_data} / ${output.counts.requested} countries`
@@ -123,7 +119,10 @@ function RankingTable({
     );
   }
 
-  const topValue = rankings[0]?.value ?? 0;
+  const maxAbsValue = rankings.reduce(
+    (max, entry) => Math.max(max, Math.abs(entry.value)),
+    0,
+  );
 
   return (
     <div className="rounded-lg border border-border bg-muted/30 overflow-hidden">
@@ -138,7 +137,12 @@ function RankingTable({
                 Country
               </th>
               <th className="border-border border-b px-3 py-2 text-right font-medium">
-                Value {unit ? <span className="font-normal text-muted-foreground">({unit})</span> : null}
+                Value{" "}
+                {unit ? (
+                  <span className="font-normal text-muted-foreground">
+                    ({unit})
+                  </span>
+                ) : null}
               </th>
               <th className="border-border border-b px-3 py-2 w-28 sr-only">
                 Bar
@@ -148,8 +152,14 @@ function RankingTable({
           <tbody>
             {rankings.map((entry, idx) => {
               const barPct =
-                topValue !== 0
-                  ? Math.max(0, Math.min(100, (Math.abs(entry.value) / Math.abs(topValue)) * 100))
+                maxAbsValue !== 0
+                  ? Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        (Math.abs(entry.value) / maxAbsValue) * 100,
+                      ),
+                    )
                   : 0;
 
               return (
@@ -209,9 +219,7 @@ function ExcludedFooter({
 }) {
   if (count === 0) return null;
 
-  const sampleNames = sample
-    .map((e) => e.name ?? e.code)
-    .join(", ");
+  const sampleNames = sample.map((e) => e.name ?? e.code).join(", ");
 
   return (
     <div className="rounded-lg border border-border bg-muted/20 px-3 py-2 text-muted-foreground text-xs">

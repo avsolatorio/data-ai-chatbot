@@ -47,10 +47,16 @@ function formatNum(v: number | null, decimals = 2): string {
 }
 
 const TREND_ICONS: Record<string, { icon: string; className: string }> = {
-  increasing: { icon: "\u2191", className: "text-green-600 dark:text-green-400" },
+  increasing: {
+    icon: "\u2191",
+    className: "text-green-600 dark:text-green-400",
+  },
   decreasing: { icon: "\u2193", className: "text-red-600 dark:text-red-400" },
   stable: { icon: "\u2192", className: "text-muted-foreground" },
-  volatile: { icon: "\u2922", className: "text-yellow-600 dark:text-yellow-400" },
+  volatile: {
+    icon: "\u2922",
+    className: "text-yellow-600 dark:text-yellow-400",
+  },
 };
 
 const DIMENSION_LABELS: Record<string, string> = {
@@ -77,11 +83,7 @@ function ErrorBanner({ message }: { message: string }) {
   );
 }
 
-function AmbiguousDimensionsWarning({
-  dimensions,
-}: {
-  dimensions: string[];
-}) {
+function AmbiguousDimensionsWarning({ dimensions }: { dimensions: string[] }) {
   return (
     <div className="rounded-lg border border-yellow-300 bg-yellow-50/70 px-3 py-2 text-yellow-800 text-xs dark:border-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-300">
       <span className="font-medium">Ambiguous dimensions:</span>{" "}
@@ -113,7 +115,10 @@ function GroupKeyPills({ group }: { group: Record<string, string> }) {
 
 function TrendBadge({ trend }: { trend: string | null }) {
   if (!trend) return null;
-  const cfg = TREND_ICONS[trend] ?? { icon: "?", className: "text-muted-foreground" };
+  const cfg = TREND_ICONS[trend] ?? {
+    icon: "?",
+    className: "text-muted-foreground",
+  };
   return (
     <span
       className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium bg-muted ${cfg.className}`}
@@ -156,35 +161,35 @@ function DegenerateTimeSeriesTable({
             <th className="px-3 py-1.5 text-right text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
               Value{unit ? ` (${unit})` : ""}
             </th>
-            <th className="px-3 py-1.5 text-right text-[10px] uppercase tracking-wide text-muted-foreground font-medium w-8">
-              {/* claim */}
-            </th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((group, idx) => {
-            const year = group.latest.year ?? Object.values(group.group)[0] ?? "—";
+          {rows.map((group) => {
+            const year =
+              group.latest.year ?? Object.values(group.group)[0] ?? "—";
             const value = group.latest.value;
             const claimId = group.claim_ids[0] ?? null;
+            const rowKey = `${year}-${claimId ?? "no-claim"}-${JSON.stringify(group.group)}`;
             return (
               <tr
-                key={idx}
+                key={rowKey}
                 className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors"
               >
                 <td className="px-3 py-1.5 tabular-nums font-medium text-foreground">
                   {year}
                 </td>
                 <td className="px-3 py-1.5 tabular-nums text-right text-foreground">
-                  {value !== null ? formatNum(value) : "—"}
-                </td>
-                <td className="px-3 py-1.5 text-right">
-                  {claimId && (
+                  {value !== null && claimId ? (
                     <ClaimMark
                       id={claimId}
                       policy={{ type: "rounded", decimals: 2 }}
                     >
-                      {""}
+                      {formatNum(value)}
                     </ClaimMark>
+                  ) : value !== null ? (
+                    formatNum(value)
+                  ) : (
+                    "—"
                   )}
                 </td>
               </tr>
@@ -211,12 +216,13 @@ function GroupCard({
   // groups are single-observation (mixed grouping edge case).
   const isDegenerate = group.n <= 1;
   const hasChange =
-    !isDegenerate &&
-    (group.change.abs !== null || group.change.pct !== null);
+    !isDegenerate && (group.change.abs !== null || group.change.pct !== null);
+  const earliestClaimId = group.claim_ids[0] ?? null;
+  const latestClaimId = group.claim_ids[group.claim_ids.length - 1] ?? null;
 
   return (
     <div className="rounded-lg border border-border bg-background p-3 flex flex-col gap-2">
-      {/* Group key + claim provenance */}
+      {/* Group key + metadata */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <GroupKeyPills group={group.group} />
         <div className="flex items-center gap-1.5 shrink-0">
@@ -226,23 +232,10 @@ function GroupCard({
             </span>
           )}
           {!isDegenerate && <TrendBadge trend={group.trend} />}
-          {/*
-            claim_ids is a flat list of ALL source observation IDs for this group —
-            order is not guaranteed to match temporal order. Render as a batch
-            provenance mark at the group level; do not index by position.
-          */}
-          {group.claim_ids.length > 0 && (
-            <ClaimMark
-              id={group.claim_ids[0]}
-              policy={{ type: "rounded", decimals: 2 }}
-            >
-              {""}
-            </ClaimMark>
-          )}
         </div>
       </div>
 
-      {/* Latest & earliest — values only, no per-value claim attribution */}
+      {/* Latest & earliest values */}
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="rounded bg-muted/40 p-2">
           <div className="text-muted-foreground text-[10px] uppercase tracking-wide mb-0.5">
@@ -250,14 +243,30 @@ function GroupCard({
           </div>
           <div className="font-semibold text-foreground">
             {group.latest.value !== null ? (
-              <>
-                {formatNum(group.latest.value)}
-                {unit && (
-                  <span className="ml-1 font-normal text-muted-foreground text-[10px]">
-                    {unit}
+              latestClaimId ? (
+                <ClaimMark
+                  id={latestClaimId}
+                  policy={{ type: "rounded", decimals: 2 }}
+                >
+                  <span>
+                    {formatNum(group.latest.value)}
+                    {unit && (
+                      <span className="ml-1 font-normal text-muted-foreground text-[10px]">
+                        {unit}
+                      </span>
+                    )}
                   </span>
-                )}
-              </>
+                </ClaimMark>
+              ) : (
+                <>
+                  {formatNum(group.latest.value)}
+                  {unit && (
+                    <span className="ml-1 font-normal text-muted-foreground text-[10px]">
+                      {unit}
+                    </span>
+                  )}
+                </>
+              )
             ) : (
               "\u2014"
             )}
@@ -276,14 +285,30 @@ function GroupCard({
             </div>
             <div className="font-semibold text-foreground">
               {group.earliest.value !== null ? (
-                <>
-                  {formatNum(group.earliest.value)}
-                  {unit && (
-                    <span className="ml-1 font-normal text-muted-foreground text-[10px]">
-                      {unit}
+                earliestClaimId ? (
+                  <ClaimMark
+                    id={earliestClaimId}
+                    policy={{ type: "rounded", decimals: 2 }}
+                  >
+                    <span>
+                      {formatNum(group.earliest.value)}
+                      {unit && (
+                        <span className="ml-1 font-normal text-muted-foreground text-[10px]">
+                          {unit}
+                        </span>
+                      )}
                     </span>
-                  )}
-                </>
+                  </ClaimMark>
+                ) : (
+                  <>
+                    {formatNum(group.earliest.value)}
+                    {unit && (
+                      <span className="ml-1 font-normal text-muted-foreground text-[10px]">
+                        {unit}
+                      </span>
+                    )}
+                  </>
+                )
               ) : (
                 "\u2014"
               )}
@@ -301,7 +326,10 @@ function GroupCard({
       {!isDegenerate && (
         <div className="grid grid-cols-4 gap-1 text-[10px]">
           {(["min", "max", "mean", "median"] as const).map((key) => (
-            <div key={key} className="flex flex-col items-center rounded bg-muted/30 px-1 py-1">
+            <div
+              key={key}
+              className="flex flex-col items-center rounded bg-muted/30 px-1 py-1"
+            >
               <span className="text-muted-foreground uppercase tracking-wide text-[9px]">
                 {key}
               </span>
@@ -339,7 +367,6 @@ function GroupCard({
     </div>
   );
 }
-
 
 // ---------------------------------------------------------------------------
 // Main export
@@ -379,16 +406,20 @@ export function SummarizeData({ output }: { output: CompactSummaryOutput }) {
             </span>
           ) : (
             <span className="rounded bg-muted px-1.5 py-0.5">
-              {output.groups.length} group{output.groups.length !== 1 ? "s" : ""}
+              {output.groups.length} group
+              {output.groups.length !== 1 ? "s" : ""}
             </span>
           )}
         </div>
       </div>
 
       {/* Ambiguous dimensions warning */}
-      {output.ambiguous_dimensions && output.ambiguous_dimensions.length > 0 && (
-        <AmbiguousDimensionsWarning dimensions={output.ambiguous_dimensions} />
-      )}
+      {output.ambiguous_dimensions &&
+        output.ambiguous_dimensions.length > 0 && (
+          <AmbiguousDimensionsWarning
+            dimensions={output.ambiguous_dimensions}
+          />
+        )}
 
       {/* Body */}
       {output.groups.length === 0 ? (
@@ -400,10 +431,10 @@ export function SummarizeData({ output }: { output: CompactSummaryOutput }) {
         <DegenerateTimeSeriesTable groups={output.groups} unit={output.unit} />
       ) : (
         <div className="flex flex-col gap-2">
-          {output.groups.map((group, idx) => (
+          {output.groups.map((group) => (
             <GroupCard
               group={group}
-              key={idx}
+              key={`${JSON.stringify(group.group)}-${group.latest.year ?? "na"}-${group.earliest.year ?? "na"}`}
               unit={output.unit}
             />
           ))}
