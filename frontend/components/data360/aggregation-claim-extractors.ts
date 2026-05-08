@@ -117,9 +117,17 @@ export const compareCountriesExtractor: ToolResultExtractor = (output) => {
 
 /**
  * Extractor for data360_summarize_data compact output.
- * Registers claim_ids from each group's claim_ids array. Since summarize_data
- * groups aggregate multiple observations, claim_ids is a flat list — we register
- * each with the group's latest value as context.
+ *
+ * The compact format only exposes per-observation values for two data points:
+ *   - group.earliest → claim_ids[0]  (chronologically first observation)
+ *   - group.latest   → claim_ids[-1] (chronologically last observation)
+ *
+ * All intermediate claim_ids in between map to observations whose values are
+ * not present in the compact payload. Per the Writer prompt rule, those IDs
+ * should never appear in prose — so we do not register them here.
+ *
+ * Registering every claim_id with latest.value (the prior behaviour) caused
+ * ClaimMark tooltips to show the wrong value for the earliest observation.
  */
 export const summarizeDataExtractor: ToolResultExtractor = (output) => {
   const data = parseOutput<CompactSummaryOutput>(output);
@@ -128,16 +136,43 @@ export const summarizeDataExtractor: ToolResultExtractor = (output) => {
   const entries: ClaimEntry[] = [];
   for (const group of data.groups) {
     if (!group.claim_ids || group.claim_ids.length === 0) continue;
-    // Use the first group key as the geographic context
+
     const groupKeys = Object.entries(group.group ?? {});
     const refArea = groupKeys.find(([k]) => k === "ref_area")?.[1] ?? undefined;
 
-    for (const claimId of group.claim_ids) {
+    const ids = group.claim_ids;
+    const earliestId = ids[0];
+    const latestId = ids[ids.length - 1];
+
+    // Register earliest observation
+    if (
+      earliestId &&
+      group.earliest?.value !== null &&
+      group.earliest?.value !== undefined
+    ) {
       entries.push({
-        id: claimId,
+        id: earliestId,
         claim: {
-          value: group.latest?.value ?? undefined,
+          value: group.earliest.value,
           country: refArea,
+          date: group.earliest.year ?? undefined,
+        },
+      });
+    }
+
+    // Register latest observation (only if it's a different ID from earliest)
+    if (
+      latestId &&
+      latestId !== earliestId &&
+      group.latest?.value !== null &&
+      group.latest?.value !== undefined
+    ) {
+      entries.push({
+        id: latestId,
+        claim: {
+          value: group.latest.value,
+          country: refArea,
+          date: group.latest.year ?? undefined,
         },
       });
     }
