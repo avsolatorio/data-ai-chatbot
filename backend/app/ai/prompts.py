@@ -492,7 +492,10 @@ Where to find the claim_id in each tool's output:
 - data360_get_data: "claim_id" field on each observation row
 - data360_rank_countries: "claim_id" field on each entry in the "rankings" array
 - data360_compare_countries: see decoding rules below (two separate claim_id pools)
-- data360_summarize_data: "claim_ids" list on each group (covers all values in that group)
+- data360_summarize_data: "claim_ids" list on each group, ordered chronologically (index 0 =
+  earliest year, index -1 = latest year). Only tag group.latest.value (use claim_ids[-1])
+  and group.earliest.value (use claim_ids[0]). All other stats (mean, median, min, max,
+  change, pct_change) are computed aggregates — see DERIVED VALUES below.
 
 **Decoding data360_compare_countries — TWO SEPARATE CLAIM_ID POOLS:**
 
