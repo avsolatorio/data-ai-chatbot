@@ -43,6 +43,18 @@ import { GetData, GetDataRequestSummary } from "./data360/get-data";
 import { GetWdiData } from "./data360/get-wdi-data";
 import { SearchIndicators } from "./data360/search-indicators";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
+import {
+  RankCountries,
+  type CompactRankingOutput,
+} from "./data360/rank-countries";
+import {
+  SummarizeData,
+  type CompactSummaryOutput,
+} from "./data360/summarize-data";
+import {
+  CompareCountries,
+  type CompactComparisonOutput,
+} from "./data360/compare-countries";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
 import { CodeBlock } from "./elements/code-block";
@@ -663,6 +675,147 @@ function renderMessagePart(
               useDefaultFormat={false}
               output={
                 <SearchIndicators output={toolPart.output} input={rawInput} />
+              }
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  // data360_rank_countries tool
+  if ((type as string) === "tool-data360_rank_countries") {
+    const toolPart = part as {
+      toolCallId: string;
+      state:
+        | "input-available"
+        | "output-available"
+        | "input-streaming"
+        | "output-error";
+      input?: unknown;
+      output?: unknown;
+    };
+    return (
+      <Tool
+        defaultOpen={defaultOpenForData360Tool("tool-data360_rank_countries")}
+        key={toolPart.toolCallId}
+      >
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        {toolPart.state === "output-available" && toolPart.output != null && (
+          <IngestToolOutput
+            output={toolPart.output}
+            toolName="data360_rank_countries"
+          >
+            {null}
+          </IngestToolOutput>
+        )}
+        <ToolContent>
+          {toolPart.state === "input-available" &&
+            toolPart.input !== undefined && (
+              <ToolInput input={toolPart.input as ToolUIPart["input"]} />
+            )}
+          {toolPart.state === "output-available" && toolPart.output != null && (
+            <ToolOutput
+              errorText={undefined}
+              useDefaultFormat={false}
+              output={
+                <RankCountries
+                  output={toolPart.output as CompactRankingOutput}
+                />
+              }
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  // data360_summarize_data tool
+  if ((type as string) === "tool-data360_summarize_data") {
+    const toolPart = part as {
+      toolCallId: string;
+      state:
+        | "input-available"
+        | "output-available"
+        | "input-streaming"
+        | "output-error";
+      input?: unknown;
+      output?: unknown;
+    };
+    return (
+      <Tool
+        defaultOpen={defaultOpenForData360Tool("tool-data360_summarize_data")}
+        key={toolPart.toolCallId}
+      >
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        {toolPart.state === "output-available" && toolPart.output != null && (
+          <IngestToolOutput
+            output={toolPart.output}
+            toolName="data360_summarize_data"
+          >
+            {null}
+          </IngestToolOutput>
+        )}
+        <ToolContent>
+          {toolPart.state === "input-available" &&
+            toolPart.input !== undefined && (
+              <ToolInput input={toolPart.input as ToolUIPart["input"]} />
+            )}
+          {toolPart.state === "output-available" && toolPart.output != null && (
+            <ToolOutput
+              errorText={undefined}
+              useDefaultFormat={false}
+              output={
+                <SummarizeData
+                  output={toolPart.output as CompactSummaryOutput}
+                />
+              }
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  // data360_compare_countries tool
+  if ((type as string) === "tool-data360_compare_countries") {
+    const toolPart = part as {
+      toolCallId: string;
+      state:
+        | "input-available"
+        | "output-available"
+        | "input-streaming"
+        | "output-error";
+      input?: unknown;
+      output?: unknown;
+    };
+    return (
+      <Tool
+        defaultOpen={defaultOpenForData360Tool("tool-data360_compare_countries")}
+        key={toolPart.toolCallId}
+      >
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        {toolPart.state === "output-available" && toolPart.output != null && (
+          <IngestToolOutput
+            output={toolPart.output}
+            toolName="data360_compare_countries"
+          >
+            {null}
+          </IngestToolOutput>
+        )}
+        <ToolContent>
+          {toolPart.state === "input-available" &&
+            toolPart.input !== undefined && (
+              <ToolInput input={toolPart.input as ToolUIPart["input"]} />
+            )}
+          {toolPart.state === "output-available" && toolPart.output != null && (
+            <ToolOutput
+              errorText={undefined}
+              useDefaultFormat={false}
+              output={
+                <CompareCountries
+                  output={toolPart.output as CompactComparisonOutput}
+                />
               }
             />
           )}

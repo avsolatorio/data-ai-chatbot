@@ -82,13 +82,19 @@ async def narrator_node(state: ChatPipelineState) -> dict:
         context_parts: list[str] = []
 
         if tool_results:
-            # Emit only data-bearing tools (get_data, get_metadata) — skip
-            # search/codelist calls which are lookup scaffolding, not content.
+            # Emit data-bearing tools — skip search/codelist calls which are
+            # lookup scaffolding, not content. Aggregation tools (rank, compare,
+            # summarize) must be included: they contain the actual numeric values
+            # and claim_id fields that the Writer uses for claim-tagged output.
+            # Omitting them causes the Writer to hallucinate values and claim IDs.
             data_tools = frozenset(
                 {
                     "data360_get_data",
                     "data360_get_metadata",
                     "data360_list_indicators",
+                    "data360_rank_countries",
+                    "data360_compare_countries",
+                    "data360_summarize_data",
                 }
             )
             data_outputs = [r for r in tool_results if r.get("tool_name") in data_tools]
