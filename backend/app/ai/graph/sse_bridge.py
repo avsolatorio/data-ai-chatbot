@@ -352,7 +352,22 @@ class _SseBridgeState:
         if full_text.startswith(streamed):
             gap = full_text[len(streamed) :]
         elif not streamed:
-            gap = full_text
+            # Guard against run_id mismatches: if streaming is already underway
+            # (answer_text_started=True), an empty accumulator means the stream
+            # events were tracked under a different run_id — not that the provider
+            # skipped streaming. In that case, the narrator has already emitted the
+            # full text via on_chat_model_stream; re-emitting here would duplicate
+            # the response. Only fall back to full_text for genuine non-streaming
+            # providers (where answer_text_started is still False).
+            gap = full_text if not self.answer_text_started else ""
+            if gap == "" and self.answer_text_started:
+                logger.debug(
+                    "[sse_bridge] answer fallback skipped (run_id mismatch, streaming already active) "
+                    "message_id=%s run_id=%s full_len=%d",
+                    self.message_id,
+                    run_id,
+                    len(full_text),
+                )
         else:
             gap = ""
             logger.debug(
