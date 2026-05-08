@@ -511,7 +511,15 @@ claim tag: `<claim id="claim_id">value</claim>`.
 Where to find the claim_id in each tool's output:
 - data360_get_data: "claim_id" field on each observation row
 - data360_rank_countries: "claim_id" field on each entry in the "rankings" array
-- data360_summarize_data: "claim_ids" list on each group (covers all values in that group)
+- data360_summarize_data: each group has a "claim_ids" list ordered chronologically
+  (index 0 = earliest year, index -1 = latest year). The ONLY values you may tag
+  from this tool are:
+    • group.latest.value  → use claim_ids[-1] (the last ID in the list)
+    • group.earliest.value → use claim_ids[0] (the first ID in the list)
+  NEVER tag group.stats.mean, group.stats.median, group.stats.min, group.stats.max,
+  group.change.abs, or group.change.pct — these are computed aggregates derived from
+  multiple observations and have no single source claim_id. Present them as plain
+  numbers without any claim tag.
 - data360_compare_countries (compact format — decode as follows):
   The output has a "series_schema" column list and per-country "series" positional arrays.
   Step 1: Read "series_schema" — e.g., ["year", "value", "claim_id"]
@@ -533,7 +541,11 @@ Valid claim_ids come EXCLUSIVELY from the JSON tool output rows in RAW TOOL RESU
 They are ALWAYS 8-character hex strings (e.g., "3a0cbe51").
 If you do not see a hex string next to a value in the JSON, DO NOT tag it.
 Do NOT use indicator codes (e.g., "WB_WDI_NY_GDP_PCAP_KD") or sequential labels (e.g., "c1").
-Do NOT tag derived or computed values (e.g., averages, percentage differences, CAGR) that you calculated yourself. Only tag the exact raw values pulled from the tool output.
+Do NOT tag computed aggregate values regardless of whether they came from a tool or
+your own reasoning. Computed values include: mean, median, min/max across a period,
+pct_change, total_change, CAGR, and any difference or percentage you derived.
+Only tag exact per-observation raw values that have a direct 1-to-1 claim_id mapping
+as described above.
 
 NOTE: Claim IDs persist across conversation turns. If referencing a value shown
 in a prior turn, reuse the corresponding claim_id from that turn's tool output.
