@@ -20,6 +20,10 @@ function AggregationExtractorRegistrar() {
   useLayoutEffect(() => {
     if (!manager || registeredRef.current) return;
 
+    // WARNING: While this is a render-time side effect, manager.registerExtractor
+    // is inherently idempotent. It safely overwrites existing extractors for the given
+    // tool names without accumulating duplicates. The registeredRef provides an extra layer
+    // of safety but the underlying map assignment is safe.
     manager.registerExtractor(DATA360_RANK_TOOL, rankCountriesExtractor);
     manager.registerExtractor(DATA360_COMPARE_TOOL, compareCountriesExtractor);
     manager.registerExtractor(DATA360_SUMMARIZE_TOOL, summarizeDataExtractor);

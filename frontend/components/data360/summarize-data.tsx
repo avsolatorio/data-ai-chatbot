@@ -1,6 +1,7 @@
 "use client";
 
 import { ClaimMark } from "@pcn-js/ui";
+import { formatNum, ErrorBanner } from "./shared";
 
 // ---------------------------------------------------------------------------
 // Types — mirrors DataSummaryResponse.to_compact() on the MCP server
@@ -35,16 +36,7 @@ export type CompactSummaryOutput = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatNum(v: number | null, decimals = 2): string {
-  if (v === null || v === undefined || !Number.isFinite(v)) return "\u2014";
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(decimals)}B`;
-  if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(decimals)}M`;
-  return v.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: decimals,
-  });
-}
+
 
 const TREND_ICONS: Record<string, { icon: string; className: string }> = {
   increasing: {
@@ -80,14 +72,7 @@ function groupIdentity(group: Record<string, string>): string {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function ErrorBanner({ message }: { message: string }) {
-  return (
-    <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
-      <div className="font-medium">Error</div>
-      <div className="mt-1">{message}</div>
-    </div>
-  );
-}
+
 
 function AmbiguousDimensionsWarning({ dimensions }: { dimensions: string[] }) {
   return (

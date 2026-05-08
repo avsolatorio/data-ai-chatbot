@@ -1,6 +1,7 @@
 "use client";
 
 import { ClaimMark } from "@pcn-js/ui";
+import { formatNum, signedPct, ErrorBanner } from "./shared";
 
 // ---------------------------------------------------------------------------
 // Types — mirrors CountryComparisonResponse.to_compact() on the MCP server
@@ -50,22 +51,7 @@ export type CompactComparisonOutput = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatNum(v: number | null | undefined, decimals = 2): string {
-  if (v === null || v === undefined || !Number.isFinite(v)) return "\u2014";
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(decimals)}B`;
-  if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(decimals)}M`;
-  return v.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: decimals,
-  });
-}
 
-function signedPct(v: number | null | undefined): string {
-  if (v === null || v === undefined || !Number.isFinite(v)) return "\u2014";
-  const sign = v >= 0 ? "+" : "";
-  return `${sign}${v.toFixed(2)}%`;
-}
 
 const CONVERGENCE_CONFIG: Record<
   string,
@@ -93,14 +79,7 @@ const DEFAULT_SERIES_SCHEMA = ["time_period", "obs_value", "claim_id"];
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function ErrorBanner({ message }: { message: string }) {
-  return (
-    <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
-      <div className="font-medium">Error</div>
-      <div className="mt-1">{message}</div>
-    </div>
-  );
-}
+
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (

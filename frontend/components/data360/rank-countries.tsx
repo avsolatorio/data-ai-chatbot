@@ -1,17 +1,18 @@
 "use client";
 
 import { ClaimMark } from "@pcn-js/ui";
+import { formatNum, ErrorBanner } from "./shared";
 
 // ---------------------------------------------------------------------------
 // Types — mirrors RankingResponse.to_compact() on the MCP server
 // ---------------------------------------------------------------------------
 
 export type CompactRankedCountry = {
-  rank: number;
-  code: string;
-  country: string;
-  value: number;
-  claim_id: string | null;
+  rank?: number;
+  code?: string;
+  country?: string;
+  value?: number;
+  claim_id?: string | null;
 };
 
 export type CompactRankingOutput = {
@@ -31,39 +32,13 @@ export type CompactRankingOutput = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatValue(value: number): string {
-  if (!Number.isFinite(value)) return String(value);
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000_000) {
-    return `${(value / 1_000_000_000).toFixed(2)}B`;
-  }
-  if (abs >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(2)}M`;
-  }
-  if (abs >= 1_000) {
-    return value.toLocaleString("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    });
-  }
-  return value.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 4,
-  });
-}
+
 
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function ErrorBanner({ message }: { message: string }) {
-  return (
-    <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
-      <div className="font-medium">Error</div>
-      <div className="mt-1">{message}</div>
-    </div>
-  );
-}
+
 
 function RankingHeader({ output }: { output: CompactRankingOutput }) {
   const coverage =
@@ -120,7 +95,7 @@ function RankingTable({
   }
 
   const maxAbsValue = rankings.reduce(
-    (max, entry) => Math.max(max, Math.abs(entry.value)),
+    (max, entry) => Math.max(max, entry.value ? Math.abs(entry.value) : 0),
     0,
   );
 
@@ -152,7 +127,7 @@ function RankingTable({
           <tbody>
             {rankings.map((entry, idx) => {
               const barPct =
-                maxAbsValue !== 0
+                maxAbsValue !== 0 && entry.value
                   ? Math.max(
                       0,
                       Math.min(
@@ -171,8 +146,8 @@ function RankingTable({
                     {entry.rank}
                   </td>
                   <td className="px-3 py-2">
-                    <div className="font-medium">{entry.country}</div>
-                    {entry.country !== entry.code && (
+                    <div className="font-medium">{entry.country ?? entry.code ?? "\u2014"}</div>
+                    {entry.country && entry.code && entry.country !== entry.code && (
                       <div className="text-muted-foreground text-[10px] font-mono">
                         {entry.code}
                       </div>
@@ -184,10 +159,10 @@ function RankingTable({
                         id={entry.claim_id}
                         policy={{ type: "rounded", decimals: 2 }}
                       >
-                        {formatValue(entry.value)}
+                        {formatNum(entry.value, 2, 4)}
                       </ClaimMark>
                     ) : (
-                      formatValue(entry.value)
+                      formatNum(entry.value, 2, 4)
                     )}
                   </td>
                   <td className="px-3 py-2">

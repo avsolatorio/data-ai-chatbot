@@ -286,7 +286,8 @@ use those values directly — do NOT re-fetch to refresh or confirm.
 Examples of what to reuse:
 - SAS unemployment ranking fetched in Turn 2 → available in Turn 3 without re-calling rank_countries
 - Kenya GDP summarized in Turn 1 → available in Turn 2 without re-calling summarize_data
-Only re-fetch if the user explicitly asks for a different year range or a different indicator.
+Only re-fetch if the user explicitly asks for a different year range, a different indicator,
+or if the conversation spans multiple days/sessions and you suspect the data is stale.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PCN VERIFIABILITY — claim IDs

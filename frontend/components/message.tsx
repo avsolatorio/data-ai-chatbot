@@ -683,55 +683,26 @@ function renderMessagePart(
     );
   }
 
-  // data360_rank_countries tool
-  if ((type as string) === "tool-data360_rank_countries") {
-    const toolPart = part as {
-      toolCallId: string;
-      state:
-        | "input-available"
-        | "output-available"
-        | "input-streaming"
-        | "output-error";
-      input?: unknown;
-      output?: unknown;
-    };
-    return (
-      <Tool
-        defaultOpen={defaultOpenForData360Tool("tool-data360_rank_countries")}
-        key={toolPart.toolCallId}
-      >
-        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
-        {toolPart.state === "output-available" && toolPart.output != null && (
-          <IngestToolOutput
-            output={toolPart.output}
-            toolName="data360_rank_countries"
-          >
-            {null}
-          </IngestToolOutput>
-        )}
-        <ToolContent>
-          {toolPart.state === "input-available" &&
-            toolPart.input !== undefined && (
-              <ToolInput input={toolPart.input as ToolUIPart["input"]} />
-            )}
-          {toolPart.state === "output-available" && toolPart.output != null && (
-            <ToolOutput
-              errorText={undefined}
-              useDefaultFormat={false}
-              output={
-                <RankCountries
-                  output={toolPart.output as CompactRankingOutput}
-                />
-              }
-            />
-          )}
-        </ToolContent>
-      </Tool>
-    );
-  }
+  const AGG_TOOL_MAP: Record<
+    string,
+    { component: React.FC<{ output: any }>; name: string }
+  > = {
+    "tool-data360_rank_countries": {
+      component: RankCountries,
+      name: "data360_rank_countries",
+    },
+    "tool-data360_summarize_data": {
+      component: SummarizeData,
+      name: "data360_summarize_data",
+    },
+    "tool-data360_compare_countries": {
+      component: CompareCountries,
+      name: "data360_compare_countries",
+    },
+  };
 
-  // data360_summarize_data tool
-  if ((type as string) === "tool-data360_summarize_data") {
+  if (typeof type === "string" && AGG_TOOL_MAP[type]) {
+    const { component: Component, name } = AGG_TOOL_MAP[type];
     const toolPart = part as {
       toolCallId: string;
       state:
@@ -744,15 +715,12 @@ function renderMessagePart(
     };
     return (
       <Tool
-        defaultOpen={defaultOpenForData360Tool("tool-data360_summarize_data")}
+        defaultOpen={defaultOpenForData360Tool(type)}
         key={toolPart.toolCallId}
       >
         <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
         {toolPart.state === "output-available" && toolPart.output != null && (
-          <IngestToolOutput
-            output={toolPart.output}
-            toolName="data360_summarize_data"
-          >
+          <IngestToolOutput output={toolPart.output} toolName={name}>
             {null}
           </IngestToolOutput>
         )}
@@ -765,58 +733,7 @@ function renderMessagePart(
             <ToolOutput
               errorText={undefined}
               useDefaultFormat={false}
-              output={
-                <SummarizeData
-                  output={toolPart.output as CompactSummaryOutput}
-                />
-              }
-            />
-          )}
-        </ToolContent>
-      </Tool>
-    );
-  }
-
-  // data360_compare_countries tool
-  if ((type as string) === "tool-data360_compare_countries") {
-    const toolPart = part as {
-      toolCallId: string;
-      state:
-        | "input-available"
-        | "output-available"
-        | "input-streaming"
-        | "output-error";
-      input?: unknown;
-      output?: unknown;
-    };
-    return (
-      <Tool
-        defaultOpen={defaultOpenForData360Tool("tool-data360_compare_countries")}
-        key={toolPart.toolCallId}
-      >
-        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
-        {toolPart.state === "output-available" && toolPart.output != null && (
-          <IngestToolOutput
-            output={toolPart.output}
-            toolName="data360_compare_countries"
-          >
-            {null}
-          </IngestToolOutput>
-        )}
-        <ToolContent>
-          {toolPart.state === "input-available" &&
-            toolPart.input !== undefined && (
-              <ToolInput input={toolPart.input as ToolUIPart["input"]} />
-            )}
-          {toolPart.state === "output-available" && toolPart.output != null && (
-            <ToolOutput
-              errorText={undefined}
-              useDefaultFormat={false}
-              output={
-                <CompareCountries
-                  output={toolPart.output as CompactComparisonOutput}
-                />
-              }
+              output={<Component output={toolPart.output} />}
             />
           )}
         </ToolContent>

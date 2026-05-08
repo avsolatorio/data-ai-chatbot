@@ -228,6 +228,9 @@ class _SseBridgeState:
         self.input_state = input_state
         # Single source: notify_tool_* queue; avoid duplicating traced on_tool_* events
         self._manual_tool_sse = input_state.get("_tool_sse_queue") is not None
+        # Assumption: There is only one continuous visible answer stream (e.g., from
+        # the narrator or direct node) per message turn. Thus, a single text_part_id
+        # is generated and reused for the entire sequence of answer text deltas.
         self.text_part_id = f"text-{uuid4().hex}"
         self.answer_text_started = False
         self._routing_reasoning: str = ""
