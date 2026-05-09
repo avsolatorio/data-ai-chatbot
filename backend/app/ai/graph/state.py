@@ -34,6 +34,12 @@ class ChatPipelineState(TypedDict):
     # so numbers never have to be re-transcribed through an extra LLM pass.
     research_tool_results: NotRequired[list[dict]]
 
+    # ── Quick answer node output ───────────────────────────────────────────────
+    # Set to "quick" when the router classified the question as QUICK_ANSWER.
+    # The narrator checks this flag and produces minimal prose instead of full
+    # analytical prose — the visual weight is carried by the aggregation renderers.
+    response_mode: NotRequired[str]  # "quick" | "full" (default "full")
+
     # ── Clarifier node output ─────────────────────────────────────────────────
     clarification_question: NotRequired[str]  # the single question emitted to the user
 

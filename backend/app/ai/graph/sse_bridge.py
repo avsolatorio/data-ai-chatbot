@@ -135,7 +135,7 @@ def _terminal_error_chunks(br: _SseBridgeState, root: BaseException, error_id: s
 # Nodes whose LLM tokens go into the data-thinking envelope (hidden in collapsible panel)
 # summarizer, planner, scout, transformer are non-streaming → LLM text not emitted;
 # scout tool events still appear via the manual notify queue
-_THINKING_NODES = frozenset({"research", "explain", "recovery"})
+_THINKING_NODES = frozenset({"research", "explain", "recovery", "quick_answer"})
 
 # Nodes whose LLM tokens are emitted as plain visible text
 _ANSWER_NODES = frozenset({"narrator", "direct", "clarifier", "suggester", "followup"})

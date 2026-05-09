@@ -1,12 +1,13 @@
 """LangGraph StateGraph construction for the chat pipeline.
 
-Graph topology (7 nodes):
+Graph topology (8 nodes):
     START → summarizer → router
-    router RESEARCH     → research → narrator → followup → END
-    router EXPLAIN      → explain  → narrator → followup → END
-    router CLARIFY      → clarifier                      → END
-    router OUT_OF_SCOPE → suggester                      → END
-    router DIRECT       → direct                         → END
+    router QUICK_ANSWER → quick_answer → narrator → followup → END
+    router RESEARCH     → research    → narrator → followup → END
+    router EXPLAIN      → explain     → narrator → followup → END
+    router CLARIFY      → clarifier                         → END
+    router OUT_OF_SCOPE → suggester                         → END
+    router DIRECT       → direct                            → END
 
 The former transformer / scout / planner / recovery nodes have been
 consolidated into the adaptive research_node (see nodes/research.py).
@@ -21,6 +22,7 @@ from .nodes.direct import direct_node
 from .nodes.explain import explain_node
 from .nodes.followup import followup_node
 from .nodes.narrator import narrator_node
+from .nodes.quick_answer import quick_answer_node
 from .nodes.research import research_node
 from .nodes.router import router_node
 from .nodes.suggester import suggester_node
@@ -35,6 +37,7 @@ def _route_after_router(state: ChatPipelineState) -> str:
     intent: str = state.get("intent", "DIRECT")
     logger.debug("[pipeline] routing intent=%s", intent)
     return {
+        "QUICK_ANSWER": "quick_answer",
         "RESEARCH": "research",
         "EXPLAIN": "explain",
         "CLARIFY": "clarifier",
@@ -50,6 +53,7 @@ def build_chat_graph():
     # ── Nodes ──────────────────────────────────────────────────────────────────
     g.add_node("summarizer", summarizer_node)
     g.add_node("router", router_node)
+    g.add_node("quick_answer", quick_answer_node)
     g.add_node("research", research_node)
     g.add_node("explain", explain_node)
     g.add_node("narrator", narrator_node)
@@ -66,6 +70,7 @@ def build_chat_graph():
         "router",
         _route_after_router,
         {
+            "quick_answer": "quick_answer",
             "research": "research",
             "explain": "explain",
             "clarifier": "clarifier",
@@ -74,7 +79,8 @@ def build_chat_graph():
         },
     )
 
-    # Research and explain both feed narrator
+    # quick_answer, research, and explain all feed narrator
+    g.add_edge("quick_answer", "narrator")
     g.add_edge("research", "narrator")
     g.add_edge("explain", "narrator")
 
@@ -88,7 +94,7 @@ def build_chat_graph():
     g.add_edge("suggester", END)
 
     compiled = g.compile()
-    logger.info("[pipeline] chat_graph compiled successfully (7 nodes)")
+    logger.info("[pipeline] chat_graph compiled successfully (8 nodes)")
     return compiled
 
 

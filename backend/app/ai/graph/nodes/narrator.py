@@ -58,8 +58,9 @@ async def narrator_node(state: ChatPipelineState) -> dict:
         mt = ModelType.CHAT_MODEL
 
     language: str = state.get("detected_language", "") or ""
+    response_mode: str = state.get("response_mode", "full") or "full"
     system_prompt: str = get_system_prompt(
-        selected_chat_model=mt, request_hints=None, language=language
+        selected_chat_model=mt, request_hints=None, language=language, response_mode=response_mode
     )
     llm = get_chat_llm(model_type, streaming=True).bind_tools(narrator_tools)
 

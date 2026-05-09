@@ -20,6 +20,7 @@ class ModelType(str, Enum):
 class IntentType(str, Enum):
     """Enum for chat intent types."""
 
+    QUICK_ANSWER = "QUICK_ANSWER"
     RESEARCH = "RESEARCH"
     DIRECT = "DIRECT"
     CLARIFY = "CLARIFY"
