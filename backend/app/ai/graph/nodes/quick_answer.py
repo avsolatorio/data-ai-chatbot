@@ -158,8 +158,13 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
         if tool_name == "data360_compare_countries":
             snapshot: dict = output.get("snapshot", {}) or {}
             metadata = output.get("metadata", {}) or {}
-            unit = output.get("unit_measure", "")
-            indicator_name = metadata.get("name") or metadata.get("indicator_name") or ""
+            unit = output.get("unit") or output.get("unit_measure", "")
+            indicator_name = (
+                output.get("indicator")
+                or metadata.get("name")
+                or metadata.get("indicator_name")
+                or ""
+            )
             rankings: list = snapshot.get("rankings", [])
             year: int | None = snapshot.get("year")
 
@@ -169,11 +174,14 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
             # Build a simple list: [{country, value, claim_id}]
             entries = []
             for r in rankings:
+                val = r.get("value") if r.get("value") is not None else r.get("obs_value")
                 entries.append(
                     {
-                        "ref_area": r.get("ref_area", ""),
-                        "country_name": r.get("country_name") or r.get("ref_area", ""),
-                        "value": r.get("obs_value"),
+                        "ref_area": r.get("code") or r.get("ref_area", ""),
+                        "country_name": r.get("country")
+                        or r.get("country_name")
+                        or r.get("code", ""),
+                        "value": val,
                         "claim_id": r.get("claim_id", ""),
                         "rank": r.get("rank"),
                     }
