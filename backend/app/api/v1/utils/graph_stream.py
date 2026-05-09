@@ -64,6 +64,11 @@ def build_assistant_message_from_graph(message_id: str, graph_out: dict, *, chat
     else:
         answer_text = graph_out.get("answer_text", "")
         body = [{"type": "text", "text": answer_text}] if answer_text else []
+
+    card = graph_out.get("quick_answer_card")
+    if card and isinstance(card, dict):
+        # Insert at the beginning of the body so it's readily accessible
+        body.insert(0, {"type": "data-quickAnswerCard", "data": card})
     return {
         "id": message_id,
         "chatId": chat_id,
