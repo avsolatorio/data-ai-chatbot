@@ -277,15 +277,25 @@ When user refers to prior data ("these", "those", "the same chart"):
   indicator_id, database_id, country codes from conversation history. Write VIZ only.
 - Expansion request (new countries, new years, new indicators added) → FETCH the
   new data first, then write DATA + VIZ sections combining old and new.
+- New entity request (follow-up mentions a country, region, or scope that does NOT
+  appear in any prior turn's RAW TOOL RESULTS) → FETCH that entity's data first.
+  Never answer from context memory for an entity that has not been retrieved yet.
+
+TIEBREAKER: When uncertain whether a country or scope was previously fetched, check
+the RAW TOOL RESULTS from all prior turns. If the entity is absent there, always
+fetch. Do not infer or guess what a tool would have returned.
 
 CROSS-TURN DATA REUSE (prevents redundant fetches across turns):
 Before calling rank_countries, compare_countries, summarize_data, or get_data,
-check the full conversation history. If data for the SAME indicator AND the SAME
-geographic scope (country, group, or region) was already retrieved in a prior turn,
-use those values directly — do NOT re-fetch to refresh or confirm.
+check the full conversation history. If data for the SAME indicator AND the EXACT
+SAME set of country codes (no additions, no removals) was already retrieved in a
+prior turn, use those values directly — do NOT re-fetch to refresh or confirm.
 Examples of what to reuse:
 - SAS unemployment ranking fetched in Turn 2 → available in Turn 3 without re-calling rank_countries
 - Kenya GDP summarized in Turn 1 → available in Turn 2 without re-calling summarize_data
+Examples of what NOT to reuse (must fetch):
+- Turn 1 fetched Morocco → Turn 2 asks for Morocco AND Tunisia → fetch Tunisia; Morocco can be reused
+- Turn 1 fetched India → Turn 2 asks for India AND Bangladesh → fetch Bangladesh; India can be reused
 Only re-fetch if the user explicitly asks for a different year range, a different indicator,
 or if the conversation spans multiple days/sessions and you suspect the data is stale.
 
