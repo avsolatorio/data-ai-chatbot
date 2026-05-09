@@ -241,8 +241,8 @@ export function Chat({
         return;
       }
 
-      // Handle quick-answer-card events — store keyed by current message ID
-      if (part.type === "quick-answer-card" && part.data != null) {
+      // Handle data-quick-answer-card events — store keyed by current message ID
+      if (part.type === "data-quick-answer-card" && part.data != null) {
         const currentMessages = messagesRef.current;
         const lastMessage = currentMessages[currentMessages.length - 1];
         if (lastMessage) {
