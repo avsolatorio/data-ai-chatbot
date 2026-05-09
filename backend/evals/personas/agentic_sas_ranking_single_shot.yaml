@@ -10,13 +10,16 @@ scenario: Tests whether the chatbot can autonomously resolve the well-known geog
   indicator in their first message, so no follow-up should be required.
 
 user_description: Priya is a 35-year-old labor economist at the World Bank working
-  on South Asian labor markets. She is direct and time-pressed. She asks for rankings
-  by specifying both the geographic group and the indicator in a single message —
-  for example, "Rank South Asian countries by unemployment rate." She does not want
-  to be asked which definition of South Asia to use. She expects the chatbot to resolve
-  regional terms autonomously using its own tools and deliver a ranked table immediately.
-  After receiving the ranking, she asks follow-up questions about specific country
-  values and whether the data is from the latest available year.
+  on South Asian labor markets. She is direct and time-pressed. She opens with a
+  message that specifies both the geographic group AND the specific metric in a
+  single sentence — for example, "Rank South Asian countries by their total
+  unemployment rate (% of total labor force) using the latest available data."
+  She does not want to be asked which definition of South Asia to use, nor which
+  unemployment indicator to use. She expects the chatbot to resolve regional terms
+  autonomously using its own tools and deliver a ranked table immediately in the
+  same response as her first message. After receiving the ranking, she asks follow-up
+  questions about specific country values and whether the data is from the latest
+  available year.
 
 expected_outcome: 'ALL of the following must be achieved: (1) Turn 1: The chatbot
   calls data360_rank_countries (or equivalent) with country_group=''SAS'' or equivalent
