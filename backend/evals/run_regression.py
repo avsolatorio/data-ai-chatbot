@@ -129,7 +129,7 @@ def _has_infra_error(combined_output: str, returncode: int) -> bool:
 # ── Runner ────────────────────────────────────────────────────────────────────
 
 
-def _build_command(entry: dict, http: bool) -> list[str]:
+def _build_command(entry: dict, http: bool, replay: str | None = None) -> list[str]:
     """Build the subprocess command for a single persona entry."""
     cmd = [sys.executable, "-m", "evals.run_conversation_eval"]
 
@@ -142,7 +142,10 @@ def _build_command(entry: dict, http: bool) -> list[str]:
 
     cmd += ["--runs", str(entry.get("runs", 1))]
 
-    if http:
+    if replay:
+        # Re-score a cached conversation — no live backend needed.
+        cmd += ["--replay", replay]
+    elif http:
         cmd.append("--http")
 
     return cmd
@@ -174,9 +177,13 @@ def _stream_subprocess(cmd: list[str]) -> tuple[str, int]:
     return "".join(lines), proc.returncode
 
 
-def run_persona(entry: dict, http: bool) -> PersonaResult:
+def run_persona(entry: dict, http: bool, replay: str | None = None) -> PersonaResult:
     """
     Run one persona with up to MAX_RETRIES retries.
+
+    In replay mode (``replay`` is a timestamp string), the subprocess is invoked
+    with ``--replay <timestamp>`` instead of ``--http``.  Infrastructure retries
+    are still applied in case the judge API is temporarily unavailable.
 
     Retries on:
     - F3 (all metrics 0.00) — blank writer response
@@ -190,7 +197,7 @@ def run_persona(entry: dict, http: bool) -> PersonaResult:
     runs = entry.get("runs", 1)
 
     result = PersonaResult(key=key, known_failures=known, runs=runs)
-    cmd = _build_command(entry, http)
+    cmd = _build_command(entry, http, replay=replay)
 
     for attempt in range(MAX_RETRIES + 1):
         try:
@@ -398,6 +405,16 @@ def parse_args() -> argparse.Namespace:
         "(uses random_discovery config in the suite YAML). "
         "Good for finding new failure modes across unseen facet combinations.",
     )
+    parser.add_argument(
+        "--replay",
+        type=str,
+        default=None,
+        metavar="TIMESTAMP",
+        help="Re-score a previously cached run without re-simulating. "
+        "Pass the timestamp of the run to replay (e.g. 20260509_111049). "
+        "Looks for <persona>/<timestamp>_conversations.json under evals/conversations/. "
+        "Cannot be combined with --http.",
+    )
     return parser.parse_args()
 
 
@@ -426,7 +443,10 @@ def main() -> None:
     _log(f"  Suite:      {suite_path.name}")
     _log(f"  Personas:   {len(personas)}")
     _log(f"  Total runs: {total_runs}")
-    _log(f"  HTTP mode:  {args.http}")
+    if args.replay:
+        _log(f"  Mode:       REPLAY (re-score cached run {args.replay})")
+    else:
+        _log(f"  HTTP mode:  {args.http}")
     _log(f"  Timestamp:  {timestamp}")
     _log("=" * 72 + "\n")
 
@@ -479,7 +499,7 @@ def main() -> None:
         runs = entry.get("runs", 1)
         _log(f"  [{i}/{len(personas)}] Running: {key}  (runs={runs})")
 
-        result = run_persona(entry, args.http)
+        result = run_persona(entry, args.http, replay=args.replay)
         all_results.append(result)
 
         # Status summary line

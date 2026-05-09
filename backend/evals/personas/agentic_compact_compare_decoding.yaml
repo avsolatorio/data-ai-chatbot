@@ -1,39 +1,34 @@
-scenario: >
-  Tests whether the Narrator correctly decodes the compact positional
-  array format returned by compare_countries when time series is included.
-  The compact format uses series_schema to define column positions (e.g.,
-  ["time_period", "obs_value", "claim_id"]) and each data row is a
-  positional array (e.g., ["2020", 5.613, "1119ec95"]). The test verifies
-  that snapshot claim_ids are NOT mixed with time-series claim_ids (two
-  separate pools), that CAGR values from time_series.cagr are presented
-  WITHOUT a claim tag (they are derived/computed), and that the Narrator
-  does not re-call compare_countries in the follow-up turn.
+scenario: Tests whether the chatbot correctly decodes the compact positional array
+  format returned by data360_compare_countries when include_time_series=True is used.
+  The compact format encodes time-series rows as positional arrays (e.g., ["2020",
+  5.613, "1119ec95"]) with column order defined by series_schema (typically ["time_period",
+  "obs_value", "claim_id"]). The test verifies three properties of the Narrator''s
+  output — (a) snapshot claim_ids from snapshot.rankings[].claim_id are NOT mixed with
+  time-series claim_ids decoded from positional arrays (two strictly separate pools),
+  (b) CAGR values from time_series.cagr are presented WITHOUT any claim tag because
+  they are derived computed values with no claim_id in the tool output, and (c) the
+  Narrator does not re-call compare_countries in a follow-up turn that only asks for
+  specific year values already retrieved.
 
-user_description: >
-  Kenji is a data engineer who understands the compact positional array
-  format and will verify claim_id pool separation.
-  Turn 1: 'Compare GDP per capita for India and Bangladesh over the last
-  10 years. Include both the snapshot comparison and the full time series.'
-  Turn 2: 'What was India's GDP per capita specifically in 2018 and 2022?
-  I need the exact values with their claim IDs to verify provenance.'
-  He checks that the 2018 and 2022 values use time-series claim_ids
-  (from position [2] of the positional row), NOT the snapshot claim_ids.
+user_description: Carlos is a 38-year-old macroeconomic analyst at the Inter-American
+  Development Bank. He wants to compare India and Bangladesh on GDP per capita, including
+  a full time series so he can see both the snapshot comparison and historical trends.
+  He asks for the comparison with time series in his first message. After receiving
+  the response, he asks follow-up questions about specific historical data points (e.g.,
+  "What were India''s and Bangladesh''s GDP per capita values in 2010 and 2020?") to
+  verify the year-specific values. He pays close attention to whether the data appears
+  consistent and accurate between the summary table and the historical details.
 
-expected_outcome: >
-  ALL of the following must be achieved:
-  (1) Turn 1: compare_countries called with country_codes='IND;BGD' (or
-  equivalent) and include_time_series=True. Snapshot values (most recent
-  year comparison) use claim_ids from snapshot.rankings[].claim_id.
-  Time-series row values use claim_ids decoded from the positional array
-  at the index indicated by series_schema (typically position [2]).
-  (2) Turn 1: No snapshot claim_id appears as the tag for any time-series
-  value. The two claim_id pools are strictly separated: a claim_id from
-  snapshot.rankings cannot be reused for any time-series row.
-  (3) Turn 1: CAGR values (from time_series.cagr) are presented WITHOUT
-  any <claim> tag. Spread values (from snapshot.spread such as range,
-  min_country, max_country spread) are also presented without a claim tag.
-  These are derived computed values with no claim_id in the tool output.
-  (4) Turn 2: India's 2018 and 2022 values are quoted from the time-series
-  data using the CORRECT positional claim_ids from turn 1. No new
-  compare_countries call is made. No find_codelist_value for IND or BGD.
-  (5) find_codelist_value is NOT called for IND or BGD in either turn.
+expected_outcome: 'ALL of the following must be achieved: (1) Turn 1: data360_compare_countries
+  is called with country_codes=''IND;BGD'' (or equivalent), include_time_series=True,
+  and an appropriate GDP per capita indicator. The response presents both a snapshot
+  comparison table (most recent year) and time-series data. (2) Turn 1: Snapshot values
+  use claim_ids from snapshot.rankings[].claim_id. Time-series row values use claim_ids
+  decoded from the positional array at the index indicated by series_schema (position
+  [2]). NO snapshot claim_id appears as a tag for any time-series value — the two
+  pools are strictly separate. (3) Turn 1: CAGR values (from time_series.cagr) are
+  presented WITHOUT any claim tag. These are derived computed values with no claim_id
+  in the tool output, so tagging them would be fabrication. (4) Turn 2: Specific year
+  values (2010, 2020) are answered using claim_ids already retrieved in turn 1 — NO
+  new data360_compare_countries call is made in turn 2. (5) data360_find_codelist_value
+  is NOT called for IND or BGD — these are well-known ISO codes requiring no resolution.'

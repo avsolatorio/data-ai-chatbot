@@ -1,47 +1,31 @@
-scenario: >
-  Tests whether the chatbot can autonomously resolve a well-known
-  geographic scope term ("South Asian countries") without asking the
-  user to clarify which definition to use.
+scenario: Tests whether the chatbot can autonomously resolve the well-known geographic
+  group "South Asian countries" to the World Bank SAS region code and deliver a full
+  unemployment ranking in a single response — without asking the user for a disambiguation
+  clarification. The chatbot has access to data360_rank_countries, data360_find_codelist_value,
+  and data360_expand_country_group. "South Asia" maps unambiguously to SAS (AFG, BGD,
+  BTN, IND, MDV, NPL, PAK, LKA). The chatbot must resolve this internally and deliver
+  the ranking in its first substantive response. If it instead asks the user to confirm
+  what "South Asian countries" means, or which region definition to use, the test fails.
+  This is a single-turn effectiveness test — the user specifies both the region AND the
+  indicator in their first message, so no follow-up should be required.
 
-  The system has access to data360_find_codelist_value and
-  data360_expand_country_group tools. "South Asia" maps unambiguously
-  to the World Bank SAS region group (AFG, BGD, BTN, IND, MDV, NPL,
-  PAK, LKA). The chatbot should call these tools internally rather
-  than surfacing a disambiguation question to the user.
+user_description: Priya is a 35-year-old labor economist at the World Bank working
+  on South Asian labor markets. She is direct and time-pressed. She asks for rankings
+  by specifying both the geographic group and the indicator in a single message —
+  for example, "Rank South Asian countries by unemployment rate." She does not want
+  to be asked which definition of South Asia to use. She expects the chatbot to resolve
+  regional terms autonomously using its own tools and deliver a ranked table immediately.
+  After receiving the ranking, she asks follow-up questions about specific country
+  values and whether the data is from the latest available year.
 
-  Observed failure: the chatbot responds to this straightforward
-  ranking request with "Should 'South Asian countries' follow the
-  World Bank South Asia region (Afghanistan, Bangladesh, Bhutan,
-  India, Maldives, Nepal, Pakistan, Sri Lanka) or a broader
-  definition?" -- a clarification question that wastes a user turn
-  and demonstrates the chatbot is not leveraging its own tools.
-
-  This is a single-shot test: the user sends exactly ONE message.
-  The chatbot must answer in ONE response with a complete ranking.
-  There is no follow-up. If the chatbot asks a clarification question
-  instead of delivering the ranking, the test fails.
-
-user_description: >
-  Marcus is a policy analyst who wants a quick unemployment ranking
-  for South Asia. He sends the single message:
-  "Can you rank the south asian countries to get the top 10 in terms
-  of latest year unemployment rate"
-  He expects a ranked data table with values and sources.
-  He does NOT expect to be asked a clarification question.
-
-expected_outcome: >
-  The chatbot MUST:
-  (1) Call data360_rank_countries (or equivalent) with country_group='SAS'
-      or equivalent SAS-member country codes. The call must NOT require
-      a user follow-up to identify the country scope.
-  (2) Optionally call data360_find_codelist_value('REF_AREA', 'South Asia')
-      and data360_expand_country_group('SAS') to resolve the scope
-      autonomously -- this is the correct tool-assisted behavior.
-  (3) Deliver a ranked table of South Asian countries by unemployment
-      rate in the SAME response as the first turn.
-  (4) MUST NOT ask the user "Should 'South Asian countries' follow
-      the World Bank South Asia region or a broader definition?" or
-      any equivalent disambiguation question. The chatbot has tools
-      to resolve this itself.
-  (5) MUST NOT reply with any question as the primary response --
-      a clarification-only reply with no data is a complete failure.
+expected_outcome: 'ALL of the following must be achieved: (1) Turn 1: The chatbot
+  calls data360_rank_countries (or equivalent) with country_group=''SAS'' or equivalent
+  SAS-member country codes without asking the user to clarify the geographic scope.
+  (2) Turn 1: The chatbot delivers a complete ranked table of South Asian countries
+  by unemployment rate in the SAME turn as the user''s first message — no clarification-only
+  response as the first reply. (3) Turn 1: MUST NOT ask the user "Should ''South Asian
+  countries'' follow the World Bank South Asia region or a broader definition?" or
+  any equivalent disambiguation question. (4) Turn 2+: Follow-up questions about
+  specific country values are answered correctly using the claim_ids from turn 1 without
+  re-calling rank_countries. (5) All numeric values in the response match the tool
+  output exactly — no fabricated or rounded values, no transposition between countries.'

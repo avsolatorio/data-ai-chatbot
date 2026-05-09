@@ -1,55 +1,32 @@
-scenario: >
-  Reproduces an observed production failure where rank_countries returns
-  correct compact output for South Asian unemployment, but the Narrator
-  fabricates completely different values, uses sequential fake claim_ids
-  (c1, c2, ..., c6 instead of actual hex claim_ids), and inverts the
-  ranking order. This tests three simultaneous narrator failures that were
-  observed in the same response:
-  (a) Value fabrication -- numbers in the response differ completely from
-      the tool output (e.g., Nepal narrated as 3.8% when tool returned
-      10.465%, Bhutan narrated as 4.1% when tool returned 3.227%).
-  (b) Claim_id fabrication -- sequential patterns like c1, c2, c3, c4,
-      c5, c6 used instead of the actual hex UUIDs from the tool output
-      (e.g., a1bad81b, f5607e25). These sequential IDs do not exist in
-      any tool output and cannot be verified by PCN.
-  (c) Order inversion -- country with the HIGHEST unemployment value
-      (Nepal at 10.465%) was presented as having the LOWEST value, and
-      vice versa. The ranking was inverted relative to the tool output.
-  Additionally tests whether the narrator produces two contradictory
-  answer blocks within the same response -- a symptom of the
-  data-thinking + narrator dual-output architecture where reasoning text
-  and the final narrator output contain different fabricated numbers.
+scenario: Tests whether the Narrator faithfully transcribes the exact values, correct
+  ranking order, and actual hex claim_ids returned by data360_rank_countries for South
+  Asian unemployment — without fabricating values, inverting the ranking, or substituting
+  sequential fake IDs (e.g., c1, c2, c3) for the real hex UUIDs from the tool output.
+  The scenario previously reproduced a production failure where the Narrator presented
+  completely different unemployment percentages (e.g., Nepal as 3.8% when the tool
+  returned 10.465%), inverted the country ranking, and used fabricated sequential IDs.
+  This test verifies that the fix holds — the Narrator must present tool output verbatim.
 
-user_description: >
-  Lena is a development economist auditing chatbot accuracy. She asks:
-  Turn 1: 'Rank all South Asian countries by unemployment rate from
-  highest to lowest. Show every country with their exact values.'
-  Turn 2: 'Which country has the highest unemployment rate in South Asia
-  based on that ranking? What is its exact rate? And which country has
-  the lowest? I want to verify your numbers are correct.'
-  She will cross-reference every value and claim_id against the raw tool
-  output and flag any discrepancy.
+user_description: Amara is a 32-year-old development economist at the Asian Development
+  Bank studying labor markets in South Asia. She asks the chatbot to rank South Asian
+  countries by unemployment rate using the most recent available data. After receiving
+  the ranking, she asks a follow-up to confirm the exact values for the highest and
+  lowest ranked countries, to double-check them against her own dataset. She expects
+  the follow-up response to be consistent with the first response — same values, same
+  ranking order, same claim_ids. If the chatbot changes the values or order in the
+  follow-up without calling the tool again, she notices and asks about it.
 
-expected_outcome: >
-  ALL of the following must be achieved:
-  (1) Turn 1: rank_countries called for South Asian unemployment with
-  country_group='SAS' (or equivalent) and order='desc'. The response
-  table lists countries in the EXACT order returned by the tool -- the
-  country with the HIGHEST unemployment value appears at rank 1.
-  Each value matches rankings[].obs_value exactly: no fabricated or
-  rounded values, no transposition between countries.
-  (2) Turn 1: Each value in the response is tagged with the matching
-  rankings[].claim_id, which is a hex UUID (e.g., 'a1bad81b'). No
-  claim_id in the response matches the pattern /^c\d+$/ (e.g., c1, c2,
-  c3, c4, c5, c6) -- these are fabricated sequential IDs and indicate
-  the Narrator ignored the tool output.
-  (3) Turn 1: The response contains EXACTLY ONE ranking table or list
-  -- not two contradictory tables or answer blocks with different values.
-  If two blocks with differing numbers appear in the response, that is
-  a dual-output architecture failure.
-  (4) Turn 2: The highest and lowest ranked countries and their exact
-  values are CONSISTENT with the turn 1 table and the underlying tool
-  output. No rank_countries or find_codelist_value call is made.
-  The claim_ids referenced are the SAME as in turn 1.
-  (5) find_codelist_value is NOT called for South Asia or SAS in either
-  turn -- SAS is a well-known group code requiring no resolution.
+expected_outcome: 'ALL of the following must be achieved: (1) Turn 1: data360_rank_countries
+  is called with country_group=''SAS'' (or equivalent) and order=''desc''. The response
+  table lists countries in the EXACT order returned by the tool — highest unemployment
+  value at rank 1. Each value matches rankings[].obs_value exactly with no fabricated,
+  rounded, or transposed values. (2) Turn 1: Each value in the response is tagged with
+  the matching rankings[].claim_id, which is a hex UUID (e.g., ''a1bad81b''). NO claim_id
+  in the response matches the pattern /^c\d+$/ (e.g., c1, c2, c3) — these are fabricated
+  sequential IDs that do not exist in tool output. (3) Turn 1: The response contains
+  exactly ONE ranking table — not two contradictory tables with different values. (4)
+  Turn 2: The highest and lowest ranked countries and their exact values are CONSISTENT
+  with turn 1 and the underlying tool output. No new data360_rank_countries call is
+  made in turn 2. The claim_ids referenced in turn 2 are the same hex UUIDs as turn
+  1. (5) data360_find_codelist_value is NOT called for South Asia or SAS in either
+  turn — SAS is a well-known group code requiring no resolution.'
