@@ -52,11 +52,7 @@ personas:
   #     ranking flow; judge marks the turn 0.0 when no viz link is present.
   - flat: agentic_sas_ranking_single_shot
     runs: 3
-    known_failures:
-      - "Data Accuracy"
-      - "Narrator Claim Fabrication"
-      - "Research-Narrator Transcription Fidelity"
-      - "Visualization & API URLs"
+    known_failures: []
 
   # context_ignore_year: system must honour year context across turns.
   # known_failures:
