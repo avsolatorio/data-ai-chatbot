@@ -210,16 +210,17 @@ YEAR HANDLING:
 - Always report the closest available year when exact year is missing.
 
 MULTI-COUNTRY / REGIONAL GROUPS:
-When user mentions a regional group, enumerate member countries:
-- ASEAN: PHL, IDN, VNM, THA, MYS, MMR, KHM, LAO, SGP, BRN
-- South Asia: BGD, IND, PAK, NPL, LKA, AFG, MDV, BTN
-- Sub-Saharan Africa: NGA, ETH, KEN, GHA, TZA, UGA, ZAF, MOZ, SEN, ZMB
-- MENA: EGY, MAR, TUN, DZA, JOR, LBN, IRQ, YEM, SAU, ARE
-- Latin America: BRA, MEX, COL, ARG, PER, CHL, ECU, BOL
-- East Asia: CHN, IDN, PHL, VNM, THA, MYS, KHM, MMR
-- Europe & Central Asia: TUR, KAZ, UKR, UZB, GEO, ARM, MDA, ALB
-
-Fetch all members in one call. Research handles missing data gracefully.
+- NEVER use hardcoded region membership lists.
+- ALWAYS resolve region/group membership from tools at runtime:
+  1) Resolve region/group to REF_AREA code via `data360_find_codelist_value(codelist_type="REF_AREA", query="<group name>")` when needed.
+  2) Expand group via `data360_expand_country_group(group_code="<code>")`.
+  3) Use the returned `country_codes` exactly as provided for downstream calls.
+- If the user asks for all countries in a group for one year WITHOUT ranking intent
+  (e.g., "all South Asian countries for 2020"), use:
+  `data360_get_data(...)` once with all expanded members in REF_AREA.
+- If needed, report missing countries by comparing expanded members against returned REF_AREA rows.
+- Use `data360_rank_countries(...)` only when the user explicitly asks to rank/order
+  countries (e.g., top/bottom/highest/lowest/rank).
 
 WHEN NOT TO CLARIFY (never ask the user):
 - Country is named → search and retrieve, do not ask to confirm
@@ -1083,17 +1084,12 @@ RULES:
 - NEVER fabricate coverage data; only report what the tools returned.
 
 ─── REGIONAL GROUPS ──────────────────────────────────────────
-When the user's query mentions a regional group, enumerate the member countries
-so the Research Agent can include them in the data retrieval. Do NOT call disaggregation
-for each member — the Research node handles missing data gracefully.
-
-- ASEAN: PHL, IDN, VNM, THA, MYS, MMR, KHM, LAO, SGP, BRN
-- South Asia (SAR): BGD, IND, PAK, NPL, LKA, AFG, MDV, BTN
-- Sub-Saharan Africa (SSA): NGA, ETH, KEN, GHA, TZA, UGA, ZAF, MOZ, SEN, ZMB
-- MENA: EGY, MAR, TUN, DZA, JOR, LBN, IRQ, YEM, SAU, ARE
-- Latin America (LAC): BRA, MEX, COL, ARG, PER, CHL, ECU, BOL, VEN, PRY
-- East Asia (EAP): CHN, IDN, PHL, VNM, THA, MYS, KHM, MMR, LAO, PNG
-- Europe & Central Asia (ECA): TUR, KAZ, UKR, UZB, GEO, ARM, MDA, ALB
+When the user's query mentions a regional group, do NOT use static country lists.
+Resolve membership dynamically so behavior matches the active MCP server:
+1) Resolve group code with `data360_find_codelist_value("REF_AREA", "<group name>")` when the code is unknown.
+2) Expand with `data360_expand_country_group("<group code>")`.
+3) Report the exact returned members in `countries_confirmed`.
+Do NOT call disaggregation for each member — the Research node handles missing data gracefully.
 
 OUTPUT FORMAT:
 After tool calls are complete, write a SHORT scouting report (internal, not shown
@@ -1151,6 +1147,9 @@ RULES:
 - For regional groups where scout confirmed coverage for any member, assume the
   full group is worth trying — national poverty line data, for example, varies
   by country and some members may have different years.
+- Regional group members in `scout_findings` MUST be generated from runtime tool
+  outputs (`data360_find_codelist_value` + `data360_expand_country_group`) and
+  never from hardcoded assumptions.
 
 TIME RANGE RULE (critical):
 - ALWAYS add a ±2 year buffer around any specific year the user requested.
