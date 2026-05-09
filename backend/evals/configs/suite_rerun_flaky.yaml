@@ -1,0 +1,13 @@
+personas:
+  # Rerun of the two personas that showed degraded scores on feat/agentic-flow-stability
+  # relative to the baseline. Running 5 times each to get a better distribution.
+
+  - flat: agentic_narrator_ranking_drift
+    runs: 5
+    known_failures: []
+
+  - flat: agentic_narrator_claim_hallucination
+    runs: 5
+    known_failures:
+      - "Context Retention"
+      - "Routing Correctness"

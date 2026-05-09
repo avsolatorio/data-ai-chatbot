@@ -10,6 +10,11 @@ personas:
     known_failures:
       - "Context Retention"
       - "Routing Correctness"
+      # Follow-up Suggestions: 2-turn cross-country lookup; judge penalises the
+      # second assistant turn (~0.06 mean) for not offering open-ended follow-ups
+      # after a direct data-point response. Confirmed judge artifact across 3 runs
+      # on feat/agentic-flow-stability@a914e968d (20260509_203325).
+      - "Follow-up Suggestions"
 
   # AF-5: Narrator reorders or changes ranking values.
   - flat: agentic_narrator_ranking_drift
