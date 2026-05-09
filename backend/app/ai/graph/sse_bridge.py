@@ -748,6 +748,14 @@ class _SseBridgeState:
                 TextEndPart(id=blocked_id),
             ):
                 chunks.append(part.to_sse().encode("utf-8"))
+        # Emit quick-answer-card payload for the frontend card renderer.
+        # Only present when quick_answer_node ran and recognised an aggregation tool.
+        if isinstance(self._final_graph_state, dict):
+            card = self._final_graph_state.get("quick_answer_card")
+            if card and isinstance(card, dict):
+                chunks.append(
+                    DataPart(type="quick-answer-card", data=card).to_sse().encode("utf-8")
+                )
         finish_metadata: dict = {}
         if self._usage_accum:
             finish_metadata["usage"] = DataUsageEvent(data=self._usage_accum).model_dump()

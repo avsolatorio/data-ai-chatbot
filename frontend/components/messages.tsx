@@ -9,7 +9,7 @@ import { useMessages } from "@/hooks/use-messages";
 import { appConfig } from "@/lib/config";
 import type { Vote } from "@/lib/db/schema";
 import { getStreamingThinkingScrollFingerprint } from "@/lib/streaming-thinking-scroll-fingerprint";
-import type { ChatMessage } from "@/lib/types";
+import type { ChatMessage, QuickAnswerCardData } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
 import { useDataStream } from "./data-stream-provider";
 import { PreviewMessage, ThinkingMessage } from "./message";
@@ -43,6 +43,8 @@ type MessagesProps = {
   lastMessageUsage?: AppUsage;
   /** Per-message usage from lastContext.byMessageId */
   usageByMessageId?: Record<string, AppUsage>;
+  /** Quick-answer card payloads keyed by message ID */
+  quickAnswerCards?: Map<string, QuickAnswerCardData>;
 };
 
 function PureMessages({
@@ -63,6 +65,7 @@ function PureMessages({
   streamingThinkingParts = [],
   lastMessageUsage,
   usageByMessageId,
+  quickAnswerCards,
 }: MessagesProps) {
   const artifactScrollBehavior = appConfig.artifactScrollBehavior;
   const artifactTriggerMessageId = useArtifactSelector(
@@ -312,7 +315,7 @@ function PureMessages({
                   willChange: "transform",
                 }}
               >
-                <PreviewMessage
+                  <PreviewMessage
                   chatId={chatId}
                   followUpSuggestionsPopulateInput={
                     followUpSuggestionsPopulateInput
@@ -322,6 +325,7 @@ function PureMessages({
                   message={message}
                   onFollowUpPopulateInput={onFollowUpPopulateInput}
                   onScrollToMessageId={onScrollToMessageId}
+                  quickAnswerCard={quickAnswerCards?.get(message.id) ?? null}
                   regenerate={regenerate}
                   sendMessage={sendMessage}
                   requiresScrollPadding={
@@ -431,6 +435,9 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
     return false;
   }
   if (prevProps.onFollowUpPopulateInput !== nextProps.onFollowUpPopulateInput) {
+    return false;
+  }
+  if (prevProps.quickAnswerCards !== nextProps.quickAnswerCards) {
     return false;
   }
 

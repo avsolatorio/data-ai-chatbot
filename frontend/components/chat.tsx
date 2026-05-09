@@ -27,7 +27,7 @@ import { getApiUrl } from "@/lib/api-client";
 import { getBasePath } from "@/lib/config";
 import type { DBMessage, Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
-import type { Attachment, ChatMessage } from "@/lib/types";
+import type { Attachment, ChatMessage, QuickAnswerCardData } from "@/lib/types";
 import {
   type AppUsage,
   aggregateUsage,
@@ -108,6 +108,11 @@ export function Chat({
   // Note: We keep streaming parts visible indefinitely - they're saved by backend for page refresh
   const isWaitingForSavedPartsRef = useRef(false);
   const [isWaitingForSavedParts, setIsWaitingForSavedParts] = useState(false);
+
+  // Quick-answer card payloads keyed by message ID.
+  // Populated when the backend emits a "quick-answer-card" SSE data event.
+  // Stored in a ref (not state) to avoid re-renders; read synchronously by message.tsx via prop.
+  const quickAnswerCardsRef = useRef<Map<string, QuickAnswerCardData>>(new Map());
 
   // lastContext is the canonical usage source (latest + byMessageId). We keep it in state so we can
   // update it after refetch when a stream completes; otherwise we only have the initial load value.
@@ -222,6 +227,19 @@ export function Chat({
 
         // Don't add data-thinking events to dataStream - they're handled separately
         // Streaming parts will be displayed via streamingThinkingParts prop
+        return;
+      }
+
+      // Handle quick-answer-card events — store keyed by current message ID
+      if (part.type === "quick-answer-card" && part.data != null) {
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage) {
+          quickAnswerCardsRef.current = new Map(quickAnswerCardsRef.current);
+          quickAnswerCardsRef.current.set(
+            lastMessage.id,
+            part.data as QuickAnswerCardData,
+          );
+        }
         return;
       }
 
@@ -660,6 +678,7 @@ export function Chat({
               messages={messages}
               usageByMessageId={usageByMessageId}
               onFollowUpPopulateInput={onFollowUpPopulateInput}
+              quickAnswerCards={quickAnswerCardsRef.current}
               regenerate={regenerate}
               selectedModelId={initialChatModel}
               sendMessage={sendMessage}

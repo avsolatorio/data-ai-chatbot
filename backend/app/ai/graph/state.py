@@ -39,6 +39,10 @@ class ChatPipelineState(TypedDict):
     # The narrator checks this flag and produces minimal prose instead of full
     # analytical prose — the visual weight is carried by the aggregation renderers.
     response_mode: NotRequired[str]  # "quick" | "full" (default "full")
+    # Synthesized card payload for the quick-answer visual card renderer.
+    # Shape: {"card_type": "single_fact"|"comparison"|"trend", ...fields}
+    # None when no recognized aggregation tool was called (fallback to prose only).
+    quick_answer_card: NotRequired[dict | None]
 
     # ── Clarifier node output ─────────────────────────────────────────────────
     clarification_question: NotRequired[str]  # the single question emitted to the user

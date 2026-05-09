@@ -179,3 +179,76 @@ export function isDataThinkingEvent(part: unknown): part is {
     p.data !== undefined
   );
 }
+
+// ---------------------------------------------------------------------------
+// Quick Answer card payload types
+// ---------------------------------------------------------------------------
+
+/** A single data-point card — derived from data360_get_data tool output. */
+export type SingleFactCard = {
+  card_type: "single_fact";
+  indicator_name: string;
+  country_name: string;
+  unit: string;
+  value: number | string | null;
+  year: number | string | null;
+  claim_id: string;
+};
+
+/** A group entry within a trend or comparison card. */
+export type TrendGroupEntry = {
+  ref_area: string;
+  ref_area_name: string;
+  latest_value: number | null;
+  earliest_value: number | null;
+  latest_year: number | null;
+  earliest_year: number | null;
+  total_change: number | null;
+  pct_change: number | null;
+  trend_direction: string;
+  latest_claim_id: string;
+  earliest_claim_id: string;
+};
+
+/** A trend card — derived from data360_summarize_data tool output. */
+export type TrendCard = {
+  card_type: "trend";
+  indicator_name: string;
+  country_name: string;
+  unit: string;
+  latest_value: number | null;
+  earliest_value: number | null;
+  latest_year: number | null;
+  earliest_year: number | null;
+  total_change: number | null;
+  pct_change: number | null;
+  trend_direction: string;
+  latest_claim_id: string;
+  earliest_claim_id: string;
+  groups: TrendGroupEntry[];
+};
+
+/** A ranked-comparison entry within a comparison card. */
+export type ComparisonEntry = {
+  ref_area: string;
+  country_name: string;
+  value: number | string | null;
+  claim_id: string;
+  rank: number | null;
+};
+
+/** A comparison card — derived from data360_compare_countries tool output. */
+export type ComparisonCard = {
+  card_type: "comparison";
+  indicator_name: string;
+  unit: string;
+  year: number | null;
+  entries: ComparisonEntry[];
+  delta: number | null;
+};
+
+/** Union of all quick-answer card variants. */
+export type QuickAnswerCardData =
+  | SingleFactCard
+  | TrendCard
+  | ComparisonCard;

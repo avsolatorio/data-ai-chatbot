@@ -32,6 +32,7 @@ import {
   type ChatMessage,
   isNonRenderableStreamEvent,
   type NodeProgressPart,
+  type QuickAnswerCardData,
   type StreamingThinkingPart,
 } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
@@ -55,6 +56,7 @@ import {
   CompareCountries,
   type CompactComparisonOutput,
 } from "./data360/compare-countries";
+import { QuickAnswerCard } from "./data360/quick-answer";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
 import { CodeBlock } from "./elements/code-block";
@@ -828,6 +830,7 @@ const PurePreviewMessage = ({
   onFollowUpPopulateInput,
   onScrollToMessageId,
   usageOverride,
+  quickAnswerCard = null,
 }: {
   chatId: string;
   message: ChatMessage;
@@ -850,6 +853,8 @@ const PurePreviewMessage = ({
   onScrollToMessageId?: (messageId: string) => void;
   /** Per-message usage from lastContext.byMessageId or stream for last message until refetch */
   usageOverride?: AppUsage;
+  /** Quick-answer card payload synthesised by the backend quick_answer_node */
+  quickAnswerCard?: QuickAnswerCardData | null;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const { setArtifact } = useArtifact();
@@ -1029,6 +1034,13 @@ const PurePreviewMessage = ({
                     }
                     thinkingParts={finalThinkingParts}
                   />
+                )}
+
+                {/* Quick-answer highlight card — rendered above the narrator prose */}
+                {message.role === "assistant" && quickAnswerCard != null && (
+                  <div className="mb-2">
+                    <QuickAnswerCard card={quickAnswerCard} variant="highlight" />
+                  </div>
                 )}
 
                 {/* Render regular parts normally */}
@@ -1243,6 +1255,9 @@ export const PreviewMessage = memo(
       return false;
     }
     if (prevProps.onScrollToMessageId !== nextProps.onScrollToMessageId) {
+      return false;
+    }
+    if (prevProps.quickAnswerCard !== nextProps.quickAnswerCard) {
       return false;
     }
 
