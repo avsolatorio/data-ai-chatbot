@@ -153,6 +153,15 @@ async def run_tool_loop(
                         "output": tool_result,
                     }
                 )
+                logger.info(
+                    "[%s] tool_result tool=%s type=%s keys=%s",
+                    graph_node,
+                    tool_name,
+                    type(tool_result).__name__,
+                    list(tool_result.keys())[:8]
+                    if isinstance(tool_result, dict)
+                    else repr(tool_result)[:120],
+                )
     else:
         logger.warning("[%s] reached max_iterations=%d", graph_node, max_iterations)
 

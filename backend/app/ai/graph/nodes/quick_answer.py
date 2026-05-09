@@ -54,8 +54,27 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
     for result in tool_results:
         tool_name: str = result.get("tool_name", "")
         output: Any = result.get("output")
+
+        # The MCP compact serializer may return a JSON string rather than a
+        # pre-parsed dict. Normalise to dict before further processing.
+        if isinstance(output, str):
+            try:
+                import json
+
+                output = json.loads(output)
+            except (ValueError, TypeError):
+                logger.debug(
+                    "[synthesize_card] tool=%s output is non-JSON string, skipping", tool_name
+                )
+                continue
+
         if not isinstance(output, dict):
+            logger.debug(
+                "[synthesize_card] tool=%s output type=%s, skipping", tool_name, type(output)
+            )
             continue
+
+        logger.debug("[synthesize_card] tool=%s output_keys=%s", tool_name, list(output.keys())[:8])
 
         # ── trend card: data360_summarize_data ──────────────────────────────
         if tool_name == "data360_summarize_data":
