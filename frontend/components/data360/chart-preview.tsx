@@ -1,12 +1,16 @@
 "use client";
 
+import { rewriteChoroplethDisputedOverlayToBundledTopo } from "@data360/mcp-viz-core";
 import { Data360ChartFromVizTool } from "@data360/mcp-ui/viz-card";
 import type { Data360VizToolResult } from "@data360/tool-types";
 import { isData360VizToolSuccess } from "@data360/tool-types";
 import type { MouseEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
-import { proxyChartUrlForFetch } from "@/lib/chart-url";
+import {
+  proxyChartUrlForFetch,
+  resolveBundledDisputedTopoUrl,
+} from "@/lib/chart-url";
 import { getBasePath } from "@/lib/config";
 import type { UIArtifact } from "../artifact";
 import { FullscreenIcon, LoaderIcon } from "../icons";
@@ -45,6 +49,15 @@ export function ChartPreview({
     (u: string) => proxyChartUrlForFetch(u, getBasePath()),
     [],
   );
+
+  const prepareDisplaySpec = useCallback((spec: Record<string, unknown>) => {
+    const basePath = getBasePath();
+    const topoUrl = resolveBundledDisputedTopoUrl(
+      basePath,
+      typeof window !== "undefined" ? window.location.origin : undefined,
+    );
+    return rewriteChoroplethDisputedOverlayToBundledTopo(spec, topoUrl);
+  }, []);
 
   const onChartReady = useCallback(
     (info: { specJson: string; title: string }) => {
@@ -117,6 +130,7 @@ export function ChartPreview({
         chartHeight={PREVIEW_CHART_HEIGHT}
         className="w-full"
         mapUrlForFetch={mapUrlForFetch}
+        prepareDisplaySpec={prepareDisplaySpec}
         onChartReady={onChartReady}
         railTopSlot={expandButton}
         toolResult={toolResult}

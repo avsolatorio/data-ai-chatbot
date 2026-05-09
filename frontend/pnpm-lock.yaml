@@ -6,7 +6,7 @@ settings:
 
 overrides:
   '@data360/chart-payload-normalize': 0.0.1
-  '@data360/mcp-viz-core': 0.0.2
+  '@data360/mcp-viz-core': file:../../data360-mcp/packages/mcp-viz-core
   '@data360/tool-types': 0.0.4
 
 importers:
@@ -46,12 +46,12 @@ importers:
       '@codemirror/view':
         specifier: ^6.35.3
         version: 6.36.4
-      '@data360/chart-payload-normalize':
-        specifier: 0.0.1
-        version: 0.0.1
       '@data360/mcp-ui':
-        specifier: 0.0.5
-        version: 0.0.5(@data360/tool-types@0.0.4)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
+        specifier: file:../../data360-mcp/packages/mcp-ui
+        version: file:../../data360-mcp/packages/mcp-ui(@data360/tool-types@0.0.4)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
+      '@data360/mcp-viz-core':
+        specifier: file:../../data360-mcp/packages/mcp-viz-core
+        version: file:../../data360-mcp/packages/mcp-viz-core
       '@data360/tool-types':
         specifier: 0.0.4
         version: 0.0.4
@@ -547,8 +547,8 @@ packages:
   '@data360/chart-payload-normalize@0.0.1':
     resolution: {integrity: sha512-IvCs9SlvAcSh566vOA96+XmzGLYaP2rPYYRLVku3n2g0VCWXJAriLV5EG9ViiBSxD678hC5iJcpEIZ5vtmkcCw==}
 
-  '@data360/mcp-ui@0.0.5':
-    resolution: {integrity: sha512-fV2pfX3TJnSSyEuH4c0RggzqIMxSAdkI61JsGOXj3flYmgPyC+h9neM/tca94529mJSxpINN60o4R0BWtOtIdQ==}
+  '@data360/mcp-ui@file:../../data360-mcp/packages/mcp-ui':
+    resolution: {directory: ../../data360-mcp/packages/mcp-ui, type: directory}
     peerDependencies:
       '@data360/tool-types': 0.0.4
       react: '>=18.0.0'
@@ -557,8 +557,8 @@ packages:
       vega-embed: '>=6.0.0'
       vega-lite: '>=5.0.0'
 
-  '@data360/mcp-viz-core@0.0.2':
-    resolution: {integrity: sha512-2Vc+swJoIXUlWdI0rSRvugpKmb8WYXt+cAI4Lf1Lhs3QI8vZmGWoR9RlDAh+99E6UiQPcHRpellsGP5H6c5rgQ==}
+  '@data360/mcp-viz-core@file:../../data360-mcp/packages/mcp-viz-core':
+    resolution: {directory: ../../data360-mcp/packages/mcp-viz-core, type: directory}
 
   '@data360/tool-types@0.0.4':
     resolution: {integrity: sha512-/wZwQh5qDiu+vQQF6ScBKH+FFf0wI24XT3oeidKoDx9OugNrRcf3Axrt87hmwFu2f++CmsOKQZ4kzlTa8zDzeA==}
@@ -4782,10 +4782,10 @@ snapshots:
 
   '@data360/chart-payload-normalize@0.0.1': {}
 
-  '@data360/mcp-ui@0.0.5(@data360/tool-types@0.0.4)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
+  '@data360/mcp-ui@file:../../data360-mcp/packages/mcp-ui(@data360/tool-types@0.0.4)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
     dependencies:
       '@data360/chart-payload-normalize': 0.0.1
-      '@data360/mcp-viz-core': 0.0.2
+      '@data360/mcp-viz-core': file:../../data360-mcp/packages/mcp-viz-core
       '@data360/tool-types': 0.0.4
       html-to-image: 1.11.13
       react: 19.0.0-rc-45804af1-20241021
@@ -4794,7 +4794,7 @@ snapshots:
       vega-embed: 6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
       vega-lite: 5.23.0(vega@5.33.1)
 
-  '@data360/mcp-viz-core@0.0.2': {}
+  '@data360/mcp-viz-core@file:../../data360-mcp/packages/mcp-viz-core': {}
 
   '@data360/tool-types@0.0.4':
     dependencies:

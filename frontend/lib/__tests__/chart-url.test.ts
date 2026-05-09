@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   chartUrlsReferToSameChart,
+  resolveBundledDisputedTopoUrl,
   splitAssistantTextIntoChartSegments,
 } from "../chart-url";
 
@@ -71,6 +72,22 @@ describe("chartUrlsReferToSameChart", () => {
         "https://example.com/api/v1/charts/abc/spec",
         "/api/v1/charts/abc/spec",
       ),
+    );
+  });
+});
+
+describe("resolveBundledDisputedTopoUrl", () => {
+  it("applies basePath to the bundled topo path", () => {
+    assert.equal(
+      resolveBundledDisputedTopoUrl("/app"),
+      "/app/json/wb_disputed_areas_topo.json",
+    );
+  });
+
+  it("returns an absolute URL when absoluteOrigin is set", () => {
+    assert.equal(
+      resolveBundledDisputedTopoUrl("/app", "https://chat.example.org"),
+      "https://chat.example.org/app/json/wb_disputed_areas_topo.json",
     );
   });
 });

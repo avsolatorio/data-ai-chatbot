@@ -1,5 +1,19 @@
 "use client";
 
+import {
+  choroplethLegendVerticalReservePx,
+  choroplethMapFacetHeightPx,
+  hasChoroplethQuantitativeColor,
+  patchVegaSpecChoroplethMapGroupClip,
+  patchVegaSpecChoroplethWheelZoom,
+  prepareSpec,
+  suggestChoroplethSceneHeight,
+  type VLSpec,
+} from "@data360/mcp-viz-core";
+import {
+  applyChoroplethEmbedDomStyles,
+  attachChoroplethMapInteractions,
+} from "@data360/mcp-ui/viz-card";
 import { useEffect, useRef, useState } from "react";
 import { Artifact } from "@/components/create-artifact";
 
@@ -16,6 +30,9 @@ type ChartEditorProps = {
   content: string;
   status: "streaming" | "idle";
 };
+
+/** Matches ``ChartPreview`` / ``Data360ChartFromVizTool`` default chart height. */
+const CHART_PREVIEW_HEIGHT = 280;
 
 function applyThemeToSpec(
   spec: Record<string, unknown>,
@@ -72,9 +89,14 @@ function ChartEditor({ content, status }: ChartEditorProps) {
     }
 
     const specWithTheme = applyThemeToSpec(spec, themeConfig);
+    const isChoropleth = hasChoroplethQuantitativeColor(
+      specWithTheme as VLSpec,
+    );
+
     const el = containerRef.current;
     const rect = el.getBoundingClientRect();
     const initialWidth = Math.max(1, Math.floor(rect.width));
+
     const getMaxChartHeight = () =>
       Math.max(
         1,
@@ -87,14 +109,13 @@ function ChartEditor({ content, status }: ChartEditorProps) {
       getMaxChartHeight(),
     );
 
-    // With autosize "fit", padding can expand the view and cause clipping, so pass
-    // inner dimensions (minus padding) so the full chart stays visible in the container.
     const CHART_PADDING = 24;
     const padTotalX = CHART_PADDING * 2;
     const padTotalY = CHART_PADDING * 2;
 
     let resizeObserver: ResizeObserver | null = null;
     let cancelled = false;
+    let detachChoropleth: (() => void) | undefined;
 
     const buildSpecForSize = (w: number, h: number) => {
       const innerW = Math.max(1, w - padTotalX);
@@ -110,6 +131,99 @@ function ChartEditor({ content, status }: ChartEditorProps) {
 
     void (async () => {
       try {
+        if (isChoropleth) {
+          const { default: embed } = await import("vega-embed");
+          const { compile } = await import("vega-lite");
+
+          let lastInnerW = 0;
+          const widthThreshold = 2;
+
+          const runChoroplethEmbed = async () => {
+            if (cancelled || !el.isConnected) return;
+            const innerW = Math.max(1, Math.floor(el.clientWidth) - padTotalX);
+            if (
+              lastInnerW !== 0 &&
+              Math.abs(innerW - lastInnerW) < widthThreshold
+            ) {
+              return;
+            }
+            lastInnerW = innerW;
+
+            try {
+              viewRef.current?.finalize?.();
+            } catch {
+              /* ignore */
+            }
+            viewRef.current = null;
+            detachChoropleth?.();
+            detachChoropleth = undefined;
+            el.replaceChildren();
+
+            const prepared = prepareSpec(
+              specWithTheme as VLSpec,
+              suggestChoroplethSceneHeight(innerW, CHART_PREVIEW_HEIGHT),
+              innerW,
+            );
+            const plotWidth =
+              typeof prepared.width === "number" &&
+              Number.isFinite(prepared.width)
+                ? prepared.width
+                : innerW;
+            const plotHeight =
+              typeof prepared.height === "number" &&
+              Number.isFinite(prepared.height)
+                ? prepared.height
+                : suggestChoroplethSceneHeight(innerW, CHART_PREVIEW_HEIGHT);
+            const stripDesired = choroplethLegendVerticalReservePx(innerW);
+            const mapFacetMin = choroplethMapFacetHeightPx(innerW);
+            const legendStripPx = Math.min(
+              stripDesired,
+              Math.max(80, plotHeight - mapFacetMin - 8),
+            );
+            const compiled = compile(prepared as Parameters<typeof compile>[0])
+              .spec as Record<string, unknown>;
+            const vegaSpec = {
+              ...patchVegaSpecChoroplethMapGroupClip(
+                patchVegaSpecChoroplethWheelZoom(compiled, {
+                  plotWidth,
+                  plotHeight,
+                  legendStripPx,
+                }),
+              ),
+              autosize: "none" as const,
+            };
+
+            const result = await embed(el, vegaSpec as never, {
+              renderer: "svg",
+              actions: false,
+            });
+            if (cancelled) {
+              result.finalize();
+              return;
+            }
+            applyChoroplethEmbedDomStyles(el);
+            viewRef.current = result.view as unknown as NonNullable<
+              typeof viewRef.current
+            >;
+            detachChoropleth = attachChoroplethMapInteractions(
+              el,
+              result.view as never,
+            );
+          };
+
+          await runChoroplethEmbed();
+
+          const onResize = () => {
+            requestAnimationFrame(() => {
+              void runChoroplethEmbed();
+            });
+          };
+
+          resizeObserver = new ResizeObserver(onResize);
+          resizeObserver.observe(el);
+          return;
+        }
+
         const { default: embed } = await import("vega-embed");
         const result = await embed(
           el,
@@ -168,6 +282,8 @@ function ChartEditor({ content, status }: ChartEditorProps) {
     return () => {
       cancelled = true;
       resizeObserver?.disconnect();
+      detachChoropleth?.();
+      detachChoropleth = undefined;
       const view = viewRef.current;
       viewRef.current = null;
       if (view?.finalize) view.finalize();

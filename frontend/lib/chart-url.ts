@@ -23,6 +23,32 @@ export function applyBasePathToChartPath(
  * Normalize chart URL to a same-origin path for `fetch()` (proxy via Next.js).
  * Strips absolute URLs to pathname + search, then applies `basePath` when needed.
  */
+/** Bundled disputed-outline TopoJSON under `public/json/`. */
+export const DATA360_CHOROPLETH_DISPUTED_TOPO_PUBLIC_PATH =
+  "/json/wb_disputed_areas_topo.json";
+
+/**
+ * Absolute or root-relative URL for the bundled disputed TopoJSON (for Vega `data.url`).
+ */
+export function resolveBundledDisputedTopoUrl(
+  basePath: string,
+  absoluteOrigin?: string,
+): string {
+  const rootRelative = applyBasePathToChartPath(
+    DATA360_CHOROPLETH_DISPUTED_TOPO_PUBLIC_PATH,
+    basePath,
+  );
+  if (!absoluteOrigin?.trim()) {
+    return rootRelative;
+  }
+  const origin = absoluteOrigin.replace(/\/+$/, "");
+  try {
+    return new URL(rootRelative, `${origin}/`).href;
+  } catch {
+    return rootRelative;
+  }
+}
+
 export function proxyChartUrlForFetch(url: string, basePath: string): string {
   const trimmed = url.trim();
   let pathPart: string;
