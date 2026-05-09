@@ -1,0 +1,56 @@
+personas:
+  # AF-4: Narrator fabricates claim_ids not present in tool output.
+  # known_failures:
+  #   - Context Retention: persona asks meta-questions about claim ID schema;
+  #     chatbot correctly deflects (no tool call needed), judge penalizes low
+  #     context carryover on a deflect-only conversation.
+  #   - Routing Correctness: same deflect pattern scores low on routing judge.
+  - flat: agentic_narrator_claim_hallucination
+    runs: 3
+    known_failures:
+      - "Context Retention"
+      - "Routing Correctness"
+
+  # AF-5: Narrator reorders or changes ranking values.
+  - flat: agentic_narrator_ranking_drift
+    runs: 3
+    known_failures: []
+
+  # AF-6: Positional array decoding errors from compare_countries compact output.
+  # known_failures:
+  #   - Follow-up Suggestions: 2-turn conversation; judge penalises the last
+  #     assistant turn for not offering follow-up when the conversation ends.
+  #   - Visualization & API URLs: simulator does not request a chart on turn 1;
+  #     judge scores the response 0.0 for absent viz even though it's not needed.
+  - flat: agentic_compact_compare_decoding
+    runs: 3
+    known_failures:
+      - "Follow-up Suggestions"
+      - "Visualization & API URLs"
+
+  # AF-7: Full value + claim_id fabrication in SAS ranking responses.
+  # Same 2-turn judge artifacts as AF-6.
+  - flat: agentic_sas_ranking_value_fabrication
+    runs: 3
+    known_failures:
+      - "Follow-up Suggestions"
+      - "Visualization & API URLs"
+
+  # AF-8: Unnecessary clarification — chatbot must resolve SAS autonomously.
+  # known_failures:
+  #   - Visualization & API URLs: simulator rarely requests a chart in the
+  #     ranking flow; judge marks the turn 0.0 when no viz link is present.
+  - flat: agentic_sas_ranking_single_shot
+    runs: 3
+    known_failures:
+      - "Visualization & API URLs"
+
+  # context_ignore_year: system must honour year context across turns.
+  # known_failures:
+  #   - Follow-up Suggestions: final turn ends the conversation; judge penalises.
+  #   - Visualization & API URLs: not all runs trigger a chart request.
+  - flat: agentic_context_ignore_year
+    runs: 3
+    known_failures:
+      - "Follow-up Suggestions"
+      - "Visualization & API URLs"
