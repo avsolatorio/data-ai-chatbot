@@ -1,0 +1,1514 @@
+[
+  {
+    "wb_a3": "002",
+    "country_name": "Africa"
+  },
+  {
+    "wb_a3": "005",
+    "country_name": "South America"
+  },
+  {
+    "wb_a3": "009",
+    "country_name": "Oceania"
+  },
+  {
+    "wb_a3": "142",
+    "country_name": "Asia"
+  },
+  {
+    "wb_a3": "150",
+    "country_name": "Europe"
+  },
+  {
+    "wb_a3": "24F",
+    "country_name": "FY24 IDA countries classified as fragile situations"
+  },
+  {
+    "wb_a3": "24T",
+    "country_name": "FY24 IDA & IBRD countries classified as fragile situations"
+  },
+  {
+    "wb_a3": "25F",
+    "country_name": "FY25 IDA countries classified as fragile situations"
+  },
+  {
+    "wb_a3": "9AF",
+    "country_name": "UN M49 Africa"
+  },
+  {
+    "wb_a3": "9AM",
+    "country_name": "UN M49 Americas"
+  },
+  {
+    "wb_a3": "9AS",
+    "country_name": "UN M49 Asia"
+  },
+  {
+    "wb_a3": "9AZ",
+    "country_name": "UN M49 Australia and New Zealand"
+  },
+  {
+    "wb_a3": "9CA",
+    "country_name": "UN M49 Central Asia"
+  },
+  {
+    "wb_a3": "9CM",
+    "country_name": "UN M49 Central America"
+  },
+  {
+    "wb_a3": "9CR",
+    "country_name": "UN M49 Caribbean"
+  },
+  {
+    "wb_a3": "9CS",
+    "country_name": "UN M49 Central Asia and Southern Asia (MDG=M49)"
+  },
+  {
+    "wb_a3": "9EA",
+    "country_name": "UN M49 Eastern Asia"
+  },
+  {
+    "wb_a3": "9EE",
+    "country_name": "UN M49 Eastern Europe"
+  },
+  {
+    "wb_a3": "9EF",
+    "country_name": "UN M49 Eastern Africa"
+  },
+  {
+    "wb_a3": "9ES",
+    "country_name": "UN M49 Eastern Asia and South-eastern Asia (MDG=M49)"
+  },
+  {
+    "wb_a3": "9EU",
+    "country_name": "UN M49 Europe"
+  },
+  {
+    "wb_a3": "9LC",
+    "country_name": "UN M49 Latin America and the Caribbean (MDG=M49)"
+  },
+  {
+    "wb_a3": "9MC",
+    "country_name": "UN M49 Micronesia"
+  },
+  {
+    "wb_a3": "9MF",
+    "country_name": "UN M49 Middle Africa"
+  },
+  {
+    "wb_a3": "9ML",
+    "country_name": "UN M49 Melanesia"
+  },
+  {
+    "wb_a3": "9NE",
+    "country_name": "UN M49 Northern America and Europe"
+  },
+  {
+    "wb_a3": "9NF",
+    "country_name": "UN M49 Northern Africa"
+  },
+  {
+    "wb_a3": "9NM",
+    "country_name": "UN M49 Northern America"
+  },
+  {
+    "wb_a3": "9NU",
+    "country_name": "UN M49 Northern Europe"
+  },
+  {
+    "wb_a3": "9OC",
+    "country_name": "UN M49 Oceania"
+  },
+  {
+    "wb_a3": "9OX",
+    "country_name": "UN M49 Oceania excluding Australia and New Zealand"
+  },
+  {
+    "wb_a3": "9PL",
+    "country_name": "UN M49 Polynesia"
+  },
+  {
+    "wb_a3": "9SA",
+    "country_name": "UN M49 Southern Asia (MDG=M49)"
+  },
+  {
+    "wb_a3": "9SE",
+    "country_name": "UN M49 South-eastern Asia (MDG=M49)"
+  },
+  {
+    "wb_a3": "9SF",
+    "country_name": "UN M49 Southern Africa"
+  },
+  {
+    "wb_a3": "9SM",
+    "country_name": "UN M49 South America"
+  },
+  {
+    "wb_a3": "9SS",
+    "country_name": "UN M49 Sub-Saharan Africa"
+  },
+  {
+    "wb_a3": "9SU",
+    "country_name": "UN M49 Southern Europe"
+  },
+  {
+    "wb_a3": "9WA",
+    "country_name": "UN M49 Western Asia"
+  },
+  {
+    "wb_a3": "9WE",
+    "country_name": "UN M49 Western Europe"
+  },
+  {
+    "wb_a3": "9WF",
+    "country_name": "UN M49 Western Africa"
+  },
+  {
+    "wb_a3": "9WL",
+    "country_name": "UN M49 World"
+  },
+  {
+    "wb_a3": "9WN",
+    "country_name": "UN M49 Western Asia and Northern Africa"
+  },
+  {
+    "wb_a3": "ABW",
+    "country_name": "Aruba"
+  },
+  {
+    "wb_a3": "ADO",
+    "country_name": "Andorra"
+  },
+  {
+    "wb_a3": "AFE",
+    "country_name": "Africa Eastern and Southern"
+  },
+  {
+    "wb_a3": "AFG",
+    "country_name": "Afghanistan"
+  },
+  {
+    "wb_a3": "AFW",
+    "country_name": "Africa Western and Central"
+  },
+  {
+    "wb_a3": "AGO",
+    "country_name": "Angola"
+  },
+  {
+    "wb_a3": "AIA",
+    "country_name": "Anguilla"
+  },
+  {
+    "wb_a3": "ALB",
+    "country_name": "Albania"
+  },
+  {
+    "wb_a3": "ARB",
+    "country_name": "Arab World"
+  },
+  {
+    "wb_a3": "ARE",
+    "country_name": "United Arab Emirates"
+  },
+  {
+    "wb_a3": "ARG",
+    "country_name": "Argentina"
+  },
+  {
+    "wb_a3": "ARM",
+    "country_name": "Armenia"
+  },
+  {
+    "wb_a3": "ASM",
+    "country_name": "American Samoa"
+  },
+  {
+    "wb_a3": "ATF",
+    "country_name": "French Southern and Antarctic Lands"
+  },
+  {
+    "wb_a3": "ATG",
+    "country_name": "Antigua and Barbuda"
+  },
+  {
+    "wb_a3": "AUS",
+    "country_name": "Australia"
+  },
+  {
+    "wb_a3": "AUT",
+    "country_name": "Austria"
+  },
+  {
+    "wb_a3": "AZE",
+    "country_name": "Azerbaijan"
+  },
+  {
+    "wb_a3": "BDI",
+    "country_name": "Burundi"
+  },
+  {
+    "wb_a3": "BEA",
+    "country_name": "East Asia & Pacific (IBRD only)"
+  },
+  {
+    "wb_a3": "BEC",
+    "country_name": "Europe & Central Asia (IBRD only)"
+  },
+  {
+    "wb_a3": "BEL",
+    "country_name": "Belgium"
+  },
+  {
+    "wb_a3": "BEN",
+    "country_name": "Benin"
+  },
+  {
+    "wb_a3": "BES",
+    "country_name": "Netherlands"
+  },
+  {
+    "wb_a3": "BFA",
+    "country_name": "Burkina Faso"
+  },
+  {
+    "wb_a3": "BGD",
+    "country_name": "Bangladesh"
+  },
+  {
+    "wb_a3": "BGR",
+    "country_name": "Bulgaria"
+  },
+  {
+    "wb_a3": "BHI",
+    "country_name": "IBRD countries classified as high income"
+  },
+  {
+    "wb_a3": "BHR",
+    "country_name": "Bahrain"
+  },
+  {
+    "wb_a3": "BHS",
+    "country_name": "The Bahamas"
+  },
+  {
+    "wb_a3": "BIH",
+    "country_name": "Bosnia and Herzegovina"
+  },
+  {
+    "wb_a3": "BLA",
+    "country_name": "Latin America & Caribbean (IBRD only)"
+  },
+  {
+    "wb_a3": "BLM",
+    "country_name": "Saint-Barthélemy"
+  },
+  {
+    "wb_a3": "BLR",
+    "country_name": "Belarus"
+  },
+  {
+    "wb_a3": "BLZ",
+    "country_name": "Belize"
+  },
+  {
+    "wb_a3": "BMN",
+    "country_name": "Middle East, North Africa, Afghanistan & Pakistan (IBRD only)"
+  },
+  {
+    "wb_a3": "BMU",
+    "country_name": "Bermuda"
+  },
+  {
+    "wb_a3": "BOL",
+    "country_name": "Bolivia"
+  },
+  {
+    "wb_a3": "BRA",
+    "country_name": "Brazil"
+  },
+  {
+    "wb_a3": "BRB",
+    "country_name": "Barbados"
+  },
+  {
+    "wb_a3": "BRN",
+    "country_name": "Brunei"
+  },
+  {
+    "wb_a3": "BSA",
+    "country_name": "South Asia (IBRD only)"
+  },
+  {
+    "wb_a3": "BSS",
+    "country_name": "Sub-Saharan Africa (IBRD only)"
+  },
+  {
+    "wb_a3": "BTN",
+    "country_name": "Bhutan"
+  },
+  {
+    "wb_a3": "BWA",
+    "country_name": "Botswana"
+  },
+  {
+    "wb_a3": "CAF",
+    "country_name": "Central African Republic"
+  },
+  {
+    "wb_a3": "CAM",
+    "country_name": "Central America (excluding high income)"
+  },
+  {
+    "wb_a3": "CAN",
+    "country_name": "Canada"
+  },
+  {
+    "wb_a3": "CAS",
+    "country_name": "Central Asia (excluding high income)"
+  },
+  {
+    "wb_a3": "CAT",
+    "country_name": "Central Asia and Turkiye"
+  },
+  {
+    "wb_a3": "CEB",
+    "country_name": "Central Europe and the Baltics"
+  },
+  {
+    "wb_a3": "CFR",
+    "country_name": "Central Africa (excluding high income)"
+  },
+  {
+    "wb_a3": "CHE",
+    "country_name": "Switzerland"
+  },
+  {
+    "wb_a3": "CHL",
+    "country_name": "Chile"
+  },
+  {
+    "wb_a3": "CHN",
+    "country_name": "People's Republic of China"
+  },
+  {
+    "wb_a3": "CIV",
+    "country_name": "Ivory Coast"
+  },
+  {
+    "wb_a3": "CMD",
+    "country_name": "Middle East"
+  },
+  {
+    "wb_a3": "CMR",
+    "country_name": "Cameroon"
+  },
+  {
+    "wb_a3": "CNA",
+    "country_name": "Central Asia"
+  },
+  {
+    "wb_a3": "COG",
+    "country_name": "Republic of the Congo"
+  },
+  {
+    "wb_a3": "COK",
+    "country_name": "Cook Islands"
+  },
+  {
+    "wb_a3": "COL",
+    "country_name": "Colombia"
+  },
+  {
+    "wb_a3": "COM",
+    "country_name": "Comoros"
+  },
+  {
+    "wb_a3": "CPV",
+    "country_name": "Cape Verde"
+  },
+  {
+    "wb_a3": "CRB",
+    "country_name": "Caribbean (excluding high income)"
+  },
+  {
+    "wb_a3": "CRI",
+    "country_name": "Costa Rica"
+  },
+  {
+    "wb_a3": "CSS",
+    "country_name": "Caribbean small states"
+  },
+  {
+    "wb_a3": "CUB",
+    "country_name": "Cuba"
+  },
+  {
+    "wb_a3": "CUW",
+    "country_name": "Curaçao"
+  },
+  {
+    "wb_a3": "CXR",
+    "country_name": "Australian Indian Ocean Territories"
+  },
+  {
+    "wb_a3": "CYM",
+    "country_name": "Cayman Islands"
+  },
+  {
+    "wb_a3": "CYP",
+    "country_name": "Cyprus"
+  },
+  {
+    "wb_a3": "CZE",
+    "country_name": "Czech Republic"
+  },
+  {
+    "wb_a3": "DAC",
+    "country_name": "Development Assistance Committee members"
+  },
+  {
+    "wb_a3": "DEA",
+    "country_name": "East Asia & Pacific (IDA total)"
+  },
+  {
+    "wb_a3": "DEC",
+    "country_name": "Europe & Central Asia (IDA total)"
+  },
+  {
+    "wb_a3": "DEU",
+    "country_name": "Germany"
+  },
+  {
+    "wb_a3": "DFS",
+    "country_name": "IDA countries classified as fragile situations"
+  },
+  {
+    "wb_a3": "DJI",
+    "country_name": "Djibouti"
+  },
+  {
+    "wb_a3": "DLA",
+    "country_name": "Latin America & Caribbean (IDA total)"
+  },
+  {
+    "wb_a3": "DMA",
+    "country_name": "Dominica"
+  },
+  {
+    "wb_a3": "DMN",
+    "country_name": "Middle East, North Africa, Afghanistan & Pakistan (IDA total)"
+  },
+  {
+    "wb_a3": "DNF",
+    "country_name": "IDA countries not classified as fragile situations"
+  },
+  {
+    "wb_a3": "DNK",
+    "country_name": "Denmark"
+  },
+  {
+    "wb_a3": "DOM",
+    "country_name": "Dominican Republic"
+  },
+  {
+    "wb_a3": "DSA",
+    "country_name": "South Asia (IDA total)"
+  },
+  {
+    "wb_a3": "DSS",
+    "country_name": "Sub-Saharan Africa (IDA total)"
+  },
+  {
+    "wb_a3": "DZA",
+    "country_name": "Algeria"
+  },
+  {
+    "wb_a3": "EAP",
+    "country_name": "East Asia & Pacific (excluding high income)"
+  },
+  {
+    "wb_a3": "EAR",
+    "country_name": "Early-demographic dividend"
+  },
+  {
+    "wb_a3": "EAS",
+    "country_name": "East Asia & Pacific"
+  },
+  {
+    "wb_a3": "ECA",
+    "country_name": "Europe & Central Asia (excluding high income)"
+  },
+  {
+    "wb_a3": "ECS",
+    "country_name": "Europe & Central Asia"
+  },
+  {
+    "wb_a3": "ECU",
+    "country_name": "Ecuador"
+  },
+  {
+    "wb_a3": "EER",
+    "country_name": "Eastern Europe (excluding high income)"
+  },
+  {
+    "wb_a3": "EGY",
+    "country_name": "Egypt"
+  },
+  {
+    "wb_a3": "EMU",
+    "country_name": "Euro area"
+  },
+  {
+    "wb_a3": "ERI",
+    "country_name": "Eritrea"
+  },
+  {
+    "wb_a3": "ESA",
+    "country_name": "East and Southern Africa (excluding high income)"
+  },
+  {
+    "wb_a3": "ESP",
+    "country_name": "Spain"
+  },
+  {
+    "wb_a3": "ESS",
+    "country_name": "Eastern Asia (excluding high income)"
+  },
+  {
+    "wb_a3": "EST",
+    "country_name": "Estonia"
+  },
+  {
+    "wb_a3": "ETH",
+    "country_name": "Ethiopia"
+  },
+  {
+    "wb_a3": "EUU",
+    "country_name": "European Union"
+  },
+  {
+    "wb_a3": "FCS",
+    "country_name": "Fragile and conflict affected situations"
+  },
+  {
+    "wb_a3": "FIN",
+    "country_name": "Finland"
+  },
+  {
+    "wb_a3": "FJI",
+    "country_name": "Fiji"
+  },
+  {
+    "wb_a3": "FLK",
+    "country_name": "Falkland Islands"
+  },
+  {
+    "wb_a3": "FRA",
+    "country_name": "France"
+  },
+  {
+    "wb_a3": "FRO",
+    "country_name": "Faroe Islands"
+  },
+  {
+    "wb_a3": "FSM",
+    "country_name": "Federated States of Micronesia"
+  },
+  {
+    "wb_a3": "FTI",
+    "country_name": "Global Partnership for Education"
+  },
+  {
+    "wb_a3": "GAB",
+    "country_name": "Gabon"
+  },
+  {
+    "wb_a3": "GBR",
+    "country_name": "United Kingdom"
+  },
+  {
+    "wb_a3": "GCC",
+    "country_name": "Gulf Cooperation Council"
+  },
+  {
+    "wb_a3": "GEO",
+    "country_name": "Georgia"
+  },
+  {
+    "wb_a3": "GGY",
+    "country_name": "Guernsey"
+  },
+  {
+    "wb_a3": "GHA",
+    "country_name": "Ghana"
+  },
+  {
+    "wb_a3": "GIN",
+    "country_name": "Guinea"
+  },
+  {
+    "wb_a3": "GMB",
+    "country_name": "The Gambia"
+  },
+  {
+    "wb_a3": "GNB",
+    "country_name": "Guinea-Bissau"
+  },
+  {
+    "wb_a3": "GNQ",
+    "country_name": "Equatorial Guinea"
+  },
+  {
+    "wb_a3": "GRC",
+    "country_name": "Greece"
+  },
+  {
+    "wb_a3": "GRD",
+    "country_name": "Grenada"
+  },
+  {
+    "wb_a3": "GRL",
+    "country_name": "Greenland"
+  },
+  {
+    "wb_a3": "GTM",
+    "country_name": "Guatemala"
+  },
+  {
+    "wb_a3": "GUM",
+    "country_name": "Guam"
+  },
+  {
+    "wb_a3": "GUY",
+    "country_name": "Guyana"
+  },
+  {
+    "wb_a3": "HIC",
+    "country_name": "High income"
+  },
+  {
+    "wb_a3": "HKG",
+    "country_name": "Hong Kong"
+  },
+  {
+    "wb_a3": "HMD",
+    "country_name": "Heard Island and McDonald Islands"
+  },
+  {
+    "wb_a3": "HND",
+    "country_name": "Honduras"
+  },
+  {
+    "wb_a3": "HPC",
+    "country_name": "Heavily indebted poor countries (HIPC)"
+  },
+  {
+    "wb_a3": "HRV",
+    "country_name": "Croatia"
+  },
+  {
+    "wb_a3": "HTI",
+    "country_name": "Haiti"
+  },
+  {
+    "wb_a3": "HUN",
+    "country_name": "Hungary"
+  },
+  {
+    "wb_a3": "IBB",
+    "country_name": "IBRD, including blend"
+  },
+  {
+    "wb_a3": "IBD",
+    "country_name": "IBRD only"
+  },
+  {
+    "wb_a3": "IBT",
+    "country_name": "IDA & IBRD total"
+  },
+  {
+    "wb_a3": "IDA",
+    "country_name": "IDA total"
+  },
+  {
+    "wb_a3": "IDB",
+    "country_name": "IDA blend"
+  },
+  {
+    "wb_a3": "IDN",
+    "country_name": "Indonesia"
+  },
+  {
+    "wb_a3": "IDX",
+    "country_name": "IDA only"
+  },
+  {
+    "wb_a3": "IFS",
+    "country_name": "IDA & IBRD countries classified as fragile situations"
+  },
+  {
+    "wb_a3": "IMY",
+    "country_name": "Isle of Man"
+  },
+  {
+    "wb_a3": "IND",
+    "country_name": "India"
+  },
+  {
+    "wb_a3": "INX",
+    "country_name": "Not classified"
+  },
+  {
+    "wb_a3": "IRL",
+    "country_name": "Ireland"
+  },
+  {
+    "wb_a3": "IRN",
+    "country_name": "Iran"
+  },
+  {
+    "wb_a3": "IRQ",
+    "country_name": "Iraq"
+  },
+  {
+    "wb_a3": "ISL",
+    "country_name": "Iceland"
+  },
+  {
+    "wb_a3": "ISR",
+    "country_name": "Israel"
+  },
+  {
+    "wb_a3": "ITA",
+    "country_name": "Italy"
+  },
+  {
+    "wb_a3": "JAM",
+    "country_name": "Jamaica"
+  },
+  {
+    "wb_a3": "JEY",
+    "country_name": "Jersey"
+  },
+  {
+    "wb_a3": "JOR",
+    "country_name": "Jordan"
+  },
+  {
+    "wb_a3": "JPN",
+    "country_name": "Japan"
+  },
+  {
+    "wb_a3": "KAZ",
+    "country_name": "Kazakhstan"
+  },
+  {
+    "wb_a3": "KEN",
+    "country_name": "Kenya"
+  },
+  {
+    "wb_a3": "KGZ",
+    "country_name": "Kyrgyzstan"
+  },
+  {
+    "wb_a3": "KHM",
+    "country_name": "Cambodia"
+  },
+  {
+    "wb_a3": "KIR",
+    "country_name": "Kiribati"
+  },
+  {
+    "wb_a3": "KNA",
+    "country_name": "Saint Kitts and Nevis"
+  },
+  {
+    "wb_a3": "KOR",
+    "country_name": "South Korea"
+  },
+  {
+    "wb_a3": "KSV",
+    "country_name": "Kosovo"
+  },
+  {
+    "wb_a3": "KWT",
+    "country_name": "Kuwait"
+  },
+  {
+    "wb_a3": "LAC",
+    "country_name": "Latin America & Caribbean (excluding high income)"
+  },
+  {
+    "wb_a3": "LAO",
+    "country_name": "Laos"
+  },
+  {
+    "wb_a3": "LBN",
+    "country_name": "Lebanon"
+  },
+  {
+    "wb_a3": "LBR",
+    "country_name": "Liberia"
+  },
+  {
+    "wb_a3": "LBY",
+    "country_name": "Libya"
+  },
+  {
+    "wb_a3": "LCA",
+    "country_name": "Saint Lucia"
+  },
+  {
+    "wb_a3": "LCN",
+    "country_name": "Latin America & Caribbean"
+  },
+  {
+    "wb_a3": "LDC",
+    "country_name": "Least developed countries: UN classification"
+  },
+  {
+    "wb_a3": "LIC",
+    "country_name": "Low income"
+  },
+  {
+    "wb_a3": "LIE",
+    "country_name": "Liechtenstein"
+  },
+  {
+    "wb_a3": "LKA",
+    "country_name": "Sri Lanka"
+  },
+  {
+    "wb_a3": "LLC",
+    "country_name": "Landlocked developing countries: UN classification"
+  },
+  {
+    "wb_a3": "LMC",
+    "country_name": "Lower middle income"
+  },
+  {
+    "wb_a3": "LMY",
+    "country_name": "Low & middle income"
+  },
+  {
+    "wb_a3": "LNX",
+    "country_name": "Not classified income group"
+  },
+  {
+    "wb_a3": "LSO",
+    "country_name": "Lesotho"
+  },
+  {
+    "wb_a3": "LTE",
+    "country_name": "Late-demographic dividend"
+  },
+  {
+    "wb_a3": "LTU",
+    "country_name": "Lithuania"
+  },
+  {
+    "wb_a3": "LUX",
+    "country_name": "Luxembourg"
+  },
+  {
+    "wb_a3": "LVA",
+    "country_name": "Latvia"
+  },
+  {
+    "wb_a3": "MAC",
+    "country_name": "Macau"
+  },
+  {
+    "wb_a3": "MAF",
+    "country_name": "Saint Martin"
+  },
+  {
+    "wb_a3": "MAR",
+    "country_name": "Morocco"
+  },
+  {
+    "wb_a3": "MCO",
+    "country_name": "Monaco"
+  },
+  {
+    "wb_a3": "MCT",
+    "country_name": "Middle East, Central Asia and Turkiye"
+  },
+  {
+    "wb_a3": "MDA",
+    "country_name": "Moldova"
+  },
+  {
+    "wb_a3": "MDE",
+    "country_name": "Middle East (excluding high income)"
+  },
+  {
+    "wb_a3": "MDG",
+    "country_name": "Madagascar"
+  },
+  {
+    "wb_a3": "MDV",
+    "country_name": "Maldives"
+  },
+  {
+    "wb_a3": "MEA",
+    "country_name": "Middle East, North Africa, Afghanistan & Pakistan"
+  },
+  {
+    "wb_a3": "MEX",
+    "country_name": "Mexico"
+  },
+  {
+    "wb_a3": "MHL",
+    "country_name": "Marshall Islands"
+  },
+  {
+    "wb_a3": "MIC",
+    "country_name": "Middle income"
+  },
+  {
+    "wb_a3": "MIX",
+    "country_name": "Middle income, excluding China & India"
+  },
+  {
+    "wb_a3": "MKD",
+    "country_name": "Republic of Macedonia"
+  },
+  {
+    "wb_a3": "MLI",
+    "country_name": "Mali"
+  },
+  {
+    "wb_a3": "MLT",
+    "country_name": "Malta"
+  },
+  {
+    "wb_a3": "MMR",
+    "country_name": "Myanmar"
+  },
+  {
+    "wb_a3": "MNA",
+    "country_name": "Middle East, North Africa, Afghanistan & Pakistan (excluding high income)"
+  },
+  {
+    "wb_a3": "MNE",
+    "country_name": "Montenegro"
+  },
+  {
+    "wb_a3": "MNG",
+    "country_name": "Mongolia"
+  },
+  {
+    "wb_a3": "MNP",
+    "country_name": "Northern Mariana Islands"
+  },
+  {
+    "wb_a3": "MOZ",
+    "country_name": "Mozambique"
+  },
+  {
+    "wb_a3": "MPA",
+    "country_name": "Middle East, Pakistan, and Afghanistan"
+  },
+  {
+    "wb_a3": "MRT",
+    "country_name": "Mauritania"
+  },
+  {
+    "wb_a3": "MSR",
+    "country_name": "Montserrat"
+  },
+  {
+    "wb_a3": "MUS",
+    "country_name": "Mauritius"
+  },
+  {
+    "wb_a3": "MWI",
+    "country_name": "Malawi"
+  },
+  {
+    "wb_a3": "MYS",
+    "country_name": "Malaysia"
+  },
+  {
+    "wb_a3": "NAC",
+    "country_name": "North America"
+  },
+  {
+    "wb_a3": "NAF",
+    "country_name": "North Africa"
+  },
+  {
+    "wb_a3": "NAM",
+    "country_name": "Namibia"
+  },
+  {
+    "wb_a3": "NCL",
+    "country_name": "New Caledonia"
+  },
+  {
+    "wb_a3": "NER",
+    "country_name": "Niger"
+  },
+  {
+    "wb_a3": "NFK",
+    "country_name": "Norfolk Island"
+  },
+  {
+    "wb_a3": "NGA",
+    "country_name": "Nigeria"
+  },
+  {
+    "wb_a3": "NIC",
+    "country_name": "Nicaragua"
+  },
+  {
+    "wb_a3": "NIU",
+    "country_name": "Niue"
+  },
+  {
+    "wb_a3": "NLD",
+    "country_name": "Netherlands"
+  },
+  {
+    "wb_a3": "NOC",
+    "country_name": "High income: non OECD"
+  },
+  {
+    "wb_a3": "NOR",
+    "country_name": "Norway"
+  },
+  {
+    "wb_a3": "NPL",
+    "country_name": "Nepal"
+  },
+  {
+    "wb_a3": "NRU",
+    "country_name": "Nauru"
+  },
+  {
+    "wb_a3": "NZL",
+    "country_name": "New Zealand"
+  },
+  {
+    "wb_a3": "OEC",
+    "country_name": "High income: OECD"
+  },
+  {
+    "wb_a3": "OED",
+    "country_name": "OECD members"
+  },
+  {
+    "wb_a3": "OMN",
+    "country_name": "Oman"
+  },
+  {
+    "wb_a3": "OSS",
+    "country_name": "Other small states"
+  },
+  {
+    "wb_a3": "PAC",
+    "country_name": "Pacific (excluding high income)"
+  },
+  {
+    "wb_a3": "PAK",
+    "country_name": "Pakistan"
+  },
+  {
+    "wb_a3": "PAN",
+    "country_name": "Panama"
+  },
+  {
+    "wb_a3": "PCN",
+    "country_name": "Pitcairn Islands"
+  },
+  {
+    "wb_a3": "PER",
+    "country_name": "Peru"
+  },
+  {
+    "wb_a3": "PHL",
+    "country_name": "Philippines"
+  },
+  {
+    "wb_a3": "PLW",
+    "country_name": "Palau"
+  },
+  {
+    "wb_a3": "PNG",
+    "country_name": "Papua New Guinea"
+  },
+  {
+    "wb_a3": "POL",
+    "country_name": "Poland"
+  },
+  {
+    "wb_a3": "PRE",
+    "country_name": "Pre-demographic dividend"
+  },
+  {
+    "wb_a3": "PRI",
+    "country_name": "Puerto Rico"
+  },
+  {
+    "wb_a3": "PRK",
+    "country_name": "North Korea"
+  },
+  {
+    "wb_a3": "PRT",
+    "country_name": "Portugal"
+  },
+  {
+    "wb_a3": "PRY",
+    "country_name": "Paraguay"
+  },
+  {
+    "wb_a3": "PSE",
+    "country_name": "Palestine"
+  },
+  {
+    "wb_a3": "PSS",
+    "country_name": "Pacific island small states"
+  },
+  {
+    "wb_a3": "PST",
+    "country_name": "Post-demographic dividend"
+  },
+  {
+    "wb_a3": "PYF",
+    "country_name": "French Polynesia"
+  },
+  {
+    "wb_a3": "QAT",
+    "country_name": "Qatar"
+  },
+  {
+    "wb_a3": "ROM",
+    "country_name": "Romania"
+  },
+  {
+    "wb_a3": "RUS",
+    "country_name": "Russia"
+  },
+  {
+    "wb_a3": "RWA",
+    "country_name": "Rwanda"
+  },
+  {
+    "wb_a3": "SAM",
+    "country_name": "South America (excluding high income)"
+  },
+  {
+    "wb_a3": "SAS",
+    "country_name": "South Asia"
+  },
+  {
+    "wb_a3": "SAU",
+    "country_name": "Saudi Arabia"
+  },
+  {
+    "wb_a3": "SAX",
+    "country_name": "South Asia, excluding India"
+  },
+  {
+    "wb_a3": "SDC",
+    "country_name": "Southern African Development Community"
+  },
+  {
+    "wb_a3": "SDN",
+    "country_name": "Sudan"
+  },
+  {
+    "wb_a3": "SEA",
+    "country_name": "South-Eastern Asia (excluding high income)"
+  },
+  {
+    "wb_a3": "SEN",
+    "country_name": "Senegal"
+  },
+  {
+    "wb_a3": "SER",
+    "country_name": "Southern Europe (excluding high income)"
+  },
+  {
+    "wb_a3": "SGP",
+    "country_name": "Singapore"
+  },
+  {
+    "wb_a3": "SGS",
+    "country_name": "South Georgia and the South Sandwich Islands"
+  },
+  {
+    "wb_a3": "SHN",
+    "country_name": "Saint Helena"
+  },
+  {
+    "wb_a3": "SID",
+    "country_name": "Small island developing states: UN classification"
+  },
+  {
+    "wb_a3": "SLB",
+    "country_name": "Solomon Islands"
+  },
+  {
+    "wb_a3": "SLE",
+    "country_name": "Sierra Leone"
+  },
+  {
+    "wb_a3": "SLV",
+    "country_name": "El Salvador"
+  },
+  {
+    "wb_a3": "SMR",
+    "country_name": "San Marino"
+  },
+  {
+    "wb_a3": "SOM",
+    "country_name": "Somalia"
+  },
+  {
+    "wb_a3": "SPM",
+    "country_name": "Saint Pierre and Miquelon"
+  },
+  {
+    "wb_a3": "SRB",
+    "country_name": "Serbia"
+  },
+  {
+    "wb_a3": "SSA",
+    "country_name": "Sub-Saharan Africa (excluding high income)"
+  },
+  {
+    "wb_a3": "SSB",
+    "country_name": "Small states (IBRD only)"
+  },
+  {
+    "wb_a3": "SSD",
+    "country_name": "South Sudan"
+  },
+  {
+    "wb_a3": "SSF",
+    "country_name": "Sub-Saharan Africa"
+  },
+  {
+    "wb_a3": "SSH",
+    "country_name": "Small states (high income only)"
+  },
+  {
+    "wb_a3": "SSI",
+    "country_name": "Small states (IDA only)"
+  },
+  {
+    "wb_a3": "SST",
+    "country_name": "Small states"
+  },
+  {
+    "wb_a3": "STP",
+    "country_name": "São Tomé and Príncipe"
+  },
+  {
+    "wb_a3": "SUR",
+    "country_name": "Suriname"
+  },
+  {
+    "wb_a3": "SVK",
+    "country_name": "Slovakia"
+  },
+  {
+    "wb_a3": "SVN",
+    "country_name": "Slovenia"
+  },
+  {
+    "wb_a3": "SWE",
+    "country_name": "Sweden"
+  },
+  {
+    "wb_a3": "SWZ",
+    "country_name": "eSwatini"
+  },
+  {
+    "wb_a3": "SXM",
+    "country_name": "Sint Maarten"
+  },
+  {
+    "wb_a3": "SYC",
+    "country_name": "Seychelles"
+  },
+  {
+    "wb_a3": "SYR",
+    "country_name": "Syria"
+  },
+  {
+    "wb_a3": "TCA",
+    "country_name": "Turks and Caicos Islands"
+  },
+  {
+    "wb_a3": "TCD",
+    "country_name": "Chad"
+  },
+  {
+    "wb_a3": "TEA",
+    "country_name": "East Asia & Pacific (IDA & IBRD)"
+  },
+  {
+    "wb_a3": "TEC",
+    "country_name": "Europe & Central Asia (IDA & IBRD)"
+  },
+  {
+    "wb_a3": "TGO",
+    "country_name": "Togo"
+  },
+  {
+    "wb_a3": "THA",
+    "country_name": "Thailand"
+  },
+  {
+    "wb_a3": "TJK",
+    "country_name": "Tajikistan"
+  },
+  {
+    "wb_a3": "TKM",
+    "country_name": "Turkmenistan"
+  },
+  {
+    "wb_a3": "TLA",
+    "country_name": "Latin America & Caribbean (IDA & IBRD)"
+  },
+  {
+    "wb_a3": "TMN",
+    "country_name": "Middle East, North Africa, Afghanistan & Pakistan (IDA & IBRD)"
+  },
+  {
+    "wb_a3": "TMP",
+    "country_name": "East Timor"
+  },
+  {
+    "wb_a3": "TON",
+    "country_name": "Tonga"
+  },
+  {
+    "wb_a3": "TSA",
+    "country_name": "South Asia (IDA & IBRD)"
+  },
+  {
+    "wb_a3": "TSS",
+    "country_name": "Sub-Saharan Africa (IDA & IBRD)"
+  },
+  {
+    "wb_a3": "TTO",
+    "country_name": "Trinidad and Tobago"
+  },
+  {
+    "wb_a3": "TUN",
+    "country_name": "Tunisia"
+  },
+  {
+    "wb_a3": "TUR",
+    "country_name": "Turkey"
+  },
+  {
+    "wb_a3": "TZA",
+    "country_name": "Tanzania"
+  },
+  {
+    "wb_a3": "UGA",
+    "country_name": "Uganda"
+  },
+  {
+    "wb_a3": "UKR",
+    "country_name": "Ukraine"
+  },
+  {
+    "wb_a3": "UMC",
+    "country_name": "Upper middle income"
+  },
+  {
+    "wb_a3": "URY",
+    "country_name": "Uruguay"
+  },
+  {
+    "wb_a3": "USA",
+    "country_name": "United States of America"
+  },
+  {
+    "wb_a3": "UZB",
+    "country_name": "Uzbekistan"
+  },
+  {
+    "wb_a3": "VCT",
+    "country_name": "Saint Vincent and the Grenadines"
+  },
+  {
+    "wb_a3": "VEN",
+    "country_name": "Venezuela"
+  },
+  {
+    "wb_a3": "VGB",
+    "country_name": "British Virgin Islands"
+  },
+  {
+    "wb_a3": "VIR",
+    "country_name": "United States Virgin Islands"
+  },
+  {
+    "wb_a3": "VNM",
+    "country_name": "Vietnam"
+  },
+  {
+    "wb_a3": "VUT",
+    "country_name": "Vanuatu"
+  },
+  {
+    "wb_a3": "WA1",
+    "country_name": "ESCWA: Gulf Cooperation Council (GCC)"
+  },
+  {
+    "wb_a3": "WA2",
+    "country_name": "ESCWA: Mashreq subregion"
+  },
+  {
+    "wb_a3": "WA3",
+    "country_name": "ESCWA: Maghreb subregion"
+  },
+  {
+    "wb_a3": "WA4",
+    "country_name": "ESCWA: Arab LDCs subregion"
+  },
+  {
+    "wb_a3": "WAF",
+    "country_name": "West Africa (excluding high income)"
+  },
+  {
+    "wb_a3": "WLD",
+    "country_name": "World"
+  },
+  {
+    "wb_a3": "WLF",
+    "country_name": "Wallis and Futuna"
+  },
+  {
+    "wb_a3": "WSM",
+    "country_name": "Samoa"
+  },
+  {
+    "wb_a3": "YEM",
+    "country_name": "Yemen"
+  },
+  {
+    "wb_a3": "ZAF",
+    "country_name": "South Africa"
+  },
+  {
+    "wb_a3": "ZAR",
+    "country_name": "Democratic Republic of the Congo"
+  },
+  {
+    "wb_a3": "ZMB",
+    "country_name": "Zambia"
+  },
+  {
+    "wb_a3": "ZWE",
+    "country_name": "Zimbabwe"
+  }
+]
