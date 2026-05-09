@@ -55,6 +55,21 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
         tool_name: str = result.get("tool_name", "")
         output: Any = result.get("output")
 
+        # LangChain wraps MCP tool outputs in a list of content blocks:
+        #   [{"type": "text", "text": "{...json...}"}]
+        # Unwrap to the text payload before any further normalisation.
+        if isinstance(output, list):
+            text_blocks = [
+                block.get("text", "") if isinstance(block, dict) else str(block)
+                for block in output
+                if (isinstance(block, dict) and block.get("type") == "text")
+                or isinstance(block, str)
+            ]
+            output = "".join(text_blocks).strip() or None
+
+        if output is None:
+            continue
+
         # The MCP compact serializer may return a JSON string rather than a
         # pre-parsed dict. Normalise to dict before further processing.
         if isinstance(output, str):
@@ -74,7 +89,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
             )
             continue
 
-        logger.debug("[synthesize_card] tool=%s output_keys=%s", tool_name, list(output.keys())[:8])
+        logger.info("[synthesize_card] tool=%s output_keys=%s", tool_name, list(output.keys())[:8])
 
         # ── trend card: data360_summarize_data ──────────────────────────────
         if tool_name == "data360_summarize_data":
