@@ -830,7 +830,6 @@ const PurePreviewMessage = ({
   onFollowUpPopulateInput,
   onScrollToMessageId,
   usageOverride,
-  quickAnswerCard = null,
 }: {
   chatId: string;
   message: ChatMessage;
@@ -853,8 +852,6 @@ const PurePreviewMessage = ({
   onScrollToMessageId?: (messageId: string) => void;
   /** Per-message usage from lastContext.byMessageId or stream for last message until refetch */
   usageOverride?: AppUsage;
-  /** Quick-answer card payload synthesised by the backend quick_answer_node */
-  quickAnswerCard?: QuickAnswerCardData | null;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const { setArtifact } = useArtifact();
@@ -864,6 +861,12 @@ const PurePreviewMessage = ({
     .map((p) => p.text)
     .join("\n");
   const followUps = parseFollowUps(assistantText);
+
+  // Extract quick-answer card from message.parts — persisted through DB so
+  // it survives page refreshes and chat history navigation.
+  const quickAnswerCard = (message.parts.find(
+    (p) => p.type === "data-quickAnswerCard",
+  ) as { type: "data-quickAnswerCard"; data: QuickAnswerCardData } | undefined)?.data ?? null;
 
   const attachmentsFromMessage = message.parts.filter(
     (part) => part.type === "file",
@@ -1255,9 +1258,6 @@ export const PreviewMessage = memo(
       return false;
     }
     if (prevProps.onScrollToMessageId !== nextProps.onScrollToMessageId) {
-      return false;
-    }
-    if (prevProps.quickAnswerCard !== nextProps.quickAnswerCard) {
       return false;
     }
 

@@ -748,14 +748,14 @@ class _SseBridgeState:
                 TextEndPart(id=blocked_id),
             ):
                 chunks.append(part.to_sse().encode("utf-8"))
-        # Emit data-quick-answer-card payload for the frontend card renderer.
-        # Only present when quick_answer_node ran and recognised an aggregation tool.
-        # Type must start with 'data-' to satisfy DataPart validation.
+        # Emit data-quickAnswerCard payload for the frontend card renderer.
+        # Type matches the CustomUIDataTypes key 'quickAnswerCard' with the 'data-' prefix
+        # that the AI SDK uses to map DataParts to message.parts — enabling persistence.
         if isinstance(self._final_graph_state, dict):
             card = self._final_graph_state.get("quick_answer_card")
             if card and isinstance(card, dict):
                 chunks.append(
-                    DataPart(type="data-quick-answer-card", data=card).to_sse().encode("utf-8")
+                    DataPart(type="data-quickAnswerCard", data=card).to_sse().encode("utf-8")
                 )
         finish_metadata: dict = {}
         if self._usage_accum:

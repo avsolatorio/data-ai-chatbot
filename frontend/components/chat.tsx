@@ -27,7 +27,7 @@ import { getApiUrl } from "@/lib/api-client";
 import { getBasePath } from "@/lib/config";
 import type { DBMessage, Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
-import type { Attachment, ChatMessage, QuickAnswerCardData } from "@/lib/types";
+import type { Attachment, ChatMessage } from "@/lib/types";
 import {
   type AppUsage,
   aggregateUsage,
@@ -108,28 +108,12 @@ export function Chat({
   // Note: We keep streaming parts visible indefinitely - they're saved by backend for page refresh
   const isWaitingForSavedPartsRef = useRef(false);
   const [isWaitingForSavedParts, setIsWaitingForSavedParts] = useState(false);
-
-  // Quick-answer card payloads keyed by message ID.
-  // Populated when the backend emits a "quick-answer-card" SSE data event.
-  // useState (not useRef) so that receiving a card triggers a re-render and
-  // Messages receives the updated map as a new prop value.
-  const [quickAnswerCards, setQuickAnswerCards] = useState<
-    Map<string, QuickAnswerCardData>
-  >(new Map());
-  // Stable ref for latest messages — avoids stale closure in onData callback.
-  // Initialised empty; kept in sync via the useEffect below.
-  const messagesRef = useRef<typeof messages>([]);
-
   // lastContext is the canonical usage source (latest + byMessageId). We keep it in state so we can
   // update it after refetch when a stream completes; otherwise we only have the initial load value.
   const [lastContextState, setLastContextState] = useState<
     LastContext | null | undefined
   >(() => lastContext ?? undefined);
 
-  // Keep messagesRef in sync so onData callback always sees the latest messages.
-  useEffect(() => {
-    messagesRef.current = messages;
-  });
 
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
@@ -241,19 +225,9 @@ export function Chat({
         return;
       }
 
-      // Handle data-quick-answer-card events — store keyed by current message ID
-      if (part.type === "data-quick-answer-card" && part.data != null) {
-        const currentMessages = messagesRef.current;
-        const lastMessage = currentMessages[currentMessages.length - 1];
-        if (lastMessage) {
-          setQuickAnswerCards((prev) => {
-            const next = new Map(prev);
-            next.set(lastMessage.id, part.data as QuickAnswerCardData);
-            return next;
-          });
-        }
-        return;
-      }
+      // data-quickAnswerCard — let the AI SDK process this natively.
+      // It will store it in message.parts as a typed part, which is saved to the
+      // DB and reloaded with chat history so the card survives page refreshes.
 
       // Handle data-stage events (processing stage: interpreting / retrieving / generating)
       if (
@@ -690,7 +664,6 @@ export function Chat({
               messages={messages}
               usageByMessageId={usageByMessageId}
               onFollowUpPopulateInput={onFollowUpPopulateInput}
-              quickAnswerCards={quickAnswerCards}
               regenerate={regenerate}
               selectedModelId={initialChatModel}
               sendMessage={sendMessage}

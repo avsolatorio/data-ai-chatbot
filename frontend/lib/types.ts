@@ -78,6 +78,9 @@ export type CustomUIDataTypes = {
   clear: null;
   finish: null;
   usage: AppUsage;
+  // Quick-answer visual card — persisted as a message part so it survives
+  // page reloads and chat history navigation.
+  quickAnswerCard: QuickAnswerCardData;
 };
 
 export type ChatMessage = UIMessage<
