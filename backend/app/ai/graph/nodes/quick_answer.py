@@ -630,6 +630,6 @@ async def quick_answer_node(state: ChatPipelineState) -> dict:
     return {
         "research_packet": final_content,
         "research_tool_results": tool_results,
-        "response_mode": "quick",
+        "response_mode": "quick" if card else "full",
         "quick_answer_card": card,
     }

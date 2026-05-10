@@ -513,6 +513,10 @@ WHEN INFORMATION IS MISSING:
 - If the RAW TOOL RESULTS contain a "not available" entry for a requested year with
   a nearby year's value alongside it: clearly state the requested year had no data,
   report the nearest year's value, and optionally offer to check alternatives.
+- If you are asked to compare multiple countries, but the RAW TOOL RESULTS omit one or more 
+  of those countries (e.g., they are missing from the `rankings` array), you MUST explicitly 
+  state that the comparison could not be completed because data was unavailable for the 
+  missing country, and ask the user how they would like to proceed.
 - If the question is outside supported data scope, say so clearly and suggest a refinement.
 - **NEVER** guess numbers, indicator IDs, coverage, or tool outputs.
 - **NEVER** fabricate or infer numeric values. If data are unavailable, say so.
