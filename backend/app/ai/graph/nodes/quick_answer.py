@@ -337,9 +337,9 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
 
             logger.info("[synthesize_card] compare_countries snapshot: %s", snapshot)
 
-            if len(rankings) == 0:
+            if len(rankings) < 2:
                 logger.info(
-                    "[synthesize_card] compare_countries skipped: len(rankings)=%d < 1",
+                    "[synthesize_card] compare_countries skipped: len(rankings)=%d < 2",
                     len(rankings),
                 )
                 continue
@@ -362,28 +362,15 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
 
             logger.info("[synthesize_card] compare_countries entries: %s", entries)
 
-            if len(entries) == 0 or entries[0].get("value") is None:
+            if len(entries) < 2 or entries[0].get("value") is None:
                 logger.info("[synthesize_card] compare_countries skipped: entries check failed")
                 continue
-
-            if len(entries) == 1:
-                return {
-                    "card_type": "single_fact",
-                    "indicator_name": indicator_name,
-                    "country_name": entries[0].get("country_name")
-                    or entries[0].get("ref_area")
-                    or "",
-                    "value": entries[0].get("value"),
-                    "year": year,
-                    "unit": unit,
-                    "claim_id": entries[0].get("claim_id", ""),
-                }
 
             # Delta between top and bottom of the comparison set
             top_val = entries[0].get("value")
             bottom_val = entries[-1].get("value")
             delta = None
-            if len(entries) > 1 and top_val is not None and bottom_val is not None:
+            if top_val is not None and bottom_val is not None:
                 try:
                     delta = float(top_val) - float(bottom_val)
                 except (TypeError, ValueError):
