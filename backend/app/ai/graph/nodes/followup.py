@@ -84,6 +84,26 @@ async def followup_node(state: ChatPipelineState) -> dict:
             HumanMessage(content="[RESEARCH FINDINGS SUMMARY]\n" + research_packet[:1000])
         ]
 
+    # Inject quick-answer card context so suggestions are tailored to the card type.
+    quick_answer_card: dict | None = state.get("quick_answer_card")
+    if quick_answer_card:
+        card_type = quick_answer_card.get("card_type", "")
+        indicator = quick_answer_card.get("indicator_name", "")
+        country = quick_answer_card.get("country_name", "")
+        earliest_year = quick_answer_card.get("earliest_year", "")
+        latest_year = quick_answer_card.get("latest_year", "")
+        year = quick_answer_card.get("year", "")
+        card_hint_parts = [f"[QUICK ANSWER CARD CONTEXT]\ncardType={card_type}"]
+        if indicator:
+            card_hint_parts.append(f"indicator={indicator}")
+        if country:
+            card_hint_parts.append(f"country={country}")
+        if card_type == "trend" and earliest_year and latest_year:
+            card_hint_parts.append(f"timeRange={earliest_year}–{latest_year}")
+        elif year:
+            card_hint_parts.append(f"year={year}")
+        history = history + [HumanMessage(content="\n".join(card_hint_parts))]
+
     messages: list[BaseMessage] = trim_for_node(
         [SystemMessage(content=system_prompt)] + history,
         node="followup",

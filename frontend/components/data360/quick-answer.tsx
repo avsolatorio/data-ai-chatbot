@@ -18,6 +18,7 @@
 "use client";
 
 import { ClaimMark } from "@pcn-js/ui";
+import type { Data360VizToolResult } from "@data360/tool-types";
 import { ArrowDown, ArrowRight, ArrowUp, Minus } from "lucide-react";
 import type {
   ComparisonCard,
@@ -27,6 +28,7 @@ import type {
   TrendGroupEntry,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ChartPreview } from "@/components/data360/chart-preview";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -119,14 +121,36 @@ function CardWrapper({ variant, children, className }: CardWrapperProps) {
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Returns null for bare ISO codes (e.g. "KEN", "GHA") so callers can skip rendering them. */
+function displayName(name: string | null | undefined): string | null {
+  if (!name) return null;
+  // Suppress 2-3 char all-uppercase codes like "KEN", "GH", "JPN"
+  if (/^[A-Z]{2,3}$/.test(name.trim())) return null;
+  return name;
+}
+
+// ---------------------------------------------------------------------------
 // Sub-label / indicator name
 // ---------------------------------------------------------------------------
 
-function IndicatorLabel({ name, year }: { name: string; year?: string | number | null }) {
+function IndicatorLabel({
+  name,
+  year,
+  geo,
+}: {
+  name: string;
+  year?: string | number | null;
+  geo?: string | null;
+}) {
   if (!name) return null;
   return (
-    <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase mb-1">
-      {name}{year ? ` · ${year}` : ""}
+    <p className="text-muted-foreground text-sm font-medium mb-1">
+      {name}
+      {geo && <span className="opacity-50"> · {geo}</span>}
+      {year ? <span className="opacity-60"> · {year}</span> : ""}
     </p>
   );
 }
@@ -145,21 +169,36 @@ function SingleFactCardRenderer({
   const isHighlight = variant === "highlight";
   return (
     <CardWrapper variant={variant}>
-      {card.country_name && (
-        <p className={cn(
-          "font-semibold mb-0.5",
-          isHighlight ? "text-sm text-foreground" : "text-base text-foreground/80",
-        )}>
-          {card.country_name}
+      {isHighlight ? (
+        <>
+          {displayName(card.country_name) && (
+            <p className="font-semibold mb-0.5 text-sm text-foreground">
+              {displayName(card.country_name)}
+            </p>
+          )}
+          <IndicatorLabel
+            name={card.indicator_name}
+            geo={displayName(card.country_name) ? null : card.country_name}
+            year={card.year}
+          />
+        </>
+      ) : (
+        <p className="text-lg text-muted-foreground mb-3 font-medium">
+          {card.indicator_name}
+          {displayName(card.country_name)
+            ? ` in ${displayName(card.country_name)}`
+            : card.country_name
+              ? ` · ${card.country_name}`
+              : ""}
+          {card.year ? ` (${card.year})` : ""}
         </p>
       )}
-      <IndicatorLabel name={card.indicator_name} year={card.year} />
       <div className={cn(
         "font-bold leading-none tracking-tight",
-        isHighlight ? "text-4xl mt-2" : "text-5xl mt-1",
+        isHighlight ? "text-4xl mt-2" : "text-6xl mt-1 text-foreground",
       )}>
         {card.claim_id ? (
-          <ClaimMark policy={{ type: "rounded", decimals: 2 }} id={card.claim_id}>
+          <ClaimMark policy={{ type: "tolerance", tolerance: 0.005 }} id={card.claim_id}>
             {fmt(card.value)}
           </ClaimMark>
         ) : (
@@ -196,12 +235,19 @@ function ComparisonCardRenderer({
 
   return (
     <CardWrapper variant={variant}>
-      <IndicatorLabel name={card.indicator_name} year={card.year} />
+      {isHighlight ? (
+        <IndicatorLabel name={card.indicator_name} year={card.year} />
+      ) : (
+        <p className="text-lg text-muted-foreground mb-3 font-medium">
+          {card.indicator_name}
+          {card.year ? ` (${card.year})` : ""}
+        </p>
+      )}
       {/* Delta row */}
       {delta !== null && (
         <div className={cn(
           "font-bold leading-none tracking-tight",
-          isHighlight ? "text-4xl mt-2 mb-3" : "text-5xl mt-1 mb-4",
+          isHighlight ? "text-4xl mt-2 mb-1" : "text-6xl mt-1 mb-2 text-foreground",
         )}>
           <span className={delta >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500 dark:text-rose-400"}>
             {delta >= 0 ? "+" : ""}{fmt(delta)}
@@ -213,35 +259,49 @@ function ComparisonCardRenderer({
           )}
         </div>
       )}
+      {delta !== null && (
+        <p className="text-xs text-muted-foreground mb-3">
+          difference between{" "}
+          <span className="font-medium">{card.entries[0]?.country_name || card.entries[0]?.ref_area}</span>
+          {" and "}
+          <span className="font-medium">{card.entries[1]?.country_name || card.entries[1]?.ref_area}</span>
+        </p>
+      )}
       {/* Country rows */}
-      <div className="flex flex-col gap-2 mt-1">
-        {card.entries.map((entry) => (
+      <div className="flex flex-col gap-2">
+        {card.entries.map((entry, i) => (
           <div
             key={entry.ref_area}
-            className="flex items-center justify-between gap-4"
+            className={cn(
+              "flex items-center justify-between gap-4 rounded-lg px-3 py-2",
+              i === 0
+                ? "bg-muted/50 dark:bg-muted/30"
+                : "bg-transparent",
+            )}
           >
-            <span className="text-sm font-medium text-foreground/80 min-w-0 truncate">
+            <span className={cn(
+              "text-sm min-w-0 truncate",
+              i === 0 ? "font-semibold text-foreground" : "font-medium text-foreground/70",
+            )}>
               {entry.country_name || entry.ref_area}
             </span>
-            <span className="text-sm font-semibold tabular-nums shrink-0">
+            <span className={cn(
+              "text-sm tabular-nums shrink-0",
+              i === 0 ? "font-bold" : "font-semibold",
+            )}>
               {entry.claim_id ? (
-                <ClaimMark policy={{ type: "rounded", decimals: 2 }} id={entry.claim_id}>
-                  {fmt(entry.value)} {card.unit}
+                <ClaimMark policy={{ type: "tolerance", tolerance: 0.005 }} id={entry.claim_id}>
+                  {typeof entry.value === "number"
+                    ? entry.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                    : fmt(entry.value)}{card.unit ? ` ${card.unit}` : ""}
                 </ClaimMark>
               ) : (
-                <>{fmt(entry.value)} {card.unit}</>
+                <>{fmt(entry.value)}{card.unit ? ` ${card.unit}` : ""}</>
               )}
             </span>
           </div>
         ))}
       </div>
-      {card.entries.length === 2 && (
-        <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
-          <span className="font-medium">{card.entries[0].country_name || card.entries[0].ref_area}</span>
-          <ArrowRight className="size-3" />
-          <span className="font-medium">{card.entries[1].country_name || card.entries[1].ref_area}</span>
-        </div>
-      )}
     </CardWrapper>
   );
 }
@@ -255,14 +315,14 @@ function TrendGroupRow({ group, unit }: { group: TrendGroupEntry; unit: string }
     <div className="flex flex-col gap-1 rounded-lg border border-border/40 bg-background/60 p-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-foreground">
-          {group.ref_area_name || group.ref_area}
+          {displayName(group.ref_area_name || group.ref_area) ?? group.ref_area}
         </span>
         <TrendBadge direction={group.trend_direction} pct={group.pct_change} />
       </div>
       <div className="flex items-baseline gap-2 mt-0.5">
         <span className="text-2xl font-bold tracking-tight">
           {group.latest_claim_id ? (
-            <ClaimMark policy={{ type: "rounded", decimals: 2 }} id={group.latest_claim_id}>
+            <ClaimMark policy={{ type: "tolerance", tolerance: 0.005 }} id={group.latest_claim_id}>
               {fmt(group.latest_value)}
             </ClaimMark>
           ) : (
@@ -275,7 +335,7 @@ function TrendGroupRow({ group, unit }: { group: TrendGroupEntry; unit: string }
         <p className="text-xs text-muted-foreground">
           From{" "}
           {group.earliest_claim_id ? (
-            <ClaimMark policy={{ type: "rounded", decimals: 2 }} id={group.earliest_claim_id}>
+            <ClaimMark policy={{ type: "tolerance", tolerance: 0.005 }} id={group.earliest_claim_id}>
               {fmt(group.earliest_value)}
             </ClaimMark>
           ) : (
@@ -325,26 +385,40 @@ function TrendCardRenderer({
 
   return (
     <CardWrapper variant={variant}>
-      {card.country_name && (
-        <p className={cn(
-          "font-semibold mb-0.5",
-          isHighlight ? "text-sm text-foreground" : "text-base text-foreground/80",
-        )}>
-          {card.country_name}
+      {isHighlight ? (
+        <>
+          {displayName(card.country_name) && (
+            <p className="font-semibold mb-0.5 text-sm text-foreground">
+              {displayName(card.country_name)}
+            </p>
+          )}
+          <IndicatorLabel
+            name={card.indicator_name}
+            geo={displayName(card.country_name) ? null : card.country_name}
+            year={
+              card.earliest_year && card.latest_year
+                ? `${card.earliest_year}–${card.latest_year}`
+                : undefined
+            }
+          />
+        </>
+      ) : (
+        <p className="text-lg text-muted-foreground mb-3 font-medium">
+          {card.indicator_name}
+          {displayName(card.country_name)
+            ? ` in ${displayName(card.country_name)}`
+            : card.country_name
+              ? ` · ${card.country_name}`
+              : ""}
+          {card.earliest_year && card.latest_year
+            ? ` (${card.earliest_year}–${card.latest_year})`
+            : ""}
         </p>
       )}
-      <IndicatorLabel
-        name={card.indicator_name}
-        year={
-          card.earliest_year && card.latest_year
-            ? `${card.earliest_year}–${card.latest_year}`
-            : undefined
-        }
-      />
       {/* Big change number */}
       <div className={cn(
         "font-bold leading-none tracking-tight",
-        isHighlight ? "text-4xl mt-2" : "text-5xl mt-1",
+        isHighlight ? "text-4xl mt-2" : "text-6xl mt-1",
         changePct !== null && changePct >= 0
           ? "text-emerald-600 dark:text-emerald-400"
           : "text-rose-500 dark:text-rose-400",
@@ -371,22 +445,30 @@ function TrendCardRenderer({
         <p className="mt-2 text-sm text-muted-foreground">
           From{" "}
           {card.earliest_claim_id ? (
-            <ClaimMark policy={{ type: "rounded", decimals: 2 }} id={card.earliest_claim_id}>
-              {fmt(card.earliest_value)} {card.unit}
+            <ClaimMark policy={{ type: "tolerance", tolerance: 0.005 }} id={card.earliest_claim_id}>
+              {fmt(card.earliest_value)}
             </ClaimMark>
           ) : (
-            <>{fmt(card.earliest_value)} {card.unit}</>
-          )}{" "}
+            fmt(card.earliest_value)
+          )}{card.unit ? ` ${card.unit}` : ""}{" "}
           ({card.earliest_year}) to{" "}
           {card.latest_claim_id ? (
-            <ClaimMark policy={{ type: "rounded", decimals: 2 }} id={card.latest_claim_id}>
-              {fmt(card.latest_value)} {card.unit}
+            <ClaimMark policy={{ type: "tolerance", tolerance: 0.005 }} id={card.latest_claim_id}>
+              {fmt(card.latest_value)}
             </ClaimMark>
           ) : (
-            <>{fmt(card.latest_value)} {card.unit}</>
-          )}{" "}
+            fmt(card.latest_value)
+          )}{card.unit ? ` ${card.unit}` : ""}{" "}
           ({card.latest_year})
         </p>
+      )}
+      {/* WBG-themed line chart — only rendered when the synthesizer attached a viz_url */}
+      {card.viz_url && (
+        <div className="mt-4 -mx-1">
+          <ChartPreview
+            toolResult={{ url: card.viz_url, error: null } as Data360VizToolResult}
+          />
+        </div>
       )}
     </CardWrapper>
   );

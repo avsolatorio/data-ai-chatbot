@@ -229,6 +229,8 @@ export type TrendCard = {
   latest_claim_id: string;
   earliest_claim_id: string;
   groups: TrendGroupEntry[];
+  /** WBG-themed Vega-Lite chart URL, injected by the synthesizer via data360_get_viz_spec. */
+  viz_url?: string | null;
 };
 
 /** A ranked-comparison entry within a comparison card. */

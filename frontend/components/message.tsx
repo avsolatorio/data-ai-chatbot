@@ -1039,10 +1039,13 @@ const PurePreviewMessage = ({
                   />
                 )}
 
-                {/* Quick-answer highlight card — rendered above the narrator prose */}
+                {/* Quick-answer card — typographic for single facts, highlight for comparison/trend */}
                 {message.role === "assistant" && quickAnswerCard != null && (
                   <div className="mb-2">
-                    <QuickAnswerCard card={quickAnswerCard} variant="highlight" />
+                    <QuickAnswerCard
+                      card={quickAnswerCard}
+                      variant={quickAnswerCard.card_type === "single_fact" ? "typographic" : "highlight"}
+                    />
                   </div>
                 )}
 

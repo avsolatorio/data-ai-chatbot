@@ -7,11 +7,13 @@ import {
   compareCountriesExtractor,
   rankCountriesExtractor,
   summarizeDataExtractor,
+  getDataExtractor,
 } from "./aggregation-claim-extractors";
 
 const DATA360_RANK_TOOL = "data360_rank_countries";
 const DATA360_COMPARE_TOOL = "data360_compare_countries";
 const DATA360_SUMMARIZE_TOOL = "data360_summarize_data";
+const DATA360_GET_DATA_TOOL = "data360_get_data";
 
 function AggregationExtractorRegistrar() {
   const manager = useClaimsManager();
@@ -27,6 +29,7 @@ function AggregationExtractorRegistrar() {
     manager.registerExtractor(DATA360_RANK_TOOL, rankCountriesExtractor);
     manager.registerExtractor(DATA360_COMPARE_TOOL, compareCountriesExtractor);
     manager.registerExtractor(DATA360_SUMMARIZE_TOOL, summarizeDataExtractor);
+    manager.registerExtractor(DATA360_GET_DATA_TOOL, getDataExtractor);
     registeredRef.current = true;
   }, [manager]);
 

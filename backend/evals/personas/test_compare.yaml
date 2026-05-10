@@ -1,0 +1,7 @@
+name: "Compare test"
+description: "Tests comparison"
+instructions: "Test comparison."
+conversations:
+  - id: "compare_test_1"
+    turns:
+      - user: "Compare Kenya and Nigeria on unemployment rate"

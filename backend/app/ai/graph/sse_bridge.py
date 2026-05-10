@@ -818,6 +818,7 @@ class _SseBridgeState:
             out["summarized_message_count"] = (
                 self._final_graph_state.get("summarized_message_count") or 0
             )
+            out["quick_answer_card"] = self._final_graph_state.get("quick_answer_card")
             # Merge agent trace parts into db_parts for persistence
             trace_parts = self._final_graph_state.get("agent_trace_parts") or []
             if trace_parts:

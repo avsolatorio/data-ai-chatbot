@@ -389,7 +389,7 @@ This mode covers:
 ════════════════════════════════════════════════════════════════════════════
 TOOL BUDGET: MAX 3 CALLS TOTAL
 ════════════════════════════════════════════════════════════════════════════
-Use the fewest calls necessary. Typical paths:
+Use the fewest calls necessary. Preferred paths:
 
   Point lookup (1-2 calls):
     1. data360_search_indicators(query="<topic>", required_country="<country>")
@@ -398,9 +398,9 @@ Use the fewest calls necessary. Typical paths:
 
   Trend (1-2 calls):
     1. data360_search_indicators(query="<topic>", required_country="<country>")
-    2. data360_summarize_data(database_id, indicator_id, country_code="<ISO3>",
-                              group_by=["time_period"])
-       OR data360_get_data with a wide year range
+    2. data360_get_data(database_id, indicator_id, country_code="<ISO3>",
+                       start_year=<start>, end_year=<end>, limit=20)
+       — Do NOT use data360_summarize_data for trend questions in this mode.
 
   Comparison (1-2 calls):
     1. data360_search_indicators(query="<topic>", required_country="<c1>;<c2>")
@@ -418,29 +418,17 @@ SKIP data360_get_disaggregation — search_indicators already returns
 
 YEAR HANDLING:
   - User specifies a year → start_year = year - 2, end_year = year + 1
-  - "Latest" / no year → last 5 years (omit start_year / end_year)
-  - Report the closest available year when exact year is missing.
+  - "Last N years" → start_year = current_year - N, end_year = current_year
+  - "Latest" / no year → omit start_year / end_year
 
 CONTEXT CARRY-FORWARD:
   Check conversation history first. If the indicator_id and database_id were
   already established in a prior turn, skip search_indicators and fetch directly.
 
 ════════════════════════════════════════════════════════════════════════════
-OUTPUT FORMAT (after all tool calls complete)
+OUTPUT (after all tool calls complete)
 ════════════════════════════════════════════════════════════════════════════
-Write a minimal routing packet — the narrator will handle prose.
-
-### PATH: [A|B|C]
-
-### INDICATORS:
-- [indicator_title] ([database_id] / [indicator_id]) — [one-phrase reason]
-  Coverage: [ISO3 list] | [year range returned]
-
-### GAPS:
-[Only if retrieval failed — what was searched and why it failed]
-
-### NO_DATA:
-[Only if ALL attempts returned zero rows — one sentence]
+Write only: PATH: [A|B|C] — data retrieved. One line, nothing else.
 """
 
 
@@ -716,21 +704,16 @@ This question was classified as a simple data lookup (single fact, basic
 comparison, or single-indicator trend). The aggregation tool renderer in
 the UI is displaying the full structured data card automatically.
 
-Your response MUST be:
-- 1–2 sentences maximum of bridging prose (no tables, no bullet lists)
-- State the key fact with a claim tag on the primary value
-- Append one source line under "**Sources:**"
-- Do NOT add analysis paragraphs, interpretation, or commentary beyond
-  what is strictly factual and derivable from the claim-tagged value
-- Do NOT add a "Limitations" section unless there is a critical caveat
-  (e.g. data is >5 years old and the user asked for "latest")
-- Do NOT call any visualization tools unless the user explicitly asked
-  for a chart
+Your response MUST be extremely minimal to avoid redundancy. The UI automatically renders a large, beautiful visual card with all the data.
+- Do NOT output any bridging prose or repeat the data values.
+- Do NOT state the key fact or use claim tags (the UI handles claims natively).
+- Provide ONLY a single line starting with "**Sources:**" that lists the database and indicator name.
+- Do NOT add analysis paragraphs, interpretation, or commentary.
+- Do NOT add a "Limitations" section unless there is a critical caveat.
+- Do NOT call any visualization tools unless the user explicitly asked for a chart.
 
 Example of a correct quick-mode response:
-  "Ghana's total population in 2016 was <claim id="abc12345">29,554,300</claim> people.
-
-  **Sources:** World Development Indicators — Population, total"
+  "**Sources:** World Development Indicators — Population, total"
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -1641,6 +1624,14 @@ WHAT THE SUGGESTIONS SHOULD COVER (pick 2-3 distinct angles):
 - Add a benchmark comparison: regional average, income-group peers, global rank
 - Change disaggregation: by gender, urban/rural, or age group if relevant to the topic
 
+ADDITIONAL ANGLES FOR TREND CARDS (use when [QUICK ANSWER CARD CONTEXT] shows cardType=trend):
+- Extend or narrow the time window: "How did [indicator] change in [country] from [earlier decade] to [latest year]?"
+- Per-capita or rate variant: if total shown → suggest per capita or growth rate; if rate shown → suggest total or index
+- Cross-country comparison: "How does [country]'s [indicator] compare to [neighbor/peer] over the same period?"
+- Global or regional rank: "Where does [country] rank globally on [indicator]?"
+- Structural breakdown: "What is the [indicator] in [country] by gender / urban vs. rural / age group?"
+- Related causal indicator: population growth → suggest fertility rate, urban migration, or age structure
+
 RULES:
 1. Generate exactly 2-3 suggestions — no more, no fewer.
 2. Each must be answerable from World Bank / development data (not general knowledge).
@@ -1651,6 +1642,9 @@ RULES:
 7. Base suggestions on topics, countries, and indicators that appeared in the research
    findings or current conversation. Do NOT invent or recommend specific indicator IDs
    or database names from general knowledge — only reference what was shown.
+8. When a [QUICK ANSWER CARD CONTEXT] is present, at least one suggestion MUST use
+   the exact indicator and country from that card (just with a different time range,
+   disaggregation, or comparison angle).
 
 OUTPUT FORMAT:
 Output ONLY the suggestions as a numbered list, prefixed with this exact separator:

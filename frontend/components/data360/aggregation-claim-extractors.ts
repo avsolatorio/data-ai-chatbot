@@ -179,3 +179,31 @@ export const summarizeDataExtractor: ToolResultExtractor = (output) => {
   }
   return entries;
 };
+
+/**
+ * Extractor for data360_get_data output.
+ * Extracts claim_id from standard data rows.
+ */
+export const getDataExtractor: ToolResultExtractor = (output) => {
+  const data = parseOutput<{ data?: any[] }>(output);
+  if (!data?.data || !Array.isArray(data.data)) return [];
+
+  const entries: ClaimEntry[] = [];
+  for (const row of data.data) {
+    if (
+      row.claim_id &&
+      row.OBS_VALUE !== undefined &&
+      row.OBS_VALUE !== null
+    ) {
+      entries.push({
+        id: row.claim_id,
+        claim: {
+          value: row.OBS_VALUE,
+          country: row.REF_AREA,
+          date: row.TIME_PERIOD ? String(row.TIME_PERIOD) : undefined,
+        },
+      });
+    }
+  }
+  return entries;
+};
