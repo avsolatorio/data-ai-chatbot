@@ -290,11 +290,14 @@ function ComparisonCardRenderer({
               i === 0 ? "font-bold" : "font-semibold",
             )}>
               {entry.claim_id ? (
-                <ClaimMark policy={{ type: "tolerance", tolerance: 0.005 }} id={entry.claim_id}>
-                  {typeof entry.value === "number"
-                    ? entry.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
-                    : fmt(entry.value)}{card.unit ? ` ${card.unit}` : ""}
-                </ClaimMark>
+                <>
+                  <ClaimMark policy={{ type: "tolerance", tolerance: 0.005 }} id={entry.claim_id}>
+                    {typeof entry.value === "number"
+                      ? entry.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                      : fmt(entry.value)}
+                  </ClaimMark>
+                  {card.unit ? ` ${card.unit}` : ""}
+                </>
               ) : (
                 <>{fmt(entry.value)}{card.unit ? ` ${card.unit}` : ""}</>
               )}
