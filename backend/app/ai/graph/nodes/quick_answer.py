@@ -405,6 +405,13 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
             # Collect unique countries present in the result
             countries = list(dict.fromkeys(r.get("REF_AREA", "") for r in sorted_rows))
 
+            requested_country = tool_args.get("country_code", "") or ""
+            is_multi_country = ";" in requested_country or "," in requested_country
+
+            if is_multi_country and len(countries) < 2:
+                logger.info("[synthesize_card] get_data skipped: multi-country request but found len(countries)=%d", len(countries))
+                continue
+
             if (
                 len(countries) == 1
                 and len(sorted_rows) >= 2
