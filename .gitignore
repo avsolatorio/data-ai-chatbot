@@ -57,6 +57,23 @@ feedback-to-tasks-workspace/
 .cache/
 backend/logs/
 backend/evals/conversations/
+backend/evals/REGRESSION_REPORT_*.md
+backend/evals/PR_*.md
+backend/logs.txt
+
+# Scratch / ad-hoc scripts (never commit these)
+inspect.mjs
+frontend/inspect.mjs
+frontend/inspect_dom.mjs
+frontend/render_test.mjs
+test_mcp.py
+test_qa.py
+test_screenshot.py
+test_url.ts
+update_pr_body.py
+pr_body_*.md
+pr_body_*.txt
+test/test_browser.js
 
 # Python
 __pycache__/
