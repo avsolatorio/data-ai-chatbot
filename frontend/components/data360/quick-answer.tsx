@@ -138,17 +138,19 @@ function displayName(name: string | null | undefined): string | null {
 
 function IndicatorLabel({
   name,
+  id,
   year,
   geo,
 }: {
   name: string;
+  id?: string;
   year?: string | number | null;
   geo?: string | null;
 }) {
   if (!name) return null;
   return (
     <p className="text-muted-foreground text-sm font-medium mb-1">
-      {name}
+      {name}{id ? ` (${id})` : ""}
       {geo && <span className="opacity-50"> · {geo}</span>}
       {year ? <span className="opacity-60"> · {year}</span> : ""}
     </p>
@@ -166,8 +168,8 @@ function SingleFactCardRenderer({
   variant: StyleVariant;
 }) {
   const sourceText = card.database_name
-    ? `World Bank - ${card.database_name} - ${card.indicator_name}`
-    : `World Bank - ${card.indicator_name}`;
+    ? `World Bank - ${card.database_name} - ${card.indicator_name}${card.indicator_id ? ` (${card.indicator_id})` : ""}`
+    : `World Bank - ${card.indicator_name}${card.indicator_id ? ` (${card.indicator_id})` : ""}`;
 
   return (
     <div className="rounded-xl border border-border/60 bg-background px-5 py-5 shadow-sm max-w-fit pr-10">
@@ -223,10 +225,10 @@ function ComparisonCardRenderer({
   return (
     <CardWrapper variant={variant}>
       {isHighlight ? (
-        <IndicatorLabel name={card.indicator_name} year={card.year} />
+        <IndicatorLabel name={card.indicator_name} id={card.indicator_id} year={card.year} />
       ) : (
         <p className="text-lg text-muted-foreground mb-3 font-medium">
-          {card.indicator_name}
+          {card.indicator_name}{card.indicator_id ? ` (${card.indicator_id})` : ""}
           {card.year ? ` (${card.year})` : ""}
         </p>
       )}
@@ -384,6 +386,7 @@ function TrendCardRenderer({
           )}
           <IndicatorLabel
             name={card.indicator_name}
+            id={card.indicator_id}
             geo={displayName(card.country_name) ? null : card.country_name}
             year={
               card.earliest_year && card.latest_year
@@ -394,7 +397,7 @@ function TrendCardRenderer({
         </>
       ) : (
         <p className="text-lg text-muted-foreground mb-3 font-medium">
-          {card.indicator_name}
+          {card.indicator_name}{card.indicator_id ? ` (${card.indicator_id})` : ""}
           {displayName(card.country_name)
             ? ` in ${displayName(card.country_name)}`
             : card.country_name
@@ -461,6 +464,7 @@ function TrendCardRenderer({
               error: null,
               database_name: card.database_name,
               indicator_name: card.indicator_name,
+              indicator_id: card.indicator_id,
             } as Data360VizToolResult}
           />
         </div>

@@ -192,6 +192,7 @@ export type SingleFactCard = {
   card_type: "single_fact";
   database_name?: string;
   indicator_name: string;
+  indicator_id?: string;
   country_name: string;
   unit: string;
   value: number | string | null;
@@ -219,6 +220,7 @@ export type TrendCard = {
   card_type: "trend";
   database_name?: string;
   indicator_name: string;
+  indicator_id?: string;
   country_name: string;
   unit: string;
   latest_value: number | null;
@@ -249,6 +251,7 @@ export type ComparisonCard = {
   card_type: "comparison";
   database_name?: string;
   indicator_name: string;
+  indicator_id?: string;
   unit: string;
   year: number | null;
   entries: ComparisonEntry[];
