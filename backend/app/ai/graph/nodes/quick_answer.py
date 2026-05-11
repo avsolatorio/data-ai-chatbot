@@ -53,9 +53,9 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
     """
     # Technical unit codes that are meaningless to end-users. We suppress these
     # rather than show confusing abbreviations like "PS" or "XDC".
-    _SUPPRESS_UNITS: set[str] = {"XDC", "XN", "PURE_NUM", "_T"}
+    _suppress_units: set[str] = {"XDC", "XN", "PURE_NUM", "_T"}
 
-    _UNIT_LABELS: dict[str, str] = {
+    _unit_labels: dict[str, str] = {
         "YR": "years",
         "PS": "people",
         "PT": "%",
@@ -64,7 +64,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
 
     import re as _re
 
-    _TECHNICAL_UNIT_RE = _re.compile(r"^[A-Z][A-Z0-9]*(_[A-Z0-9]+)+$")
+    _technical_unit_re = _re.compile(r"^[A-Z][A-Z0-9]*(_[A-Z0-9]+)+$")
 
     def _readable_unit(code: str | None, indicator_name: str) -> str:
         """Return a display-safe unit string, mapping codes to readable text."""
@@ -73,13 +73,13 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
         code = str(code)
 
         # 1. Direct mapping for known codes
-        if code in _UNIT_LABELS:
-            return _UNIT_LABELS[code]
+        if code in _unit_labels:
+            return _unit_labels[code]
 
         # 2. Suppress bad/internal codes
-        if code in _SUPPRESS_UNITS:
+        if code in _suppress_units:
             return ""
-        if _TECHNICAL_UNIT_RE.match(code):
+        if _technical_unit_re.match(code):
             return ""
 
         # 3. If it's still just an uppercase code (e.g. unknown), try to extract from indicator name
@@ -153,6 +153,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 or metadata.get("indicator_name")
                 or ""
             )
+            database_name: str = metadata.get("database_name") or metadata.get("database_id") or ""
             unit: str = _readable_unit(
                 output.get("unit") or output.get("unit_measure", ""), indicator_name
             )
@@ -171,7 +172,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
             # disaggregations), collapse to the _T total group so we don't render
             # three identical ZAF rows for Male / Female / Total.
             if len(groups) > 1:
-                _DISAGG_DIMS = {
+                _disagg_dims = {
                     "sex",
                     "age",
                     "urbanisation",
@@ -190,7 +191,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                     # Find the group whose disaggregation dimensions are all totals (_T / _Z)
                     def _is_total_group(g):
                         g_key = g.get("group") or {}
-                        disagg_vals = [v for k, v in g_key.items() if k.lower() in _DISAGG_DIMS]
+                        disagg_vals = [v for k, v in g_key.items() if k.lower() in _disagg_dims]
                         return all(v in ("_T", "_Z", None) for v in disagg_vals)
 
                     total_groups = [g for g in groups if _is_total_group(g)]
@@ -287,6 +288,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
 
             return {
                 "card_type": "trend",
+                "database_name": database_name,
                 "indicator_name": indicator_name,
                 "country_name": country_name,
                 "unit": unit,
@@ -329,6 +331,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 or metadata.get("indicator_name")
                 or ""
             )
+            database_name = metadata.get("database_name") or metadata.get("database_id") or ""
             unit = _readable_unit(
                 output.get("unit") or output.get("unit_measure", ""), indicator_name
             )
@@ -378,6 +381,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
 
             return {
                 "card_type": "comparison",
+                "database_name": database_name,
                 "indicator_name": indicator_name,
                 "unit": unit,
                 "year": year,
@@ -395,6 +399,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 or (data_rows[0].get("INDICATOR_NAME") if data_rows else "")
                 or ""
             )
+            database_name = metadata.get("database_name") or metadata.get("database_id") or ""
 
             if not data_rows:
                 continue
@@ -409,7 +414,10 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
             is_multi_country = ";" in requested_country or "," in requested_country
 
             if is_multi_country and len(countries) < 2:
-                logger.info("[synthesize_card] get_data skipped: multi-country request but found len(countries)=%d", len(countries))
+                logger.info(
+                    "[synthesize_card] get_data skipped: multi-country request but found len(countries)=%d",
+                    len(countries),
+                )
                 continue
 
             if (
@@ -429,8 +437,8 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 if earliest_val is not None and latest_val is not None:
                     try:
                         e = float(earliest_val)
-                        l = float(latest_val)
-                        total_change = l - e
+                        latest_float = float(latest_val)
+                        total_change = latest_float - e
                         pct_change = (total_change / abs(e)) * 100 if e != 0 else 0
                         trend_direction = (
                             "increasing"
@@ -445,6 +453,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 display_unit = _unit(latest_row, indicator_name)
                 return {
                     "card_type": "trend",
+                    "database_name": database_name,
                     "indicator_name": indicator_name,
                     "country_name": country_display,
                     "unit": display_unit,
@@ -497,6 +506,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
 
             return {
                 "card_type": "single_fact",
+                "database_name": database_name,
                 "indicator_name": indicator_name,
                 "country_name": _country_name(target_row),
                 "unit": _unit(target_row, indicator_name),

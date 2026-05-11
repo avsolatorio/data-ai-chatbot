@@ -469,7 +469,12 @@ function TrendCardRenderer({
       {card.viz_url && (
         <div className="mt-4 -mx-1">
           <ChartPreview
-            toolResult={{ url: card.viz_url, error: null } as Data360VizToolResult}
+            toolResult={{
+              url: card.viz_url,
+              error: null,
+              database_name: card.database_name,
+              indicator_name: card.indicator_name,
+            } as Data360VizToolResult}
           />
         </div>
       )}

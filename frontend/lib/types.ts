@@ -190,6 +190,7 @@ export function isDataThinkingEvent(part: unknown): part is {
 /** A single data-point card — derived from data360_get_data tool output. */
 export type SingleFactCard = {
   card_type: "single_fact";
+  database_name?: string;
   indicator_name: string;
   country_name: string;
   unit: string;
@@ -216,6 +217,7 @@ export type TrendGroupEntry = {
 /** A trend card — derived from data360_summarize_data tool output. */
 export type TrendCard = {
   card_type: "trend";
+  database_name?: string;
   indicator_name: string;
   country_name: string;
   unit: string;
@@ -245,6 +247,7 @@ export type ComparisonEntry = {
 /** A comparison card — derived from data360_compare_countries tool output. */
 export type ComparisonCard = {
   card_type: "comparison";
+  database_name?: string;
   indicator_name: string;
   unit: string;
   year: number | null;
