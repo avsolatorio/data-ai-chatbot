@@ -422,11 +422,17 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 )
                 continue
 
-            if (
-                len(countries) == 1
-                and len(sorted_rows) >= 2
-                and (tool_args.get("limit") == 20 or len(sorted_rows) > 5)
-            ):
+            is_ts_request = (
+                (
+                    "start_year" in tool_args
+                    and "end_year" in tool_args
+                    and str(tool_args.get("start_year")) != str(tool_args.get("end_year"))
+                )
+                or tool_args.get("limit") == 20
+                or len(sorted_rows) > 5
+            )
+
+            if len(countries) == 1 and len(sorted_rows) >= 2 and is_ts_request:
                 # Single country, explicitly requested trend or long time series → trend card
                 earliest_row = sorted_rows[0]
                 latest_row = sorted_rows[-1]
