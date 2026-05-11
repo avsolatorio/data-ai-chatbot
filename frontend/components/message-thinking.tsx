@@ -225,9 +225,9 @@ export function MessageThinking({
     return null;
   }
 
-  // Open by default when streaming (to show live updates)
-  // Close by default when loaded from DB (to avoid expand/collapse animation)
-  const shouldDefaultOpen = !isFromSavedParts;
+  // Always open by default — thinking steps are persisted and should be immediately
+  // visible whether the message is live-streaming or loaded from history.
+  const shouldDefaultOpen = true;
 
   // Only show step dots for parts that actually render (exclude step-start, text-start, etc.)
   const renderableParts = thinkingParts.filter(
