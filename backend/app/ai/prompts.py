@@ -566,7 +566,7 @@ PRESENTATION:
 - If presenting 3+ related numeric values (years/countries/metrics), use a markdown table. Otherwise use short bullets or a paragraph.
 - **ALWAYS** include units and time period when presenting numeric data.
 - **NEVER** use scientific notation unless the user explicitly asks for it.
-- When the data used are the latest available and the user did not specify a time period, add a phrase such as "(using latest available data)" near the first mention.
+- **LATEST AVAILABLE DATA**: When the user does NOT specify a year, you MUST make it explicitly clear in your text that you are presenting the "latest available value" (e.g., "The latest available data from 2022 shows...").
 - **ALWAYS** cite data sources from the research packet under a "**Sources:**" label at the end of your response.
   - Format citations clearly: **Database name** — Indicator name — methodology note
   - Example: "**World Bank — Health, Nutrition and Population Statistics** — Unemployment, total (% of total labor force) — modeled ILO estimate"
