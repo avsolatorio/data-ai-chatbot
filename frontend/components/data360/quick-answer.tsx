@@ -161,42 +161,26 @@ function IndicatorLabel({
 
 function SingleFactCardRenderer({
   card,
-  variant,
 }: {
   card: SingleFactCard;
   variant: StyleVariant;
 }) {
-  const isHighlight = variant === "highlight";
+  const sourceText = card.database_name
+    ? `World Bank - ${card.database_name} - ${card.indicator_name}`
+    : `World Bank - ${card.indicator_name}`;
+
   return (
-    <CardWrapper variant={variant}>
-      {isHighlight ? (
-        <>
-          {displayName(card.country_name) && (
-            <p className="font-semibold mb-0.5 text-sm text-foreground">
-              {displayName(card.country_name)}
-            </p>
-          )}
-          <IndicatorLabel
-            name={card.indicator_name}
-            geo={displayName(card.country_name) ? null : card.country_name}
-            year={card.year}
-          />
-        </>
-      ) : (
-        <p className="text-lg text-muted-foreground mb-3 font-medium">
-          {card.indicator_name}
-          {displayName(card.country_name)
-            ? ` in ${displayName(card.country_name)}`
-            : card.country_name
-              ? ` · ${card.country_name}`
-              : ""}
-          {card.year ? ` (${card.year})` : ""}
-        </p>
-      )}
-      <div className={cn(
-        "font-bold leading-none tracking-tight",
-        isHighlight ? "text-4xl mt-2" : "text-6xl mt-1 text-foreground",
-      )}>
+    <div className="rounded-xl border border-border/60 bg-background px-5 py-5 shadow-sm max-w-fit pr-10">
+      <p className="text-base font-bold text-foreground mb-3">
+        {card.indicator_name}
+        {displayName(card.country_name)
+          ? ` of ${displayName(card.country_name)}`
+          : card.country_name
+            ? ` · ${card.country_name}`
+            : ""}
+        {card.year ? ` in ${card.year}` : ""}
+      </p>
+      <div className="font-normal leading-none tracking-tight text-4xl mb-5 text-foreground">
         {card.claim_id ? (
           <ClaimMark policy={{ type: "rounded", decimals: 2 }} id={card.claim_id}>
             {fmt(card.value)}
@@ -205,12 +189,15 @@ function SingleFactCardRenderer({
           fmt(card.value)
         )}
         {card.unit && (
-          <span className="ml-2 text-lg font-normal text-muted-foreground align-baseline">
+          <span className="ml-2 text-xl font-normal text-foreground align-baseline">
             {card.unit}
           </span>
         )}
       </div>
-    </CardWrapper>
+      <p className="text-xs font-semibold text-muted-foreground">
+        <span className="text-muted-foreground/70">Source:</span> {sourceText}
+      </p>
+    </div>
   );
 }
 
