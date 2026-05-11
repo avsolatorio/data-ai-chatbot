@@ -13,14 +13,15 @@ describe("splitDataThinkingPrefixParts", () => {
     assert.equal(r.regularParts.length, 0);
   });
 
-  it("splits at first non-data-thinking part", () => {
+  it("filters out data-thinking parts regardless of position", () => {
     const parts = [
       { type: "data-thinking", id: "a", data: {} },
       { type: "text", text: "Hello" },
+      { type: "data-thinking", id: "b", data: {} },
     ];
     const r = splitDataThinkingPrefixParts(parts);
     assert.equal(r.firstRegularPartIndex, 1);
-    assert.equal(r.thinkingParts.length, 1);
+    assert.equal(r.thinkingParts.length, 2);
     assert.equal(r.regularParts.length, 1);
     assert.equal((r.regularParts[0] as { text: string }).text, "Hello");
   });

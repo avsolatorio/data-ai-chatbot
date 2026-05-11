@@ -67,8 +67,11 @@ def build_assistant_message_from_graph(message_id: str, graph_out: dict, *, chat
 
     card = graph_out.get("quick_answer_card")
     if card and isinstance(card, dict):
-        # Insert at the beginning of the body so it's readily accessible
-        body.insert(0, {"type": "data-quickAnswerCard", "data": card})
+        # Append at the end so the leading data-thinking parts remain a contiguous
+        # prefix — splitDataThinkingPrefixParts stops at the first non-data-thinking
+        # part, so inserting at the front would hide all tool call thinking parts
+        # after a page reload. The frontend locates this part by type, not position.
+        body.append({"type": "data-quickAnswerCard", "data": card})
     return {
         "id": message_id,
         "chatId": chat_id,

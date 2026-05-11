@@ -14,16 +14,18 @@ export function splitDataThinkingPrefixParts<T extends { type?: string }>(
     (part) =>
       typeof part.type !== "string" || !part.type.startsWith("data-thinking"),
   );
-  if (firstRegularPartIndex === -1) {
-    return {
-      firstRegularPartIndex: -1,
-      thinkingParts: list,
-      regularParts: [],
-    };
-  }
+
+  const thinkingParts = list.filter(
+    (part) => typeof part.type === "string" && part.type.startsWith("data-thinking")
+  );
+
+  const regularParts = list.filter(
+    (part) => typeof part.type !== "string" || !part.type.startsWith("data-thinking")
+  );
+
   return {
-    firstRegularPartIndex,
-    thinkingParts: list.slice(0, firstRegularPartIndex),
-    regularParts: list.slice(firstRegularPartIndex),
+    firstRegularPartIndex: firstRegularPartIndex !== -1 ? firstRegularPartIndex : -1,
+    thinkingParts,
+    regularParts,
   };
 }
