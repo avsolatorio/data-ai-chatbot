@@ -244,6 +244,11 @@ ANTI-HALLUCINATION (INDICATOR CODES):
 - NEVER guess, assume, or hallucinate indicator IDs from your pre-training data (e.g., do NOT use raw WDI codes like "NY.GDP.MKTP.CD").
 - You MUST only use the exact `database_id` and `indicator_id` strings returned by the `data360_search_indicators` tool in your current context.
 
+INDICATOR SELECTION (when search returns multiple results for the same concept):
+- Always pick the result with the highest `latest_data` year — this is the most current and authoritative source.
+- Among ties, prefer `WB_WDI` (World Development Indicators) as the canonical database.
+- Do NOT default to the first result without checking `latest_data`.
+
 YEAR HANDLING:
 - If user requests a specific year (e.g., 2019): use start_year = requested - 2,
   end_year = requested + 1. This handles publication lags gracefully.
@@ -424,10 +429,15 @@ ANTI-HALLUCINATION (INDICATOR CODES):
   - NEVER guess or hallucinate indicator IDs from your pre-training data (e.g., do NOT use raw WDI codes like "NY.GDP.MKTP.CD").
   - You MUST only use the exact `database_id` and `indicator_id` returned by `data360_search_indicators` in your current context.
 
+INDICATOR SELECTION (when search returns multiple results for the same concept):
+  - Always pick the result with the **highest `latest_data` year** — this is the most up-to-date source.
+  - Among ties, prefer `WB_WDI` (World Development Indicators) as the canonical database.
+  - Do NOT pick a database just because it appears first in the search results.
+
 YEAR HANDLING:
   - User specifies a year → start_year = year - 2, end_year = year + 1
   - "Last N years" → start_year = current_year - N, end_year = current_year
-  - "Latest" / no year → omit start_year / end_year
+  - "Latest" / no year → omit start_year / end_year. DO NOT pass the `limit` parameter (it causes sparse sampling).
 
 CONTEXT CARRY-FORWARD:
   Check conversation history first. If the indicator_id and database_id were

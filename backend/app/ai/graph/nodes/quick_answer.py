@@ -423,14 +423,10 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 continue
 
             is_ts_request = (
-                (
-                    "start_year" in tool_args
-                    and "end_year" in tool_args
-                    and str(tool_args.get("start_year")) != str(tool_args.get("end_year"))
-                )
-                or tool_args.get("limit") == 20
-                or len(sorted_rows) > 5
-            )
+                "start_year" in tool_args
+                and "end_year" in tool_args
+                and str(tool_args.get("start_year")) != str(tool_args.get("end_year"))
+            ) or tool_args.get("limit") == 20
 
             if len(countries) == 1 and len(sorted_rows) >= 2 and is_ts_request:
                 # Single country, explicitly requested trend or long time series → trend card
@@ -502,7 +498,6 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 except (ValueError, TypeError):
                     pass
 
-            target_row = sorted_rows[-1]
             if target_year is not None:
 
                 def year_dist(r):
@@ -512,6 +507,17 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                         return 999
 
                 target_row = min(sorted_rows, key=year_dist)
+            else:
+                # Always pick the row with the highest TIME_PERIOD numerically.
+                # sorted_rows[-1] is not reliable when the API returns a sparse
+                # non-contiguous sample (e.g. every 3 years) — the max is safer.
+                def _time_key(r):
+                    try:
+                        return int(r.get("TIME_PERIOD", 0))
+                    except (ValueError, TypeError):
+                        return 0
+
+                target_row = max(sorted_rows, key=_time_key)
 
             return {
                 "card_type": "single_fact",
