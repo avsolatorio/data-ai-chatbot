@@ -252,6 +252,7 @@ INDICATOR SELECTION (when search returns multiple results for the same concept):
 YEAR HANDLING:
 - If user requests a specific year (e.g., 2019): use start_year = requested - 2,
   end_year = requested + 1. This handles publication lags gracefully.
+- If user says "since [year]": use start_year = requested year, end_year = current year.
 - If "latest" or no year specified: use the last 10 years as default range.
 - Always report the closest available year when exact year is missing.
 
@@ -437,6 +438,7 @@ INDICATOR SELECTION (when search returns multiple results for the same concept):
 YEAR HANDLING:
   - User specifies a year → start_year = year - 2, end_year = year + 1
   - "Last N years" → start_year = current_year - N, end_year = current_year
+  - "Since [year]" → start_year = year, end_year = current_year. Also pass `limit=20` to ensure it renders as a trend.
   - "Latest" / no year → omit start_year / end_year. DO NOT pass the `limit` parameter (it causes sparse sampling).
 
 CONTEXT CARRY-FORWARD:
