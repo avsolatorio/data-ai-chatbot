@@ -225,9 +225,9 @@ export function MessageThinking({
     return null;
   }
 
-  // Always open by default — thinking steps are persisted and should be immediately
-  // visible whether the message is live-streaming or loaded from history.
-  const shouldDefaultOpen = true;
+  // Default to collapsed so the panel doesn't overwhelm the UX on render
+  // completion or when a past conversation is loaded. Users can expand manually.
+  const shouldDefaultOpen = false;
 
   // Only show step dots for parts that actually render (exclude step-start, text-start, etc.)
   const renderableParts = thinkingParts.filter(
