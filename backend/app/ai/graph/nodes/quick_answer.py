@@ -403,6 +403,14 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
             )
             database_name = metadata.get("database_name") or metadata.get("database_id") or ""
 
+            # Filter out rows with no actual observation value.
+            # The API can return placeholder rows with OBS_VALUE=None or "null"
+            # (e.g. a provisional year slot with no published figure yet).
+            def _has_value(r: dict) -> bool:
+                v = r.get("OBS_VALUE")
+                return v is not None and str(v).strip().lower() != "null" and str(v).strip() != ""
+
+            data_rows = [r for r in data_rows if _has_value(r)]
             if not data_rows:
                 continue
 
@@ -422,102 +430,21 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 )
                 continue
 
-            is_ts_request = (
-                "start_year" in tool_args
-                and "end_year" in tool_args
-                and str(tool_args.get("start_year")) != str(tool_args.get("end_year"))
-            ) or tool_args.get("limit") == 20
+            # data360_get_data is used ONLY for single_fact lookups in quick_answer mode.
+            # Trend questions are routed to data360_summarize_data by the prompt.
+            # Any get_data call here should produce a single_fact card.
 
-            if len(countries) == 1 and len(sorted_rows) >= 2 and is_ts_request:
-                # Single country, explicitly requested trend or long time series → trend card
-                earliest_row = sorted_rows[0]
-                latest_row = sorted_rows[-1]
-                earliest_val = earliest_row.get("OBS_VALUE")
-                latest_val = latest_row.get("OBS_VALUE")
-                unit = latest_row.get("UNIT_MEASURE", "")
-                total_change = None
-                pct_change = None
-                trend_direction = "stable"
-                if earliest_val is not None and latest_val is not None:
-                    try:
-                        e = float(earliest_val)
-                        latest_float = float(latest_val)
-                        total_change = latest_float - e
-                        pct_change = (total_change / abs(e)) * 100 if e != 0 else 0
-                        trend_direction = (
-                            "increasing"
-                            if total_change > 0
-                            else "decreasing"
-                            if total_change < 0
-                            else "stable"
-                        )
-                    except (TypeError, ValueError):
-                        pass
-                country_display = _country_name(latest_row)
-                display_unit = _unit(latest_row, indicator_name)
-                return {
-                    "card_type": "trend",
-                    "database_name": database_name,
-                    "indicator_name": indicator_name,
-                    "indicator_id": tool_args.get("indicator_id", ""),
-                    "country_name": country_display,
-                    "unit": display_unit,
-                    "latest_value": latest_val,
-                    "earliest_value": earliest_val,
-                    "latest_year": latest_row.get("TIME_PERIOD"),
-                    "earliest_year": earliest_row.get("TIME_PERIOD"),
-                    "total_change": total_change,
-                    "pct_change": pct_change,
-                    "trend_direction": trend_direction,
-                    "latest_claim_id": latest_row.get("claim_id", ""),
-                    "earliest_claim_id": earliest_row.get("claim_id", ""),
-                    "groups": [
-                        {
-                            "ref_area": countries[0],
-                            "ref_area_name": country_display,
-                            "latest_value": latest_val,
-                            "earliest_value": earliest_val,
-                            "latest_year": latest_row.get("TIME_PERIOD"),
-                            "earliest_year": earliest_row.get("TIME_PERIOD"),
-                            "total_change": total_change,
-                            "pct_change": pct_change,
-                            "trend_direction": trend_direction,
-                            "latest_claim_id": latest_row.get("claim_id", ""),
-                            "earliest_claim_id": earliest_row.get("claim_id", ""),
-                        }
-                    ],
-                }
-
-            # Determine target year from tool_args if this is a fallback range fetch
-            target_year = None
-            if "start_year" in tool_args and "end_year" in tool_args:
+            def _time_key(r):
                 try:
-                    sy = int(tool_args["start_year"])
-                    ey = int(tool_args["end_year"])
-                    target_year = ey if sy == ey else ey - 1
+                    return int(r.get("TIME_PERIOD", 0))
                 except (ValueError, TypeError):
-                    pass
+                    return 0
 
-            if target_year is not None:
-
-                def year_dist(r):
-                    try:
-                        return abs(int(r.get("TIME_PERIOD", 0)) - target_year)
-                    except (ValueError, TypeError):
-                        return 999
-
-                target_row = min(sorted_rows, key=year_dist)
-            else:
-                # Always pick the row with the highest TIME_PERIOD numerically.
-                # sorted_rows[-1] is not reliable when the API returns a sparse
-                # non-contiguous sample (e.g. every 3 years) — the max is safer.
-                def _time_key(r):
-                    try:
-                        return int(r.get("TIME_PERIOD", 0))
-                    except (ValueError, TypeError):
-                        return 0
-
-                target_row = max(sorted_rows, key=_time_key)
+            # Always pick the most recent published value within the retrieved window.
+            # - For "latest" queries (no dates or hallucinated window), this picks the absolute latest.
+            # - For specific-year queries (where the LLM uses end_year=requested_year), this naturally
+            #   picks the requested year (if available) or the closest preceding year (publication lag).
+            target_row = max(sorted_rows, key=_time_key)
 
             return {
                 "card_type": "single_fact",

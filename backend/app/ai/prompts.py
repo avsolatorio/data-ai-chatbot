@@ -170,7 +170,7 @@ AVAILABLE TOOLS
    Find indicators. Use `query` for one topic, `queries` for many in one country,
    and `query_groups` for different topics across different countries.
    CRITICAL: If using `query_groups`, you MUST also pass `result_layout="by_query"`.
-   Use `required_country` to filter by coverage. Increase limit for broader recall.
+   Use `required_country` to filter by coverage. ALWAYS pass `limit=15` (the default 5 is often too small to retrieve canonical WDI indicators).
 
    PREFERRED for multi-topic (Path D/E): pass ALL dimension queries in ONE call:
      data360_search_indicators(queries=["GDP growth", "unemployment", "inflation"],
@@ -192,6 +192,8 @@ AVAILABLE TOOLS
    - For ranking a large country group, use `data360_rank_countries` instead.
    - For comparing 2–8 specific countries, use `data360_compare_countries` instead.
    - Always use disaggregation_filters={"REF_AREA": "ISO1,ISO2,..."} for countries.
+   - NEVER pass `limit` for latest-value queries — the API returns rows in chronological
+     order so limit=N returns the OLDEST N rows, not the most recent. Omit limit entirely.
    - Paginate if has_more=True.
 
 5. data360_get_disaggregation(database_id, indicator_id)
@@ -250,11 +252,15 @@ INDICATOR SELECTION (when search returns multiple results for the same concept):
 - Do NOT default to the first result without checking `latest_data`.
 
 YEAR HANDLING:
-- If user requests a specific year (e.g., 2019): use start_year = requested - 2,
-  end_year = requested + 1. This handles publication lags gracefully.
-- If user says "since [year]": use start_year = requested year, end_year = current year.
-- If "latest" or no year specified: use the last 10 years as default range.
-- Always report the closest available year when exact year is missing.
+- If the user specifies an exact year (e.g., "in 2019"): pass end_year = that year. Omit
+  start_year unless the user asked for a range. The API will surface the nearest available data.
+- If the user specifies a range ("from 2010 to 2020", "since 2015", "last 10 years"): derive
+  start_year and end_year from the user's stated intent. Do not add or subtract extra padding.
+- If the user says "latest", "current", or specifies no time scope: omit BOTH start_year and
+  end_year. The API defaults automatically — NEVER pass `limit` (it returns the oldest rows).
+- If the user asks for "trends over time" with no dates: omit both parameters and let the
+  API apply its default multi-year window. Do not guess a specific year range.
+- Always report the closest available year if the exact requested year has no data.
 
 MULTI-COUNTRY / REGIONAL GROUPS:
 When user mentions a regional group, enumerate member countries:
@@ -271,7 +277,7 @@ Fetch all members in one call. Research handles missing data gracefully.
 WHEN NOT TO CLARIFY (never ask the user):
 - Country is named → search and retrieve, do not ask to confirm
 - Topic is broad ("challenges", "situation", "trends") → decompose and fetch
-- Time period unspecified → use last 10 years
+- Time period unspecified → omit start_year and end_year; let the API apply its default window
 - Indicator type ambiguous → pick the most commonly used one, note it in EVIDENCE NOTES
 
 ONE FALLBACK ATTEMPT:
@@ -402,21 +408,30 @@ TOOL BUDGET: MAX 3 CALLS TOTAL
 Use the fewest calls necessary. Preferred paths:
 
   Point lookup (1-2 calls):
-    1. data360_search_indicators(query="<topic>", required_country="<country>")
-    2. data360_get_data(database_id, indicator_id, country_code="<ISO3>",
-                       start_year=<year-2>, end_year=<year+1>)
+    1. data360_search_indicators(query="<topic>", required_country="<country>", limit=15)
+    2. data360_get_data(database_id, indicator_id, country_code="<ISO3>")
+       — ONLY pass start_year and end_year if the user requested a specific year.
+       — DO NOT use get_data if the user asked for a breakdown (e.g., "by sex"). Use summarize_data instead.
 
   Trend (1-2 calls):
-    1. data360_search_indicators(query="<topic>", required_country="<country>")
-    2. data360_get_data(database_id, indicator_id, country_code="<ISO3>",
-                       start_year=<start>, end_year=<end>, limit=20)
-       — Do NOT use data360_summarize_data for trend questions in this mode.
+    1. data360_search_indicators(query="<topic>", required_country="<country>", limit=15)
+    2. data360_summarize_data(database_id, indicator_id, country_code="<ISO3>")
+       — ALWAYS use data360_summarize_data for trend questions. It handles sparse
+         indicators (e.g. poverty surveys) by computing stats across ALL available
+         data. Do NOT use data360_get_data for trends.
+       — OMIT start_year and end_year unless the user specified exact dates. Defaulting to the API's 20-year window is crucial for sparse indicators.
 
   Comparison (1-2 calls):
-    1. data360_search_indicators(query="<topic>", required_country="<c1>;<c2>")
+    1. data360_search_indicators(query="<topic>", required_country="<c1>;<c2>", limit=15)
     2. data360_compare_countries(database_id, indicator_id,
                                  country_codes="<ISO1>;<ISO2>",
                                  include_time_series=False)
+
+  Breakdown / Disaggregation (1-2 calls):
+    1. data360_search_indicators(query="<topic>", required_country="<country>", limit=15)
+    2. data360_summarize_data(database_id, indicator_id, country_code="<ISO3>")
+       — Use summarize_data for "by sex", "by age", "by education", etc. It automatically
+         discovers and fetches all available breakdowns for the indicator.
 
 SKIP data360_find_codelist_value for well-known countries:
   KEN=Kenya, NGA=Nigeria, ZAF=South Africa, GHA=Ghana, IND=India, CHN=China,
@@ -436,10 +451,13 @@ INDICATOR SELECTION (when search returns multiple results for the same concept):
   - Do NOT pick a database just because it appears first in the search results.
 
 YEAR HANDLING:
-  - User specifies a year → start_year = year - 2, end_year = year + 1
-  - "Last N years" → start_year = current_year - N, end_year = current_year
-  - "Since [year]" → start_year = year, end_year = current_year. Also pass `limit=20` to ensure it renders as a trend.
-  - "Latest" / no year → omit start_year / end_year. DO NOT pass the `limit` parameter (it causes sparse sampling).
+  - User specifies an exact year (e.g., "in 2022"): pass end_year = that year. Omit start_year.
+    The API returns the nearest available data. Do not subtract 4 or add padding.
+  - User specifies a range ("from 2010–2020", "since 2015", "last 10 years"): derive start_year
+    and end_year directly from the user's stated intent. No extra arithmetic.
+  - "Latest" / no year → omit BOTH start_year and end_year.
+    The API defaults automatically. NEVER pass `limit` (returns chronologically first rows).
+  - "Trends over time" with no dates → omit both. Let the API pick its default window.
 
 CONTEXT CARRY-FORWARD:
   Check conversation history first. If the indicator_id and database_id were
@@ -485,10 +503,11 @@ NEVER call data retrieval tools (`data360_search_indicators`, `data360_get_data`
 
 VISUALIZATION TOOLS (you may call these):
 - `data360_get_viz_spec(database_id, indicator_id, country_code?, start_year?, end_year?, disaggregation_filters?, chart_type?)`
-  Generate a Vega-Lite chart URL. Call this when the research packet indicates visualization-ready data or the user explicitly requested a chart.
+  Generate a Vega-Lite chart URL. Call this when the research packet indicates visualization-ready data or the user explicitly requested a chart for a SINGLE indicator.
   IMPORTANT: Only use the exact `database_id` and `indicator_id` strings provided in the ROUTING PACKET. NEVER hallucinate raw WDI codes (e.g. "NY.GDP.MKTP.CD") from your pre-training data.
 - `data360_get_multi_indicator_viz_spec(indicator_ids, country_code?, start_year?, end_year?, chart_type?)`
   Generate a chart comparing multiple indicators side-by-side.
+  CRITICAL: If the ROUTING PACKET contains multiple related indicators (e.g., male and female variants of the same metric), you MUST use this tool to plot them together. Do NOT hallucinate a "total" indicator ID to use with `data360_get_viz_spec`.
 - `data360_get_supported_chart_types()`
   List supported chart types and their data requirements (call if unsure which chart_type to use).
 
@@ -579,6 +598,7 @@ PRESENTATION:
 - **ALWAYS** include units and time period when presenting numeric data.
 - **NEVER** use scientific notation unless the user explicitly asks for it.
 - **LATEST AVAILABLE DATA**: When the user does NOT specify a year, you MUST make it explicitly clear in your text that you are presenting the "latest available value" (e.g., "The latest available data from 2022 shows...").
+- **YEAR CONSISTENCY**: If you present both a snapshot (latest year) AND a trend table in the same response, the trend table MUST include the same latest year as the snapshot. Never omit the most recent year from the trend rows — doing so creates a contradictory appearance (e.g., header says "latest year: 2024" but the trend table's last row is 2023).
 - **ALWAYS** cite data sources from the research packet under a "**Sources:**" label at the end of your response.
   - Format citations clearly: **Database name** — Indicator name — methodology note
   - Example: "**World Bank — Health, Nutrition and Population Statistics** — Unemployment, total (% of total labor force) — modeled ILO estimate"
@@ -1574,7 +1594,7 @@ would allow a research agent to build an evidence-based answer.
 
 Query writing rules:
 - Each query should reference a specific measurable indicator, country, and
-  time window (use last 10 years from today as the default range if not specified).
+  time window (omit specific years if the user did not mention them; the tools apply sensible defaults).
 - Include both headline indicators AND the most diagnostic supporting indicators.
 - For "challenges" / "performance" questions, always include: the main indicator,
   a fiscal/debt indicator, and at least one structural/social indicator.
@@ -1705,7 +1725,7 @@ Today is {get_date_string()}.
 **GOAL:** Discover and fetch data. This phase focuses on tool interaction.
 **USER-VISIBLE PROSE (CRITICAL):** Do NOT write the final user-facing summary, analysis narrative, or formatted answer for the user in Phase 1. Keep prose to the research packet bullets below (Intent, Selection Logic, etc.) and tool-related notes only. All user-readable summaries, labeled sections (**Data:**, **Analysis:**, etc.), and suggested follow-ups belong **only** in Phase 2, after `{THINKING_TO_ANSWER_TOKEN}`.
 **EXECUTION ORDER:**
-1. **Search First:** You MUST call `data360_search_indicators` and related tools first to identify valid `indicator_id` and `database_id` values. Get at least the first 10 results.
+1. **Search First:** You MUST call `data360_search_indicators` and related tools first to identify valid `indicator_id` and `database_id` values. ALWAYS pass `limit=15` to ensure high recall of canonical WDI indicators.
 2. **Exception:** If the specific IDs are already present in the immediate conversation history from a previous turn, you may skip searching and proceed to fetching.
 3. **Data Retrieval:** Once IDs are confirmed, call `data360_get_data` and `data360_get_metadata`. Add a 3-5 year time range to the data retrieval in case data is not available for the requested year.
 4. **DO NOT** call `data360_get_viz_spec` in this phase.

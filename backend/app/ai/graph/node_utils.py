@@ -114,8 +114,21 @@ async def run_tool_loop(
         # Execute each tool call and feed results back
         for tc in response.tool_calls:
             tool_name: str = tc["name"]
-            tool_args: dict = tc.get("args", {})
+            tool_args: dict = dict(tc.get("args", {}))  # mutable copy
             tool_call_id: str = tc.get("id", tool_name)
+
+            # ── Sanitize data360_get_data args ───────────────────────────────
+            # Trend questions route to data360_summarize_data, not get_data.
+            # Any `limit` on a get_data call always truncates to the OLDEST N
+            # rows (API returns chronologically) — strip it unconditionally so
+            # the API default (last 5 years) applies and max(TIME_PERIOD) works.
+            if tool_name == "data360_get_data" and "limit" in tool_args:
+                removed_limit = tool_args.pop("limit", None)
+                logger.info(
+                    "[%s] sanitized data360_get_data: stripped limit=%s",
+                    graph_node,
+                    removed_limit,
+                )
 
             logger.info("[%s] calling tool=%s", graph_node, tool_name)
             tool = tool_map.get(tool_name)

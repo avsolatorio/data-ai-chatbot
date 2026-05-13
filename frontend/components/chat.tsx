@@ -372,7 +372,7 @@ export function Chat({
             latestMessageFromDb.createdAt instanceof Date
               ? latestMessageFromDb.createdAt
               : new Date(latestMessageFromDb.createdAt);
-          const fiveSecondsAgo = Date.now() - 5 * 1000;
+          const fiveSecondsAgo = Date.now() - 10 * 1000;
           if (refetchedCreatedAt.getTime() < fiveSecondsAgo) {
             isWaitingForSavedPartsRef.current = false;
             setIsWaitingForSavedParts(false);
@@ -412,7 +412,7 @@ export function Chat({
           isWaitingForSavedPartsRef.current = false;
           setIsWaitingForSavedParts(false);
         }
-      }, 1500);
+      }, 3000);
     }
 
     // Detect when a new message starts: status changes from non-submitted to "submitted"
