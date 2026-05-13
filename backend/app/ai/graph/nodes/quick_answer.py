@@ -580,6 +580,13 @@ async def quick_answer_node(state: ChatPipelineState) -> dict:
                             logger.warning("[quick_answer_node] viz_spec call failed: %s", _viz_exc)
                         break  # Only use the first matching data tool result
 
+    if not card and "### NO_DATA" not in final_content:
+        final_content = (
+            "### NO_DATA:\n"
+            "The requested data could not be retrieved or the query was too ambiguous. "
+            "Please explain the gap and suggest alternatives."
+        )
+
     logger.info(
         "[quick_answer_node] research_packet length=%d tool_results=%d card_type=%s viz=%s",
         len(final_content),

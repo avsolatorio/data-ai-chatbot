@@ -449,6 +449,7 @@ INDICATOR SELECTION (when search returns multiple results for the same concept):
   - Always pick the result with the **highest `latest_data` year** — this is the most up-to-date source.
   - Among ties, prefer `WB_WDI` (World Development Indicators) as the canonical database.
   - Do NOT pick a database just because it appears first in the search results.
+  - For ambiguous metrics (e.g., "poverty rate"), default to standard thresholds (e.g., National poverty line or $2.15 international line) rather than returning early to ask the user for clarification.
 
 YEAR HANDLING:
   - User specifies an exact year (e.g., "in 2022"): pass end_year = that year. Omit start_year.
@@ -820,6 +821,7 @@ CLARIFY — The query is development-data-related but is missing a required slot
   NEVER CLARIFY when: the user uses "these"/"those"/"that" and data was retrieved in a recent turn.
   NEVER CLARIFY for chart/visualization requests when data is already in the conversation.
   NEVER CLARIFY when the user names a geographic group — the Research Agent resolves these autonomously.
+  NEVER CLARIFY for ambiguous metrics like "poverty rate" — default to standard indicators like the National or $2.15 poverty line and route to QUICK_ANSWER or RESEARCH.
   When CLARIFY, populate "missing_slots" with the slot names that are absent.
 
 OUT_OF_SCOPE — The query has no connection to development data, economics, or international indicators.
