@@ -4,6 +4,7 @@ import Script from "next/script";
 import { useEffect, useRef } from "react";
 
 import { getPublicEnv } from "@/lib/env/config";
+import type { DataHeaderEnvironment } from "@/lib/env/schema";
 
 function getDataHeaderCssUrl(): string {
   return getPublicEnv().NEXT_PUBLIC_DATA_HEADER_CSS_URL;
@@ -11,6 +12,10 @@ function getDataHeaderCssUrl(): string {
 
 function getDataHeaderScriptUrl(): string {
   return getPublicEnv().NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL;
+}
+
+function getDataHeaderEnvironment(): DataHeaderEnvironment {
+  return getPublicEnv().NEXT_PUBLIC_DATA_HEADER_ENVIRONMENT;
 }
 
 const HEADER_SCOPE_CLASS = "data-header-wrapper";
@@ -127,7 +132,7 @@ export function DataHeaderScript() {
         const dataHeaderOptions = {
           languagecode: "en",
           selector: ".data-header",
-          environment: "qa",
+          environment: getDataHeaderEnvironment(),
         };
         const win = window as Window & {
           populateDataHeader?: (

@@ -39,6 +39,8 @@ function buildRawInput(): Record<string, string | undefined> {
       process.env.NEXT_PUBLIC_DATA_HEADER_CSS_URL?.trim() || undefined,
     NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL:
       process.env.NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL?.trim() || undefined,
+    NEXT_PUBLIC_DATA_HEADER_ENVIRONMENT:
+      process.env.NEXT_PUBLIC_DATA_HEADER_ENVIRONMENT?.trim() || undefined,
     NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL:
       process.env.NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL?.trim() || undefined,
     NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN:
@@ -101,6 +103,8 @@ function applyDefaults(raw: RawEnv): Env {
     NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL:
       raw.NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL?.trim() ||
       "https://extdataportalqa.worldbank.org/qa/api/ext/header/webasset/data/dataheaderservice/clientlibs/site.js",
+    NEXT_PUBLIC_DATA_HEADER_ENVIRONMENT:
+      raw.NEXT_PUBLIC_DATA_HEADER_ENVIRONMENT ?? "qa",
     NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL:
       raw.NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL?.trim() ||
       "https://data360.worldbank.org/en/indicator",
@@ -175,6 +179,8 @@ export function getPublicEnv(): PublicEnv {
     NEXT_PUBLIC_DATA_HEADER_ENABLED: env.NEXT_PUBLIC_DATA_HEADER_ENABLED,
     NEXT_PUBLIC_DATA_HEADER_CSS_URL: env.NEXT_PUBLIC_DATA_HEADER_CSS_URL,
     NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: env.NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL,
+    NEXT_PUBLIC_DATA_HEADER_ENVIRONMENT:
+      env.NEXT_PUBLIC_DATA_HEADER_ENVIRONMENT,
     NEXT_PUBLIC_AUTH_PROVIDER: env.NEXT_PUBLIC_AUTH_PROVIDER,
     NEXT_PUBLIC_SKIP_LOGIN_PAGE: env.NEXT_PUBLIC_SKIP_LOGIN_PAGE,
     NEXT_PUBLIC_MSAL_CLIENT_ID: env.NEXT_PUBLIC_MSAL_CLIENT_ID,

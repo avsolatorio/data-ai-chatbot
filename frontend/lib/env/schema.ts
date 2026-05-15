@@ -52,6 +52,11 @@ export const authProviderSchema = z.enum(["guest", "user", "msal", "data360"]);
 /** Artifact scroll behavior. */
 export const artifactScrollBehaviorSchema = z.enum(["bottom", "trigger"]);
 
+/** World Bank `populateDataHeader` service tier (must match external header script). */
+export const dataHeaderEnvironmentSchema = z.enum(["dev", "qa", "prod"]);
+
+export type DataHeaderEnvironment = z.infer<typeof dataHeaderEnvironmentSchema>;
+
 /**
  * Raw env schema. Accepts process.env input; transforms to typed values.
  * Use parseEnv() which merges with presets before validation.
@@ -153,6 +158,14 @@ const rawEnvSchema = z.object({
   NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: optionalUrl.describe(
     "Data header script URL; used when NEXT_PUBLIC_DATA_HEADER_ENABLED is true",
   ),
+  NEXT_PUBLIC_DATA_HEADER_ENVIRONMENT: optionalString
+    .transform((v) => {
+      const s = v?.trim().toLowerCase();
+      if (s === "dev" || s === "qa" || s === "prod")
+        return s as DataHeaderEnvironment;
+      return undefined;
+    })
+    .describe("populateDataHeader environment: dev | qa | prod (default qa)"),
 
   // --- Maintenance ---
   MAINTENANCE_MODE: booleanEnv.describe(
@@ -239,6 +252,7 @@ export type Env = RawEnv & {
   NEXT_PUBLIC_DATA_HEADER_ENABLED: boolean;
   NEXT_PUBLIC_DATA_HEADER_CSS_URL: string;
   NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL: string;
+  NEXT_PUBLIC_DATA_HEADER_ENVIRONMENT: DataHeaderEnvironment;
   NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL: string;
   NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN: boolean;
   NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_URL: string;
@@ -269,6 +283,7 @@ export type PublicEnv = Pick<
   | "NEXT_PUBLIC_DATA_HEADER_ENABLED"
   | "NEXT_PUBLIC_DATA_HEADER_CSS_URL"
   | "NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL"
+  | "NEXT_PUBLIC_DATA_HEADER_ENVIRONMENT"
   | "NEXT_PUBLIC_AUTH_PROVIDER"
   | "NEXT_PUBLIC_SKIP_LOGIN_PAGE"
   | "NEXT_PUBLIC_MSAL_CLIENT_ID"
