@@ -53,9 +53,9 @@ export const authProviderSchema = z.enum(["guest", "user", "msal", "data360"]);
 export const artifactScrollBehaviorSchema = z.enum(["bottom", "trigger"]);
 
 /** World Bank `populateDataHeader` service tier (must match external header script). */
-export const dataHeaderEnvironmentSchema = z.enum(["dev", "qa", "prod"]);
+const dataHeaderEnvironmentValues = ["dev", "qa", "prod"] as const;
 
-export type DataHeaderEnvironment = z.infer<typeof dataHeaderEnvironmentSchema>;
+export type DataHeaderEnvironment = (typeof dataHeaderEnvironmentValues)[number];
 
 /**
  * Raw env schema. Accepts process.env input; transforms to typed values.
