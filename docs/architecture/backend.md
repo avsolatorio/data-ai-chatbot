@@ -1,5 +1,14 @@
 # Backend
 
+!!! warning "Deprecated"
+    This page does not describe the current **LangGraph** chat pipeline.
+    For AI orchestration and node flow, see
+    [Agents and chat flow](../agents-and-chat-flow.md).
+    For full system architecture, see
+    [Architecture (comprehensive)](../architecture-comprehensive.md).
+
+---
+
 This document describes the **FastAPI backend** in detail: entry point, middleware, configuration, API structure, and core modules. The backend is the authority for identity, chat state, and AI orchestration.
 
 ---

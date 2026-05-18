@@ -4,6 +4,19 @@ This section contains the **detailed architecture documentation** for Data360 Ch
 
 ---
 
+## Current reference (repo)
+
+These Markdown files are the **authoritative, up-to-date** architecture sources (repo-only; not in the MkDocs nav):
+
+| Document | Contents |
+|----------|----------|
+| [Architecture (comprehensive)](../architecture-comprehensive.md) | C4 diagrams, scoping, repo map, API/config, deployment |
+| [Agents and chat flow](../agents-and-chat-flow.md) | LangGraph nodes, routing, MCP partitions, SSE/frontend contract |
+
+Several pages below are marked **deprecated** where they describe the older RESEARCH vs DIRECT single-LLM pipeline.
+
+---
+
 ## How to Use This Documentation
 
 - **New to the project?** Start with [Overview](overview.md), then [System context](system-context.md). Read [Backend](backend.md) and [Frontend](frontend.md) to understand the main application structure.

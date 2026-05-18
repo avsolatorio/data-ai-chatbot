@@ -1,5 +1,13 @@
 # Overview
 
+!!! warning "Deprecated"
+    Parts of this page are outdated (e.g. simplified RESEARCH vs DIRECT routing).
+    For current architecture and agent flow, see
+    [Architecture (comprehensive)](../architecture-comprehensive.md) and
+    [Agents and chat flow](../agents-and-chat-flow.md).
+
+---
+
 ## Purpose and scope of this documentation
 
 This architecture documentation describes **Data360 Chat** (the Data Chatbot): a full-stack conversational AI application that lets users interact with development data, documents, and analytical tools through natural language. The documents in this section are intended to give a **detailed, accurate picture** of how the system is structured, how data and control flow through it, and why key design choices were made.

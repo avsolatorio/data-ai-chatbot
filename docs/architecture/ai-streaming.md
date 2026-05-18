@@ -1,5 +1,14 @@
 # AI and Streaming
 
+!!! warning "Deprecated"
+    This page is outdated. It describes a legacy **RESEARCH vs DIRECT** single-LLM model.
+    Production chat uses a **LangGraph pipeline** with six intents and multiple nodes.
+    For current documentation, see
+    [Architecture (comprehensive)](../architecture-comprehensive.md) and
+    [Agents and chat flow](../agents-and-chat-flow.md).
+
+---
+
 This document describes the **AI and streaming pipeline**: how a chat message is processed, how intent routing (RESEARCH vs DIRECT) works, how the stream is generated and sent, tool execution (local and MCP), and resumable streams.
 
 ---
