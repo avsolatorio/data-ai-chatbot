@@ -34,6 +34,7 @@ export function useDataThinkingStream() {
     Map<string, DataThinkingPart>
   >(new Map());
   const [streamingStage, setStreamingStageState] = useState<ProcessingStage | null>(null);
+  const [streamingQuickAnswerCard, setStreamingQuickAnswerCard] = useState<unknown | null>(null);
 
   /**
    * Extract the unique identifier for a part from the inner data.
@@ -312,6 +313,7 @@ export function useDataThinkingStream() {
   const clear = useCallback(() => {
     setStreamingParts(new Map());
     setStreamingStageState(null);
+    setStreamingQuickAnswerCard(null);
   }, []);
 
   // Memoize the array to ensure reactivity while avoiding unnecessary re-renders
@@ -324,6 +326,8 @@ export function useDataThinkingStream() {
     streamingParts: streamingPartsArray,
     streamingStage,
     setStreamingStage,
+    streamingQuickAnswerCard,
+    setStreamingQuickAnswerCard,
     clearStage,
     clear,
     streamingPartsCount: streamingParts.size,

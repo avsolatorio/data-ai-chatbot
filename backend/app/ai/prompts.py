@@ -216,6 +216,7 @@ AVAILABLE TOOLS
 
 9. data360_summarize_data(database_id, indicator_id, country_code?, start_year?, end_year?, group_by?)
    Use for TREND analysis or summary statistics over time/dimensions. Automatically paginates.
+   ALWAYS use this instead of data360_get_data for trend queries, even if global.
 
 10. data360_rank_countries(database_id, indicator_id, country_group?, country_codes?, year?, top_n?)
     Use for RANKING questions ("Top N"). Automatically expands country_group and paginates.
@@ -361,8 +362,8 @@ Only include if genuinely material — methodology source differences
 (e.g. "national estimate" vs "modeled ILO"), cross-indicator comparability
 warnings, or definition caveats the Writer must surface. Omit if nothing material.
 
-### VIZ:
-(include only when user requested a chart/visualization)
+### VIZ_PLAN:
+(Mandatory decision on whether to generate a visualization. If the user explicitly requested a chart OR if the user asks for a multi-year trend or time-series (e.g., 2020 to 2024), you MUST provide the following details. Do NOT rely solely on the fetched rows to decide; base it on the user's requested timeframe. Otherwise, write "None").
 database_id: [id]
 indicator_id: [id]
 countries: [ISO1,ISO2,...]
@@ -410,16 +411,16 @@ Use the fewest calls necessary. Preferred paths:
   Point lookup (1-2 calls):
     1. data360_search_indicators(query="<topic>", required_country="<country>", limit=15)
     2. data360_get_data(database_id, indicator_id, country_code="<ISO3>")
-       — ONLY pass start_year and end_year if the user requested a specific year.
+       — ONLY use get_data when the user asks for a SINGLE exact year (e.g. "in 2022") or a single point ("latest").
+       — NEVER use get_data if the user asks for a time range (e.g., "from 2010 to 2020", "last 10 years"). Use summarize_data instead.
        — DO NOT use get_data if the user asked for a breakdown (e.g., "by sex"). Use summarize_data instead.
 
-  Trend (1-2 calls):
-    1. data360_search_indicators(query="<topic>", required_country="<country>", limit=15)
-    2. data360_summarize_data(database_id, indicator_id, country_code="<ISO3>")
-       — ALWAYS use data360_summarize_data for trend questions. It handles sparse
-         indicators (e.g. poverty surveys) by computing stats across ALL available
-         data. Do NOT use data360_get_data for trends.
-       — OMIT start_year and end_year unless the user specified exact dates. Defaulting to the API's 20-year window is crucial for sparse indicators.
+  Trend / Time Range (1-2 calls):
+    1. data360_search_indicators(query="<topic>", required_country="<country>" /* optional */, limit=15)
+    2. data360_summarize_data(database_id, indicator_id, country_code="<ISO3>" /* optional */, start_year?, end_year?)
+       — ALWAYS use data360_summarize_data for trend questions AND any request that specifies a time range (e.g. "from 1996 to 2024").
+       — DO NOT use data360_get_data for trends or ranges, as it will fail to render a chart. This applies even if no specific country is provided (e.g. "global trend" or "all countries").
+       — If the user specified exact dates (e.g. 1996 to 2024), pass them as start_year and end_year. Otherwise omit them.
 
   Comparison (1-2 calls):
     1. data360_search_indicators(query="<topic>", required_country="<c1>;<c2>", limit=15)
@@ -537,7 +538,7 @@ Your system message is prepended with two sections before these instructions:
   ### INDICATORS: — which indicators were retrieved and why (coverage metadata)
   ### GAPS:       — indicator/country/year combinations that returned no data
   ### EVIDENCE NOTES: — methodology caveats, comparability warnings
-  ### VIZ:        — parameters for chart generation (use with viz tools)
+  ### VIZ_PLAN:   — parameters for chart generation (MUST use viz tools if this is not None)
   ### API_URL:    — shareable API link (present under "**Direct API Access:**")
   ### NO_DATA:    — all retrieval failed; explain the gap and suggest alternatives
 
@@ -676,7 +677,7 @@ Adjust length based on what the RAW TOOL RESULTS and routing packet contain:
 - **EXPLAIN-path** (no RAW TOOL RESULTS section, routing packet has definitions): 2–4 sentences + source citation. No table. 1 follow-up at most.
 - **Sparse data** (RAW TOOL RESULTS contain 1–2 observation rows): 3–6 sentences, no table, one follow-up.
 - **Rich data** (RAW TOOL RESULTS contain 5+ rows or multi-country/multi-year): full markdown table + analysis paragraph + 2–3 follow-up questions.
-- **Visualization requested** (routing packet includes ### VIZ section or user asked for chart): call the appropriate viz tool first, present the chart link, then add 1–2 sentence description.
+- **Visualization requested** (routing packet includes ### VIZ_PLAN section indicating a chart, or user asked for one): call the appropriate viz tool first, present the chart link, then add 1–2 sentence description.
 - **No data** (routing packet has ### NO_DATA): 2–3 sentences explaining the gap + 1–2 alternative queries.
 
 CONVERSATION FLOW:
@@ -1737,6 +1738,7 @@ Since the user can see the tool output widgets, do not repeat raw data here.
 - **Intent:** <User goal in their language>
 - **Selection Logic:** <Short note on why these indicators/countries were chosen>
 - **Data Gaps:** <Note any missing years or countries found during tools calls>
+- **VIZ_PLAN:** <Mandatory visualization decision. If the user requests a multi-year timeframe or explicitly requests a chart, you MUST specify "Line chart using data360_get_viz_spec". Do not rely solely on fetched rows. Otherwise "None">
 - **CLARIFYING QUESTION:** <One question if needed, otherwise "None">
 
 ---
@@ -1751,7 +1753,7 @@ After completing Phase 1, you MUST output this token `{THINKING_TO_ANSWER_TOKEN}
 ## PHASE 2: WRITER & VISUALIZER (User-Facing)
 **GOAL:** Synthesize findings and generate visuals.
 **RULES:**
-1. **Visualization:** If requested (chart/graph/plot), call `data360_get_viz_spec` NOW using the IDs from Phase 1.
+1. **Visualization:** If the VIZ_PLAN dictates it (e.g. temporal data or user request), call `data360_get_viz_spec` NOW using the IDs from Phase 1.
 2. **Formatting:**
    - **Numbers:** Always use commas (e.g., 1,234,567) or abbreviations (1.2 million).
    - **Claim Tags:** Wrap every OBSERVATION VALUE (from tools or conversation history) with a claim tag: `<claim id="claim_id">value</claim>`. Never invent a claim_id. Use the `claim_id` from the tool output only.

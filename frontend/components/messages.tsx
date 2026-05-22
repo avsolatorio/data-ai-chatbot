@@ -39,6 +39,7 @@ type MessagesProps = {
     id: string;
     data: ChatMessage["parts"][number];
   }>;
+  streamingQuickAnswerCard?: unknown | null;
   /** Stream usage for the last assistant message until lastContext refetch */
   lastMessageUsage?: AppUsage;
   /** Per-message usage from lastContext.byMessageId */
@@ -61,6 +62,7 @@ function PureMessages({
   selectedModelId: _selectedModelId,
   streamingThinkingStage = null,
   streamingThinkingParts = [],
+  streamingQuickAnswerCard,
   lastMessageUsage,
   usageByMessageId,
 }: MessagesProps) {
@@ -296,6 +298,7 @@ function PureMessages({
               isLastMessage &&
               streamingThinkingParts.length > 0 &&
               (isLoading || !hasSavedThinkingParts || isWaitingForSavedParts);
+            const fromByMsg = usageByMessageId?.[message.id];
 
             return (
               <div
@@ -312,7 +315,7 @@ function PureMessages({
                   willChange: "transform",
                 }}
               >
-                  <PreviewMessage
+                <PreviewMessage
                   chatId={chatId}
                   followUpSuggestionsPopulateInput={
                     followUpSuggestionsPopulateInput
@@ -329,21 +332,22 @@ function PureMessages({
                   }
                   setMessages={setMessages}
                   isWaitingForSavedParts={isWaitingForSavedParts}
-                  streamingThinkingStage={
-                    shouldUseStreamingParts ? streamingThinkingStage : null
-                  }
+                  status={status}
                   streamingThinkingParts={
-                    shouldUseStreamingParts ? streamingThinkingParts : []
+                    isLastMessage ? streamingThinkingParts : undefined
+                  }
+                  streamingThinkingStage={
+                    isLastMessage ? streamingThinkingStage : undefined
+                  }
+                  streamingQuickAnswerCard={
+                    isLastMessage ? streamingQuickAnswerCard : undefined
                   }
                   usageOverride={
-                    message.role === "assistant"
-                      ? (usageByMessageId?.[message.id] ??
-                        (isLastAssistantMessage ? lastMessageUsage : undefined))
-                      : undefined
+                    fromByMsg ?? (isLastAssistantMessage ? lastMessageUsage : undefined)
                   }
                   vote={
                     votes
-                      ? votes.find((vote) => vote.messageId === message.id)
+                      ? votes.find((v) => v.messageId === message.id)
                       : undefined
                   }
                 />
@@ -419,6 +423,9 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
     return false;
   }
   if (prevProps.streamingThinkingStage !== nextProps.streamingThinkingStage) {
+    return false;
+  }
+  if (prevProps.streamingQuickAnswerCard !== nextProps.streamingQuickAnswerCard) {
     return false;
   }
   if (prevProps.sendMessage !== nextProps.sendMessage) {

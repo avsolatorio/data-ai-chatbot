@@ -198,6 +198,48 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                     total_groups = [g for g in groups if _is_total_group(g)]
                     if total_groups:
                         groups = [total_groups[0]]  # Single-group rendering
+                    else:
+                        # Fallback for indicators where all breakdown values are domain-specific
+                        # codes (e.g. WGI: WGI_EST, WGI_SE, WGI_SC…) — no _T group exists.
+                        # When comp_breakdown_1 is the only varying dimension, prefer the group
+                        # whose comp_breakdown_1 ends with "_EST" (the estimate series).
+                        # This prevents the synthesizer from mixing structurally incompatible
+                        # series (estimates, standard errors, percentile ranks, source counts).
+                        def _get_disagg(g):
+                            g_key = g.get("group") or {}
+                            return {
+                                k.lower(): v
+                                for k, v in g_key.items()
+                                if k.lower() in _disagg_dims and v not in ("_T", "_Z", None)
+                            }
+
+                        varying_dims: set[str] = set()
+                        for g in groups:
+                            varying_dims |= _get_disagg(g).keys()
+
+                        if varying_dims == {"comp_breakdown_1"}:
+                            # Pick the _EST group if available, otherwise take the first group.
+                            est_groups = [
+                                g
+                                for g in groups
+                                if str((_get_disagg(g).get("comp_breakdown_1") or ""))
+                                .upper()
+                                .endswith("_EST")
+                            ]
+                            groups = [est_groups[0] if est_groups else groups[0]]
+                            logger.debug(
+                                "[synthesize_card] comp_breakdown_1-only indicator: collapsed to %s",
+                                (groups[0].get("group") or {}).get("comp_breakdown_1", "groups[0]"),
+                            )
+
+            # Track if we collapsed to a specific comp_breakdown_1 value (e.g. WGI_EST)
+            # so the viz call can pin that filter to avoid mixing incompatible series.
+            _selected_cb1: str | None = None
+            if len(groups) == 1:
+                _g0_key = groups[0].get("group") or {}
+                _cb1_val = _g0_key.get("comp_breakdown_1") or _g0_key.get("COMP_BREAKDOWN_1")
+                if _cb1_val and str(_cb1_val) not in ("_T", "_Z"):
+                    _selected_cb1 = str(_cb1_val)
 
             # Primary group used for the prominent single-group display
             group = groups[0]
@@ -322,6 +364,9 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                     }
                     for g in groups
                 ],
+                # Present when the synthesizer collapsed to a specific comp_breakdown_1
+                # (e.g. "WGI_EST"). Used by the viz call to pin that filter.
+                **({"selected_comp_breakdown_1": _selected_cb1} if _selected_cb1 else {}),
             }
 
         if tool_name == "data360_compare_countries":
@@ -446,6 +491,54 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
             # - For specific-year queries (where the LLM uses end_year=requested_year), this naturally
             #   picks the requested year (if available) or the closest preceding year (publication lag).
             target_row = max(sorted_rows, key=_time_key)
+            earliest_row = min(sorted_rows, key=_time_key)
+
+            # If the user queried a range that yielded multiple years for a single country,
+            # promote the payload to a trend card so the UI renders the visualization.
+            if len(countries) == 1 and target_row.get("TIME_PERIOD") != earliest_row.get(
+                "TIME_PERIOD"
+            ):
+                latest_value = target_row.get("OBS_VALUE")
+                earliest_value = earliest_row.get("OBS_VALUE")
+
+                total_change = None
+                pct_change = None
+                trend_direction = "stable"
+
+                if latest_value is not None and earliest_value is not None:
+                    try:
+                        lv = float(latest_value)
+                        ev = float(earliest_value)
+                        total_change = lv - ev
+                        pct_change = (total_change / abs(ev)) * 100 if ev != 0 else 0
+                        trend_direction = (
+                            "increasing"
+                            if total_change > 0
+                            else "decreasing"
+                            if total_change < 0
+                            else "stable"
+                        )
+                    except (TypeError, ValueError):
+                        pass
+
+                return {
+                    "card_type": "trend",
+                    "database_name": database_name,
+                    "indicator_name": indicator_name,
+                    "indicator_id": tool_args.get("indicator_id", ""),
+                    "country_name": _country_name(target_row),
+                    "unit": _unit(target_row, indicator_name),
+                    "latest_value": latest_value,
+                    "earliest_value": earliest_value,
+                    "latest_year": target_row.get("TIME_PERIOD"),
+                    "earliest_year": earliest_row.get("TIME_PERIOD"),
+                    "total_change": total_change,
+                    "pct_change": pct_change,
+                    "trend_direction": trend_direction,
+                    "latest_claim_id": target_row.get("claim_id", ""),
+                    "earliest_claim_id": earliest_row.get("claim_id", ""),
+                    "groups": [],  # Empty groups forces the single-group large layout
+                }
 
             return {
                 "card_type": "single_fact",
@@ -552,6 +645,24 @@ async def quick_answer_node(state: ChatPipelineState) -> dict:
                             viz_args["start_year"] = ta["start_year"]
                         if ta.get("end_year"):
                             viz_args["end_year"] = ta["end_year"]
+
+                        # Forward any filters the LLM used (e.g. SEX=F, or custom breakdowns)
+                        filters = (
+                            ta.get("disaggregation_filters", {}).copy()
+                            if ta.get("disaggregation_filters")
+                            else {}
+                        )
+
+                        # If the card was collapsed to a single comp_breakdown_1 group
+                        # (e.g. WGI_EST), pin that value so the chart only renders the
+                        # chosen series rather than mixing all breakdowns.
+                        _cb1 = card.get("selected_comp_breakdown_1")
+                        if _cb1:
+                            filters["COMP_BREAKDOWN_1"] = _cb1
+
+                        if filters:
+                            viz_args["disaggregation_filters"] = filters
+
                         try:
                             viz_result = await invoke_tool_with_span(
                                 viz_tool,

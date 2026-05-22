@@ -9,6 +9,11 @@ overrides:
   '@data360/mcp-viz-core': 0.0.2
   '@data360/tool-types': 0.0.4
 
+patchedDependencies:
+  '@data360/chart-payload-normalize@0.0.1':
+    hash: gp5k2wx4lslkshulu4s4b2ift4
+    path: patches/@data360__chart-payload-normalize@0.0.1.patch
+
 importers:
 
   .:
@@ -4777,11 +4782,11 @@ snapshots:
       style-mod: 4.1.2
       w3c-keyname: 2.2.8
 
-  '@data360/chart-payload-normalize@0.0.1': {}
+  '@data360/chart-payload-normalize@0.0.1(patch_hash=gp5k2wx4lslkshulu4s4b2ift4)': {}
 
   '@data360/mcp-ui@0.0.5(@data360/tool-types@0.0.4)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
     dependencies:
-      '@data360/chart-payload-normalize': 0.0.1
+      '@data360/chart-payload-normalize': 0.0.1(patch_hash=gp5k2wx4lslkshulu4s4b2ift4)
       '@data360/mcp-viz-core': 0.0.2
       '@data360/tool-types': 0.0.4
       html-to-image: 1.11.13

@@ -1,0 +1,36 @@
+diff --git a/dist/index.js b/dist/index.js
+index cb97b08c03b9aa7ad38208f868a4dfba2bc39c76..21f475a0196a499edac4fb4808da3bf1b32ef563 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -33,8 +33,18 @@ function titleFromSpec(spec) {
+     if (typeof raw === "string") {
+         return raw;
+     }
+-    if (isRecord(raw) && typeof raw.text === "string") {
+-        return raw.text;
++    if (Array.isArray(raw)) {
++        const joined = raw.filter(s => typeof s === "string").join("\n").trim();
++        if (joined) return joined;
++    }
++    if (isRecord(raw)) {
++        if (typeof raw.text === "string") {
++            return raw.text;
++        }
++        if (Array.isArray(raw.text)) {
++            const joined = raw.text.filter(s => typeof s === "string").join("\n").trim();
++            if (joined) return joined;
++        }
+     }
+     return "Chart";
+ }
+@@ -48,6 +58,10 @@ export function subtitleFromSpec(spec) {
+     if (typeof sub === "string" && sub.trim()) {
+         return sub.trim();
+     }
++    if (Array.isArray(sub)) {
++        const joined = sub.filter(s => typeof s === "string").join("\n").trim();
++        if (joined) return joined;
++    }
+     return undefined;
+ }
+ function isLikelyChartsApiEnvelope(data) {
