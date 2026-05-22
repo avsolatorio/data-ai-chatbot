@@ -229,9 +229,12 @@ export function Chat({
         return;
       }
 
-      // data-quickAnswerCard — let the AI SDK process this natively.
-      // It will store it in message.parts as a typed part, which is saved to the
-      // DB and reloaded with chat history so the card survives page refreshes.
+      // data-quickAnswerCard — extract for live rendering during stream.
+      // It will also be persisted to the DB and reloaded with chat history.
+      if (part.type === "data-quickAnswerCard" && part.data !== undefined) {
+        dataThinkingStream.setStreamingQuickAnswerCard(part.data);
+        return;
+      }
 
       // Handle data-stage events (processing stage: interpreting / retrieving / generating)
       if (
@@ -395,7 +398,11 @@ export function Chat({
               updated[lastIndex].role === "assistant" &&
               uiMessage.role === "assistant"
             ) {
-              updated[lastIndex] = uiMessage;
+              updated[lastIndex] = {
+                ...uiMessage,
+                vote: votes ? votes.find((v) => v.messageId === uiMessage.id) : undefined,
+                streamingQuickAnswerCard: isWaitingForSavedParts ? dataThinkingStream.streamingQuickAnswerCard : null,
+              };
             }
             return updated;
           });

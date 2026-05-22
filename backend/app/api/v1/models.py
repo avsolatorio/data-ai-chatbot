@@ -23,13 +23,19 @@ EXPOSED_CHAT_MODEL_TYPES: tuple[ModelType, ...] = (
 )
 
 
+_MODEL_TYPE_LABELS: dict[ModelType, str] = {
+    ModelType.CHAT_MODEL: "Standard",
+    ModelType.CHAT_MODEL_REASONING: "Reasoning",
+}
+
+
 def get_available_chat_models() -> list[ChatModelInfo]:
     """Return chat models from config: ModelType and ModelSettings (configured model name)."""
     return [
         ChatModelInfo(
             id=model_type.value,
             name=getattr(settings.models, model_type.name),
-            description=model_type.value,
+            description=_MODEL_TYPE_LABELS.get(model_type, model_type.value),
         )
         for model_type in EXPOSED_CHAT_MODEL_TYPES
     ]

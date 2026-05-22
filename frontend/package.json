@@ -159,6 +159,9 @@
         "react-dom": "*",
         "@opentelemetry/api-logs": "*"
       }
+    },
+    "patchedDependencies": {
+      "@data360/chart-payload-normalize@0.0.1": "patches/@data360__chart-payload-normalize@0.0.1.patch"
     }
   }
 }

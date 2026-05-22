@@ -826,6 +826,7 @@ const PurePreviewMessage = ({
   isWaitingForSavedParts = false,
   streamingThinkingStage = null,
   streamingThinkingParts = [],
+  streamingQuickAnswerCard = null,
   followUpSuggestionsPopulateInput = true,
   onFollowUpPopulateInput,
   onScrollToMessageId,
@@ -866,7 +867,7 @@ const PurePreviewMessage = ({
   // it survives page refreshes and chat history navigation.
   const quickAnswerCard = (message.parts.find(
     (p) => p.type === "data-quickAnswerCard",
-  ) as { type: "data-quickAnswerCard"; data: QuickAnswerCardData } | undefined)?.data ?? null;
+  ) as { type: "data-quickAnswerCard"; data: QuickAnswerCardData } | undefined)?.data ?? (streamingQuickAnswerCard as QuickAnswerCardData | null);
 
   const attachmentsFromMessage = message.parts.filter(
     (part) => part.type === "file",
@@ -1241,6 +1242,9 @@ export const PreviewMessage = memo(
       return false;
     }
     if (prevProps.streamingThinkingStage !== nextProps.streamingThinkingStage) {
+      return false;
+    }
+    if (prevProps.streamingQuickAnswerCard !== nextProps.streamingQuickAnswerCard) {
       return false;
     }
     if (prevProps.sendMessage !== nextProps.sendMessage) {
