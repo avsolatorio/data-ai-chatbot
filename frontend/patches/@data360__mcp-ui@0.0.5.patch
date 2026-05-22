@@ -1,0 +1,12 @@
+diff --git a/dist/viz-card.js b/dist/viz-card.js
+--- a/dist/viz-card.js
++++ b/dist/viz-card.js
+@@ -699,7 +699,7 @@
+               (k) => E.has(String(k[f.colorField]))
+             )
+           }
+-        }), (x = g.encoding) != null && x.color && f.colorField) {
++        }), (x = g.encoding) != null && x.color && f.colorField && x.color.type !== "quantitative") {
+           const k = f.distinctGroups.filter((M) => E.has(M));
+           g.encoding.color.scale = {
+             domain: k,
