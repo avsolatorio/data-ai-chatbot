@@ -2,7 +2,7 @@
 
 import { ClaimsManager } from "@pcn-js/core";
 import { ClaimsProvider } from "@pcn-js/ui";
-import { useMemo, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import {
   compareCountriesExtractor,
   rankCountriesExtractor,
@@ -41,12 +41,12 @@ type MessageWithParts = {
 
 /**
  * Synchronously ingests all aggregation tool outputs from loaded messages
- * during render (via useMemo) so that ClaimMark can verify numbers on first
- * paint — including after a page refresh when tool parts come from the DB.
+ * during commit (via useLayoutEffect) so that ClaimMark can verify numbers on
+ * first paint — including after a page refresh when tool parts come from the DB.
  *
  * IngestToolOutput (from @pcn-js/ui) uses useEffect internally, which fires
  * *after* first paint. This component closes that gap by calling
- * claimsManager.ingest() during the render phase for any session data that is
+ * claimsManager.ingest() during the commit phase for any session data that is
  * already present when the component mounts.
  */
 export function PreIngestSessionClaims({
@@ -58,14 +58,13 @@ export function PreIngestSessionClaims({
 }) {
   const ingestedPartKeysRef = useRef(new Set<string>());
 
-  const buildPartKey = (part: Record<string, unknown>, toolName: string) => {
-    if (typeof part.id === "string") return `${toolName}:${part.id}`;
-    const toolCallId = typeof part.toolCallId === "string" ? part.toolCallId : "";
-    return `${toolName}:${toolCallId}:${JSON.stringify(part.output ?? null)}`;
-  };
+  useLayoutEffect(() => {
+    const buildPartKey = (part: Record<string, unknown>, toolName: string) => {
+      if (typeof part.id === "string") return `${toolName}:${part.id}`;
+      const toolCallId = typeof part.toolCallId === "string" ? part.toolCallId : "";
+      return `${toolName}:${toolCallId}:${JSON.stringify(part.output ?? null)}`;
+    };
 
-  // useMemo runs synchronously during render — before any useEffect or paint.
-  useMemo(() => {
     const source = messages.length > 0 ? messages : initialMessages;
     for (const msg of source) {
       for (const part of msg.parts ?? []) {
@@ -99,7 +98,6 @@ export function PreIngestSessionClaims({
         }
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, initialMessages]);
 
   return null;

@@ -140,6 +140,7 @@ export function Chat({
     clearStage: clearThinkingStage,
     streamingParts,
     streamingPartsCount,
+    streamingQuickAnswerCard,
   } = dataThinkingStream;
 
   // Preserve streaming parts in a ref to prevent loss during re-renders
@@ -430,7 +431,7 @@ export function Chat({
     if (
       prevStatus !== "submitted" &&
       status === "submitted" &&
-      streamingPartsCount > 0
+      (streamingPartsCount > 0 || streamingQuickAnswerCard != null)
     ) {
       preservedStreamingPartsRef.current = [];
       isWaitingForSavedPartsRef.current = false;
@@ -441,6 +442,7 @@ export function Chat({
   }, [
     status,
     streamingPartsCount,
+    streamingQuickAnswerCard,
     clearThinkingStage,
     clearThinkingStream,
     id,
@@ -689,7 +691,7 @@ export function Chat({
               streamingThinkingStage={dataThinkingStream.streamingStage}
               streamingQuickAnswerCard={
                 isWaitingForSavedParts
-                  ? dataThinkingStream.streamingQuickAnswerCard
+                  ? streamingQuickAnswerCard
                   : null
               }
               streamingThinkingParts={

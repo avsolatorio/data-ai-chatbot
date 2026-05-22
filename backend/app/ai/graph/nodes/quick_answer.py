@@ -511,7 +511,11 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
             # ONLY do this if the LLM explicitly requested a time range. If it omitted dates
             # (e.g. for a "latest data" point lookup), the MCP server will default to 20 years,
             # but we should still render it as a single_fact for the absolute latest year.
-            has_explicit_years = "start_year" in tool_args or "end_year" in tool_args
+            start_year = tool_args.get("start_year")
+            end_year = tool_args.get("end_year")
+            has_explicit_years = (start_year is not None and str(start_year).strip() != "") or (
+                end_year is not None and str(end_year).strip() != ""
+            )
 
             if (
                 has_explicit_years
