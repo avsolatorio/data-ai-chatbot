@@ -25,7 +25,7 @@ Only users whose email matches one of these addresses can access the feedback li
 
 ## What you can do
 
-- **View feedback** — See all submitted feedback (text, rating, timestamp, optional user info).
+- **View feedback** — See all submitted feedback (text, rating, timestamp, submitter display name when logged in).
 - **Filter and sort** — Depending on the UI, you may be able to filter by date, rating, or other criteria.
 
 ---

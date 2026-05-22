@@ -17,11 +17,21 @@ from app.db.queries.chat_queries import get_chat_by_id, get_messages_by_chat_id
 from app.models.app_feedback import AppFeedback
 from app.models.chat import Chat
 from app.models.message import Message
+from app.models.user import User
 from app.models.vote import Vote
 
 logger = logging.getLogger(__name__)
 
 MESSAGE_PREVIEW_MAX_LEN = 280
+
+
+def _user_display_name(name: Optional[str], email: Optional[str]) -> Optional[str]:
+    """Display label for review UI: name, else email, else None (anonymous)."""
+    if name and name.strip():
+        return name.strip()
+    if email and email.strip():
+        return email.strip()
+    return None
 
 
 def _message_preview_from_parts(parts: Any) -> str:
@@ -93,6 +103,7 @@ class FeedbackReviewItem(BaseModel):
     rating: int
     feedback: Optional[str]
     user_id: Optional[UUID]
+    user_name: Optional[str] = None
     created_at: str  # ISO format
 
 
@@ -126,24 +137,31 @@ async def list_feedback_for_review(
     total_result = await db.execute(count_q)
     total = total_result.scalar() or 0
 
-    # Fetch page
-    q = select(AppFeedback).order_by(desc(AppFeedback.created_at)).limit(limit).offset(offset)
+    # Fetch page (left join User for display name on review UI)
+    q = (
+        select(AppFeedback, User.name, User.email)
+        .outerjoin(User, AppFeedback.user_id == User.id)
+        .order_by(desc(AppFeedback.created_at))
+        .limit(limit)
+        .offset(offset)
+    )
     if rating_min is not None:
         q = q.where(AppFeedback.rating >= rating_min)
     if rating_max is not None:
         q = q.where(AppFeedback.rating <= rating_max)
     result = await db.execute(q)
-    rows = result.scalars().all()
+    rows = result.all()
 
     items = [
         FeedbackReviewItem(
-            id=row.id,
-            rating=row.rating,
-            feedback=row.feedback,
-            user_id=row.user_id,
-            created_at=row.created_at.isoformat() if row.created_at else "",
+            id=feedback.id,
+            rating=feedback.rating,
+            feedback=feedback.feedback,
+            user_id=feedback.user_id,
+            user_name=_user_display_name(user_name, user_email),
+            created_at=feedback.created_at.isoformat() if feedback.created_at else "",
         )
-        for row in rows
+        for feedback, user_name, user_email in rows
     ]
     return FeedbackReviewResponse(items=items, total=total, limit=limit, offset=offset)
 
@@ -158,6 +176,7 @@ class VoteReviewItem(BaseModel):
     message_id: UUID
     chat_title: str
     message_preview: str
+    user_name: Optional[str] = None
     is_upvoted: Optional[bool]
     feedback: Optional[str]
     updated_at: str
@@ -198,8 +217,9 @@ async def list_votes_for_review(
 
     # Join Vote -> Message, Vote -> Chat; order by most recent (feedbackUpdatedAt or updatedAt)
     q = (
-        select(Vote, Chat.title, Message.parts)
+        select(Vote, Chat.title, Message.parts, User.name, User.email)
         .join(Chat, Vote.chatId == Chat.id)
+        .join(User, Chat.userId == User.id)
         .join(Message, (Vote.messageId == Message.id) & (Vote.chatId == Message.chatId))
         .where(base_filter)
         .order_by(
@@ -213,7 +233,7 @@ async def list_votes_for_review(
     rows = result.all()
 
     items = []
-    for vote, chat_title, parts in rows:
+    for vote, chat_title, parts, user_name, user_email in rows:
         updated_at = vote.feedbackUpdatedAt or vote.updatedAt or vote.createdAt
         items.append(
             VoteReviewItem(
@@ -221,6 +241,7 @@ async def list_votes_for_review(
                 message_id=vote.messageId,
                 chat_title=chat_title or "",
                 message_preview=_message_preview_from_parts(parts),
+                user_name=_user_display_name(user_name, user_email),
                 is_upvoted=vote.isUpvoted,
                 feedback=vote.feedback,
                 updated_at=updated_at.isoformat() if updated_at else "",

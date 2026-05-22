@@ -36,6 +36,7 @@ type FeedbackItem = {
   rating: number;
   feedback: string | null;
   user_id: string | null;
+  user_name: string | null;
   created_at: string;
 };
 
@@ -51,6 +52,7 @@ type VoteReviewItem = {
   message_id: string;
   chat_title: string;
   message_preview: string;
+  user_name: string | null;
   is_upvoted: boolean | null;
   feedback: string | null;
   updated_at: string;
@@ -519,9 +521,9 @@ export default function FeedbackReviewPage() {
                                   <span className="text-muted-foreground text-xs">
                                     {formatDate(item.created_at)}
                                   </span>
-                                  <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-muted-foreground text-xs">
-                                    {item.user_id
-                                      ? "Logged-in user"
+                                  <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground text-xs">
+                                    {item.user_name?.trim()
+                                      ? item.user_name.trim()
                                       : "Anonymous"}
                                   </span>
                                 </div>
@@ -669,6 +671,11 @@ export default function FeedbackReviewPage() {
                                       item.feedback_updated_at ??
                                         item.updated_at,
                                     )}
+                                  </span>
+                                  <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground text-xs">
+                                    {item.user_name?.trim()
+                                      ? item.user_name.trim()
+                                      : "Unknown user"}
                                   </span>
                                 </div>
                                 <CardTitle className="font-medium text-base">
