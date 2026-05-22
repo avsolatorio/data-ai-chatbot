@@ -161,8 +161,7 @@
       }
     },
     "patchedDependencies": {
-      "@data360/chart-payload-normalize@0.0.1": "patches/@data360__chart-payload-normalize@0.0.1.patch",
-      "@data360/mcp-ui@0.0.5": "patches/@data360__mcp-ui@0.0.5.patch"
+      "@data360/chart-payload-normalize@0.0.1": "patches/@data360__chart-payload-normalize@0.0.1.patch"
     }
   }
 }
