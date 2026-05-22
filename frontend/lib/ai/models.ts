@@ -8,6 +8,6 @@ export type ChatModel = {
 
 // Fallback when /api/models is not yet loaded.
 export const chatModels: ChatModel[] = [
-  { id: "chat-model", name: "gpt-5.1", description: "Standard" },
+  { id: "chat-model", name: "gpt-5.2", description: "Standard" },
   { id: "chat-model-reasoning", name: "o1-mini", description: "Reasoning" },
 ];
