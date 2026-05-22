@@ -218,12 +218,12 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                             varying_dims |= _get_disagg(g).keys()
 
                         if varying_dims == {"comp_breakdown_1"}:
-                            # TODO: The "_EST" suffix heuristic below is specific to WGI-family
-                            # indicators where breakdown codes follow a <PREFIX>_EST / <PREFIX>_SE /
-                            # <PREFIX>_SC / <PREFIX>_NS pattern.  Generalise this to support other
-                            # indicator families whose "main estimate" series uses a different
-                            # naming convention (e.g. a configurable priority list per database_id,
-                            # or metadata from the API's indicator definition).
+                            # TODO(@avsolatorio): As you pointed out, the "_EST" suffix heuristic DOES NOT generalize.
+                            # It is highly specific to WGI-family indicators (e.g. WGI_EST, WGI_SE, WGI_SC).
+                            # Other indicator families will have entirely different naming conventions for their "main estimate".
+                            # This needs to be generalized (e.g., via a configurable priority list per database_id,
+                            # or by using specific metadata from the API's indicator definition) to robustly
+                            # identify the main series without hardcoding suffixes.
                             # Pick the _EST group if available, otherwise take the first group.
                             est_groups = [
                                 g
