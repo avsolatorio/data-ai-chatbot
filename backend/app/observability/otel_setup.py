@@ -111,7 +111,12 @@ def configure_open_telemetry(settings: Settings) -> None:
                 configure_azure_monitor,
             )
 
-            configure_azure_monitor(connection_string=connection_string)
+            # Disable distro FastAPI auto-instrument so we can call instrument_app with
+            # exclude_spans (avoids noisy per-chunk http receive/send on SSE /api/chat).
+            configure_azure_monitor(
+                connection_string=connection_string,
+                instrumentation_options={"fastapi": {"enabled": False}},
+            )
             _TRACING_ACTIVE = True
             _logger.info("Azure Monitor OpenTelemetry configured.")
         except ImportError:
@@ -201,8 +206,14 @@ def instrument_fastapi_app(app: object) -> None:
             FastAPIInstrumentor,
         )
 
-        FastAPIInstrumentor.instrument_app(app)
-        _logger.info("FastAPI OpenTelemetry instrumentation enabled.")
+        FastAPIInstrumentor.instrument_app(
+            app,
+            exclude_spans=["receive", "send"],
+        )
+        _logger.info(
+            "FastAPI OpenTelemetry instrumentation enabled "
+            "(ASGI http receive/send internal spans excluded)."
+        )
     except ImportError:
         _logger.warning("opentelemetry-instrumentation-fastapi not available.")
 

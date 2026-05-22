@@ -20,6 +20,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
 from app.ai.prompts import get_quick_answer_system_prompt
 from app.config import ModelType
+from app.observability.tool_spans import invoke_tool_with_span
 
 from ..llm_factory import get_chat_llm
 from ..memory import trim_for_node
@@ -552,7 +553,12 @@ async def quick_answer_node(state: ChatPipelineState) -> dict:
                         if ta.get("end_year"):
                             viz_args["end_year"] = ta["end_year"]
                         try:
-                            viz_result = await viz_tool.ainvoke(viz_args)
+                            viz_result = await invoke_tool_with_span(
+                                viz_tool,
+                                viz_args,
+                                tool_name="data360_get_viz_spec",
+                                graph_node="quick_answer",
+                            )
                             # Normalize: MCP tools may return a list of text blocks or a dict.
                             if isinstance(viz_result, list):
                                 import json as _json  # noqa: PLC0415

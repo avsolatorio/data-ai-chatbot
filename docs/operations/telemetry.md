@@ -9,10 +9,12 @@ A typical chat request produces this span hierarchy:
 1. **FastAPI** — incoming HTTP request (`/api/v1/chat/...`)
 2. **`chat.turn`** — one assistant message / graph run
 3. **`chatbot.graph.<node>`** — LangGraph nodes (router, research, narrator, followup, …)
-4. **`chatbot.tool.<name>`** — MCP / LangChain tool calls
-5. **httpx** — outbound HTTP (Azure OpenAI, Data360 MCP, charts API, …)
+4. **`chatbot.tool.<name>`** — MCP / LangChain tool calls (including viz: `data360_get_viz_spec`, `data360_get_multi_indicator_viz_spec`, `data360_get_supported_chart_types` when the narrator or quick-answer path invokes them)
+5. **httpx** — outbound HTTP (Azure OpenAI, Data360 MCP, charts API, …); MCP calls are labeled `chatbot.operation=mcp`, not per-tool name
 
 Span attributes use opaque IDs only (`chatbot.message_id`, `chatbot.model_type`, `chatbot.intent`). User queries, emails, and tokens are **not** attached to spans.
+
+**ASGI noise reduction:** Per-chunk `http receive` / `http send` internal spans are disabled. You still get the main server span (e.g. `POST /api/chat`) with total duration and status.
 
 ## Deployed (Azure App Service)
 
