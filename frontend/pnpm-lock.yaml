@@ -47,8 +47,8 @@ importers:
         specifier: ^6.35.3
         version: 6.36.4
       '@data360/mcp-ui':
-        specifier: 0.0.6
-        version: 0.0.6(@data360/tool-types@0.0.4)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
+        specifier: 0.0.7
+        version: 0.0.7(@data360/tool-types@0.0.4)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
       '@data360/tool-types':
         specifier: 0.0.4
         version: 0.0.4
@@ -544,8 +544,8 @@ packages:
   '@data360/chart-payload-normalize@0.0.2':
     resolution: {integrity: sha512-kFB5iDrB7j3xXikjtizuhuiSV/dk0QhO35cKJwgn1C5rTamv7JyxhQOe1PysEEn3mBzAA7VjTdLIs9kFDWuvmg==}
 
-  '@data360/mcp-ui@0.0.6':
-    resolution: {integrity: sha512-KaO8p8eRSloaM2AmoCJS6qVxDjWXxnKvQWA0cbQt1xvaFCnRbzwpugd08N2uZabZ0SIXbJAfzjA3m1TKBKcEMg==}
+  '@data360/mcp-ui@0.0.7':
+    resolution: {integrity: sha512-1DdsYjPRuIe/MekRoGA4c8a6i/7NYsAVbHvGKxCN3mjViFMl7xt7d5ib0uHh6GlGP/3XNbNyAm/dLJJpVFxfjA==}
     peerDependencies:
       '@data360/tool-types': 0.0.4
       react: '>=18.0.0'
@@ -4779,7 +4779,7 @@ snapshots:
 
   '@data360/chart-payload-normalize@0.0.2': {}
 
-  '@data360/mcp-ui@0.0.6(@data360/tool-types@0.0.4)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
+  '@data360/mcp-ui@0.0.7(@data360/tool-types@0.0.4)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
     dependencies:
       '@data360/chart-payload-normalize': 0.0.2
       '@data360/mcp-viz-core': 0.0.3
