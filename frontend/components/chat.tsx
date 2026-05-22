@@ -52,6 +52,7 @@ import {
   type MultimodalInputHandle,
 } from "./multimodal-input";
 import { PcnManagerDebug } from "./pcn-manager-debug";
+import { PreIngestSessionClaims } from "./data360/pcn-provider-client";
 import { getChatHistoryPaginationKey } from "./sidebar-history";
 import { toast } from "./toast";
 import type { VisibilityType } from "./visibility-selector";
@@ -613,6 +614,10 @@ export function Chat({
   return (
     <>
       <IngestSessionData360
+        messages={messages}
+        initialMessages={initialMessages}
+      />
+      <PreIngestSessionClaims
         messages={messages}
         initialMessages={initialMessages}
       />
