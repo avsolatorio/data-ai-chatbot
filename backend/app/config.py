@@ -30,7 +30,7 @@ class IntentType(str, Enum):
 
 class ModelSettings(BaseSettings):
     MODEL_PROVIDER: str = "azure/"
-    CHAT_MODEL: str = "gpt-5.1"
+    CHAT_MODEL: str = "gpt-5.2"
     CHAT_MODEL_REASONING: str = "o1-mini"
     TITLE_MODEL: str = "gpt-4o-mini"
     ARTIFACT_MODEL: str = "gpt-4o-mini"
