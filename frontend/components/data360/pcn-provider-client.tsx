@@ -1,8 +1,7 @@
 "use client";
 
-import { Data360ClaimsProvider } from "@pcn-js/data360";
-import { useClaimsManager } from "@pcn-js/ui";
-import { useLayoutEffect, useRef } from "react";
+import { ClaimsManager } from "@pcn-js/core";
+import { ClaimsProvider } from "@pcn-js/ui";
 import {
   compareCountriesExtractor,
   rankCountriesExtractor,
@@ -10,42 +9,27 @@ import {
   getDataExtractor,
 } from "./aggregation-claim-extractors";
 
-const DATA360_RANK_TOOL = "data360_rank_countries";
-const DATA360_COMPARE_TOOL = "data360_compare_countries";
-const DATA360_SUMMARIZE_TOOL = "data360_summarize_data";
-const DATA360_GET_DATA_TOOL = "data360_get_data";
-
-function AggregationExtractorRegistrar() {
-  const manager = useClaimsManager();
-  const registeredRef = useRef(false);
-
-  useLayoutEffect(() => {
-    if (!manager || registeredRef.current) return;
-
-    // WARNING: While this is a render-time side effect, manager.registerExtractor
-    // is inherently idempotent. It safely overwrites existing extractors for the given
-    // tool names without accumulating duplicates. The registeredRef provides an extra layer
-    // of safety but the underlying map assignment is safe.
-    manager.registerExtractor(DATA360_RANK_TOOL, rankCountriesExtractor);
-    manager.registerExtractor(DATA360_COMPARE_TOOL, compareCountriesExtractor);
-    manager.registerExtractor(DATA360_SUMMARIZE_TOOL, summarizeDataExtractor);
-    manager.registerExtractor(DATA360_GET_DATA_TOOL, getDataExtractor);
-    registeredRef.current = true;
-  }, [manager]);
-
-  return null;
-}
+// Pre-register all extractors at module initialisation time — synchronously,
+// before any React render occurs.  This ensures that IngestToolOutput can
+// resolve claims from *all* aggregation tools (rank, compare, summarize,
+// get_data) even on page refresh, when tool parts arrive from the DB before
+// any useLayoutEffect has a chance to fire.
+const claimsManager = new ClaimsManager();
+claimsManager.registerExtractor("data360_rank_countries", rankCountriesExtractor);
+claimsManager.registerExtractor("data360_compare_countries", compareCountriesExtractor);
+claimsManager.registerExtractor("data360_summarize_data", summarizeDataExtractor);
+claimsManager.registerExtractor("data360_get_data", getDataExtractor);
 
 /**
- * Client-only wrapper for Data360ClaimsProvider so the layout (Server Component)
- * can use it without evaluating @pcn-js/data360 on the server (where createContext
- * is not available in RSC React).
+ * Client-only wrapper that provides a shared ClaimsManager pre-populated with
+ * all aggregation-tool extractors so that ClaimMark components can verify
+ * numbers immediately on first paint — including after a page refresh when
+ * tool parts are already available from the DB before useLayoutEffect fires.
  */
 export function PcnProviderClient({ children }: { children: React.ReactNode }) {
   return (
-    <Data360ClaimsProvider>
-      <AggregationExtractorRegistrar />
+    <ClaimsProvider manager={claimsManager}>
       {children}
-    </Data360ClaimsProvider>
+    </ClaimsProvider>
   );
 }
