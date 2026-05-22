@@ -21,6 +21,10 @@ def normalize_tool_output_for_ui(output: Any) -> Any:
 
     # TODO: Check how to generalize this given LangChain's tool output structure
     if isinstance(output, list):
+        if not output:
+            # Empty list — tool returned no content. Return None so the UI can
+            # render an output-available state rather than staying stuck.
+            return None
         output = output[0]
         if isinstance(output, dict) and "text" in output:
             return json.loads(output["text"])
