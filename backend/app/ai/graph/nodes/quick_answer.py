@@ -497,8 +497,15 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
 
             # If the user queried a range that yielded multiple years for a single country,
             # promote the payload to a trend card so the UI renders the visualization.
-            if len(countries) == 1 and target_row.get("TIME_PERIOD") != earliest_row.get(
-                "TIME_PERIOD"
+            # ONLY do this if the LLM explicitly requested a time range. If it omitted dates
+            # (e.g. for a "latest data" point lookup), the MCP server will default to 20 years,
+            # but we should still render it as a single_fact for the absolute latest year.
+            has_explicit_years = "start_year" in tool_args or "end_year" in tool_args
+
+            if (
+                has_explicit_years
+                and len(countries) == 1
+                and target_row.get("TIME_PERIOD") != earliest_row.get("TIME_PERIOD")
             ):
                 latest_value = target_row.get("OBS_VALUE")
                 earliest_value = earliest_row.get("OBS_VALUE")

@@ -427,6 +427,7 @@ Use the fewest calls necessary. Preferred paths:
     2. data360_compare_countries(database_id, indicator_id,
                                  country_codes="<ISO1>;<ISO2>",
                                  include_time_series=False)
+       — IMPORTANT: data360_compare_countries is strictly capped at 2 countries. Do not use for 3+.
 
   Breakdown / Disaggregation (1-2 calls):
     1. data360_search_indicators(query="<topic>", required_country="<country>", limit=15)
@@ -799,16 +800,17 @@ def get_routing_system_prompt() -> str:
 
 INTENT DEFINITIONS:
 
-QUICK_ANSWER — The user wants a single specific data point, a simple two-value comparison, or a single-indicator trend. The question names a specific country (or two countries), a clearly inferrable indicator, and optionally a year. The answer can be obtained with 1–2 tool calls.
+QUICK_ANSWER — The user wants a single specific data point, a simple two-value comparison, or a single-indicator trend. The question names a specific country (or two countries MAX), a clearly inferrable indicator, and optionally a year. The answer can be obtained with 1–2 tool calls.
   Examples: "What is the GDP of Kenya?", "Population of India 2023", "Unemployment rate in Morocco",
             "Life expectancy in Brazil", "GDP per capita Kenya vs Nigeria",
             "How has Kenya's unemployment changed over the last 10 years?",
             "Compare Ghana and Nigeria GDP growth", "Poverty rate in Ethiopia 2022"
-  Key signal: one country + one indicator + optional year/range → single number, simple delta, or trend.
+  Key signal: up to TWO countries + one indicator + optional year/range → single number, simple delta, or trend.
   NEVER QUICK_ANSWER for: analytical questions ("What are the economic challenges of..."),
   multi-indicator diagnostic decompositions, policy questions, vague topics without a clear indicator,
   questions asking for charts (route to RESEARCH instead so the viz tool can be called by the narrator),
-  regional/group queries involving many countries (route to RESEARCH).
+  regional/group queries involving many countries (route to RESEARCH),
+  questions asking to compare or show data for THREE OR MORE countries (route to RESEARCH).
 
 RESEARCH — The user wants actual numeric data values, time-series, country comparisons, charts, or
   indicator availability, AND the question requires analytical decomposition, multi-indicator synthesis,
