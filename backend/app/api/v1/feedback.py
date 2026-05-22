@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, Field
-from sqlalchemy import desc, func, or_, select
+from sqlalchemy import desc, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import nulls_last
 
@@ -19,8 +19,22 @@ from app.models.chat import Chat
 from app.models.message import Message
 from app.models.user import User
 from app.models.vote import Vote
+from app.utils.chat_visibility import effective_visibility
 
 logger = logging.getLogger(__name__)
+
+REVIEWABLE_VOTE_FILTER = or_(Vote.feedback.isnot(None), Vote.isUpvoted.isnot(None))
+
+
+async def chat_has_reviewable_response_feedback(db: AsyncSession, chat_id: UUID) -> bool:
+    """True if the chat has at least one vote row with feedback text or up/down vote."""
+    result = await db.execute(
+        select(
+            exists().where(Vote.chatId == chat_id, REVIEWABLE_VOTE_FILTER),
+        ),
+    )
+    return bool(result.scalar())
+
 
 MESSAGE_PREVIEW_MAX_LEN = 280
 
@@ -204,8 +218,7 @@ async def list_votes_for_review(
     List response-level votes and comments (paginated). Only for users in FEEDBACK_REVIEWER_EMAILS.
     Includes chat title and message preview for context.
     """
-    # Votes that have either a vote (up/down) or feedback text
-    base_filter = or_(Vote.feedback.isnot(None), Vote.isUpvoted.isnot(None))
+    base_filter = REVIEWABLE_VOTE_FILTER
     if has_feedback is True:
         base_filter = Vote.feedback.isnot(None)
     elif has_feedback is False:
@@ -304,3 +317,49 @@ async def get_chat_preview_for_review(
             for m in messages
         ],
     )
+
+
+@router.get("/review/chat/{chat_id}")
+async def get_chat_for_review(
+    chat_id: UUID,
+    _reviewer: dict = Depends(require_feedback_reviewer),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Full chat payload for reviewer read-only view. Same shape as GET /api/chat/{id}
+    with isOwner=false and reviewMode=true. Forbidden unless the chat has reviewable
+    response feedback (vote or comment on an assistant message).
+    """
+    chat = await get_chat_by_id(db, chat_id)
+    if not chat:
+        raise ChatSDKError("not_found:chat", status_code=status.HTTP_404_NOT_FOUND)
+
+    if not await chat_has_reviewable_response_feedback(db, chat_id):
+        raise ChatSDKError("forbidden:chat", status_code=status.HTTP_403_FORBIDDEN)
+
+    messages = await get_messages_by_chat_id(db, chat_id)
+    effective = effective_visibility(chat.visibility)
+
+    return {
+        "chat": {
+            "id": str(chat.id),
+            "title": chat.title,
+            "createdAt": chat.createdAt.isoformat(),
+            "updatedAt": chat.updatedAt.isoformat(),
+            "visibility": effective,
+            "userId": str(chat.userId),
+            "lastContext": chat.lastContext,
+        },
+        "messages": [
+            {
+                "id": str(msg.id),
+                "role": msg.role,
+                "parts": msg.parts,
+                "attachments": msg.attachments,
+                "createdAt": msg.createdAt.isoformat(),
+            }
+            for msg in messages
+        ],
+        "isOwner": False,
+        "reviewMode": True,
+    }

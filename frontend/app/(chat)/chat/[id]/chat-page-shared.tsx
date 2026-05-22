@@ -20,6 +20,12 @@ type ChatPageContentProps = {
   messagesFromApi?: ChatData["messages"];
   initialChatModel: string;
   isOwner: boolean;
+  /** When false, do not resume an in-flight stream (review pages). */
+  autoResume?: boolean;
+  /** When true, fill parent height instead of viewport (nested under review banner). */
+  fillParentHeight?: boolean;
+  /** Review read-only page: adjust header (back link, no sidebar toggle). */
+  reviewMode?: boolean;
 };
 
 /**
@@ -34,6 +40,9 @@ export function ChatPageContent({
   messagesFromApi,
   initialChatModel,
   isOwner,
+  autoResume = true,
+  fillParentHeight = false,
+  reviewMode = false,
 }: ChatPageContentProps) {
   const uiMessages =
     initialMessages ??
@@ -41,13 +50,15 @@ export function ChatPageContent({
   return (
     <>
       <Chat
-        autoResume={true}
+        autoResume={autoResume}
+        fillParentHeight={fillParentHeight}
         id={chat.id}
         initialChatModel={initialChatModel}
         initialMessages={uiMessages}
         initialVisibilityType={chat.visibility}
         isReadonly={!isOwner}
         lastContext={chat.lastContext ?? undefined}
+        reviewMode={reviewMode}
       />
       <DataStreamHandler />
     </>

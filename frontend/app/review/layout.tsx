@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PcnProviderClient } from "@/components/data360/pcn-provider-client";
+import { HomeConfigProvider } from "@/components/home-config-provider";
 import { appConfig } from "@/lib/config";
 
 export const metadata: Metadata = {
@@ -11,5 +12,9 @@ export const metadata: Metadata = {
 export default function ReviewLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return <PcnProviderClient>{children}</PcnProviderClient>;
+  return (
+    <PcnProviderClient>
+      <HomeConfigProvider>{children}</HomeConfigProvider>
+    </PcnProviderClient>
+  );
 }

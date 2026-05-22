@@ -31,6 +31,12 @@ import { apiFetch, getApiUrl } from "@/lib/api-client";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 
+function reviewChatHref(chatId: string, messageId?: string): string {
+  const base = `/review/feedback/chat/${chatId}`;
+  if (!messageId) return base;
+  return `${base}?messageId=${encodeURIComponent(messageId)}`;
+}
+
 type FeedbackItem = {
   id: string;
   rating: number;
@@ -680,7 +686,10 @@ export default function FeedbackReviewPage() {
                                 </div>
                                 <CardTitle className="font-medium text-base">
                                   <Link
-                                    href={`/chat/${item.chat_id}`}
+                                    href={reviewChatHref(
+                                      item.chat_id,
+                                      item.message_id,
+                                    )}
                                     className="text-primary underline-offset-4 hover:underline"
                                   >
                                     {item.chat_title || "Untitled chat"}
@@ -699,7 +708,7 @@ export default function FeedbackReviewPage() {
                                   </p>
                                 </CardContent>
                               ) : null}
-                              <CardContent className="pt-0">
+                              <CardContent className="flex flex-wrap gap-2 pt-0">
                                 <Button
                                   type="button"
                                   variant="outline"
@@ -713,6 +722,16 @@ export default function FeedbackReviewPage() {
                                   }
                                 >
                                   View conversation
+                                </Button>
+                                <Button variant="outline" size="sm" asChild>
+                                  <Link
+                                    href={reviewChatHref(
+                                      item.chat_id,
+                                      item.message_id,
+                                    )}
+                                  >
+                                    Open full conversation
+                                  </Link>
                                 </Button>
                               </CardContent>
                             </Card>
@@ -900,11 +919,12 @@ export default function FeedbackReviewPage() {
               <div className="shrink-0 border-t border-border bg-background px-4 py-2">
                 <Button variant="outline" size="sm" className="w-full" asChild>
                   <Link
-                    href={`/chat/${selectedChatId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={reviewChatHref(
+                      selectedChatId,
+                      selectedMessageId ?? undefined,
+                    )}
                   >
-                    Open full chat
+                    Open full conversation
                   </Link>
                 </Button>
               </div>

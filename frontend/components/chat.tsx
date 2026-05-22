@@ -64,6 +64,8 @@ export function Chat({
   isReadonly,
   autoResume,
   lastContext,
+  fillParentHeight = false,
+  reviewMode = false,
 }: {
   id: string;
   initialMessages: ChatMessage[];
@@ -73,6 +75,8 @@ export function Chat({
   autoResume: boolean;
   /** From API: { latest, byMessageId } or legacy plain usage */
   lastContext?: LastContext | null;
+  fillParentHeight?: boolean;
+  reviewMode?: boolean;
 }) {
   const router = useRouter();
 
@@ -608,7 +612,8 @@ export function Chat({
       <PcnManagerDebug />
       <div
         className={cn(
-          "overscroll-behavior-contain flex h-dvh min-w-0 touch-pan-y flex-col bg-background",
+          "overscroll-behavior-contain flex min-w-0 touch-pan-y flex-col bg-background",
+          fillParentHeight ? "h-full min-h-0" : "h-dvh",
           {
             hidden: isArtifactVisible,
           },
@@ -617,6 +622,7 @@ export function Chat({
         <ChatHeader
           chatId={id}
           isReadonly={isReadonly}
+          reviewMode={reviewMode}
           selectedVisibilityType={initialVisibilityType}
         />
 

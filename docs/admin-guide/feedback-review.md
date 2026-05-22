@@ -27,6 +27,22 @@ Only users whose email matches one of these addresses can access the feedback li
 
 - **View feedback** — See all submitted feedback (text, rating, timestamp, submitter display name when logged in).
 - **Filter and sort** — Depending on the UI, you may be able to filter by date, rating, or other criteria.
+- **Response feedback tab** — Review thumbs and comments on assistant messages. Use **View conversation** for a quick side-panel preview, or **Open full conversation** for a dedicated read-only page.
+
+---
+
+## Read-only review chat
+
+Reviewers can open a full conversation when that chat has **response-level feedback** (an up/down vote and/or a comment on an assistant message).
+
+| Item | Detail |
+|------|--------|
+| **URL** | `/review/feedback/chat/[chatId]` — optional `?messageId=` scrolls to and highlights the flagged assistant message |
+| **API** | `GET /api/feedback/review/chat/{chatId}` — same payload shape as `GET /api/chat/{id}` with `isOwner: false` and `reviewMode: true` |
+| **Eligibility** | Returns **403** if the chat has no reviewable vote/feedback rows (reviewers cannot browse arbitrary private chats) |
+| **Read-only** | No message input, no vote actions, no stream resume; normal `/chat/[id]` remains owner-only for private chats |
+
+Direct links to `/chat/{id}` from the review UI are not used for flagged conversations, because private chats return **403** for non-owners on the standard chat API.
 
 ---
 

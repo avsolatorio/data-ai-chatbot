@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { memo } from "react";
 import { useWindowSize } from "usehooks-ts";
 import { SidebarToggle } from "@/components/sidebar-toggle";
@@ -14,10 +16,12 @@ function PureChatHeader({
   chatId,
   selectedVisibilityType,
   isReadonly,
+  reviewMode = false,
 }: {
   chatId: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
+  reviewMode?: boolean;
 }) {
   const router = useRouter();
   const { open } = useSidebar();
@@ -25,10 +29,23 @@ function PureChatHeader({
   const { width: windowWidth } = useWindowSize();
 
   return (
-    <header className="sticky top-0 flex items-center gap-2 bg-background px-2 py-1.5 md:px-2">
-      <SidebarToggle />
+    <header className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b border-border bg-background px-2 py-1.5 md:px-2">
+      {reviewMode ? (
+        <Button
+          className="order-1 h-8 gap-1.5 px-2 md:h-fit md:px-2"
+          variant="ghost"
+          asChild
+        >
+          <Link href="/review/feedback">
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            <span className="text-sm">Feedback review</span>
+          </Link>
+        </Button>
+      ) : (
+        <SidebarToggle />
+      )}
 
-      {(!open || windowWidth < 768) && (
+      {!reviewMode && (!open || windowWidth < 768) && (
         <Button
           className="order-2 ml-auto h-8 px-2 md:order-1 md:ml-0 md:h-fit md:px-2"
           onClick={() => {
@@ -57,6 +74,7 @@ export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
   return (
     prevProps.chatId === nextProps.chatId &&
     prevProps.selectedVisibilityType === nextProps.selectedVisibilityType &&
-    prevProps.isReadonly === nextProps.isReadonly
+    prevProps.isReadonly === nextProps.isReadonly &&
+    prevProps.reviewMode === nextProps.reviewMode
   );
 });
