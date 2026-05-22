@@ -188,6 +188,35 @@ async def convert_messages_to_openai_format(
                         if text:
                             current_text_content.append({"type": "text", "text": text})
 
+                elif part_type == "data-quickAnswerCard":
+                    flush_tool_turn()
+                    card = part.get("data", {})
+                    card_type = card.get("card_type")
+                    indicator = card.get("indicator_name") or "Indicator"
+                    country = card.get("country_name") or "Country"
+                    indicator_id = card.get("indicator_id", "unknown")
+                    database_name = card.get("database_name", "unknown")
+                    database_id = card.get("database_id") or database_name
+
+                    if card_type == "single_fact":
+                        val = card.get("value", "N/A")
+                        year = card.get("year", "N/A")
+                        card_text = f"[Quick Answer Card: {indicator} (DB: {database_name}, database_id: {database_id}, indicator_id: {indicator_id}) for {country} in {year} was {val}]"
+                    elif card_type == "trend":
+                        latest = card.get("latest_value", "N/A")
+                        earliest = card.get("earliest_value", "N/A")
+                        card_text = f"[Quick Answer Card (Trend): {indicator} (DB: {database_name}, database_id: {database_id}, indicator_id: {indicator_id}) for {country} trended from {earliest} to {latest}]"
+                    elif card_type == "comparison":
+                        entries = card.get("entries", [])
+                        entry_strs = [
+                            f"{e.get('country_name')}: {e.get('value')}" for e in entries[:3]
+                        ]
+                        card_text = f"[Quick Answer Card (Comparison): {indicator} (DB: {database_name}, database_id: {database_id}, indicator_id: {indicator_id}) comparing {', '.join(entry_strs)}]"
+                    else:
+                        card_text = f"[Quick Answer Card: {indicator} (DB: {database_name}, database_id: {database_id}, indicator_id: {indicator_id}) in {country}]"
+
+                    current_text_content.append({"type": "text", "text": card_text})
+
             # Flush any remaining tool turn at end of parts
             flush_tool_turn()
 

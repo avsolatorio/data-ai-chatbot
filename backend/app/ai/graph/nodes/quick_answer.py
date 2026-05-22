@@ -331,6 +331,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
 
             return {
                 "card_type": "trend",
+                "database_id": tool_args.get("database_id", ""),
                 "database_name": database_name,
                 "indicator_name": indicator_name,
                 "indicator_id": tool_args.get("indicator_id", ""),
@@ -428,6 +429,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
 
             return {
                 "card_type": "comparison",
+                "database_id": tool_args.get("database_id", ""),
                 "database_name": database_name,
                 "indicator_name": indicator_name,
                 "indicator_id": tool_args.get("indicator_id", ""),
@@ -523,6 +525,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
 
                 return {
                     "card_type": "trend",
+                    "database_id": tool_args.get("database_id", ""),
                     "database_name": database_name,
                     "indicator_name": indicator_name,
                     "indicator_id": tool_args.get("indicator_id", ""),
@@ -542,6 +545,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
 
             return {
                 "card_type": "single_fact",
+                "database_id": tool_args.get("database_id", ""),
                 "database_name": database_name,
                 "indicator_name": indicator_name,
                 "indicator_id": tool_args.get("indicator_id", ""),
