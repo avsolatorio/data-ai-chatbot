@@ -201,8 +201,8 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                     else:
                         # Fallback for indicators where all breakdown values are domain-specific
                         # codes (e.g. WGI: WGI_EST, WGI_SE, WGI_SC…) — no _T group exists.
-                        # When comp_breakdown_1 is the only varying dimension, prefer the group
-                        # whose comp_breakdown_1 ends with "_EST" (the estimate series).
+                        # When comp_breakdown_1 is the only varying dimension, we check a list of
+                        # preferred suffixes (e.g. "_EST"). If none match, we fallback to the first group.
                         # This prevents the synthesizer from mixing structurally incompatible
                         # series (estimates, standard errors, percentile ranks, source counts).
                         def _get_disagg(g):
@@ -218,21 +218,26 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                             varying_dims |= _get_disagg(g).keys()
 
                         if varying_dims == {"comp_breakdown_1"}:
-                            # TODO(@avsolatorio): As you pointed out, the "_EST" suffix heuristic DOES NOT generalize.
-                            # It is highly specific to WGI-family indicators (e.g. WGI_EST, WGI_SE, WGI_SC).
-                            # Other indicator families will have entirely different naming conventions for their "main estimate".
-                            # This needs to be generalized (e.g., via a configurable priority list per database_id,
-                            # or by using specific metadata from the API's indicator definition) to robustly
-                            # identify the main series without hardcoding suffixes.
-                            # Pick the _EST group if available, otherwise take the first group.
-                            est_groups = [
-                                g
-                                for g in groups
-                                if str((_get_disagg(g).get("comp_breakdown_1") or ""))
-                                .upper()
-                                .endswith("_EST")
-                            ]
-                            groups = [est_groups[0] if est_groups else groups[0]]
+                            # TODO: This heuristic currently uses a hardcoded priority suffix list.
+                            # In the future, this should be replaced with a robust metadata-driven
+                            # approach (e.g. an `is_primary_series` flag provided directly by the
+                            # Data360 API for the indicator's comp_breakdown_1 codelist).
+                            preferred_suffixes = ("_EST",)
+
+                            selected_group = groups[0]  # Fallback to the first available group
+                            for suffix in preferred_suffixes:
+                                matches = [
+                                    g
+                                    for g in groups
+                                    if str((_get_disagg(g).get("comp_breakdown_1") or ""))
+                                    .upper()
+                                    .endswith(suffix)
+                                ]
+                                if matches:
+                                    selected_group = matches[0]
+                                    break
+
+                            groups = [selected_group]
                             logger.debug(
                                 "[synthesize_card] comp_breakdown_1-only indicator: collapsed to %s",
                                 (groups[0].get("group") or {}).get("comp_breakdown_1", "groups[0]"),
