@@ -53,7 +53,10 @@ const STATUS_DOT: Record<
 };
 
 const ToolStatus = ({ state }: { state: ToolUIPart["state"] }) => {
-  const { label, className: dotClass } = STATUS_DOT[state];
+  const { label, className: dotClass } = STATUS_DOT[state] ?? {
+    label: "Pending",
+    className: "bg-muted-foreground/50",
+  };
   return (
     <span className="flex items-center gap-1.5">
       <span
