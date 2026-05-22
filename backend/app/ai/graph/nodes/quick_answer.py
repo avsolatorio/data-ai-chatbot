@@ -727,7 +727,7 @@ async def quick_answer_node(state: ChatPipelineState) -> dict:
         )
 
     logger.info(
-        "[quick_answer_node] completed. Packet len=%d, Tool calls=%d, Card type=%s, Viz=%s",
+        "[quick_answer_node] completed. Packet length=%d, Tool calls=%d, Card type=%s, Viz=%s",
         len(final_content),
         len(tool_results),
         card.get("card_type") if card else "none",
