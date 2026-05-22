@@ -17,6 +17,8 @@ import logging
 
 from langgraph.graph import END, START, StateGraph
 
+from app.observability.graph_spans import instrument_graph_node
+
 from .nodes.clarifier import clarifier_node
 from .nodes.direct import direct_node
 from .nodes.explain import explain_node
@@ -51,16 +53,16 @@ def build_chat_graph():
     g = StateGraph(ChatPipelineState)
 
     # ── Nodes ──────────────────────────────────────────────────────────────────
-    g.add_node("summarizer", summarizer_node)
-    g.add_node("router", router_node)
-    g.add_node("quick_answer", quick_answer_node)
-    g.add_node("research", research_node)
-    g.add_node("explain", explain_node)
-    g.add_node("narrator", narrator_node)
-    g.add_node("followup", followup_node)
-    g.add_node("direct", direct_node)
-    g.add_node("clarifier", clarifier_node)
-    g.add_node("suggester", suggester_node)
+    g.add_node("summarizer", instrument_graph_node(summarizer_node, node_name="summarizer"))
+    g.add_node("router", instrument_graph_node(router_node, node_name="router"))
+    g.add_node("quick_answer", instrument_graph_node(quick_answer_node, node_name="quick_answer"))
+    g.add_node("research", instrument_graph_node(research_node, node_name="research"))
+    g.add_node("explain", instrument_graph_node(explain_node, node_name="explain"))
+    g.add_node("narrator", instrument_graph_node(narrator_node, node_name="narrator"))
+    g.add_node("followup", instrument_graph_node(followup_node, node_name="followup"))
+    g.add_node("direct", instrument_graph_node(direct_node, node_name="direct"))
+    g.add_node("clarifier", instrument_graph_node(clarifier_node, node_name="clarifier"))
+    g.add_node("suggester", instrument_graph_node(suggester_node, node_name="suggester"))
 
     # ── Edges ──────────────────────────────────────────────────────────────────
     g.add_edge(START, "summarizer")

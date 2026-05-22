@@ -11,6 +11,7 @@ This section covers **environment variables**, **health monitoring**, **logging*
 | [Environment variables](environment-variables.md) | Full reference for backend and frontend |
 | [Health monitoring](health-monitoring.md) | `/health` endpoint and what to monitor |
 | [Logging](logging.md) | LOG_FILE, LOG_LEVEL, where logs go |
+| [Telemetry](telemetry.md) | OpenTelemetry traces, Azure Application Insights, local Jaeger |
 | [Troubleshooting](troubleshooting.md) | Common issues and fixes |
 | [Runbooks](runbooks.md) | Operational procedures (restart, migrations, etc.) |
 

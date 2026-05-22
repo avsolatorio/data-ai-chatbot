@@ -21,6 +21,7 @@ from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolM
 from app.ai.observability.token_usage import append_llm_usage_fallback
 from app.ai.prompts import get_system_prompt
 from app.config import ModelType
+from app.observability.tool_spans import invoke_tool_with_span
 
 from ..graph_debug_log import log_llm_messages_preview
 from ..graph_tool_notify import notify_tool_end, notify_tool_start
@@ -189,7 +190,12 @@ async def narrator_node(state: ChatPipelineState) -> dict:
                 tool_result = f"Tool '{tool_name}' not available."
             else:
                 try:
-                    tool_result = await tool.ainvoke(tool_args)
+                    tool_result = await invoke_tool_with_span(
+                        tool,
+                        tool_args,
+                        tool_name=tool_name,
+                        graph_node="narrator",
+                    )
                 except Exception as exc:
                     tool_result = f"Tool '{tool_name}' error: {exc}"
                     logger.error("[narrator_node] tool=%s error: %s", tool_name, exc)

@@ -121,6 +121,8 @@ class Settings(BaseSettings):
 
     # App
     ENVIRONMENT: str = "development"
+    # Azure Application Insights (OpenTelemetry traces when ENVIRONMENT is not development/local)
+    APPLICATIONINSIGHTS_CONNECTION_STRING: str = ""
     CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3001"
     # When True, require Origin/Referer for all state-changing requests (POST/PUT/PATCH/DELETE).
     # Closes "Absence of Origin Headers" finding; set True in production if you do not need API clients that omit Origin.

@@ -36,6 +36,10 @@ dependencies = [
     "langchain-mcp-adapters>=0.2.2",
     "mcp>=1.24.0",
     "langchain-litellm>=0.6.4",
+    "azure-monitor-opentelemetry>=1.6.0",
+    "opentelemetry-sdk>=1.28.0",
+    "opentelemetry-exporter-otlp>=1.28.0",
+    "opentelemetry-instrumentation-httpx>=0.50b0",
 ]
 
 [project.optional-dependencies]

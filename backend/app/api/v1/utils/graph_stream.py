@@ -8,6 +8,8 @@ from collections.abc import AsyncIterator
 from typing import Any, List
 from uuid import UUID
 
+from opentelemetry import trace
+
 from app.ai.graph.graph_tool_notify import create_tool_sse_queue
 from app.ai.graph.pipeline import chat_graph
 from app.ai.graph.sse_bridge import stream_graph_to_sse
@@ -23,6 +25,8 @@ from app.ai.protocols.stream import (
 from app.utils.resumable_stream import store_stream_chunk
 
 logger = logging.getLogger(__name__)
+
+_chat_tracer = trace.get_tracer("ai_chatbot.chat")
 
 
 async def store_and_yield_stream_chunk(
@@ -174,12 +178,20 @@ async def stream_chat_graph_sse(
         summarized_message_count=summarized_message_count,
     )
     logger.info("[graph_stream] stream_graph_to_sse start forced_intent=%s", forced_intent)
-    async for sse_bytes in stream_graph_to_sse(
-        chat_graph,
-        graph_input,
-        part_message_id,
-        out=graph_out,
-        assistant_row_id=assistant_row_id,
-    ):
-        yield sse_bytes
+    turn_attrs: dict[str, str] = {
+        "chatbot.message_id": part_message_id,
+        "chatbot.model_type": model_type,
+    }
+    if forced_intent:
+        turn_attrs["chatbot.forced_intent"] = forced_intent
+
+    with _chat_tracer.start_as_current_span("chat.turn", attributes=turn_attrs):
+        async for sse_bytes in stream_graph_to_sse(
+            chat_graph,
+            graph_input,
+            part_message_id,
+            out=graph_out,
+            assistant_row_id=assistant_row_id,
+        ):
+            yield sse_bytes
     logger.info("[graph_stream] stream_graph_to_sse done")

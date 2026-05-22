@@ -31,6 +31,12 @@ from app.core.csrf import CSRFMiddleware
 from app.core.rate_limit import RateLimitMiddleware
 from app.core.redis import close_redis_client
 from app.core.request_logging import RequestLoggingMiddleware
+from app.observability.otel_setup import (
+    configure_open_telemetry,
+    instrument_fastapi_app,
+    instrument_httpx_outbound,
+    record_error_on_span,
+)
 from app.ready import run_readiness
 from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
 
@@ -78,6 +84,9 @@ logging.getLogger("sqlalchemy.dialects").setLevel(logging.WARNING)
 logging.getLogger("uvicorn").setLevel(_log_level)
 logging.getLogger("uvicorn.access").setLevel(_log_level)
 
+configure_open_telemetry(settings)
+instrument_httpx_outbound()
+
 # Test logging
 logger = logging.getLogger(__name__)
 logger.info("=== FastAPI app starting, logging configured ===")
@@ -115,12 +124,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+instrument_fastapi_app(app)
+
 
 async def exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Log errors with a unique ID and return a safe response; never expose internals."""
     if isinstance(exc, HTTPException):
         if exc.status_code >= 500:
             error_id = new_error_id()
+            record_error_on_span(error_id)
             logger.error("Error [%s]: %s", error_id, exc, exc_info=True)
             return JSONResponse(
                 status_code=exc.status_code,
@@ -131,6 +143,7 @@ async def exception_handler(request: Request, exc: Exception) -> JSONResponse:
             content={"detail": exc.detail},
         )
     error_id = new_error_id()
+    record_error_on_span(error_id)
     logger.error("Error [%s]: %s", error_id, exc, exc_info=True)
     return JSONResponse(
         status_code=500,
