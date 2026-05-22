@@ -402,7 +402,6 @@ export function Chat({
               updated[lastIndex] = {
                 ...uiMessage,
                 vote: votes ? votes.find((v) => v.messageId === uiMessage.id) : undefined,
-                streamingQuickAnswerCard: isWaitingForSavedParts ? dataThinkingStream.streamingQuickAnswerCard : null,
               };
             }
             return updated;
@@ -688,6 +687,11 @@ export function Chat({
               setMessages={setMessages}
               status={status}
               streamingThinkingStage={dataThinkingStream.streamingStage}
+              streamingQuickAnswerCard={
+                isWaitingForSavedParts
+                  ? dataThinkingStream.streamingQuickAnswerCard
+                  : null
+              }
               streamingThinkingParts={
                 isWaitingForSavedParts &&
                 dataThinkingStream.streamingParts.length === 0 &&

@@ -734,15 +734,9 @@ async def quick_answer_node(state: ChatPipelineState) -> dict:
         bool(card.get("viz_url")) if card else False,
     )
 
-    existing_parts = state.get("assistant_parts", [])
-    new_parts = []
-    if card:
-        new_parts.append({"type": "data-quickAnswerCard", "data": card, "state": "done"})
-
     return {
         "research_packet": final_content,
         "research_tool_results": tool_results,
         "response_mode": "quick" if card else "full",
         "quick_answer_card": card,
-        "assistant_parts": existing_parts + new_parts,
     }

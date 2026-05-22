@@ -190,7 +190,9 @@ async def convert_messages_to_openai_format(
 
                 elif part_type == "data-quickAnswerCard":
                     flush_tool_turn()
-                    card = part.get("data", {})
+                    card = part.get("data")
+                    if not isinstance(card, dict):
+                        continue
                     card_type = card.get("card_type")
                     indicator = card.get("indicator_name") or "Indicator"
                     country = card.get("country_name") or "Country"

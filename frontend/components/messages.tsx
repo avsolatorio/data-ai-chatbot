@@ -288,16 +288,6 @@ function PureMessages({
             const isLastMessage = index === messages.length - 1;
             const isLastAssistantMessage =
               isLastMessage && message.role === "assistant";
-            const hasSavedThinkingParts =
-              message.parts?.some(
-                (part) =>
-                  typeof part.type === "string" &&
-                  part.type.startsWith("data-thinking"),
-              ) ?? false;
-            const shouldUseStreamingParts =
-              isLastMessage &&
-              streamingThinkingParts.length > 0 &&
-              (isLoading || !hasSavedThinkingParts || isWaitingForSavedParts);
             const fromByMsg = usageByMessageId?.[message.id];
 
             return (

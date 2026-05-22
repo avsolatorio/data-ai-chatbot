@@ -2,7 +2,7 @@
 
 import { ClaimsManager } from "@pcn-js/core";
 import { ClaimsProvider } from "@pcn-js/ui";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import {
   compareCountriesExtractor,
   rankCountriesExtractor,
@@ -56,6 +56,14 @@ export function PreIngestSessionClaims({
   messages: MessageWithParts[];
   initialMessages?: MessageWithParts[];
 }) {
+  const ingestedPartKeysRef = useRef(new Set<string>());
+
+  const buildPartKey = (part: Record<string, unknown>, toolName: string) => {
+    if (typeof part.id === "string") return `${toolName}:${part.id}`;
+    const toolCallId = typeof part.toolCallId === "string" ? part.toolCallId : "";
+    return `${toolName}:${toolCallId}:${JSON.stringify(part.output ?? null)}`;
+  };
+
   // useMemo runs synchronously during render — before any useEffect or paint.
   useMemo(() => {
     const source = messages.length > 0 ? messages : initialMessages;
@@ -67,7 +75,12 @@ export function PreIngestSessionClaims({
         // Top-level tool parts
         if (AGG_TOOL_TYPES.has(type) && part.state === "output-available" && part.output != null) {
           const toolName = AGG_TOOL_NAMES[type];
-          if (toolName) claimsManager.ingest(toolName, part.output);
+          if (toolName) {
+            const partKey = buildPartKey(part, toolName);
+            if (ingestedPartKeysRef.current.has(partKey)) continue;
+            claimsManager.ingest(toolName, part.output);
+            ingestedPartKeysRef.current.add(partKey);
+          }
         }
 
         // data-thinking-wrapped tool parts
@@ -76,7 +89,12 @@ export function PreIngestSessionClaims({
           const innerType = inner.type as string | undefined;
           if (innerType && AGG_TOOL_TYPES.has(innerType) && inner.state === "output-available" && inner.output != null) {
             const toolName = AGG_TOOL_NAMES[innerType];
-            if (toolName) claimsManager.ingest(toolName, inner.output);
+            if (toolName) {
+              const partKey = buildPartKey(inner, toolName);
+              if (ingestedPartKeysRef.current.has(partKey)) continue;
+              claimsManager.ingest(toolName, inner.output);
+              ingestedPartKeysRef.current.add(partKey);
+            }
           }
         }
       }
