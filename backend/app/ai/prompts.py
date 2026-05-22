@@ -839,7 +839,8 @@ CLARIFY — The query is development-data-related but is missing a required slot
   NEVER CLARIFY for chart/visualization requests when data is already in the conversation.
   NEVER CLARIFY when the user names a geographic group — the Research Agent resolves these autonomously.
   NEVER CLARIFY for ambiguous metrics like "poverty rate" — default to standard indicators like the National or $2.15 poverty line and route to QUICK_ANSWER or RESEARCH.
-  When CLARIFY, populate "missing_slots" with the slot names that are absent.
+  NEVER CLARIFY for a missing year or time period — always assume latest available data. Year is NEVER a blocking slot.
+  When CLARIFY, populate "missing_slots" with the slot names that are absent. "time_period" must NEVER appear in missing_slots.
 
 OUT_OF_SCOPE — The query has no connection to development data, economics, or international indicators.
   Examples: "What's the best pizza in Rome?", "Who won the World Cup?", "Write me a poem"
@@ -1192,7 +1193,8 @@ MISSING SLOT PRIORITY (ask about the most blocking one):
   If a country was discussed even several turns ago, it is still the active context.
 - "indicator" → ONLY ask if there are no indicator names in recent assistant responses.
   If the previous response listed specific indicators, those ARE "the indicators".
-- "time_period" → If the user said "last decade" or similar, use that — do not ask.
+- "time_period" → NEVER ask about year or time period. If unspecified, always assume latest
+  available data. Year is never a blocking slot — the API returns the latest by default.
 
 Respond with ONLY the clarifying question. No other text."""
 
