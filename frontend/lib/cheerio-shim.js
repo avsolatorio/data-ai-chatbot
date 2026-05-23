@@ -1,3 +1,5 @@
+const CLAIM_SELECTOR = "claim";
+
 const emptyCollection = {
   map() {
     return {
@@ -22,5 +24,5 @@ const wrapElement = (value) => ({
 
 export function load() {
   return (selectorOrElement) =>
-    selectorOrElement === "claim" ? emptyCollection : wrapElement(selectorOrElement);
+    selectorOrElement === CLAIM_SELECTOR ? emptyCollection : wrapElement(selectorOrElement);
 }
