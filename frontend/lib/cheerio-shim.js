@@ -35,7 +35,7 @@ const wrapElement = (value) => ({
 /**
  * Create a minimal browser-only cheerio loader.
  *
- * @returns {(selectorOrElement: unknown) => {map?: () => {get: () => unknown[]}, attr?: () => undefined, text?: () => string, toString?: () => string}}
+ * @returns {(selectorOrElement: unknown) => unknown}
  * A selector function where "claim" returns an empty collection so claim extraction becomes a no-op,
  * and any other selector/element gets a tiny wrapper with inert attr/text/toString methods.
  */
