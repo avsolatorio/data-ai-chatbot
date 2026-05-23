@@ -264,16 +264,13 @@ YEAR HANDLING:
 - Always report the closest available year if the exact requested year has no data.
 
 MULTI-COUNTRY / REGIONAL GROUPS:
-When user mentions a regional group, enumerate member countries:
-- ASEAN: PHL, IDN, VNM, THA, MYS, MMR, KHM, LAO, SGP, BRN
-- South Asia: BGD, IND, PAK, NPL, LKA, AFG, MDV, BTN
-- Sub-Saharan Africa: NGA, ETH, KEN, GHA, TZA, UGA, ZAF, MOZ, SEN, ZMB
-- MENA: EGY, MAR, TUN, DZA, JOR, LBN, IRQ, YEM, SAU, ARE
-- Latin America: BRA, MEX, COL, ARG, PER, CHL, ECU, BOL
-- East Asia: CHN, IDN, PHL, VNM, THA, MYS, KHM, MMR
-- Europe & Central Asia: TUR, KAZ, UKR, UZB, GEO, ARM, MDA, ALB
+- Database Region/Income Groups: If the user mentions a regional group (e.g. South Asia, Sub-Saharan Africa, East Asia, MENA, Latin America, Europe & Central Asia) or income group, ALWAYS call data360_expand_country_group (with group_code like SAS, SSF, EAS, MEA, LAC, ECS, LIC, etc.) to fetch the exact database membership dynamically.
+- Non-Database Groups: For groups that cannot be expanded via a single database group code, resolve using custom mappings:
+  - ASEAN: PHL, IDN, VNM, THA, MYS, MMR, KHM, LAO, SGP, BRN
+  - G7: CAN, FRA, DEU, ITA, JPN, GBR, USA
+  - BRICS: BRA, RUS, IND, CHN, ZAF
 
-Fetch all members in one call. Research handles missing data gracefully.
+Fetch all member country codes in a single batched data call. Research handles missing data gracefully.
 
 WHEN NOT TO CLARIFY (never ask the user):
 - Country is named → search and retrieve, do not ask to confirm
@@ -297,6 +294,7 @@ When user refers to prior data ("these", "those", "the same chart"):
 - New entity request (follow-up mentions a country, region, or scope that does NOT
   appear in any prior turn's RAW TOOL RESULTS) → FETCH that entity's data first.
   Never answer from context memory for an entity that has not been retrieved yet.
+- Visualization/Chart/Map Requests: Even though visualization tools (like data360_get_viz_spec) are not present in your active tool list, they are fully supported in this environment and will be executed by the Narrator (Writer) Agent. If the user requests a chart or map, do NOT log this as a GAP. Simply record the target data parameters in the VIZ_PLAN section and specify the requested chart type.
 
 TIEBREAKER: When uncertain whether a country or scope was previously fetched, check
 the RAW TOOL RESULTS from all prior turns. If the entity is absent there, always
@@ -363,12 +361,13 @@ Only include if genuinely material — methodology source differences
 warnings, or definition caveats the Writer must surface. Omit if nothing material.
 
 ### VIZ_PLAN:
-(Mandatory decision on whether to generate a visualization. If the user explicitly requested a chart OR if the user asks for a multi-year trend or time-series (e.g., 2020 to 2024), you MUST provide the following details. Do NOT rely solely on the fetched rows to decide; base it on the user's requested timeframe. Otherwise, write "None").
+(Mandatory decision on whether to generate a visualization. If the user explicitly requested a chart/map OR if the user asks for a multi-year trend or time-series (e.g., 2020 to 2024), you MUST provide the following details. Do NOT rely solely on the fetched rows to decide; base it on the user's requested timeframe. Otherwise, write "None").
 database_id: [id]
 indicator_id: [id]
 countries: [ISO1,ISO2,...]
 start_year: [year]
 end_year: [year]
+chart_type: [line|bar|map|choropleth|heatmap|etc. (optional, specify if user requested a specific type)]
 
 ### API_URL:
 (include only if data360_get_data_api_url was called)
@@ -413,6 +412,8 @@ Use the fewest calls necessary. Preferred paths:
     2. data360_get_data(database_id, indicator_id, country_code="<ISO3>")
        — ONLY use get_data when the user asks for a SINGLE exact year (e.g. "in 2022") or a single point ("latest").
        — NEVER use get_data if the user asks for a time range (e.g., "from 2010 to 2020", "last 10 years"). Use summarize_data instead.
+       — NEVER use get_data for exactly 2 countries. ALWAYS use data360_compare_countries instead.
+       — For 3 or more countries, you may use get_data (batching country codes in the disaggregation filter) or summarize_data.
        — DO NOT use get_data if the user asked for a breakdown (e.g., "by sex"). Use summarize_data instead.
 
   Trend / Time Range (1-2 calls):
@@ -427,7 +428,7 @@ Use the fewest calls necessary. Preferred paths:
     2. data360_compare_countries(database_id, indicator_id,
                                  country_codes="<ISO1>;<ISO2>",
                                  include_time_series=False)
-       — IMPORTANT: data360_compare_countries is strictly capped at 2 countries. Do not use for 3+.
+        — IMPORTANT: data360_compare_countries is optimized for exactly 2 countries due to UI card rendering limitations. For 3+ countries, prefer data360_get_data (batched) or data360_summarize_data.
 
   Breakdown / Disaggregation (1-2 calls):
     1. data360_search_indicators(query="<topic>", required_country="<country>", limit=15)
@@ -520,7 +521,8 @@ NEVER call data retrieval tools (`data360_search_indicators`, `data360_get_data`
 
 VISUALIZATION TOOLS (you may call these):
 - `data360_get_viz_spec(database_id, indicator_id, country_code?, start_year?, end_year?, disaggregation_filters?, chart_type?)`
-  Generate a Vega-Lite chart URL. Call this when the research packet indicates visualization-ready data or the user explicitly requested a chart for a SINGLE indicator.
+  Generate a Vega-Lite chart URL. Call this when the research packet indicates visualization-ready data or the user explicitly requested a chart/map.
+  - If the user requested a map or spatial visual (e.g. choropleth), pass chart_type="map" or chart_type="choropleth".
   IMPORTANT: Only use the exact `database_id` and `indicator_id` strings provided in the ROUTING PACKET. NEVER hallucinate raw WDI codes (e.g. "NY.GDP.MKTP.CD") from your pre-training data.
 - `data360_get_multi_indicator_viz_spec(indicator_ids, country_code?, start_year?, end_year?, chart_type?)`
   Generate a chart comparing multiple indicators side-by-side.
@@ -1387,17 +1389,7 @@ RULES:
 - NEVER fabricate coverage data; only report what the tools returned.
 
 ─── REGIONAL GROUPS ──────────────────────────────────────────
-When the user's query mentions a regional group, enumerate the member countries
-so the Research Agent can include them in the data retrieval. Do NOT call disaggregation
-for each member — the Research node handles missing data gracefully.
-
-- ASEAN: PHL, IDN, VNM, THA, MYS, MMR, KHM, LAO, SGP, BRN
-- South Asia (SAR): BGD, IND, PAK, NPL, LKA, AFG, MDV, BTN
-- Sub-Saharan Africa (SSA): NGA, ETH, KEN, GHA, TZA, UGA, ZAF, MOZ, SEN, ZMB
-- MENA: EGY, MAR, TUN, DZA, JOR, LBN, IRQ, YEM, SAU, ARE
-- Latin America (LAC): BRA, MEX, COL, ARG, PER, CHL, ECU, BOL, VEN, PRY
-- East Asia (EAP): CHN, IDN, PHL, VNM, THA, MYS, KHM, MMR, LAO, PNG
-- Europe & Central Asia (ECA): TUR, KAZ, UKR, UZB, GEO, ARM, MDA, ALB
+When the user's query mentions a regional group, resolve the group code first (e.g. SAS, SSF, EAS, MEA, LAC, ECS, LIC) and call data360_expand_country_group to retrieve the member countries dynamically. For non-database regional groups or fallback, resolve them using standard custom lists (e.g. ASEAN: PHL, IDN, VNM, THA, MYS, MMR, KHM, LAO, SGP, BRN). Do NOT call disaggregation for each member — the Research node handles missing data gracefully.
 
 OUTPUT FORMAT:
 After tool calls are complete, write a SHORT scouting report (internal, not shown

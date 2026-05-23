@@ -499,6 +499,63 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 except (ValueError, TypeError):
                     return 0
 
+            if is_multi_country and len(countries) >= 2:
+                logger.info(
+                    "[synthesize_card] get_data fallback: upgrading to comparison card for %d countries",
+                    len(countries),
+                )
+                country_latest = {}
+                for r in sorted_rows:
+                    country = r.get("REF_AREA")
+                    if country not in country_latest or _time_key(r) > _time_key(
+                        country_latest[country]
+                    ):
+                        country_latest[country] = r
+
+                entries = []
+                for country, r in country_latest.items():
+                    entries.append(
+                        {
+                            "ref_area": country,
+                            "country_name": _country_name(r),
+                            "value": r.get("OBS_VALUE"),
+                            "claim_id": r.get("claim_id", ""),
+                            "rank": None,
+                        }
+                    )
+
+                def _safe_float(v):
+                    try:
+                        return float(v)
+                    except (ValueError, TypeError):
+                        return float("-inf")
+
+                entries.sort(key=lambda e: _safe_float(e["value"]), reverse=True)
+                for i, e in enumerate(entries):
+                    e["rank"] = i + 1
+
+                top_val = entries[0].get("value")
+                bottom_val = entries[-1].get("value")
+                delta = None
+                if top_val is not None and bottom_val is not None:
+                    try:
+                        delta = float(top_val) - float(bottom_val)
+                    except (TypeError, ValueError):
+                        delta = None
+
+                first_row = list(country_latest.values())[0]
+                return {
+                    "card_type": "comparison",
+                    "database_id": tool_args.get("database_id", ""),
+                    "database_name": database_name,
+                    "indicator_name": indicator_name,
+                    "indicator_id": tool_args.get("indicator_id", ""),
+                    "unit": _unit(first_row, indicator_name),
+                    "year": first_row.get("TIME_PERIOD") if first_row.get("TIME_PERIOD") else None,
+                    "entries": entries,
+                    "delta": delta,
+                }
+
             # Always pick the most recent published value within the retrieved window.
             # - For "latest" queries (no dates or hallucinated window), this picks the absolute latest.
             # - For specific-year queries (where the LLM uses end_year=requested_year), this naturally

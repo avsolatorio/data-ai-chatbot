@@ -27,7 +27,11 @@ def normalize_tool_output_for_ui(output: Any) -> Any:
             return None
         output = output[0]
         if isinstance(output, dict) and "text" in output:
-            return json.loads(output["text"])
+            text_val = output["text"]
+            try:
+                return json.loads(text_val)
+            except (json.JSONDecodeError, TypeError):
+                return text_val
         else:
             return output
     else:

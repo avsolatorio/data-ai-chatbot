@@ -84,11 +84,17 @@ async def narrator_node(state: ChatPipelineState) -> dict:
         context_parts: list[str] = []
 
         if tool_results:
-            # Emit data-bearing tools — skip search/codelist calls which are
-            # lookup scaffolding, not content. Aggregation tools (rank, compare,
-            # summarize) must be included: they contain the actual numeric values
-            # and claim_id fields that the Writer uses for claim-tagged output.
-            # Omitting them causes the Writer to hallucinate values and claim IDs.
+            # Emit data-bearing tools. While search, codelist, and group expansion tools
+            # are often used as intermediate lookup scaffolding during multi-step data
+            # retrieval, they act as the primary "data-bearing" tools when the user's
+            # intent is a metadata query (e.g. expanding regional group memberships,
+            # listing indicator catalogs, or explaining disaggregations).
+            # We include them to ensure the Writer receives the raw database results
+            # for these lookups, preventing hallucinations of members or codes.
+            # Aggregation tools (rank, compare, summarize) are also included:
+            # they contain the actual numeric values and claim_id fields that the
+            # Writer uses for claim-tagged output. Omitting them causes the Writer
+            # to hallucinate values and claim IDs.
             data_tools = frozenset(
                 {
                     "data360_get_data",
@@ -97,6 +103,10 @@ async def narrator_node(state: ChatPipelineState) -> dict:
                     "data360_rank_countries",
                     "data360_compare_countries",
                     "data360_summarize_data",
+                    "data360_expand_country_group",
+                    "data360_get_disaggregation",
+                    "data360_find_codelist_value",
+                    "data360_search_indicators",
                 }
             )
             data_outputs = [r for r in tool_results if r.get("tool_name") in data_tools]
