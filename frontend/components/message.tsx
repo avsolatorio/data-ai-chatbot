@@ -848,6 +848,7 @@ const PurePreviewMessage = ({
     id: string;
     data: ChatMessage["parts"][number];
   }>;
+  streamingQuickAnswerCard?: QuickAnswerCardData | null;
   followUpSuggestionsPopulateInput?: boolean;
   onFollowUpPopulateInput?: (text: string) => void;
   onScrollToMessageId?: (messageId: string) => void;
