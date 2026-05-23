@@ -9,7 +9,7 @@ import { useMessages } from "@/hooks/use-messages";
 import { appConfig } from "@/lib/config";
 import type { Vote } from "@/lib/db/schema";
 import { getStreamingThinkingScrollFingerprint } from "@/lib/streaming-thinking-scroll-fingerprint";
-import type { ChatMessage } from "@/lib/types";
+import type { ChatMessage, QuickAnswerCardData } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
 import { useDataStream } from "./data-stream-provider";
 import { PreviewMessage, ThinkingMessage } from "./message";
@@ -39,7 +39,7 @@ type MessagesProps = {
     id: string;
     data: ChatMessage["parts"][number];
   }>;
-  streamingQuickAnswerCard?: unknown | null;
+  streamingQuickAnswerCard?: QuickAnswerCardData | null;
   /** Stream usage for the last assistant message until lastContext refetch */
   lastMessageUsage?: AppUsage;
   /** Per-message usage from lastContext.byMessageId */
@@ -322,7 +322,6 @@ function PureMessages({
                   }
                   setMessages={setMessages}
                   isWaitingForSavedParts={isWaitingForSavedParts}
-                  status={status}
                   streamingThinkingParts={
                     isLastMessage ? streamingThinkingParts : undefined
                   }

@@ -27,7 +27,7 @@ import { getApiUrl } from "@/lib/api-client";
 import { getBasePath } from "@/lib/config";
 import type { DBMessage, Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
-import type { Attachment, ChatMessage } from "@/lib/types";
+import type { Attachment, ChatMessage, QuickAnswerCardData } from "@/lib/types";
 import {
   type AppUsage,
   aggregateUsage,
@@ -234,7 +234,7 @@ export function Chat({
       // data-quickAnswerCard — extract for live rendering during stream.
       // It will also be persisted to the DB and reloaded with chat history.
       if (part.type === "data-quickAnswerCard" && part.data !== undefined) {
-        dataThinkingStream.setStreamingQuickAnswerCard(part.data);
+        dataThinkingStream.setStreamingQuickAnswerCard(part.data as QuickAnswerCardData);
         return;
       }
 

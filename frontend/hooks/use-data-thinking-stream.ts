@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import type {
   DataThinkingPart,
   MessagePartOrStreamEvent,
+  QuickAnswerCardData,
   StreamingThinkingPart,
 } from "@/lib/types";
 
@@ -34,7 +35,7 @@ export function useDataThinkingStream() {
     Map<string, DataThinkingPart>
   >(new Map());
   const [streamingStage, setStreamingStageState] = useState<ProcessingStage | null>(null);
-  const [streamingQuickAnswerCard, setStreamingQuickAnswerCard] = useState<unknown | null>(null);
+  const [streamingQuickAnswerCard, setStreamingQuickAnswerCard] = useState<QuickAnswerCardData | null>(null);
 
   /**
    * Extract the unique identifier for a part from the inner data.
