@@ -85,6 +85,25 @@ const nextConfig: NextConfig = {
     "@pcn-js/data360",
     "streamdown",
   ],
+  // cheerio is a Node.js-only package bundled inside @pcn-js/core.
+  // Externalize it for SSR so Node can resolve it, and stub it out for
+  // the browser bundle so the client doesn't choke on the missing module.
+  serverExternalPackages: ["cheerio"],
+  turbopack: {
+    resolveAlias: {
+      // Turbopack requires a real path (not false). Point to an empty shim.
+      cheerio: "./lib/cheerio-shim.js",
+    },
+  },
+  webpack(config, { isServer }) {
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        cheerio: require.resolve("./lib/cheerio-shim.js"),
+      };
+    }
+    return config;
+  },
   // Avoid embedding absolute build paths in client source maps (standalone output)
   productionBrowserSourceMaps: false,
   // Prevent path segments (e.g. WBG from /Users/.../WBG/...) from becoming folders in .next/standalone.

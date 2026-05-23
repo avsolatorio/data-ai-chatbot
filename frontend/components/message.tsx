@@ -5,7 +5,12 @@ import {
   isData360VizToolSuccess,
   parseData360VizToolResult,
 } from "@data360/tool-types";
-import { DATA360_GET_DATA_TOOL } from "@pcn-js/data360";
+import {
+  DATA360_GET_DATA_TOOL,
+  type CompactRankingOutput,
+  type CompactSummaryOutput,
+  type CompactComparisonOutput,
+} from "@pcn-js/data360";
 import { IngestToolOutput } from "@pcn-js/ui";
 import type { ToolUIPart } from "ai";
 import equal from "fast-deep-equal";
@@ -44,18 +49,9 @@ import { GetData, GetDataRequestSummary } from "./data360/get-data";
 import { GetWdiData } from "./data360/get-wdi-data";
 import { SearchIndicators } from "./data360/search-indicators";
 import { SearchRelevantIndicators } from "./data360/search-relevant-indicators";
-import {
-  RankCountries,
-  type CompactRankingOutput,
-} from "./data360/rank-countries";
-import {
-  SummarizeData,
-  type CompactSummaryOutput,
-} from "./data360/summarize-data";
-import {
-  CompareCountries,
-  type CompactComparisonOutput,
-} from "./data360/compare-countries";
+import { RankCountries } from "./data360/rank-countries";
+import { SummarizeData } from "./data360/summarize-data";
+import { CompareCountries } from "./data360/compare-countries";
 import { QuickAnswerCard } from "./data360/quick-answer";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";

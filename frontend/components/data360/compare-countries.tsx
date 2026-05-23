@@ -2,50 +2,12 @@
 
 import { ClaimMark } from "@pcn-js/ui";
 import { formatNum, signedPct, ErrorBanner } from "./shared";
-
-// ---------------------------------------------------------------------------
-// Types — mirrors CountryComparisonResponse.to_compact() on the MCP server
-// All fields are optional so the renderer is resilient to both compact and
-// non-compact payloads (e.g. if the MCP server is on a different branch).
-// ---------------------------------------------------------------------------
-
-export type CompactRankedEntry = {
-  rank?: number;
-  code?: string;
-  country?: string;
-  value?: number;
-  claim_id?: string | null;
-};
-
-export type CompactComparisonSnapshot = {
-  year?: string;
-  rankings?: CompactRankedEntry[];
-  spread?: Record<string, number | null>;
-};
-
-/**
- * series_schema documents the positional encoding:
- *   [time_period, obs_value, claim_id]
- * Always read positions from series_schema — do NOT hard-code offsets.
- */
-export type CompactTimeSeries = {
-  year_range?: string | null;
-  n_aligned_years?: number;
-  convergence?: string | null;
-  cagr?: Record<string, number | null>;
-  series_schema?: string[];
-  series?: Record<string, [string, number, string | null][]>;
-};
-
-export type CompactComparisonOutput = {
-  indicator?: string | null;
-  unit?: string | null;
-  snapshot?: CompactComparisonSnapshot | null;
-  time_series?: CompactTimeSeries | null;
-  error?: string | null;
-  // Allow through unknown keys so non-compact full model payloads don't crash
-  [key: string]: unknown;
-};
+import type {
+  CompactRankedEntry,
+  CompactComparisonSnapshot,
+  CompactTimeSeries,
+  CompactComparisonOutput,
+} from "@pcn-js/data360";
 
 // ---------------------------------------------------------------------------
 // Helpers

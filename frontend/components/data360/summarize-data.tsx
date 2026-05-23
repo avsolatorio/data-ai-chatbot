@@ -2,35 +2,7 @@
 
 import { ClaimMark } from "@pcn-js/ui";
 import { formatNum, ErrorBanner } from "./shared";
-
-// ---------------------------------------------------------------------------
-// Types — mirrors DataSummaryResponse.to_compact() on the MCP server
-// ---------------------------------------------------------------------------
-
-export type CompactGroupSummary = {
-  group: Record<string, string>;
-  n: number;
-  latest: { value: number | null; year: string | null };
-  earliest: { value: number | null; year: string | null };
-  range: string | null;
-  stats: {
-    min: number | null;
-    max: number | null;
-    mean: number | null;
-    median: number | null;
-  };
-  change: { abs: number | null; pct: number | null };
-  trend: string | null;
-  claim_ids: string[];
-};
-
-export type CompactSummaryOutput = {
-  indicator: string | null;
-  unit: string | null;
-  ambiguous_dimensions: string[] | null;
-  groups: CompactGroupSummary[];
-  error: string | null;
-};
+import type { CompactGroupSummary, CompactSummaryOutput } from "@pcn-js/data360";
 
 // ---------------------------------------------------------------------------
 // Helpers

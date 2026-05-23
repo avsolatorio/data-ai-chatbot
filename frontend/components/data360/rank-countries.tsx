@@ -2,31 +2,7 @@
 
 import { ClaimMark } from "@pcn-js/ui";
 import { formatNum, ErrorBanner } from "./shared";
-
-// ---------------------------------------------------------------------------
-// Types — mirrors RankingResponse.to_compact() on the MCP server
-// ---------------------------------------------------------------------------
-
-export type CompactRankedCountry = {
-  rank?: number;
-  code?: string;
-  country?: string;
-  value?: number;
-  claim_id?: string | null;
-};
-
-export type CompactRankingOutput = {
-  year: string | null;
-  year_selection_note: string | null;
-  order: "asc" | "desc";
-  counts: { with_data: number; requested: number };
-  unit: string | null;
-  indicator: string | null;
-  rankings: CompactRankedCountry[];
-  excluded_count: number;
-  excluded_sample: Array<{ code: string; name: string | null }>;
-  error: string | null;
-};
+import type { CompactRankedCountry, CompactRankingOutput } from "@pcn-js/data360";
 
 // ---------------------------------------------------------------------------
 // Helpers
