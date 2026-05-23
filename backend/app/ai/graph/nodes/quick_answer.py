@@ -499,18 +499,47 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 except (ValueError, TypeError):
                     return 0
 
-            if is_multi_country and len(countries) >= 2:
+            if is_multi_country and len(countries) > 2:
+                logger.info(
+                    "[synthesize_card] get_data fallback skipped: comparison card supports exactly 2 countries, found %d",
+                    len(countries),
+                )
+                continue
+
+            if is_multi_country and len(countries) == 2:
                 logger.info(
                     "[synthesize_card] get_data fallback: upgrading to comparison card for %d countries",
                     len(countries),
                 )
-                country_latest = {}
+                country_year_rows: dict[str, dict[str, dict]] = {}
                 for r in sorted_rows:
                     country = r.get("REF_AREA")
-                    if country not in country_latest or _time_key(r) > _time_key(
-                        country_latest[country]
-                    ):
-                        country_latest[country] = r
+                    year = r.get("TIME_PERIOD")
+                    if not country or year in (None, ""):
+                        continue
+                    country_year_rows.setdefault(country, {})[str(year)] = r
+
+                if len(country_year_rows) != 2:
+                    logger.info(
+                        "[synthesize_card] get_data fallback skipped: could not normalize 2 valid countries"
+                    )
+                    continue
+
+                shared_years = set.intersection(
+                    *(set(year_rows.keys()) for year_rows in country_year_rows.values())
+                )
+                if not shared_years:
+                    logger.info(
+                        "[synthesize_card] get_data fallback skipped: no shared TIME_PERIOD across countries"
+                    )
+                    continue
+
+                shared_year = max(shared_years, key=lambda y: _time_key({"TIME_PERIOD": y}))
+                country_latest = {
+                    country: year_rows[shared_year]
+                    for country, year_rows in country_year_rows.items()
+                    if shared_year in year_rows
+                }
 
                 entries = []
                 for country, r in country_latest.items():
@@ -543,7 +572,9 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                     except (TypeError, ValueError):
                         delta = None
 
-                first_row = list(country_latest.values())[0]
+                first_row = entries and country_latest.get(entries[0]["ref_area"])
+                if not first_row:
+                    continue
                 return {
                     "card_type": "comparison",
                     "database_id": tool_args.get("database_id", ""),
@@ -551,7 +582,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                     "indicator_name": indicator_name,
                     "indicator_id": tool_args.get("indicator_id", ""),
                     "unit": _unit(first_row, indicator_name),
-                    "year": first_row.get("TIME_PERIOD") if first_row.get("TIME_PERIOD") else None,
+                    "year": shared_year,
                     "entries": entries,
                     "delta": delta,
                 }
