@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { PcnProviderClient } from "@/components/data360/pcn-provider-client";
 import { HomeConfigProvider } from "@/components/home-config-provider";
 import { appConfig } from "@/lib/config";
@@ -14,7 +15,9 @@ export default function ReviewLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <PcnProviderClient>
-      <HomeConfigProvider>{children}</HomeConfigProvider>
+      <Suspense fallback={<div className="flex h-dvh" />}>
+        <HomeConfigProvider>{children}</HomeConfigProvider>
+      </Suspense>
     </PcnProviderClient>
   );
 }
