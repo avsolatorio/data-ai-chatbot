@@ -505,8 +505,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                     len(countries),
                 )
                 continue
-
-            if is_multi_country and len(countries) == 2:
+            elif is_multi_country and len(countries) == 2:
                 logger.info(
                     "[synthesize_card] get_data fallback: upgrading to comparison card for %d countries",
                     len(countries),
