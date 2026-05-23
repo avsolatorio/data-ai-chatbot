@@ -10,7 +10,7 @@ process.chdir(frontendDir);
 const steps = [
   { name: "Building and copying local PCN into node_modules", cmd: "pnpm run copy:pcn" },
   { name: "Clearing .next", cmd: "pnpm exec rimraf .next" },
-  { name: "Starting dev server (Turbopack)", cmd: "pnpm exec next dev --turbo --port 3001" },
+  { name: "Starting dev server (Turbopack)", cmd: "pnpm exec next dev --turbo" },
 ];
 
 console.log("Running dev:local-pcn from:", frontendDir);
