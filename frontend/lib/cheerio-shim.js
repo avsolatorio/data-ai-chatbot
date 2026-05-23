@@ -1,5 +1,6 @@
 // Data360 claim verification looks up <claim> nodes via cheerio.load(...).
 // In the browser bundle we only need that selector to safely resolve to "no claims".
+// This constant must stay aligned with the selector used by @pcn-js/core claim extraction.
 const CLAIM_SELECTOR = "claim";
 
 // The bundled client path only needs the cheerio subset used by $("claim").map(...).get().
