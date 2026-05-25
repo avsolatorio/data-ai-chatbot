@@ -120,9 +120,9 @@ function renderMessagePart(
     onScrollToMessageId,
   } = options;
 
-  if (type === "reasoning" && part.text?.trim().length > 0) {
+  if (type === "reasoning" && (part.text?.trim()?.length ?? 0) > 0) {
     return (
-      <MessageReasoning isLoading={isLoading} key={key} reasoning={part.text} />
+      <MessageReasoning isLoading={isLoading} key={key} reasoning={part.text ?? ""} />
     );
   }
 

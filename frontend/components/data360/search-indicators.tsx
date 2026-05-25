@@ -147,10 +147,14 @@ export function SearchIndicators({ output, input }: SearchIndicatorsProps) {
 
       // by_query layout → grouped accordion
       if (data.result_layout === "by_query" && data.results && data.results.length > 0) {
+        const safeGroups = data.results.map((g) => ({
+          ...g,
+          indicators: g.indicators ?? [],
+        }));
         return (
           <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
             <SearchResultCard
-              groups={data.results}
+              groups={safeGroups}
               subtitle={subtitle}
               title="Search Results"
             />
@@ -162,7 +166,7 @@ export function SearchIndicators({ output, input }: SearchIndicatorsProps) {
       return (
         <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
           <SearchResultCard
-            indicators={data.indicators}
+            indicators={data.indicators ?? []}
             subtitle={subtitle}
             title="Search Results"
           />
@@ -183,7 +187,7 @@ export function SearchIndicators({ output, input }: SearchIndicatorsProps) {
     return (
       <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
         <SearchResultCard
-          indicators={data.indicators}
+          indicators={data.indicators ?? []}
           subtitle={subtitle}
           title="Search Results"
         />
