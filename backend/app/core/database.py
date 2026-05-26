@@ -9,13 +9,17 @@ from app.config import settings
 # Use logger configuration instead for more control
 # pool_pre_ping: check connection is alive before use (avoids ConnectionDoesNotExistError after DB restart/idle timeout)
 # pool_recycle: recycle connections after 5 min so they don't outlive server-side idle timeouts
+connect_args = {}
+if settings.ENVIRONMENT not in ("development", "local"):
+    connect_args["ssl"] = True
+
 engine = create_async_engine(
     settings.POSTGRES_URL,
     echo=False,
     future=True,
     pool_pre_ping=True,
     pool_recycle=300,
-    connect_args={"ssl": True},
+    connect_args=connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

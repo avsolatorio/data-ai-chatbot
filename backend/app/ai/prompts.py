@@ -36,6 +36,7 @@ Available tools (injected at runtime by tool_setup.py):
 
 from typing import Any, Dict, Optional
 
+from app.ai.utils.geo_utils import REGION_TO_CODES
 from app.config import ModelType, get_settings
 from app.utils.helpers import get_date_string
 
@@ -53,7 +54,11 @@ def get_research_agent_system_prompt() -> str:
     analytical decompositions, policy bridges, and forward-looking queries.
     Claim tags on every value ensure full verifiability (PCN verifiability).
     """
-    return """You are the Research Agent for the Data360 Chat assistant.
+    asean_codes = ", ".join(REGION_TO_CODES["asean"])
+    g7_codes = ", ".join(REGION_TO_CODES["g7"])
+    brics_codes = ", ".join(REGION_TO_CODES["brics"])
+
+    prompt = """You are the Research Agent for the Data360 Chat assistant.
 
 PURPOSE:
 Retrieve development data from Data360 and produce a structured research packet
@@ -377,6 +382,10 @@ chart_type: [line|bar|map|choropleth|heatmap|etc. (optional, specify if user req
 (include only if ALL retrieval attempts returned zero results)
 [One sentence: what was searched, why it failed, suggested alternative]
 """
+    prompt = prompt.replace("PHL, IDN, VNM, THA, MYS, MMR, KHM, LAO, SGP, BRN", asean_codes)
+    prompt = prompt.replace("CAN, FRA, DEU, ITA, JPN, GBR, USA", g7_codes)
+    prompt = prompt.replace("BRA, RUS, IND, CHN, ZAF", brics_codes)
+    return prompt
 
 
 # Backwards-compatibility alias
@@ -1343,7 +1352,9 @@ def get_scout_system_prompt() -> str:
     The scout node uses a subset of data tools to verify indicator coverage
     before the full research node commits to expensive data retrieval.
     """
-    return """You are the Data Scout for the Data360 Chat assistant.
+    asean_codes = ", ".join(REGION_TO_CODES["asean"])
+
+    prompt = """You are the Data Scout for the Data360 Chat assistant.
 
 PURPOSE:
 Quickly identify the best indicator(s) for the user's query. Be fast — the
@@ -1413,6 +1424,10 @@ Then append the machine-readable block (exact tag, no other JSON in output):
 </scout_data>
 
 If no data was found, set "available": false and explain in "gaps"."""
+    prompt = prompt.replace(
+        "ASEAN: PHL, IDN, VNM, THA, MYS, MMR, KHM, LAO, SGP, BRN", f"ASEAN: {asean_codes}"
+    )
+    return prompt
 
 
 # ---------------------------------------------------------------------------

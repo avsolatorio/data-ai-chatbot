@@ -80,6 +80,7 @@ REGION_TO_CODES: dict[str, list[str]] = {
         "PHL",
         "SGP",
         "THA",
+        "TLS",
         "VNM",
     ],
     "g7": ["CAN", "FRA", "DEU", "ITA", "JPN", "GBR", "USA"],
