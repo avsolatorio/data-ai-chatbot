@@ -81,6 +81,10 @@ export type CustomUIDataTypes = {
   // Quick-answer visual card — persisted as a message part so it survives
   // page reloads and chat history navigation.
   quickAnswerCard: QuickAnswerCardData;
+  contentPolicyBlocked: {
+    node: string;
+    message: string;
+  };
 };
 
 export type ChatMessage = UIMessage<

@@ -22,6 +22,12 @@ import {
   buildChartUrlRegexes,
   splitAssistantTextIntoChartSegments,
 } from "@/lib/chart-url";
+import {
+  assistantTextWithoutLegacyPolicyMarker,
+  CONTENT_POLICY_BLOCKED_PART_TYPE,
+  getContentPolicyBlockedFromParts,
+  LEGACY_POLICY_BLOCKED_TEXT,
+} from "@/lib/content-policy";
 import { getBasePath } from "@/lib/config";
 import {
   type Data360SourceEntry,
@@ -858,7 +864,13 @@ const PurePreviewMessage = ({
     .filter((p): p is { type: "text"; text: string } => p.type === "text")
     .map((p) => p.text)
     .join("\n");
-  const followUps = parseFollowUps(assistantText);
+  const contentPolicyBlocked = getContentPolicyBlockedFromParts(message.parts);
+  const assistantTextForFollowUps = assistantTextWithoutLegacyPolicyMarker(
+    assistantText,
+  );
+  const followUps = contentPolicyBlocked
+    ? []
+    : parseFollowUps(assistantTextForFollowUps);
 
   // Extract quick-answer card from message.parts — persisted through DB so
   // it survives page refreshes and chat history navigation.
@@ -930,8 +942,21 @@ const PurePreviewMessage = ({
             const {
               firstRegularPartIndex,
               thinkingParts: savedThinkingParts,
-              regularParts,
+              regularParts: rawRegularParts,
             } = splitDataThinkingPrefixParts(parts);
+            const regularParts = rawRegularParts.filter((part) => {
+              if (part.type === CONTENT_POLICY_BLOCKED_PART_TYPE) {
+                return false;
+              }
+              if (
+                part.type === "text" &&
+                "text" in part &&
+                (part.text ?? "").trim() === LEGACY_POLICY_BLOCKED_TEXT
+              ) {
+                return false;
+              }
+              return true;
+            });
 
             // Filter out non-renderable stream events from saved thinking parts
             const filteredSavedThinkingParts = savedThinkingParts
@@ -1148,6 +1173,16 @@ const PurePreviewMessage = ({
                       </Sources>
                     );
                   })()}
+
+                {/* Content-policy block on follow-up (or legacy [blocked] marker) */}
+                {message.role === "assistant" && contentPolicyBlocked != null && (
+                  <div
+                    className="mt-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-muted-foreground text-sm"
+                    data-testid="content-policy-blocked-notice"
+                  >
+                    {contentPolicyBlocked.message}
+                  </div>
+                )}
 
                 {/* Suggested follow-ups: parse from assistant text and render as clickable chips — only after response is complete to avoid distraction during streaming */}
                 {message.role === "assistant" &&

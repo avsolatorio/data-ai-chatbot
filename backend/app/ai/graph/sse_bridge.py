@@ -67,7 +67,13 @@ from app.ai.protocols.stream import (
 )
 from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
 
-from .llm_invoke import LLM_POLICY_BLOCKED_TEXT, LLM_STEP_FAILED_TEXT
+from .llm_invoke import (
+    CONTENT_POLICY_BLOCKED_PART_TYPE,
+    CONTENT_POLICY_USER_MESSAGE,
+    LLM_POLICY_BLOCKED_TEXT,
+    LLM_STEP_FAILED_TEXT,
+    content_policy_blocked_part,
+)
 from .message_utils import plain_text_from_ai_message_content
 
 try:
@@ -111,10 +117,7 @@ def _root_cause(exc: BaseException) -> BaseException:
 def _user_visible_stream_error(root: BaseException, error_id: str) -> str:
     ref = f" Reference: {error_id}."
     if isinstance(root, ContentPolicyViolationError):
-        return (
-            "The model provider blocked this reply under its content safety rules. "
-            "Try rephrasing your question or narrowing the topic."
-        ) + ref
+        return CONTENT_POLICY_USER_MESSAGE + ref
     return USER_MESSAGE_GENERIC + ref
 
 
@@ -741,13 +744,20 @@ class _SseBridgeState:
         if isinstance(self._final_graph_state, dict) and self._final_graph_state.get(
             "content_policy_blocked"
         ):
-            blocked_id = f"followup-blocked-{self.message_id}"
-            for part in (
-                TextStartPart(id=blocked_id),
-                TextDeltaPart(id=blocked_id, delta=LLM_POLICY_BLOCKED_TEXT),
-                TextEndPart(id=blocked_id),
+            policy_part = content_policy_blocked_part(node="followup")
+            chunks.append(
+                DataPart(
+                    type=CONTENT_POLICY_BLOCKED_PART_TYPE,
+                    data=policy_part["data"],
+                )
+                .to_sse()
+                .encode("utf-8")
+            )
+            if not any(
+                isinstance(x, dict) and x.get("type") == CONTENT_POLICY_BLOCKED_PART_TYPE
+                for x in self._db_parts
             ):
-                chunks.append(part.to_sse().encode("utf-8"))
+                self._db_parts.append(policy_part)
         # Emit data-quickAnswerCard payload for the frontend card renderer.
         # Type matches the CustomUIDataTypes key 'quickAnswerCard' with the 'data-' prefix
         # that the AI SDK uses to map DataParts to message.parts — enabling persistence.
@@ -823,13 +833,20 @@ class _SseBridgeState:
             trace_parts = self._final_graph_state.get("agent_trace_parts") or []
             if trace_parts:
                 self._db_parts.extend(trace_parts)
-            # Non-streaming follow-up may only exist on graph state — persist short markers
+            # Non-streaming follow-up failure markers may only exist on graph state.
             assistant_tail = self._final_graph_state.get("assistant_parts") or []
             for p in assistant_tail:
                 if not isinstance(p, dict) or p.get("type") != "text":
                     continue
                 tx = (p.get("text") or "").strip()
-                if tx not in (LLM_POLICY_BLOCKED_TEXT, LLM_STEP_FAILED_TEXT):
+                if tx == LLM_POLICY_BLOCKED_TEXT:
+                    if not any(
+                        isinstance(x, dict) and x.get("type") == CONTENT_POLICY_BLOCKED_PART_TYPE
+                        for x in self._db_parts
+                    ):
+                        self._db_parts.append(content_policy_blocked_part(node="followup"))
+                    continue
+                if tx != LLM_STEP_FAILED_TEXT:
                     continue
                 if any(
                     isinstance(x, dict)

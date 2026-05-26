@@ -19,8 +19,25 @@ except ImportError:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 
+CONTENT_POLICY_USER_MESSAGE = (
+    "This response is incomplete because the model provider blocked this reply under its content safety rules. "
+    "Try rephrasing your question, narrowing the topic, or contacting support."
+)
+
+# Legacy sentinel persisted before BE-003; kept for reload/migration detection only.
 LLM_POLICY_BLOCKED_TEXT = "[blocked]"
+
+CONTENT_POLICY_BLOCKED_PART_TYPE = "data-contentPolicyBlocked"
+
 LLM_STEP_FAILED_TEXT = "Sorry, this step could not be completed. Please try again in a moment."
+
+
+def content_policy_blocked_part(*, node: str) -> dict:
+    """Persisted/streamed part marking a non-fatal content-policy block."""
+    return {
+        "type": CONTENT_POLICY_BLOCKED_PART_TYPE,
+        "data": {"node": node, "message": CONTENT_POLICY_USER_MESSAGE},
+    }
 
 
 def assistant_text_part(text: str) -> dict:
