@@ -133,7 +133,7 @@ function SnapshotTable({
                     {entry.claim_id ? (
                       <ClaimMark
                         id={entry.claim_id}
-                        policy={{ type: "rounded", decimals: 2 }}
+                        policy={{ type: "auto" }}
                       >
                         {formatNum(entry.value)}
                       </ClaimMark>
@@ -292,7 +292,7 @@ function TimeSeriesSection({
                               {claimId && value !== null ? (
                                 <ClaimMark
                                   id={claimId}
-                                  policy={{ type: "rounded", decimals: 2 }}
+                                  policy={{ type: "auto" }}
                                 >
                                   {formatNum(value)}
                                 </ClaimMark>

@@ -154,7 +154,7 @@ function DegenerateTimeSeriesTable({
                   {value !== null && claimId ? (
                     <ClaimMark
                       id={claimId}
-                      policy={{ type: "rounded", decimals: 2 }}
+                      policy={{ type: "auto" }}
                     >
                       {formatNum(value)}
                     </ClaimMark>
@@ -219,7 +219,7 @@ function GroupCard({
                 <>
                   <ClaimMark
                     id={latestClaimId}
-                    policy={{ type: "rounded", decimals: 2 }}
+                    policy={{ type: "auto" }}
                   >
                     {formatNum(group.latest.value)}
                   </ClaimMark>
@@ -261,7 +261,7 @@ function GroupCard({
                   <>
                     <ClaimMark
                       id={earliestClaimId}
-                      policy={{ type: "rounded", decimals: 2 }}
+                      policy={{ type: "auto" }}
                     >
                       {formatNum(group.earliest.value)}
                     </ClaimMark>

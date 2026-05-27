@@ -138,7 +138,7 @@ function RankingTable({
                     {entry.claim_id ? (
                       <ClaimMark
                         id={entry.claim_id}
-                        policy={{ type: "rounded", decimals: 2 }}
+                        policy={{ type: "auto" }}
                       >
                         {formatNum(entry.value, 2, 4)}
                       </ClaimMark>
