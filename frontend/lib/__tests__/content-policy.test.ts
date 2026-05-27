@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import {
   assistantTextWithoutLegacyPolicyMarker,
   CONTENT_POLICY_BLOCKED_PART_TYPE,
@@ -17,7 +18,7 @@ describe("getContentPolicyBlockedFromParts", () => {
         },
       },
     ]);
-    expect(result?.message).toBe("Policy blocked message.");
+    assert.equal(result?.message, "Policy blocked message.");
   });
 
   it("detects legacy [blocked] text part", () => {
@@ -25,19 +26,23 @@ describe("getContentPolicyBlockedFromParts", () => {
       { type: "text", text: "Answer" },
       { type: "text", text: LEGACY_POLICY_BLOCKED_TEXT },
     ]);
-    expect(result?.node).toBe("followup");
-    expect(result?.message).toContain("content safety rules");
+    assert.equal(result?.node, "followup");
+    assert.match(result?.message ?? "", /content safety rules/);
   });
 
   it("returns null when no policy marker", () => {
-    expect(getContentPolicyBlockedFromParts([{ type: "text", text: "Hello" }])).toBeNull();
+    assert.equal(
+      getContentPolicyBlockedFromParts([{ type: "text", text: "Hello" }]),
+      null,
+    );
   });
 });
 
 describe("assistantTextWithoutLegacyPolicyMarker", () => {
   it("removes trailing legacy marker", () => {
-    expect(
+    assert.equal(
       assistantTextWithoutLegacyPolicyMarker("Answer text\n\n[blocked]"),
-    ).toBe("Answer text");
+      "Answer text",
+    );
   });
 });
