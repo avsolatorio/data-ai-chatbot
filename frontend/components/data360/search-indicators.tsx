@@ -31,6 +31,20 @@ type InputQueryGroup = {
   country?: string | null;
 };
 
+function resolveCountry(
+  countryStr: string | null | undefined,
+  countryNames?: Record<string, string> | null,
+): string | undefined {
+  if (!countryStr) return undefined;
+  if (!countryNames) return countryStr;
+
+  const parts = countryStr.split(";").map((part) => {
+    const trimmed = part.trim();
+    return countryNames[trimmed] || trimmed;
+  });
+  return parts.join("; ");
+}
+
 /**
  * For `by_query` layout: prefer the original human-readable country names from
  * `input.query_groups` (e.g. "Japan") over the resolved alpha-3 codes in the
@@ -42,6 +56,7 @@ type InputQueryGroup = {
 function subtitleFromByQuery(
   results: Array<{ query: string; country_code?: string | null }>,
   inputQueryGroups: InputQueryGroup[] | null,
+  countryNames?: Record<string, string> | null,
 ): string | undefined {
   if (!results.length) return undefined;
 
@@ -55,7 +70,8 @@ function subtitleFromByQuery(
       .map((g) => {
         const qs = g.queries ?? (g.query ? [g.query] : []);
         const queryList = qs.join(", ");
-        return g.country ? `${g.country}: ${queryList}` : queryList;
+        const resolvedCountry = resolveCountry(g.country, countryNames);
+        return resolvedCountry ? `${resolvedCountry}: ${queryList}` : queryList;
       });
     return parts.join(" · ") || undefined;
   }
@@ -69,7 +85,8 @@ function subtitleFromByQuery(
   }
   const parts: string[] = [];
   for (const [code, queries] of grouped) {
-    parts.push(code ? `${code}: ${queries.join(", ")}` : queries.join(", "));
+    const resolvedCountry = resolveCountry(code, countryNames);
+    parts.push(resolvedCountry ? `${resolvedCountry}: ${queries.join(", ")}` : queries.join(", "));
   }
   return parts.join(" · ") || undefined;
 }
@@ -78,6 +95,8 @@ function buildSubtitle(
   parsed: Data360SearchToolResult | Data360MultiQuerySearchToolResult,
   input?: Record<string, unknown> | null,
 ): string | undefined {
+  const countryNames = parsed.country_names;
+
   // by_query layout — use input.query_groups for human-readable country names
   if (
     "result_layout" in parsed &&
@@ -91,6 +110,7 @@ function buildSubtitle(
     return subtitleFromByQuery(
       parsed.results as Array<{ query: string; country_code?: string | null }>,
       inputGroups,
+      countryNames,
     );
   }
 
@@ -99,20 +119,22 @@ function buildSubtitle(
   if ("queries" in parsed && Array.isArray(parsed.queries) && parsed.queries.length > 0) {
     const queryPart = parsed.queries.join(" · ");
     // Prefer input country string (human-readable) over the resolved code in output
-    const country =
+    const rawCountry =
       typeof input?.required_country === "string"
         ? input.required_country
         : parsed.required_country;
+    const country = resolveCountry(rawCountry, countryNames);
     return country ? `${queryPart} — ${country}` : queryPart;
   }
 
   // single-query — use input.query and input.required_country directly
   const query =
     typeof input?.query === "string" ? input.query : null;
-  const country =
+  const rawCountry =
     typeof input?.required_country === "string"
       ? input.required_country
       : parsed.required_country;
+  const country = resolveCountry(rawCountry, countryNames);
   if (query && country) return `${query} — ${country}`;
   if (query) return query;
   if (country) return country;
@@ -150,6 +172,7 @@ export function SearchIndicators({ output, input }: SearchIndicatorsProps) {
         const safeGroups = data.results.map((g) => ({
           ...g,
           indicators: g.indicators ?? [],
+          country_name: g.country_code && data.country_names ? (data.country_names[g.country_code] ?? g.country_code) : g.country_code ?? undefined,
         }));
         return (
           <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">

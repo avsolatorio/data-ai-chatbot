@@ -58,9 +58,11 @@ function RankingHeader({ output }: { output: CompactRankingOutput }) {
 function RankingTable({
   rankings,
   unit,
+  year,
 }: {
   rankings: CompactRankedCountry[];
   unit: string | null;
+  year: string | null;
 }) {
   if (rankings.length === 0) {
     return (
@@ -97,6 +99,9 @@ function RankingTable({
               </th>
               <th className="border-border border-b px-3 py-2 w-28 sr-only">
                 Bar
+              </th>
+              <th className="border-border border-b px-3 py-2 text-right font-medium">
+                Year
               </th>
             </tr>
           </thead>
@@ -148,6 +153,9 @@ function RankingTable({
                         style={{ width: `${barPct}%` }}
                       />
                     </div>
+                  </td>
+                  <td className="px-3 py-2 text-right text-muted-foreground font-mono">
+                    {year ?? "\u2014"}
                   </td>
                 </tr>
               );
@@ -203,7 +211,7 @@ export function RankCountries({ output }: { output: CompactRankingOutput }) {
   return (
     <div className="flex w-full flex-col gap-3 overflow-hidden rounded-sm bg-background px-4 pb-4">
       <RankingHeader output={output} />
-      <RankingTable rankings={output.rankings} unit={output.unit} />
+      <RankingTable rankings={output.rankings} unit={output.unit} year={output.year} />
       <ExcludedFooter
         count={output.excluded_count}
         sample={output.excluded_sample}

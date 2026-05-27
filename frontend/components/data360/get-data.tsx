@@ -329,7 +329,7 @@ export function GetData({
                   {point.REF_AREA && point.REF_AREA !== "_T" && (
                     <span>
                       <span className="font-medium">Area:</span>{" "}
-                      {point.REF_AREA}
+                      {point.REF_AREA_NAME || point.REF_AREA}
                     </span>
                   )}
                   {point.TIME_PERIOD && (
@@ -363,7 +363,7 @@ export function GetData({
                 </span>
                 {point.UNIT_MEASURE && (
                   <span className="text-muted-foreground text-sm">
-                    {point.UNIT_MEASURE}
+                    {point.UNIT_MEASURE_NAME || point.UNIT_MEASURE}
                   </span>
                 )}
               </div>
@@ -550,7 +550,7 @@ export function GetData({
                     </td>
                     <td className="px-3 py-2">
                       {point.REF_AREA && point.REF_AREA !== "_T"
-                        ? point.REF_AREA
+                        ? point.REF_AREA_NAME || point.REF_AREA
                         : "-"}
                     </td>
                     <td className="px-3 py-2">
@@ -575,7 +575,7 @@ export function GetData({
                       </ClaimMark>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground text-[10px]">
-                      {point.UNIT_MEASURE || "-"}
+                      {point.UNIT_MEASURE_NAME || point.UNIT_MEASURE || "-"}
                     </td>
                     <td className="px-3 py-2">
                       <span

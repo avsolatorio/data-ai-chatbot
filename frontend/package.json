@@ -43,13 +43,13 @@
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.35.3",
     "@data360/mcp-ui": "0.0.7",
-    "@data360/tool-types": "0.0.4",
+    "@data360/tool-types": "0.0.5",
     "@icons-pack/react-simple-icons": "^13.7.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/api-logs": "^0.200.0",
-    "@pcn-js/core": "^0.1.2",
-    "@pcn-js/data360": "^0.1.4",
-    "@pcn-js/ui": "^0.1.3",
+    "@pcn-js/core": "^0.1.3",
+    "@pcn-js/data360": "^0.1.5",
+    "@pcn-js/ui": "^0.1.4",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-icons": "^1.3.0",
     "@radix-ui/react-select": "^2.2.6",
@@ -147,7 +147,7 @@
     "overrides": {
       "@data360/chart-payload-normalize": "0.0.2",
       "@data360/mcp-viz-core": "0.0.3",
-      "@data360/tool-types": "0.0.4"
+      "@data360/tool-types": "0.0.5"
     },
     "peerDependencyRules": {
       "allowedVersions": {

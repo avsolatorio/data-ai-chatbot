@@ -168,6 +168,26 @@ export function getData360SourcesFromParts(
     }
 
     if (
+      type === "tool-data360_rank_countries" ||
+      type === "tool-data360_compare_countries" ||
+      type === "tool-data360_summarize_data"
+    ) {
+      const { databaseId, indicatorId } = readGetDataToolInputIds(part);
+      const title =
+        typeof out.indicator === "string" && out.indicator.trim()
+          ? out.indicator.trim()
+          : indicatorId || databaseId || "Data360 data";
+
+      const key = `${databaseId}:${indicatorId}`;
+      if ((databaseId || indicatorId) && !seen.has(key)) {
+        seen.add(key);
+        const base = appConfig.data360IndicatorBaseUrl.replace(/\/+$/, "");
+        const href = indicatorId ? `${base}/${indicatorId}` : undefined;
+        entries.push({ title, href });
+      }
+    }
+
+    if (
       type === "tool-data360_get_viz_spec" ||
       type === "tool-data360_get_multi_indicator_viz_spec"
     ) {

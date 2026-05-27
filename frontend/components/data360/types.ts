@@ -46,6 +46,7 @@ export type GetDataDataPoint = {
   INDICATOR: string;
   INDICATOR_NAME?: string;
   REF_AREA: string;
+  REF_AREA_NAME?: string;
   SEX: string;
   AGE: string;
   URBANISATION: string;
@@ -55,6 +56,7 @@ export type GetDataDataPoint = {
   TIME_PERIOD: string;
   FREQ: string;
   UNIT_MEASURE: string;
+  UNIT_MEASURE_NAME?: string;
   UNIT_TYPE: string | null;
   claim_id: string;
 };

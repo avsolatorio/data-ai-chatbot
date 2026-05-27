@@ -59,9 +59,18 @@ function AmbiguousDimensionsWarning({ dimensions }: { dimensions: string[] }) {
 }
 
 function GroupKeyPills({ group }: { group: Record<string, string> }) {
+  const displayEntries = Object.entries(group)
+    .filter(([dim]) => dim !== "ref_area_name")
+    .map(([dim, val]) => {
+      if (dim === "ref_area" && group.ref_area_name) {
+        return [dim, group.ref_area_name];
+      }
+      return [dim, val];
+    });
+
   return (
     <div className="flex flex-wrap gap-1">
-      {Object.entries(group).map(([dim, val]) => (
+      {displayEntries.map(([dim, val]) => (
         <span
           key={dim}
           className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-[10px]"
@@ -207,19 +216,19 @@ function GroupCard({
           <div className="font-semibold text-foreground">
             {group.latest.value !== null ? (
               latestClaimId ? (
-                <ClaimMark
-                  id={latestClaimId}
-                  policy={{ type: "rounded", decimals: 2 }}
-                >
-                  <span>
+                <>
+                  <ClaimMark
+                    id={latestClaimId}
+                    policy={{ type: "rounded", decimals: 2 }}
+                  >
                     {formatNum(group.latest.value)}
-                    {unit && (
-                      <span className="ml-1 font-normal text-muted-foreground text-[10px]">
-                        {unit}
-                      </span>
-                    )}
-                  </span>
-                </ClaimMark>
+                  </ClaimMark>
+                  {unit && (
+                    <span className="ml-1 font-normal text-muted-foreground text-[10px]">
+                      {unit}
+                    </span>
+                  )}
+                </>
               ) : (
                 <>
                   {formatNum(group.latest.value)}
@@ -249,19 +258,19 @@ function GroupCard({
             <div className="font-semibold text-foreground">
               {group.earliest.value !== null ? (
                 earliestClaimId ? (
-                  <ClaimMark
-                    id={earliestClaimId}
-                    policy={{ type: "rounded", decimals: 2 }}
-                  >
-                    <span>
+                  <>
+                    <ClaimMark
+                      id={earliestClaimId}
+                      policy={{ type: "rounded", decimals: 2 }}
+                    >
                       {formatNum(group.earliest.value)}
-                      {unit && (
-                        <span className="ml-1 font-normal text-muted-foreground text-[10px]">
-                          {unit}
-                        </span>
-                      )}
-                    </span>
-                  </ClaimMark>
+                    </ClaimMark>
+                    {unit && (
+                      <span className="ml-1 font-normal text-muted-foreground text-[10px]">
+                        {unit}
+                      </span>
+                    )}
+                  </>
                 ) : (
                   <>
                     {formatNum(group.earliest.value)}

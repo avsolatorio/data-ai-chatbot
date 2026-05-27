@@ -133,7 +133,7 @@ function ClaimComponentWithLog(props: ClaimComponentProps) {
       policy: props.policy ?? "—",
     });
   }
-  return <ClaimMarkStreamdown {...props} />;
+  return <ClaimMarkStreamdown {...(props as any)} />;
 }
 
 /** Streamdown uses react-markdown + rehype-raw; custom `claim` is supported at runtime but not in Components type. */

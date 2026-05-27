@@ -7,7 +7,7 @@ settings:
 overrides:
   '@data360/chart-payload-normalize': 0.0.2
   '@data360/mcp-viz-core': 0.0.3
-  '@data360/tool-types': 0.0.4
+  '@data360/tool-types': 0.0.5
 
 importers:
 
@@ -48,10 +48,10 @@ importers:
         version: 6.36.4
       '@data360/mcp-ui':
         specifier: 0.0.7
-        version: 0.0.7(@data360/tool-types@0.0.4)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
+        version: 0.0.7(@data360/tool-types@0.0.5)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
       '@data360/tool-types':
-        specifier: 0.0.4
-        version: 0.0.4
+        specifier: 0.0.5
+        version: 0.0.5
       '@icons-pack/react-simple-icons':
         specifier: ^13.7.0
         version: 13.8.0(react@19.0.0-rc-45804af1-20241021)
@@ -62,14 +62,14 @@ importers:
         specifier: ^0.200.0
         version: 0.200.0
       '@pcn-js/core':
-        specifier: ^0.1.2
-        version: 0.1.2
-      '@pcn-js/data360':
-        specifier: ^0.1.4
-        version: 0.1.4(@pcn-js/core@0.1.2)(@pcn-js/ui@0.1.3(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
-      '@pcn-js/ui':
         specifier: ^0.1.3
-        version: 0.1.3(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
+        version: 0.1.3
+      '@pcn-js/data360':
+        specifier: ^0.1.5
+        version: 0.1.5(@pcn-js/core@0.1.3)(@pcn-js/ui@0.1.4(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
+      '@pcn-js/ui':
+        specifier: ^0.1.4
+        version: 0.1.4(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
       '@radix-ui/react-collapsible':
         specifier: ^1.1.12
         version: 1.1.12(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
@@ -547,7 +547,7 @@ packages:
   '@data360/mcp-ui@0.0.7':
     resolution: {integrity: sha512-1DdsYjPRuIe/MekRoGA4c8a6i/7NYsAVbHvGKxCN3mjViFMl7xt7d5ib0uHh6GlGP/3XNbNyAm/dLJJpVFxfjA==}
     peerDependencies:
-      '@data360/tool-types': 0.0.4
+      '@data360/tool-types': 0.0.5
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
       vega: '>=5.0.0'
@@ -557,8 +557,8 @@ packages:
   '@data360/mcp-viz-core@0.0.3':
     resolution: {integrity: sha512-IFi1Nnh/oum9DJPDxxTM1LSvQdjJrQu/O+aJOOuvWR30/kB3QBG/EIsDjXmZBnlw8XoCtqFaq6fBbgDA4D7iGA==}
 
-  '@data360/tool-types@0.0.4':
-    resolution: {integrity: sha512-/wZwQh5qDiu+vQQF6ScBKH+FFf0wI24XT3oeidKoDx9OugNrRcf3Axrt87hmwFu2f++CmsOKQZ4kzlTa8zDzeA==}
+  '@data360/tool-types@0.0.5':
+    resolution: {integrity: sha512-TvhfiZqpxzbG2r3wCkaCD7rv/EWNQyj1gEiSowDgQ2HrrWP+/q+Gg53rrWvfxvbeWdY6gj+6Udbr0qYG5oB3wA==}
 
   '@emnapi/runtime@1.7.1':
     resolution: {integrity: sha512-PVtJr5CmLwYAU9PZDMITZoR5iAOShYREoR45EyyLrbntV50mdePTgUn4AmOw90Ifcj+x2kRjdzr1HP3RrNiHGA==}
@@ -1039,18 +1039,18 @@ packages:
   '@panva/hkdf@1.2.1':
     resolution: {integrity: sha512-6oclG6Y3PiDFcoyk8srjLfVKyMfVCKJ27JwNPViuXziFpmdz+MZnZN/aKY0JGXgYuO/VghU0jcOAZgWXZ1Dmrw==}
 
-  '@pcn-js/core@0.1.2':
-    resolution: {integrity: sha512-8yEZsyeloCYOKETFtR9rPCQYbdxxixp5JHJ9gHaQVJ43TxjPPhX9eC+SUfItl8xA+o80QdBj0uIoLSK+cDXZiQ==}
+  '@pcn-js/core@0.1.3':
+    resolution: {integrity: sha512-KDxAjGwbyIzokkjl0xnO27zeh5V39eKUkYxwjGEx3pIaG4GNMZJydsLSYGFfqlboSyy+3EYSSto1MCMLr5sVbg==}
 
-  '@pcn-js/data360@0.1.4':
-    resolution: {integrity: sha512-H5O45dmtzoHGpA1jhbUWMozMb+9FGD1rSpFe6HAmQlGM7T83+lOZ56wNpK+bFyqr7MywBnxJo+nni3UBjk7GoA==}
+  '@pcn-js/data360@0.1.5':
+    resolution: {integrity: sha512-ATpxFjbKUzRzaw5sy/nno77LU/bOM0nqkpKnv8nW1wxntv01sHz8S9B339GTDVHSqOL6HI/AKpUucFIXp7yfCA==}
     peerDependencies:
-      '@pcn-js/core': '>=0.1.2'
-      '@pcn-js/ui': '>=0.1.3'
+      '@pcn-js/core': '>=0.1.3'
+      '@pcn-js/ui': '>=0.1.4'
       react: '>=18.0.0'
 
-  '@pcn-js/ui@0.1.3':
-    resolution: {integrity: sha512-c2AUef2fbVc4hXW/lnzFqgmbfoz6giJmygvNGbZLNvAFqEWFZ7Cgy88G/WbuTaGeFLwcvJLt/f5YH+EEhEL8ew==}
+  '@pcn-js/ui@0.1.4':
+    resolution: {integrity: sha512-eCsiuZpnwouj/iKgjc5TH3fpufSo4m179GyXPtHk8qy/wjOauudkbwv4dc0GygrVc4qEnUlkMCfI3yavgHHAXQ==}
     peerDependencies:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
@@ -4779,11 +4779,11 @@ snapshots:
 
   '@data360/chart-payload-normalize@0.0.2': {}
 
-  '@data360/mcp-ui@0.0.7(@data360/tool-types@0.0.4)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
+  '@data360/mcp-ui@0.0.7(@data360/tool-types@0.0.5)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
     dependencies:
       '@data360/chart-payload-normalize': 0.0.2
       '@data360/mcp-viz-core': 0.0.3
-      '@data360/tool-types': 0.0.4
+      '@data360/tool-types': 0.0.5
       html-to-image: 1.11.13
       react: 19.0.0-rc-45804af1-20241021
       react-dom: 19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021)
@@ -4793,7 +4793,7 @@ snapshots:
 
   '@data360/mcp-viz-core@0.0.3': {}
 
-  '@data360/tool-types@0.0.4':
+  '@data360/tool-types@0.0.5':
     dependencies:
       zod: 3.25.76
 
@@ -5153,20 +5153,20 @@ snapshots:
 
   '@panva/hkdf@1.2.1': {}
 
-  '@pcn-js/core@0.1.2':
+  '@pcn-js/core@0.1.3':
     dependencies:
       cheerio: 1.2.0
       domhandler: 5.0.3
 
-  '@pcn-js/data360@0.1.4(@pcn-js/core@0.1.2)(@pcn-js/ui@0.1.3(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)':
+  '@pcn-js/data360@0.1.5(@pcn-js/core@0.1.3)(@pcn-js/ui@0.1.4(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)':
     dependencies:
-      '@pcn-js/core': 0.1.2
-      '@pcn-js/ui': 0.1.3(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
+      '@pcn-js/core': 0.1.3
+      '@pcn-js/ui': 0.1.4(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)
       react: 19.0.0-rc-45804af1-20241021
 
-  '@pcn-js/ui@0.1.3(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)':
+  '@pcn-js/ui@0.1.4(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)':
     dependencies:
-      '@pcn-js/core': 0.1.2
+      '@pcn-js/core': 0.1.3
       react: 19.0.0-rc-45804af1-20241021
       react-dom: 19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021)
 
