@@ -6,6 +6,7 @@ from app.observability.otel_setup import (
     instrument_fastapi_app,
     instrument_httpx_outbound,
     is_tracing_enabled,
+    record_content_policy_on_span,
     record_error_on_span,
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     "instrument_fastapi_app",
     "instrument_httpx_outbound",
     "is_tracing_enabled",
+    "record_content_policy_on_span",
     "record_error_on_span",
 ]

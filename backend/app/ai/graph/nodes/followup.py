@@ -10,11 +10,11 @@ import logging
 import re
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
-from opentelemetry import trace
 
 from app.ai.observability.token_usage import append_llm_usage_fallback
 from app.ai.prompts import get_followup_system_prompt
 from app.config import ModelType
+from app.observability.otel_setup import record_content_policy_on_span
 
 from ..llm_factory import get_chat_llm
 from ..llm_invoke import LLM_STEP_FAILED_TEXT, assistant_text_part, safe_llm_ainvoke
@@ -110,15 +110,13 @@ async def followup_node(state: ChatPipelineState) -> dict:
     existing_parts: list[dict] = state.get("assistant_parts", [])
 
     if outcome == "policy":
-        span = trace.get_current_span()
-        if span.is_recording():
-            span.set_attribute("chatbot.content_policy_blocked", True)
-            span.set_attribute("chatbot.content_policy_node", "followup")
+        record_content_policy_on_span("followup")
         return {
             "followup_questions": [],
             "assistant_parts": existing_parts,
             "final_usage": None,
             "content_policy_blocked": True,
+            "content_policy_node": "followup",
         }
 
     if outcome != "ok":

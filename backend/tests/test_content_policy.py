@@ -18,6 +18,7 @@ from app.ai.graph.llm_invoke import (
 )
 from app.ai.graph.nodes import followup as followup_module
 from app.ai.graph.sse_bridge import _SseBridgeState, _user_visible_stream_error
+from app.observability.otel_setup import record_content_policy_on_span
 
 
 @pytest.mark.asyncio
@@ -80,15 +81,15 @@ async def test_followup_node_policy_block_sets_state_without_blocked_text() -> N
             AsyncMock(return_value=(None, "policy")),
         ),
         patch.object(followup_module, "trim_for_node", side_effect=lambda msgs, **_: msgs),
-        patch.object(followup_module.trace, "get_current_span") as mock_span_getter,
+        patch.object(
+            followup_module,
+            "record_content_policy_on_span",
+        ) as mock_record_policy,
     ):
-        span = MagicMock()
-        span.is_recording.return_value = True
-        mock_span_getter.return_value = span
-
         result = await followup_module.followup_node(state)
 
     assert result["content_policy_blocked"] is True
+    assert result["content_policy_node"] == "followup"
     assert result["followup_questions"] == []
     assert result["assistant_parts"] == state["assistant_parts"]
     assert not any(
@@ -96,5 +97,13 @@ async def test_followup_node_policy_block_sets_state_without_blocked_text() -> N
         for p in result["assistant_parts"]
         if isinstance(p, dict)
     )
+    mock_record_policy.assert_called_once_with("followup")
+
+
+def test_record_content_policy_on_span_sets_attributes() -> None:
+    span = MagicMock()
+    span.is_recording.return_value = True
+    with patch("app.observability.otel_setup._recording_span", return_value=span):
+        record_content_policy_on_span("narrator")
     span.set_attribute.assert_any_call("chatbot.content_policy_blocked", True)
-    span.set_attribute.assert_any_call("chatbot.content_policy_node", "followup")
+    span.set_attribute.assert_any_call("chatbot.content_policy_node", "narrator")

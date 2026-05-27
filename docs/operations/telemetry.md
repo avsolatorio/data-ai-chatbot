@@ -14,12 +14,18 @@ A typical chat request produces this span hierarchy:
 
 Span attributes use opaque IDs only (`chatbot.message_id`, `chatbot.model_type`, `chatbot.intent`). User queries, emails, and tokens are **not** attached to spans.
 
-When a non-streaming node (today: **followup**) is blocked by the provider content filter, the node span may include:
+When the provider blocks a completion under content safety rules, these attributes are set:
 
 | Attribute | When set | Meaning |
 |-----------|----------|---------|
 | `chatbot.content_policy_blocked` | `true` | Provider rejected the completion under content safety rules |
-| `chatbot.content_policy_node` | e.g. `followup` | Graph node where the block occurred |
+| `chatbot.content_policy_node` | e.g. `followup`, `narrator` | Graph node (or `stream`) where the block occurred |
+
+**Where they appear:**
+
+- **`chat.turn`** — after a successful graph run with follow-up policy block, or when streaming fails with `ContentPolicyViolationError` (query all policy blocks on this span in App Insights).
+- **`chatbot.graph.<node>`** — on the node span when that node detected the block (e.g. follow-up via `safe_llm_ainvoke`).
+- **`chatbot.error_id`** — on fatal stream failures (including policy), for support correlation.
 
 **ASGI noise reduction:** Per-chunk `http receive` / `http send` internal spans are disabled. You still get the main server span (e.g. `POST /api/chat`) with total duration and status.
 

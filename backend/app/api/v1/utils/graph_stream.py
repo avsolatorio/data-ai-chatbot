@@ -22,6 +22,7 @@ from app.ai.protocols.stream import (
     TextEndPart,
     TextStartPart,
 )
+from app.observability.otel_setup import record_content_policy_on_span
 from app.utils.resumable_stream import store_stream_chunk
 
 logger = logging.getLogger(__name__)
@@ -194,4 +195,7 @@ async def stream_chat_graph_sse(
             assistant_row_id=assistant_row_id,
         ):
             yield sse_bytes
+        if graph_out.get("content_policy_blocked"):
+            policy_node = str(graph_out.get("content_policy_node") or "followup")
+            record_content_policy_on_span(policy_node)
     logger.info("[graph_stream] stream_graph_to_sse done")

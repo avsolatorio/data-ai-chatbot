@@ -218,19 +218,44 @@ def instrument_fastapi_app(app: object) -> None:
         _logger.warning("opentelemetry-instrumentation-fastapi not available.")
 
 
-def record_error_on_span(error_id: str) -> None:
-    """Attach support reference ID to the current span when recording."""
-    if not error_id:
-        return
+def _recording_span():
+    """Return the active span if it is recording, else None."""
     try:
         from opentelemetry import trace  # noqa: PLC0415
 
         span = trace.get_current_span()
         if span is None:
-            return
+            return None
         is_recording = getattr(span, "is_recording", None)
         if callable(is_recording) and not is_recording():
-            return
-        span.set_attribute("chatbot.error_id", error_id)
+            return None
+        return span
+    except Exception:
+        return None
+
+
+def record_content_policy_on_span(node: str) -> None:
+    """Mark the current span (e.g. ``chat.turn`` or a graph node) as policy-blocked."""
+    if not node:
+        node = "unknown"
+    span = _recording_span()
+    if span is None:
+        return
+    try:
+        cast("Any", span).set_attribute("chatbot.content_policy_blocked", True)
+        cast("Any", span).set_attribute("chatbot.content_policy_node", node)
+    except Exception:
+        pass
+
+
+def record_error_on_span(error_id: str) -> None:
+    """Attach support reference ID to the current span when recording."""
+    if not error_id:
+        return
+    span = _recording_span()
+    if span is None:
+        return
+    try:
+        cast("Any", span).set_attribute("chatbot.error_id", error_id)
     except Exception:
         pass

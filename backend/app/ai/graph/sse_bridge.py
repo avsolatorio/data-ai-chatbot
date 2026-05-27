@@ -65,6 +65,7 @@ from app.ai.protocols.stream import (
     ToolInputStartPart,
     ToolOutputAvailablePart,
 )
+from app.observability.otel_setup import record_content_policy_on_span, record_error_on_span
 from app.utils.error_id import USER_MESSAGE_GENERIC, new_error_id
 
 from .llm_invoke import (
@@ -217,6 +218,7 @@ class _SseBridgeState:
         "_preprocessing_run_ids",
         "_answer_run_stream_acc",
         "_prepend_sep_before_next_answer_delta",
+        "_last_langgraph_node",
     )
 
     def __init__(
@@ -257,6 +259,7 @@ class _SseBridgeState:
         # After narrator (or any visible answer), the next answer node (e.g. followup)
         # must not concatenate flush against the prior character (e.g. "estimate---").
         self._prepend_sep_before_next_answer_delta: bool = False
+        self._last_langgraph_node: str = ""
 
     def _node_progress_chunks(
         self,
@@ -436,6 +439,8 @@ class _SseBridgeState:
         metadata: dict = event.get("metadata", {})
         data: dict = event.get("data", {})
         node: str = metadata.get("langgraph_node", "")
+        if node:
+            self._last_langgraph_node = node
 
         if evt_type == "on_chain_start" and evt_name in _THINKING_NODES:
             stage_bytes = self.make_stage_sse("interpreting")
@@ -829,6 +834,11 @@ class _SseBridgeState:
                 self._final_graph_state.get("summarized_message_count") or 0
             )
             out["quick_answer_card"] = self._final_graph_state.get("quick_answer_card")
+            if self._final_graph_state.get("content_policy_blocked"):
+                out["content_policy_blocked"] = True
+                out["content_policy_node"] = (
+                    self._final_graph_state.get("content_policy_node") or "followup"
+                )
             # Merge agent trace parts into db_parts for persistence
             trace_parts = self._final_graph_state.get("agent_trace_parts") or []
             if trace_parts:
@@ -902,6 +912,9 @@ async def stream_graph_to_sse(
                         root = _root_cause(graph_exc)
                         err_id = new_error_id()
                         log_pipeline_error(message_id=message_id, error_id=err_id, exc=root)
+                        if isinstance(root, ContentPolicyViolationError):
+                            record_content_policy_on_span(br._last_langgraph_node or "stream")
+                        record_error_on_span(err_id)
                         logger.warning(
                             "Graph SSE stream failed [%s]: %s",
                             err_id,
