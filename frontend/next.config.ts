@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
       // Redirect / and unknown paths to basePath. Exclude known app routes (chat, api, etc.)
       // so that when an external proxy strips the path prefix, /chat/:id and /api/* still work.
       const excludeAppRoutes =
-        "(?!chat/)(?!review/)(?!api/)(?!login)(?!register)(?!maintenance)(?!ping)(?!images/)(?!json/)(?!_next/)";
+        "(?!chat/)(?!review/)(?!about/)(?!api/)(?!login)(?!register)(?!maintenance)(?!ping)(?!images/)(?!json/)(?!_next/)";
       redirects.push(
         { source: "/", destination: basePath, basePath: false, permanent: false },
         {

@@ -245,6 +245,7 @@ export async function proxy(request: NextRequest) {
       pathMatches(pathname, "/login") ||
       pathMatches(pathname, "/register") ||
       pathMatches(pathname, "/maintenance") ||
+      pathMatches(pathname, "/about") ||
       pathMatches(pathname, "/ping");
     const shouldRedirectToBasePath =
       !isAppRoot && !isNextInternal && !isStaticAsset && !isKnownAppPath;
@@ -274,14 +275,15 @@ export async function proxy(request: NextRequest) {
   if (effectiveMaintenance && !isMaintenanceBypass(request)) {
     const isMaintenance =
       pathMatches(pathname, "/maintenance") || pathname === maintenancePath;
+    const isAboutDocs = pathMatches(pathname, "/about");
     const isNextOrApi =
       pathMatches(pathname, "/_next") ||
       pathMatches(pathname, "/api") ||
       pathname.includes(".");
-    if (!isMaintenance && !isNextOrApi) {
+    if (!isMaintenance && !isAboutDocs && !isNextOrApi) {
       return NextResponse.redirect(new URL(maintenancePath, request.url));
     }
-    if (isMaintenance) {
+    if (isMaintenance || isAboutDocs) {
       return nextWithCsp(request);
     }
   }
@@ -327,6 +329,11 @@ export async function proxy(request: NextRequest) {
       );
       return NextResponse.redirect(guestUrl);
     }
+    return nextWithCsp(request);
+  }
+
+  // Public MCP documentation (no sign-in required)
+  if (pathMatches(pathname, "/about")) {
     return nextWithCsp(request);
   }
 
