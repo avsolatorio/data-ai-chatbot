@@ -599,13 +599,12 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
             # (e.g. for a "latest data" point lookup), the MCP server will default to 20 years,
             # but we should still render it as a single_fact for the absolute latest year.
             start_year = tool_args.get("start_year")
-            end_year = tool_args.get("end_year")
-            has_explicit_years = (start_year is not None and str(start_year).strip() != "") or (
-                end_year is not None and str(end_year).strip() != ""
-            )
+            # An explicit range query requires start_year to be provided (e.g. "since 2015" or "from 2010 to 2020").
+            # If start_year is omitted, even if end_year is set (e.g. "in 2023"), it is a single-year point lookup.
+            has_explicit_range = start_year is not None and str(start_year).strip() != ""
 
             if (
-                has_explicit_years
+                has_explicit_range
                 and len(countries) == 1
                 and target_row.get("TIME_PERIOD") != earliest_row.get("TIME_PERIOD")
             ):
