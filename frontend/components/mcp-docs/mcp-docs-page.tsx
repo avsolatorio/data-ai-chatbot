@@ -96,10 +96,10 @@ export function McpDocsPage() {
 
       <div className="site-hero">
         <div className="site-hero__inner">
-          <p className="hero__eyebrow">World Bank · Development Data Group</p>
-          <h1>World Bank development data over MCP</h1>
+          {/* <p className="hero__eyebrow">World Bank · Development Data Group</p> */}
+          <h1>World Bank development data through Data360 MCP</h1>
           <p className="hero__lead">
-            Poverty, growth, gender, climate, health, and hundreds of other
+            Poverty, growth, gender, climate, health, and thousands of other
             indicators come from the{" "}
             <a
               href="https://data360.worldbank.org"
@@ -307,7 +307,7 @@ export function McpDocsPage() {
         </div>
       </main>
 
-      <footer className="site-footer">
+      {/* <footer className="site-footer">
         <div className="site-footer__inner">
           <p>
             <strong>AI for Data - Data for AI Team</strong>
@@ -355,7 +355,7 @@ export function McpDocsPage() {
             .
           </p>
         </div>
-      </footer>
+      </footer> */}
     </div>
   );
 }

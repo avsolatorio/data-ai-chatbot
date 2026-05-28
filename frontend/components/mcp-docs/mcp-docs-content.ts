@@ -15,7 +15,7 @@ export const MCP_DOCS_NAV: NavLink[] = [
 export const VALUE_SECTION = {
   title: "What your agent can do",
   intro:
-    "An AI agent connected over MCP can query official World Bank series from Data360: search the catalog, pull time series, read indicator metadata, and request charts. Every value comes from Data360 APIs, not from model training.",
+    "An AI agent connected over MCP can query official World Bank series from Data360: search the catalog, pull time series, read indicator metadata, and request charts. Every value comes from the Data360 platform, mitigating the risk of hallucination.",
 } as const;
 
 export const OUTCOME_CARDS = [
@@ -69,8 +69,8 @@ export const EXAMPLE_QUESTIONS = [
   },
   {
     question:
-      "What is the official definition and source for this indicator—and what footnotes should I mention?",
-    note: "Metadata fields for definition, source, and footnotes.",
+      "What is the official definition and source of PPP adjusted GDP per capita, and what methodology should I use to calculate it?",
+    note: "Metadata fields for definition, source, and methodology.",
   },
   {
     question:
