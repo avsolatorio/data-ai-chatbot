@@ -10,8 +10,7 @@ from app.config import settings
 # pool_pre_ping: check connection is alive before use (avoids ConnectionDoesNotExistError after DB restart/idle timeout)
 # pool_recycle: recycle connections after 5 min so they don't outlive server-side idle timeouts
 connect_args = {}
-is_local_host = settings.POSTGRES_HOST in ("localhost", "127.0.0.1", "db")
-if settings.ENVIRONMENT not in ("development", "local") and not is_local_host:
+if settings.ENVIRONMENT not in ("development", "local"):
     connect_args["ssl"] = True
 
 engine = create_async_engine(
