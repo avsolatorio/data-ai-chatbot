@@ -1,5 +1,10 @@
-from app.ai.prompts import get_research_agent_system_prompt, get_scout_system_prompt
+from app.ai.prompts import (
+    get_research_agent_system_prompt,
+    get_scout_system_prompt,
+    get_system_prompt,
+)
 from app.ai.utils.geo_utils import REGION_TO_CODES
+from app.config import ModelType
 
 
 def test_asean_includes_tls():
@@ -30,3 +35,22 @@ def test_scout_prompt_injects_asean_codes():
 
     assert f"ASEAN: {asean_str}" in prompt
     assert "TLS" in prompt
+
+
+def test_system_prompt_mismatch_rules():
+    """Verify that get_system_prompt contains the expected year mismatch rules."""
+    # Test full mode prompt
+    full_prompt = get_system_prompt(selected_chat_model=ModelType.CHAT_MODEL, response_mode="full")
+    assert (
+        "If the user requested a specific year but the returned data omits that year" in full_prompt
+    )
+
+    # Test quick mode prompt
+    quick_prompt = get_system_prompt(
+        selected_chat_model=ModelType.CHAT_MODEL, response_mode="quick"
+    )
+    assert (
+        "If the year returned in the data does not match the year requested by the user"
+        in quick_prompt
+    )
+    assert "Example of a correct quick-mode response with year mismatch:" in quick_prompt

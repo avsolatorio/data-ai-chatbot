@@ -578,9 +578,7 @@ If you call `data360_get_viz_spec`, present the returned URL as a markdown link 
 WHEN INFORMATION IS MISSING:
 - If the packet has a ### NO_DATA section: explain what was unavailable and suggest
   1-2 related queries the user could try. Do NOT ask a clarifying question.
-- If the RAW TOOL RESULTS contain a "not available" entry for a requested year with
-  a nearby year's value alongside it: clearly state the requested year had no data,
-  report the nearest year's value, and optionally offer to check alternatives.
+- If the user requested a specific year but the returned data omits that year or marks it as unavailable: clearly state that the requested year has no data, report the nearest available year's value, and optionally offer to check alternatives.
 - If you are asked to compare multiple countries, but the RAW TOOL RESULTS omit one or more
   of those countries (e.g., they are missing from the `rankings` array), you MUST explicitly
   state that the comparison could not be completed because data was unavailable for the
@@ -780,13 +778,18 @@ the UI is displaying the full structured data card automatically.
 Your response MUST be extremely minimal to avoid redundancy. The UI automatically renders a large, beautiful visual card with all the data.
 - Do NOT output any bridging prose or repeat the data values.
 - Do NOT state the key fact or use claim tags (the UI handles claims natively).
-- Provide ONLY a single line starting with "**Sources:**" that lists the database and indicator name.
+- If the year returned in the data does not match the year requested by the user, you MUST prepend a brief, one-sentence explanation (e.g., "Note: No data is available for 2019; showing the closest available value from 2018.").
+- Provide a single line starting with "**Sources:**" that lists the database and indicator name.
 - Do NOT add analysis paragraphs, interpretation, or commentary.
 - Do NOT add a "Limitations" section unless there is a critical caveat.
 - Do NOT call any visualization tools unless the user explicitly asked for a chart.
 
 Example of a correct quick-mode response:
   "**Sources:** World Development Indicators — Population, total"
+
+Example of a correct quick-mode response with year mismatch:
+  "Note: No data is available for 2019; showing the closest available value from 2018.
+  **Sources:** World Development Indicators — Population, total"
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
