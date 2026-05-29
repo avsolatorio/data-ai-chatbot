@@ -219,6 +219,11 @@ async function isBackendReadyCached(): Promise<boolean> {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Liveness: no auth, maintenance redirect, or backend readiness probe
+  if (pathMatches(pathname, "/health")) {
+    return NextResponse.next();
+  }
+
   /*
    * When basePath is set, redirect unknown paths outside the app to basePath.
    * Root (/) is handled by next.config redirects. Do NOT redirect pathname "/" here:
@@ -246,6 +251,7 @@ export async function proxy(request: NextRequest) {
       pathMatches(pathname, "/register") ||
       pathMatches(pathname, "/maintenance") ||
       pathMatches(pathname, "/about") ||
+      pathMatches(pathname, "/health") ||
       pathMatches(pathname, "/ping");
     const shouldRedirectToBasePath =
       !isAppRoot && !isNextInternal && !isStaticAsset && !isKnownAppPath;
