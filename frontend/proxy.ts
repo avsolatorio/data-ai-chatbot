@@ -3,6 +3,8 @@ import { authProvider, skipLoginPage } from "@/lib/auth/config";
 import { hasAuthCookies } from "@/lib/auth/cookies";
 import { getBasePath } from "@/lib/config";
 import { getEnv } from "@/lib/env";
+import { checkNextStaticHealth } from "@/lib/next-static-health";
+import packageJson from "./package.json";
 
 const BASE_PATH = getBasePath();
 
@@ -219,9 +221,18 @@ async function isBackendReadyCached(): Promise<boolean> {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Liveness: no auth, maintenance redirect, or backend readiness probe
+  // Frontend readiness: process up + .next/static readable. Backend: GET /api/health.
   if (pathMatches(pathname, "/health")) {
-    return NextResponse.next();
+    const staticHealth = await checkNextStaticHealth();
+    const ok = staticHealth.ok;
+    return NextResponse.json(
+      {
+        status: ok ? "ok" : "error",
+        version: packageJson.version,
+        static: staticHealth,
+      },
+      { status: ok ? 200 : 503 },
+    );
   }
 
   /*
@@ -302,7 +313,7 @@ export async function proxy(request: NextRequest) {
     return new Response("pong", { status: 200 });
   }
 
-  if (pathMatches(pathname, "/api/auth")) {
+  if (pathMatches(pathname, "/api/auth") || pathMatches(pathname, "/api/health")) {
     return nextWithCsp(request);
   }
 
