@@ -122,11 +122,16 @@ export function McpDocsConnectSection() {
           </h3>
           <ol className="connect-step__list">
             <li>
-              Subscribe to <code>data360://system-prompt</code> in your agent
-              system context (required for reliable tool use).
+              Load <code>data360://system-prompt</code> in your agent system
+              context (required for reliable tool use).
             </li>
             <li>
-              Optionally load <code>data360://search-usage</code> and{" "}
+              Load <code>data360://context</code> and{" "}
+              <code>data360://agent-recipe</code> for time-aware queries and
+              host integration patterns.
+            </li>
+            <li>
+              Optionally fetch <code>data360://search-usage</code> and{" "}
               <code>data360://codelists</code> for discovery and code
               resolution.
             </li>
