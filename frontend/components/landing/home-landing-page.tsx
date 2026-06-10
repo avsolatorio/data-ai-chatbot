@@ -89,8 +89,8 @@ export function LandingHero({ greeting, children }: LandingHeroProps) {
           backgroundImage: `url("${getBasePath()}/images/landing/hero-wave-dots.png")`,
         }}
       />
-      <div className="relative mx-auto flex w-full max-w-[858px] flex-col gap-8">
-        <div className="flex flex-col gap-4 text-left">
+      <div className="relative mx-auto flex w-full max-w-[858px] flex-col">
+        <div className="flex flex-col text-left">
           {greeting.eyebrow ? (
             <p className="text-xl font-semibold uppercase tracking-[1px] text-white">
               {greeting.eyebrow}
@@ -102,11 +102,11 @@ export function LandingHero({ greeting, children }: LandingHeroProps) {
           >
             {greeting.title}
           </h1>
-          <p className="max-w-[645px] text-lg text-white/95 md:text-xl">
+          <p className="mt-[19px] max-w-[645px] text-lg text-white/95 md:text-xl">
             {greeting.subtitle}
           </p>
         </div>
-        {children}
+        <div className="mt-[72px]">{children}</div>
       </div>
     </section>
   );

@@ -44,7 +44,13 @@ function PureSuggestedActions({
     (variant === "landing" ? LANDING_SUGGESTIONS_LABEL : SUGGESTIONS_LABEL);
 
   return (
-    <div className="flex w-full flex-col gap-3" data-testid="suggested-actions">
+    <div
+      className={cn(
+        "flex w-full flex-col",
+        variant === "landing" ? "gap-6" : "gap-3",
+      )}
+      data-testid="suggested-actions"
+    >
       <motion.p
         animate={{ opacity: 1 }}
         className={cn(
@@ -75,10 +81,10 @@ function PureSuggestedActions({
           >
             <Suggestion
               className={cn(
-                "h-auto w-full whitespace-normal py-3 text-left text-sm transition-colors",
+                "h-auto w-full whitespace-normal text-left transition-colors",
                 variant === "landing"
-                  ? "home-landing-suggestion-chip rounded-[15px] border border-white/50 bg-[#0171bd] px-5 py-3.5 text-xl font-semibold text-white hover:bg-[#015a97]"
-                  : "home-suggestion-chip rounded-lg border text-center",
+                  ? "home-landing-suggestion-chip border border-white/50 px-5 py-3.5 text-white"
+                  : "home-suggestion-chip rounded-lg border py-3 text-center text-sm",
               )}
               onClick={(suggestion) => {
                 window.history.pushState(

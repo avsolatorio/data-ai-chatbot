@@ -627,7 +627,7 @@ export function Chat({
       <div
         className={cn(
           "overscroll-behavior-contain flex min-w-0 touch-pan-y flex-col",
-          isEmpty ? "bg-[#0171bd]" : "bg-background",
+          isEmpty ? "bg-[#015a97]" : "bg-background",
           fillParentHeight ? "h-full min-h-0" : "h-dvh",
           {
             hidden: isArtifactVisible,

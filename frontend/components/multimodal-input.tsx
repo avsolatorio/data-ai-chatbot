@@ -419,7 +419,13 @@ const PureMultimodalInput = forwardRef<
     uploadQueue.length === 0;
 
   return (
-    <div className={cn("relative flex w-full flex-col gap-4", className)}>
+    <div
+      className={cn(
+        "relative flex w-full flex-col",
+        landingVariant ? "gap-[67px]" : "gap-4",
+        className,
+      )}
+    >
       {imageUploadEnabled ? (
         <input
           accept="image/jpeg,image/png,.jpg,.jpeg,.png"

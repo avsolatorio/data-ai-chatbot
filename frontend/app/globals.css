@@ -143,6 +143,7 @@ button.home-suggestion-chip:hover {
 .home-landing {
   --home-brand: #0171bd;
   --home-brand-rgb: 1 113 189;
+  --home-landing-hero-bg: #015a97;
   --home-landing-label: #003d72;
   --home-landing-muted: #6b7581;
   color: #111;
@@ -150,7 +151,7 @@ button.home-suggestion-chip:hover {
 }
 
 .home-landing-hero {
-  background: #0171bd;
+  background: var(--home-landing-hero-bg);
 }
 
 .home-landing-hero__wave {
@@ -180,13 +181,19 @@ button.home-suggestion-chip:hover {
 }
 
 button.home-landing-suggestion-chip {
+  align-items: center;
   background-color: var(--home-brand);
   border-color: rgb(255 255 255 / 0.5);
+  border-radius: 15px 15px 15px 0;
   color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: normal;
+  min-height: 82px;
 }
 
 button.home-landing-suggestion-chip:hover {
-  background-color: #015a97;
+  background-color: #0171bd;
   border-color: rgb(255 255 255 / 0.65);
   box-shadow: none;
 }
