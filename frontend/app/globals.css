@@ -150,14 +150,13 @@ button.home-suggestion-chip:hover {
 }
 
 .home-landing-hero {
-  background: linear-gradient(135deg, #003d72 0%, #0171bd 55%, #015a97 100%);
+  background: #0171bd;
 }
 
 .home-landing-hero__wave {
-  background-position: right center;
+  background-position: center top;
   background-repeat: no-repeat;
   background-size: cover;
-  opacity: 0.9;
 }
 
 .home-landing-insights {

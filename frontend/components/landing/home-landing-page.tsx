@@ -84,9 +84,9 @@ export function LandingHero({ greeting, children }: LandingHeroProps) {
     >
       <div
         aria-hidden
-        className="home-landing-hero__wave pointer-events-none absolute inset-y-0 right-0 hidden w-[min(100%,960px)] lg:block"
+        className="home-landing-hero__wave pointer-events-none absolute inset-0"
         style={{
-          backgroundImage: `url("${getBasePath()}/images/landing/wave-dots.svg")`,
+          backgroundImage: `url("${getBasePath()}/images/landing/hero-wave-dots.png")`,
         }}
       />
       <div className="relative mx-auto flex w-full max-w-[858px] flex-col gap-8">
