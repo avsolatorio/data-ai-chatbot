@@ -157,7 +157,7 @@ button.home-suggestion-chip:hover {
 .home-landing-hero__wave {
   background-position: center top;
   background-repeat: no-repeat;
-  background-size: cover;
+  background-size: 100% auto;
 }
 
 .home-landing-insights {
@@ -184,7 +184,7 @@ button.home-landing-suggestion-chip {
   align-items: center;
   background-color: var(--home-brand);
   border-color: rgb(255 255 255 / 0.5);
-  border-radius: 15px 15px 15px 0;
+  border-radius: 15px 15px 0 15px;
   color: #fff;
   font-size: 20px;
   font-weight: 600;
