@@ -200,6 +200,14 @@ button.home-landing-suggestion-chip:hover {
   box-shadow: none;
 }
 
+@media (max-width: 639px) {
+  button.home-landing-suggestion-chip {
+    font-size: 16px;
+    line-height: 1.35;
+    min-height: auto;
+  }
+}
+
 .home-landing-input:focus-within {
   border-color: rgb(var(--home-brand-rgb) / 0.55);
   box-shadow: 0 0 0 3px rgb(var(--home-brand-rgb) / 0.12);

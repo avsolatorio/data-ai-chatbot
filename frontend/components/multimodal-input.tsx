@@ -422,7 +422,7 @@ const PureMultimodalInput = forwardRef<
     <div
       className={cn(
         "relative flex w-full flex-col",
-        landingVariant ? "gap-[67px]" : "gap-4",
+        landingVariant ? "gap-8 md:gap-[67px]" : "gap-4",
         className,
       )}
     >

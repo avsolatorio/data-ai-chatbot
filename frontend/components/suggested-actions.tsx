@@ -47,7 +47,7 @@ function PureSuggestedActions({
     <div
       className={cn(
         "flex w-full flex-col",
-        variant === "landing" ? "gap-6" : "gap-3",
+        variant === "landing" ? "gap-4 md:gap-6" : "gap-3",
       )}
       data-testid="suggested-actions"
     >
@@ -55,7 +55,7 @@ function PureSuggestedActions({
         animate={{ opacity: 1 }}
         className={cn(
           variant === "landing"
-            ? "text-xl font-semibold uppercase tracking-[1px] text-white"
+            ? "text-base font-semibold uppercase tracking-[1px] text-white md:text-xl"
             : "home-suggestions-label text-xs font-medium uppercase tracking-wider",
         )}
         initial={{ opacity: 0 }}
@@ -67,7 +67,7 @@ function PureSuggestedActions({
         className={cn(
           "grid w-full gap-2",
           variant === "landing"
-            ? "gap-x-5 gap-y-8 sm:grid-cols-2"
+            ? "gap-3 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-8"
             : "sm:grid-cols-2",
         )}
       >
@@ -83,7 +83,7 @@ function PureSuggestedActions({
               className={cn(
                 "h-auto w-full whitespace-normal text-left transition-colors",
                 variant === "landing"
-                  ? "home-landing-suggestion-chip border border-white/50 px-5 py-3.5 text-white"
+                  ? "home-landing-suggestion-chip border border-white/50 px-4 py-3 text-white sm:px-5 sm:py-3.5"
                   : "home-suggestion-chip rounded-lg border py-3 text-center text-sm",
               )}
               onClick={(suggestion) => {
