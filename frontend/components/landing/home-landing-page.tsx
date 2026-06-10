@@ -7,7 +7,7 @@ import type {
   HomeConfig,
 } from "@/components/home-config-provider";
 import { InsightCard } from "@/components/landing/insight-card";
-import { getBasePath } from "@/lib/config";
+import { appConfig, getBasePath } from "@/lib/config";
 
 type LandingInsightsSectionProps = {
   insights: HomeInsightsConfig;
@@ -130,11 +130,13 @@ export function HomeLandingPage({
   return (
     <div className="home-landing min-h-0 flex-1 overflow-y-auto">
       <LandingHero greeting={greeting}>{children}</LandingHero>
-      <LandingInsightsSection
-        chatId={chatId}
-        insights={insights}
-        sendMessage={sendMessage}
-      />
+      {appConfig.landingInsightsEnabled ? (
+        <LandingInsightsSection
+          chatId={chatId}
+          insights={insights}
+          sendMessage={sendMessage}
+        />
+      ) : null}
     </div>
   );
 }

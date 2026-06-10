@@ -80,6 +80,20 @@ function getEnableImageUpload(): boolean {
   return fromEnv;
 }
 
+/** When true, show the landing page "Did you know...?" insights section. Default false. */
+function getLandingInsightsEnabled(): boolean {
+  const v =
+    process.env.NEXT_PUBLIC_LANDING_INSIGHTS_ENABLED?.trim().toLowerCase();
+  const fromEnv = getEnv().NEXT_PUBLIC_LANDING_INSIGHTS_ENABLED;
+  if (v === "false" || v === "0" || v === "no") {
+    return false;
+  }
+  if (v === "true" || v === "1" || v === "yes") {
+    return true;
+  }
+  return fromEnv;
+}
+
 /** When true, show share/visibility UI (public chat via link). Default false. */
 function getEnableShareConversation(): boolean {
   const v =
@@ -253,6 +267,12 @@ export const appConfig = {
    * Set via NEXT_PUBLIC_ENABLE_SHARE_CONVERSATION=true. Align ENABLE_SHARE_CONVERSATION on the API.
    */
   enableShareConversation: getEnableShareConversation(),
+
+  /**
+   * When true, show the landing page insights section ("Did you know...?"). Default false.
+   * Set via NEXT_PUBLIC_LANDING_INSIGHTS_ENABLED=true (or 1 / yes).
+   */
+  landingInsightsEnabled: getLandingInsightsEnabled(),
 
   /**
    * Base URL for Data360 indicator source links (no trailing slash required).

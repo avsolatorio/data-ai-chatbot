@@ -147,6 +147,9 @@ const rawEnvSchema = z.object({
   NEXT_PUBLIC_ENABLE_SHARE_CONVERSATION: booleanEnv.describe(
     "When true, users can set chats to public (share via link). Default false when unset.",
   ),
+  NEXT_PUBLIC_LANDING_INSIGHTS_ENABLED: booleanEnv.describe(
+    "When true, show the landing page insights section. Default false when unset.",
+  ),
 
   // --- Data header ---
   NEXT_PUBLIC_DATA_HEADER_ENABLED: booleanEnv.describe(
@@ -248,6 +251,7 @@ export type Env = RawEnv & {
   NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR: "bottom" | "trigger";
   NEXT_PUBLIC_SHOW_REASONING_PART_TYPE: boolean;
   NEXT_PUBLIC_ENABLE_SHARE_CONVERSATION: boolean;
+  NEXT_PUBLIC_LANDING_INSIGHTS_ENABLED: boolean;
   NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD: boolean;
   NEXT_PUBLIC_DATA_HEADER_ENABLED: boolean;
   NEXT_PUBLIC_DATA_HEADER_CSS_URL: string;
@@ -280,6 +284,7 @@ export type PublicEnv = Pick<
   | "NEXT_PUBLIC_ARTIFACT_SCROLL_BEHAVIOR"
   | "NEXT_PUBLIC_SHOW_REASONING_PART_TYPE"
   | "NEXT_PUBLIC_ENABLE_SHARE_CONVERSATION"
+  | "NEXT_PUBLIC_LANDING_INSIGHTS_ENABLED"
   | "NEXT_PUBLIC_DATA_HEADER_ENABLED"
   | "NEXT_PUBLIC_DATA_HEADER_CSS_URL"
   | "NEXT_PUBLIC_DATA_HEADER_SCRIPT_URL"
