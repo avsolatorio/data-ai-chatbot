@@ -139,6 +139,64 @@ button.home-suggestion-chip:hover {
   box-shadow: 0 0 0 1px rgb(var(--home-accent-rgb) / 0.65);
 }
 
+/* Landing page (Figma) — scoped light-theme styles */
+.home-landing {
+  --home-brand: #0171bd;
+  --home-brand-rgb: 1 113 189;
+  --home-landing-label: #003d72;
+  --home-landing-muted: #6b7581;
+  color: #111;
+  background: #f9f9f9;
+}
+
+.home-landing-hero {
+  background: linear-gradient(135deg, #003d72 0%, #0171bd 55%, #015a97 100%);
+}
+
+.home-landing-hero__wave {
+  background-position: right center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.9;
+}
+
+.home-landing-insights {
+  background: #e9edf5;
+}
+
+.home-insight-card__header {
+  background-color: var(--home-brand);
+  border: 2px solid var(--home-brand);
+  border-radius: 15px 15px 0 0;
+}
+
+.home-insights-grid > :nth-child(2) {
+  grid-row: auto;
+}
+
+@media (min-width: 1024px) {
+  .home-insights-grid > :nth-child(2) {
+    grid-row: span 2;
+  }
+}
+
+button.home-landing-suggestion-chip {
+  background-color: var(--home-brand);
+  border-color: rgb(255 255 255 / 0.5);
+  color: #fff;
+}
+
+button.home-landing-suggestion-chip:hover {
+  background-color: #015a97;
+  border-color: rgb(255 255 255 / 0.65);
+  box-shadow: none;
+}
+
+.home-landing-input:focus-within {
+  border-color: rgb(var(--home-brand-rgb) / 0.55);
+  box-shadow: 0 0 0 3px rgb(var(--home-brand-rgb) / 0.12);
+}
+
 /* define design tokens (dark mode) */
 .dark {
   --background: hsl(240 10% 3.9%);

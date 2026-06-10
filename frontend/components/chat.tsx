@@ -45,7 +45,7 @@ import {
 import { Artifact } from "./artifact";
 import { AskAboutSelectionToolbar } from "./ask-about-selection-toolbar";
 import { useDataStream } from "./data-stream-provider";
-import { Greeting } from "./greeting";
+import { HomeLandingPage } from "./landing/home-landing-page";
 import { Messages } from "./messages";
 import {
   MultimodalInput,
@@ -609,6 +609,7 @@ export function Chat({
       stop={stop}
       suggestions={isEmpty ? homeConfig.suggestions : undefined}
       usage={fullChatUsage}
+      landingVariant={isEmpty}
     />
   ) : null;
 
@@ -625,7 +626,8 @@ export function Chat({
       <PcnManagerDebug />
       <div
         className={cn(
-          "overscroll-behavior-contain flex min-w-0 touch-pan-y flex-col bg-background",
+          "overscroll-behavior-contain flex min-w-0 touch-pan-y flex-col",
+          isEmpty ? "bg-[#003d72]" : "bg-background",
           fillParentHeight ? "h-full min-h-0" : "h-dvh",
           {
             hidden: isArtifactVisible,
@@ -635,32 +637,20 @@ export function Chat({
         <ChatHeader
           chatId={id}
           isReadonly={isReadonly}
+          landingMode={isEmpty}
           reviewMode={reviewMode}
           selectedVisibilityType={initialVisibilityType}
         />
 
         {isEmpty ? (
-          <div className="flex flex-1 flex-col px-4 pt-16 pb-10 sm:px-6 md:pt-20 md:pb-14">
-            <div className="flex min-h-0 flex-[0.42] flex-col justify-end pb-24 md:pb-32">
-              <div className="mx-auto w-full max-w-2xl">
-                <Greeting
-                  subtitle={homeConfig.greeting.subtitle}
-                  title={homeConfig.greeting.title}
-                />
-              </div>
-            </div>
-            <div className="mx-auto w-full max-w-3xl shrink-0">
-              {inputComponent}
-            </div>
-            <div className="flex min-h-0 flex-[0.58] flex-col justify-start gap-6 pt-6">
-              <p
-                className="text-muted-foreground mx-auto text-xs"
-                aria-label="Powered by Data360 MCP"
-              >
-                Powered by Data360 MCP
-              </p>
-            </div>
-          </div>
+          <HomeLandingPage
+            chatId={id}
+            greeting={homeConfig.greeting}
+            insights={homeConfig.insights}
+            sendMessage={sendMessage}
+          >
+            {inputComponent}
+          </HomeLandingPage>
         ) : (
           <>
             {!isReadonly && (

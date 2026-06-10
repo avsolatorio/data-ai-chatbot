@@ -95,6 +95,7 @@ const PureMultimodalInput = forwardRef<
     onModelChange?: (modelId: string) => void;
     usage?: AppUsage;
     suggestions?: string[];
+    landingVariant?: boolean;
   }
 >(function PureMultimodalInput(
   {
@@ -119,6 +120,7 @@ const PureMultimodalInput = forwardRef<
     onModelChange,
     usage,
     suggestions: suggestionsProp,
+    landingVariant = false,
   },
   ref,
 ) {
@@ -434,9 +436,11 @@ const PureMultimodalInput = forwardRef<
       <PromptInput
         className={cn(
           "rounded-xl border bg-background transition-all duration-200",
-          suggestions.length > 0
-            ? "home-input-prominent p-4 shadow-xs"
-            : "border-border p-3 shadow-xs focus-within:border-border hover:border-muted-foreground/50"
+          landingVariant
+            ? "home-landing-input rounded-[15px] border-[rgba(158,158,166,0.5)] bg-white p-4 shadow-none"
+            : suggestions.length > 0
+              ? "home-input-prominent p-4 shadow-xs"
+              : "border-border p-3 shadow-xs focus-within:border-border hover:border-muted-foreground/50",
         )}
         onSubmit={(event) => {
           event.preventDefault();
@@ -490,7 +494,12 @@ const PureMultimodalInput = forwardRef<
         <div className="flex flex-row items-start gap-1 sm:gap-2">
           <PromptInputTextarea
             autoFocus
-            className="min-h-[44px] grow resize-none border-0! border-none! bg-transparent p-2 text-sm outline-none ring-0 md:min-h-[80px] [-ms-overflow-style:none] [scrollbar-width:none] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 [&::-webkit-scrollbar]:hidden"
+            className={cn(
+              "min-h-[44px] grow resize-none border-0! border-none! bg-transparent p-2 text-sm outline-none ring-0 md:min-h-[80px] [-ms-overflow-style:none] [scrollbar-width:none] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 [&::-webkit-scrollbar]:hidden",
+              landingVariant
+                ? "text-base md:min-h-[120px] md:text-xl placeholder:text-[#7e7e8b]"
+                : "placeholder:text-muted-foreground",
+            )}
             data-testid="multimodal-input"
             disableAutoResize={true}
             maxHeight={200}
@@ -526,7 +535,12 @@ const PureMultimodalInput = forwardRef<
             <StopButton setMessages={setMessages} stop={stop} />
           ) : (
             <PromptInputSubmit
-              className="size-8 rounded-full bg-primary text-primary-foreground transition-colors duration-200 hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
+              className={cn(
+                "size-8 rounded-full transition-colors duration-200 disabled:bg-muted disabled:text-muted-foreground",
+                landingVariant
+                  ? "bg-[#0171bd] text-white hover:bg-[#015a97]"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90",
+              )}
               data-testid="send-button"
               disabled={!input.trim() || uploadQueue.length > 0}
               status={status}
@@ -543,6 +557,7 @@ const PureMultimodalInput = forwardRef<
           selectedVisibilityType={selectedVisibilityType}
           sendMessage={sendMessage}
           suggestions={suggestions}
+          variant={landingVariant ? "landing" : "default"}
         />
       )}
     </div>
@@ -574,6 +589,9 @@ export const MultimodalInput = memo(
       return false;
     }
     if (!equal(prevProps.suggestions, nextProps.suggestions)) {
+      return false;
+    }
+    if (prevProps.landingVariant !== nextProps.landingVariant) {
       return false;
     }
 

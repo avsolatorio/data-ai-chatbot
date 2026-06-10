@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 570 243" fill="none" aria-hidden="true">
+  <rect width="570" height="243" fill="#fff"/>
+  <line x1="80" y1="40" x2="546" y2="40" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+  <line x1="80" y1="95" x2="546" y2="95" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+  <line x1="80" y1="150" x2="546" y2="150" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+  <line x1="80" y1="205" x2="546" y2="205" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+  <text x="8" y="44" fill="rgba(0,0,0,0.6)" font-family="system-ui,sans-serif" font-size="14">6%</text>
+  <text x="8" y="99" fill="rgba(0,0,0,0.6)" font-family="system-ui,sans-serif" font-size="14">5%</text>
+  <text x="8" y="154" fill="rgba(0,0,0,0.6)" font-family="system-ui,sans-serif" font-size="14">4%</text>
+  <text x="8" y="209" fill="rgba(0,0,0,0.6)" font-family="system-ui,sans-serif" font-size="14">3%</text>
+  <text x="80" y="230" fill="rgba(0,0,0,0.6)" font-family="system-ui,sans-serif" font-size="14">2000</text>
+  <text x="280" y="230" fill="rgba(0,0,0,0.6)" font-family="system-ui,sans-serif" font-size="14">2010</text>
+  <text x="500" y="230" fill="rgba(0,0,0,0.6)" font-family="system-ui,sans-serif" font-size="14">2020</text>
+  <path d="M80 180 C140 170, 200 120, 260 130 S380 100, 440 145 S500 165, 546 175" stroke="#0171bd" stroke-width="3" fill="none"/>
+  <circle cx="440" cy="145" r="6" fill="#0171bd"/>
+  <line x1="243" y1="238" x2="273" y2="238" stroke="#0171bd" stroke-width="2"/>
+  <text x="281" y="242" fill="#1a1a1a" font-family="system-ui,sans-serif" font-size="12" font-weight="700" letter-spacing="0.24">GHANA</text>
+</svg>

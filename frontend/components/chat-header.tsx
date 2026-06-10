@@ -7,6 +7,7 @@ import { memo } from "react";
 import { useWindowSize } from "usehooks-ts";
 import { SidebarToggle } from "@/components/sidebar-toggle";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { appConfig } from "@/lib/config";
 import { PlusIcon } from "./icons";
 import { useSidebar } from "./ui/sidebar";
@@ -17,11 +18,13 @@ function PureChatHeader({
   selectedVisibilityType,
   isReadonly,
   reviewMode = false,
+  landingMode = false,
 }: {
   chatId: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
   reviewMode?: boolean;
+  landingMode?: boolean;
 }) {
   const router = useRouter();
   const { open } = useSidebar();
@@ -29,7 +32,14 @@ function PureChatHeader({
   const { width: windowWidth } = useWindowSize();
 
   return (
-    <header className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b border-border bg-background px-2 py-1.5 md:px-2">
+    <header
+      className={cn(
+        "sticky top-0 z-10 flex shrink-0 items-center gap-2 px-2 py-1.5 md:px-2",
+        landingMode
+          ? "border-b border-transparent bg-transparent"
+          : "border-b border-border bg-background",
+      )}
+    >
       {reviewMode ? (
         <Button
           className="order-1 h-8 gap-1.5 px-2 md:h-fit md:px-2"
@@ -75,6 +85,7 @@ export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
     prevProps.chatId === nextProps.chatId &&
     prevProps.selectedVisibilityType === nextProps.selectedVisibilityType &&
     prevProps.isReadonly === nextProps.isReadonly &&
-    prevProps.reviewMode === nextProps.reviewMode
+    prevProps.reviewMode === nextProps.reviewMode &&
+    prevProps.landingMode === nextProps.landingMode
   );
 });
