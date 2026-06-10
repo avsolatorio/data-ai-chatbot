@@ -144,6 +144,7 @@ button.home-suggestion-chip:hover {
   --home-brand: #0171bd;
   --home-brand-rgb: 1 113 189;
   --home-landing-hero-bg: #015a97;
+  --home-landing-wave-opacity: 0.35;
   --home-landing-label: #003d72;
   --home-landing-muted: #6b7581;
   color: #111;
@@ -158,6 +159,7 @@ button.home-suggestion-chip:hover {
   background-position: center top;
   background-repeat: no-repeat;
   background-size: 100% auto;
+  opacity: var(--home-landing-wave-opacity);
 }
 
 .home-landing-insights {
