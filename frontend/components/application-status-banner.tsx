@@ -24,25 +24,19 @@ export function ApplicationStatusBanner({
 
   if (variant === "sidebar") {
     const shareFeedbackContent = "Share feedback";
+
     return (
       <div
         className={cn(
-          "flex w-full flex-shrink-0 items-center justify-center border-b px-2 py-1.5 text-center text-xs",
-          "bg-muted/60 text-muted-foreground",
-          status === "pre-alpha" &&
-            "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200",
-          status === "alpha" &&
-            "border-blue-500/30 bg-blue-500/10 text-blue-800 dark:text-blue-200",
-          status === "beta" &&
-            "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
+          "flex w-full shrink-0 items-center justify-center border-t border-white/30 px-4 pb-1.5 pt-3.5 text-center text-xs font-semibold text-white",
         )}
       >
         <span className="truncate">
-          <strong className="font-semibold">{label}</strong>
-          {" · "}
+          {label}
+          {" - "}
           {onOpenFeedback ? (
             <button
-              className="underline underline-offset-1 hover:no-underline"
+              className="text-[#00aeef] underline underline-offset-1 hover:no-underline"
               onClick={onOpenFeedback}
               type="button"
             >
@@ -50,7 +44,7 @@ export function ApplicationStatusBanner({
             </button>
           ) : contact ? (
             <a
-              className="underline underline-offset-1 hover:no-underline"
+              className="text-[#00aeef] underline underline-offset-1 hover:no-underline"
               href={contact.url}
               rel="noopener noreferrer"
               target="_blank"
@@ -58,7 +52,9 @@ export function ApplicationStatusBanner({
               {shareFeedbackContent}
             </a>
           ) : (
-            shareFeedbackContent
+            <span className="text-[#00aeef] underline underline-offset-1">
+              {shareFeedbackContent}
+            </span>
           )}
         </span>
       </div>

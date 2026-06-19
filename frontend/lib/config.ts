@@ -26,8 +26,6 @@ function getApplicationStatus(): ApplicationStatus | null {
     getEnv().NEXT_PUBLIC_APPLICATION_STATUS;
   if (v && ["pre-alpha", "alpha", "beta"].includes(v))
     return v as ApplicationStatus;
-  // Show banner in development when not set so you can verify placement
-  if (process.env.NODE_ENV === "development") return "alpha";
   return null;
 }
 
@@ -242,6 +240,7 @@ export const appConfig = {
    */
   sidebar: {
     appName: "Data360 Chat",
+    tagline: "Turn Development Data into Insights",
   },
 
   /**

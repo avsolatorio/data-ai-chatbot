@@ -44,17 +44,25 @@ const PureChatItem = ({
   });
 
   return (
-    <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive}>
-        <Link href={`/chat/${chat.id}`} onClick={() => setOpenMobile(false)}>
-          <span>{chat.title || "New Chat"}</span>
+    <SidebarMenuItem className="group/chat-item">
+      <SidebarMenuButton
+        asChild
+        className="h-auto min-h-0 rounded-none px-0 py-0 hover:bg-transparent active:bg-transparent data-[active=true]:bg-white/10"
+        isActive={isActive}
+      >
+        <Link
+          className="block w-full text-xs font-semibold leading-normal text-white"
+          href={`/chat/${chat.id}`}
+          onClick={() => setOpenMobile(false)}
+        >
+          <span className="line-clamp-2">{chat.title || "New Chat"}</span>
         </Link>
       </SidebarMenuButton>
 
       <DropdownMenu modal={true}>
         <DropdownMenuTrigger asChild>
           <SidebarMenuAction
-            className="mr-0.5 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            className="right-0 mr-0 text-white/70 hover:bg-white/10 hover:text-white data-[state=open]:bg-white/10 data-[state=open]:text-white"
             showOnHover={!isActive}
           >
             <MoreHorizontalIcon />

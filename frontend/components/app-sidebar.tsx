@@ -18,7 +18,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { apiFetch } from "@/lib/api-client";
@@ -27,10 +26,11 @@ import {
   clearAuthSessionStorage,
   type User,
 } from "@/lib/auth-service-client";
-import { appConfig } from "@/lib/config";
+import { appConfig, getBasePath } from "@/lib/config";
 import { sessionStorageKeys } from "@/lib/constants";
 import { ApplicationStatusBanner } from "@/components/application-status-banner";
 import { FeedbackDialog } from "@/components/feedback-dialog";
+import { SidebarAppTitle } from "@/components/sidebar-app-title";
 import { useAutoRefreshToken } from "@/hooks/use-auto-refresh-token";
 import {
   AlertDialog,
@@ -123,43 +123,48 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
   return (
     <>
-      <Sidebar className="group-data-[side=left]:border-r-0">
-        <SidebarHeader>
-          <SidebarMenu>
-            <div className="flex flex-row items-center justify-between">
+      <Sidebar
+        className="data360-sidebar group-data-[side=left]:border-r-0"
+        style={
+          {
+            "--data360-sidebar-dots": `url("${getBasePath()}/images/landing/hero-wave-dots.png")`,
+          } as React.CSSProperties
+        }
+      >
+        <SidebarHeader className="p-0">
+          <div className="flex flex-col gap-2.5 px-4 pt-4">
+            <div className="flex w-full flex-row items-center justify-between gap-2.5">
               <Link
-                className="flex flex-row items-center gap-3"
+                className="min-w-0 flex-1"
                 href="/"
                 onClick={() => {
                   setOpenMobile(false);
                 }}
               >
-                <span className="cursor-pointer rounded-md px-2 font-semibold text-lg hover:bg-muted">
-                  {appConfig.sidebar.appName}
-                </span>
+                <SidebarAppTitle />
               </Link>
-              <div className="flex flex-row gap-1">
-                {effectiveUser && (
+              <div className="flex shrink-0 flex-row gap-2.5">
+                {effectiveUser ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        className="h-8 p-1 md:h-fit md:p-2"
+                        className="data360-sidebar-action size-5 p-0 hover:bg-white/10"
                         onClick={() => setShowDeleteAllDialog(true)}
                         type="button"
                         variant="ghost"
                       >
-                        <TrashIcon />
+                        <TrashIcon size={20} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent align="end" className="hidden md:block">
                       Delete All Chats
                     </TooltipContent>
                   </Tooltip>
-                )}
+                ) : null}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      className="h-8 p-1 md:h-fit md:p-2"
+                      className="data360-sidebar-action size-5 p-0 hover:bg-white/10"
                       onClick={() => {
                         setOpenMobile(false);
                         router.push("/");
@@ -168,7 +173,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       type="button"
                       variant="ghost"
                     >
-                      <PlusIcon />
+                      <PlusIcon size={20} />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent align="end" className="hidden md:block">
@@ -177,17 +182,25 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 </Tooltip>
               </div>
             </div>
-          </SidebarMenu>
+            {appConfig.sidebar.tagline ? (
+              <div className="w-full pb-3.5">
+                <p className="text-[22px] font-bold leading-[1.4] text-white">
+                  {appConfig.sidebar.tagline}
+                </p>
+              </div>
+            ) : null}
+          </div>
         </SidebarHeader>
         <ApplicationStatusBanner
           onOpenFeedback={() => setFeedbackOpen(true)}
           variant="sidebar"
         />
-        <SidebarContent>
+        <SidebarContent className="gap-2.5">
           <SidebarHistory user={effectiveUser} />
         </SidebarContent>
         <SidebarFooter>
           <FeedbackDialog
+            hideTrigger
             onOpenChange={setFeedbackOpen}
             open={feedbackOpen}
           />

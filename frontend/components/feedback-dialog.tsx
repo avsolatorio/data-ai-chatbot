@@ -31,11 +31,14 @@ type FeedbackDialogProps = {
   /** Controlled open state (e.g. from parent so "Share feedback" can open the same dialog). */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** When true, only render the dialog (no footer trigger button). */
+  hideTrigger?: boolean;
 };
 
 export function FeedbackDialog({
   open: controlledOpen,
   onOpenChange: controlledSetOpen,
+  hideTrigger = false,
 }: FeedbackDialogProps = {}) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = controlledSetOpen !== undefined;
@@ -93,28 +96,30 @@ export function FeedbackDialog({
     }
   };
 
-  if (!showTrigger) return null;
+  if (!showTrigger && !isControlled) return null;
 
   const displayRating = hoverRating ?? rating;
 
   return (
     <>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            className="h-8 w-full justify-start gap-2 px-2 font-normal text-muted-foreground md:h-fit md:w-auto md:px-2"
-            onClick={() => setOpen(true)}
-            type="button"
-            variant="ghost"
-          >
-            <MessageCircle className="h-4 w-4 shrink-0" />
-            <span className="hidden md:inline">Give feedback</span>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent align="end" side="top">
-          Give feedback
-        </TooltipContent>
-      </Tooltip>
+      {!hideTrigger && showTrigger ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              className="h-8 w-full justify-start gap-2 px-2 font-normal text-muted-foreground md:h-fit md:w-auto md:px-2"
+              onClick={() => setOpen(true)}
+              type="button"
+              variant="ghost"
+            >
+              <MessageCircle className="h-4 w-4 shrink-0" />
+              <span className="hidden md:inline">Give feedback</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent align="end" side="top">
+            Give feedback
+          </TooltipContent>
+        </Tooltip>
+      ) : null}
 
       <AlertDialog onOpenChange={handleOpenChange} open={open}>
         <AlertDialogContent>

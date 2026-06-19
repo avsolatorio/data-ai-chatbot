@@ -1,6 +1,6 @@
 "use client";
 
-import { isToday, isYesterday, subMonths, subWeeks } from "date-fns";
+import { isToday, subMonths } from "date-fns";
 import { motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -31,9 +31,7 @@ import { ChatItem } from "./sidebar-history-item";
 
 type GroupedChats = {
   today: Chat[];
-  yesterday: Chat[];
-  lastWeek: Chat[];
-  lastMonth: Chat[];
+  last30Days: Chat[];
   older: Chat[];
 };
 
@@ -44,6 +42,12 @@ export type ChatHistory = {
 
 const PAGE_SIZE = 20;
 
+const SECTION_LABEL_CLASS = "text-xs font-normal text-[#ced4de]";
+const EMPTY_MESSAGE_CLASS =
+  "flex w-full flex-row items-center justify-center gap-2 px-2 text-sm text-[#ced4de]";
+const HISTORY_SECTION_CLASS =
+  "border-t border-[rgba(158,158,166,0.2)] pb-6 pt-3.5";
+
 /** Last activity for ordering and sidebar sections (message activity, context updates). */
 function chatActivityTimeMs(chat: Chat): number {
   const raw = chat.updatedAt ?? chat.createdAt;
@@ -52,7 +56,6 @@ function chatActivityTimeMs(chat: Chat): number {
 
 const groupChatsByDate = (chats: Chat[]): GroupedChats => {
   const now = new Date();
-  const oneWeekAgo = subWeeks(now, 1);
   const oneMonthAgo = subMonths(now, 1);
 
   return chats.reduce(
@@ -61,12 +64,8 @@ const groupChatsByDate = (chats: Chat[]): GroupedChats => {
 
       if (isToday(chatDate)) {
         groups.today.push(chat);
-      } else if (isYesterday(chatDate)) {
-        groups.yesterday.push(chat);
-      } else if (chatDate > oneWeekAgo) {
-        groups.lastWeek.push(chat);
-      } else if (chatDate > oneMonthAgo) {
-        groups.lastMonth.push(chat);
+      } else if (chatDate >= oneMonthAgo) {
+        groups.last30Days.push(chat);
       } else {
         groups.older.push(chat);
       }
@@ -75,9 +74,7 @@ const groupChatsByDate = (chats: Chat[]): GroupedChats => {
     },
     {
       today: [],
-      yesterday: [],
-      lastWeek: [],
-      lastMonth: [],
+      last30Days: [],
       older: [],
     } as GroupedChats,
   );
@@ -102,6 +99,43 @@ export function getChatHistoryPaginationKey(
   }
 
   return `/api/history?ending_before=${firstChatFromPage.id}&limit=${PAGE_SIZE}`;
+}
+
+type HistorySectionProps = {
+  label: string;
+  chats: Chat[];
+  activeChatId: string | string[] | undefined;
+  onDelete: (chatId: string) => void;
+  setOpenMobile: (open: boolean) => void;
+};
+
+function HistorySection({
+  label,
+  chats,
+  activeChatId,
+  onDelete,
+  setOpenMobile,
+}: HistorySectionProps) {
+  if (chats.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={HISTORY_SECTION_CLASS}>
+      <div className={SECTION_LABEL_CLASS}>{label}</div>
+      <div className="mt-2 flex flex-col gap-3.5">
+        {chats.map((chat) => (
+          <ChatItem
+            chat={chat}
+            isActive={chat.id === activeChatId}
+            key={chat.id}
+            onDelete={onDelete}
+            setOpenMobile={setOpenMobile}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function SidebarHistory({ user }: { user: User | undefined }) {
@@ -131,6 +165,11 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   const hasEmptyChatHistory = paginatedChatHistories
     ? paginatedChatHistories.every((page) => page.chats.length === 0)
     : false;
+
+  const handleDeleteRequest = (chatId: string) => {
+    setDeleteId(chatId);
+    setShowDeleteDialog(true);
+  };
 
   const handleDelete = () => {
     const deletePromise = apiFetch(`/api/chat?id=${deleteId}`, {
@@ -165,7 +204,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     return (
       <SidebarGroup>
         <SidebarGroupContent>
-          <div className="flex w-full flex-row items-center justify-center gap-2 px-2 text-sm text-zinc-500">
+          <div className={EMPTY_MESSAGE_CLASS}>
             Login to save and revisit previous chats!
           </div>
         </SidebarGroupContent>
@@ -176,28 +215,28 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   if (isLoading) {
     return (
       <SidebarGroup>
-        <div className="px-2 py-1 text-sidebar-foreground/50 text-xs">
-          Today
-        </div>
-        <SidebarGroupContent>
-          <div className="flex flex-col">
-            {[44, 32, 28, 64, 52].map((item) => (
-              <div
-                className="flex h-8 items-center gap-2 rounded-md px-2"
-                key={item}
-              >
+        <div className={`${HISTORY_SECTION_CLASS} border-t-0 pt-0`}>
+          <div className={SECTION_LABEL_CLASS}>Today</div>
+          <SidebarGroupContent>
+            <div className="mt-2 flex flex-col gap-3.5">
+              {[44, 32, 28, 64, 52].map((item) => (
                 <div
-                  className="h-4 max-w-(--skeleton-width) flex-1 rounded-md bg-sidebar-accent-foreground/10"
-                  style={
-                    {
-                      "--skeleton-width": `${item}%`,
-                    } as React.CSSProperties
-                  }
-                />
-              </div>
-            ))}
-          </div>
-        </SidebarGroupContent>
+                  className="flex h-4 items-center gap-2 rounded-md"
+                  key={item}
+                >
+                  <div
+                    className="h-3 max-w-(--skeleton-width) flex-1 rounded-md bg-white/20"
+                    style={
+                      {
+                        "--skeleton-width": `${item}%`,
+                      } as React.CSSProperties
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          </SidebarGroupContent>
+        </div>
       </SidebarGroup>
     );
   }
@@ -206,7 +245,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     return (
       <SidebarGroup>
         <SidebarGroupContent>
-          <div className="flex w-full flex-row items-center justify-center gap-2 px-2 text-sm text-zinc-500">
+          <div className={EMPTY_MESSAGE_CLASS}>
             Your conversations will appear here once you start chatting!
           </div>
         </SidebarGroupContent>
@@ -224,8 +263,6 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                 const chatsFromHistory = paginatedChatHistories.flatMap(
                   (paginatedChatHistory) => paginatedChatHistory.chats,
                 );
-                // Sort by last activity (updatedAt) so resumed threads surface to the top.
-                // API returns UTC ISO strings (with Z); new Date() parses as UTC so isToday/isYesterday use local day.
                 const sorted = [...chatsFromHistory].sort(
                   (a, b) => chatActivityTimeMs(b) - chatActivityTimeMs(a),
                 );
@@ -233,106 +270,28 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                 const groupedChats = groupChatsByDate(sorted);
 
                 return (
-                  <div className="flex flex-col gap-6">
-                    {groupedChats.today.length > 0 && (
-                      <div>
-                        <div className="px-2 py-1 text-sidebar-foreground/50 text-xs">
-                          Today
-                        </div>
-                        {groupedChats.today.map((chat) => (
-                          <ChatItem
-                            chat={chat}
-                            isActive={chat.id === id}
-                            key={chat.id}
-                            onDelete={(chatId) => {
-                              setDeleteId(chatId);
-                              setShowDeleteDialog(true);
-                            }}
-                            setOpenMobile={setOpenMobile}
-                          />
-                        ))}
-                      </div>
-                    )}
-
-                    {groupedChats.yesterday.length > 0 && (
-                      <div>
-                        <div className="px-2 py-1 text-sidebar-foreground/50 text-xs">
-                          Yesterday
-                        </div>
-                        {groupedChats.yesterday.map((chat) => (
-                          <ChatItem
-                            chat={chat}
-                            isActive={chat.id === id}
-                            key={chat.id}
-                            onDelete={(chatId) => {
-                              setDeleteId(chatId);
-                              setShowDeleteDialog(true);
-                            }}
-                            setOpenMobile={setOpenMobile}
-                          />
-                        ))}
-                      </div>
-                    )}
-
-                    {groupedChats.lastWeek.length > 0 && (
-                      <div>
-                        <div className="px-2 py-1 text-sidebar-foreground/50 text-xs">
-                          Last 7 days
-                        </div>
-                        {groupedChats.lastWeek.map((chat) => (
-                          <ChatItem
-                            chat={chat}
-                            isActive={chat.id === id}
-                            key={chat.id}
-                            onDelete={(chatId) => {
-                              setDeleteId(chatId);
-                              setShowDeleteDialog(true);
-                            }}
-                            setOpenMobile={setOpenMobile}
-                          />
-                        ))}
-                      </div>
-                    )}
-
-                    {groupedChats.lastMonth.length > 0 && (
-                      <div>
-                        <div className="px-2 py-1 text-sidebar-foreground/50 text-xs">
-                          Last 30 days
-                        </div>
-                        {groupedChats.lastMonth.map((chat) => (
-                          <ChatItem
-                            chat={chat}
-                            isActive={chat.id === id}
-                            key={chat.id}
-                            onDelete={(chatId) => {
-                              setDeleteId(chatId);
-                              setShowDeleteDialog(true);
-                            }}
-                            setOpenMobile={setOpenMobile}
-                          />
-                        ))}
-                      </div>
-                    )}
-
-                    {groupedChats.older.length > 0 && (
-                      <div>
-                        <div className="px-2 py-1 text-sidebar-foreground/50 text-xs">
-                          Older than last month
-                        </div>
-                        {groupedChats.older.map((chat) => (
-                          <ChatItem
-                            chat={chat}
-                            isActive={chat.id === id}
-                            key={chat.id}
-                            onDelete={(chatId) => {
-                              setDeleteId(chatId);
-                              setShowDeleteDialog(true);
-                            }}
-                            setOpenMobile={setOpenMobile}
-                          />
-                        ))}
-                      </div>
-                    )}
+                  <div className="flex flex-col">
+                    <HistorySection
+                      activeChatId={id}
+                      chats={groupedChats.today}
+                      label="Today"
+                      onDelete={handleDeleteRequest}
+                      setOpenMobile={setOpenMobile}
+                    />
+                    <HistorySection
+                      activeChatId={id}
+                      chats={groupedChats.last30Days}
+                      label="Last 30 days"
+                      onDelete={handleDeleteRequest}
+                      setOpenMobile={setOpenMobile}
+                    />
+                    <HistorySection
+                      activeChatId={id}
+                      chats={groupedChats.older}
+                      label="Older than last month"
+                      onDelete={handleDeleteRequest}
+                      setOpenMobile={setOpenMobile}
+                    />
                   </div>
                 );
               })()}
@@ -347,11 +306,11 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
           />
 
           {hasReachedEnd ? (
-            <div className="mt-8 flex w-full flex-row items-center justify-center gap-2 px-2 text-sm text-zinc-500">
+            <div className={`${EMPTY_MESSAGE_CLASS} mt-8`}>
               You have reached the end of your chat history.
             </div>
           ) : (
-            <div className="mt-8 flex flex-row items-center gap-2 p-2 text-zinc-500 dark:text-zinc-400">
+            <div className="mt-8 flex flex-row items-center gap-2 p-2 text-[#ced4de]">
               <div className="animate-spin">
                 <LoaderIcon />
               </div>

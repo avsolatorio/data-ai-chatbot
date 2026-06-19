@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-const SIDEBAR_WIDTH = "16rem";
+const SIDEBAR_WIDTH = "15.8125rem"; /* 253px — Figma Data360 sidebar */
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
@@ -199,15 +199,19 @@ const Sidebar = React.forwardRef<
 
     if (isMobile) {
       return (
-        <Sheet onOpenChange={setOpenMobile} open={openMobile} {...props}>
+        <Sheet onOpenChange={setOpenMobile} open={openMobile}>
           <SheetContent
-            className="w-[var(--sidebar-width)] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+            className={cn(
+              "w-[var(--sidebar-width)] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
+              className
+            )}
             data-mobile="true"
             data-sidebar="sidebar"
             side={side}
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+                ...((props.style as React.CSSProperties | undefined) ?? {}),
               } as React.CSSProperties
             }
           >
@@ -243,7 +247,7 @@ const Sidebar = React.forwardRef<
         />
         <div
           className={cn(
-            "fixed bottom-0 top-[var(--header-height,var(--data-header-default-height,0px))] z-10 hidden w-[var(--sidebar-width)] transition-[left,right,width] duration-200 ease-linear md:flex",
+            "fixed bottom-0 top-[var(--header-height,var(--data-header-default-height,0px))] z-20 hidden w-[var(--sidebar-width)] transition-[left,right,width] duration-200 ease-linear md:flex",
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -256,7 +260,10 @@ const Sidebar = React.forwardRef<
           {...props}
         >
           <div
-            className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
+            className={cn(
+              "flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow",
+              className
+            )}
             data-sidebar="sidebar"
           >
             {children}

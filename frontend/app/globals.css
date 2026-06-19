@@ -213,6 +213,126 @@ button.home-landing-suggestion-chip:hover {
   box-shadow: 0 0 0 3px rgb(var(--home-brand-rgb) / 0.12);
 }
 
+/* Data360 sidebar (Figma node 339:14511, parent fill 339:21204) */
+.data360-sidebar {
+  --sidebar-background: #014076;
+  --sidebar: #014076;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: rgb(255 255 255 / 0.12);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(158 158 166 / 0.2);
+  --data360-sidebar-muted: #ced4de;
+  --data360-sidebar-link: #00aeef;
+  --data360-sidebar-dot-color: #0171bd;
+  --data360-sidebar-wave-opacity: 0.4;
+}
+
+.data360-sidebar[data-sidebar="sidebar"] {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: #014076 !important;
+}
+
+.data360-sidebar[data-sidebar="sidebar"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: #014076;
+  background-image: var(
+    --data360-sidebar-dots,
+    radial-gradient(
+      circle,
+      rgb(1 113 189 / 0.35) 1px,
+      transparent 1px
+    )
+  );
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: 100% auto;
+  opacity: var(--data360-sidebar-wave-opacity);
+}
+
+.data360-sidebar.fixed {
+  background-color: #014076;
+}
+
+.data360-sidebar [data-sidebar="header"],
+.data360-sidebar [data-sidebar="content"],
+.data360-sidebar [data-sidebar="footer"] {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+.data360-sidebar [data-sidebar="header"] {
+  padding: 0;
+}
+
+.data360-sidebar [data-sidebar="content"] {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.data360-sidebar [data-sidebar="footer"] {
+  border-top: 1px solid rgb(158 158 166 / 0.2);
+  padding: 0.875rem 1rem 1rem;
+}
+
+.data360-sidebar [data-sidebar="menu-button"] {
+  min-height: auto;
+  height: auto;
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: normal;
+  color: #ffffff;
+  background: transparent;
+}
+
+.data360-sidebar [data-sidebar="menu-button"]:hover,
+.data360-sidebar [data-sidebar="menu-button"]:active {
+  background: transparent;
+  color: #ffffff;
+}
+
+.data360-sidebar [data-sidebar="menu-button"][data-active="true"] {
+  background: rgb(255 255 255 / 0.1);
+  color: #ffffff;
+}
+
+.data360-sidebar [data-sidebar="menu-action"] {
+  color: rgb(255 255 255 / 0.7);
+}
+
+.data360-sidebar [data-sidebar="menu-action"]:hover {
+  color: #ffffff;
+  background: rgb(255 255 255 / 0.1);
+}
+
+.data360-sidebar .data360-sidebar-action {
+  color: #ffffff;
+}
+
+.data360-sidebar .data360-sidebar-action:hover {
+  background: rgb(255 255 255 / 0.1);
+  color: #ffffff;
+}
+
+.data360-sidebar [data-sidebar="group"] {
+  padding: 0;
+}
+
+.data360-sidebar [data-sidebar="content"]::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.25);
+}
+
+.data360-sidebar [data-sidebar="content"]::-webkit-scrollbar-thumb:hover {
+  background: rgb(255 255 255 / 0.4);
+}
+
 /* define design tokens (dark mode) */
 .dark {
   --background: hsl(240 10% 3.9%);
