@@ -450,6 +450,83 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 "delta": delta,
             }
 
+        # ── comparison or single fact card: data360_rank_countries ───────────
+        if tool_name == "data360_rank_countries":
+            rankings: list = output.get("rankings", [])
+            metadata = output.get("metadata", {}) or {}
+            indicator_name = (
+                output.get("indicator")
+                or metadata.get("name")
+                or metadata.get("indicator_name")
+                or ""
+            )
+            database_name = metadata.get("database_name") or metadata.get("database_id") or ""
+            unit = _readable_unit(
+                output.get("unit") or output.get("unit_measure", ""), indicator_name
+            )
+            year = output.get("year")
+
+            if not rankings:
+                continue
+
+            # If exactly 2 countries are ranked, upgrade to a comparison card
+            if len(rankings) == 2:
+                entries = []
+                for r in rankings:
+                    val = r.get("value") if r.get("value") is not None else r.get("obs_value")
+                    entries.append(
+                        {
+                            "ref_area": r.get("code") or r.get("ref_area", ""),
+                            "country_name": r.get("country")
+                            or r.get("country_name")
+                            or r.get("code", ""),
+                            "value": val,
+                            "claim_id": r.get("claim_id", ""),
+                            "rank": r.get("rank"),
+                        }
+                    )
+                delta = None
+                if entries[0].get("value") is not None and entries[1].get("value") is not None:
+                    try:
+                        delta = float(entries[0]["value"]) - float(entries[1]["value"])
+                    except (TypeError, ValueError):
+                        pass
+                return {
+                    "card_type": "comparison",
+                    "database_id": tool_args.get("database_id", ""),
+                    "database_name": database_name,
+                    "indicator_name": indicator_name,
+                    "indicator_id": tool_args.get("indicator_id", ""),
+                    "unit": unit,
+                    "year": year,
+                    "entries": entries,
+                    "delta": delta,
+                }
+
+            # General case: return a single_fact card highlighting the #1 ranked country
+            top_ranked = rankings[0]
+            top_value = (
+                top_ranked.get("value")
+                if top_ranked.get("value") is not None
+                else top_ranked.get("obs_value")
+            )
+            return {
+                "card_type": "single_fact",
+                "database_id": tool_args.get("database_id", ""),
+                "database_name": database_name,
+                "indicator_name": indicator_name,
+                "indicator_id": tool_args.get("indicator_id", ""),
+                "country_name": top_ranked.get("country")
+                or top_ranked.get("country_name")
+                or top_ranked.get("code")
+                or top_ranked.get("ref_area")
+                or "",
+                "unit": unit,
+                "value": top_value,
+                "year": year,
+                "claim_id": top_ranked.get("claim_id", ""),
+            }
+
         # ── single fact or trend card: data360_get_data ─────────────────────
         if tool_name == "data360_get_data":
             data_rows: list = output.get("data", [])
