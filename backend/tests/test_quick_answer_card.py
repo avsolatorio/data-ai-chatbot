@@ -402,3 +402,52 @@ def test_research_node_card_synthesis(monkeypatch):
     assert out["quick_answer_card"] is not None
     assert out["quick_answer_card"]["card_type"] == "single_fact"
     assert out["quick_answer_card"]["value"] == "81816.97"
+
+
+def test_synthesize_card_get_data_multi_country_skips():
+    # GIVEN data360_get_data output with 3 countries
+    tool_results = [
+        {
+            "tool_name": "data360_get_data",
+            "tool_args": {
+                "database_id": "WB_WDI",
+                "indicator_id": "WB_WDI_NY_GDP_PCAP_CD",
+            },
+            "output": {
+                "data": [
+                    {
+                        "OBS_VALUE": "81816.97",
+                        "REF_AREA": "QAT",
+                        "TIME_PERIOD": "2023",
+                        "UNIT_MEASURE": "USD",
+                        "claim_id": "c1",
+                        "REF_AREA_NAME": "Qatar",
+                    },
+                    {
+                        "OBS_VALUE": "65000.0",
+                        "REF_AREA": "ARE",
+                        "TIME_PERIOD": "2023",
+                        "UNIT_MEASURE": "USD",
+                        "claim_id": "c2",
+                        "REF_AREA_NAME": "UAE",
+                    },
+                    {
+                        "OBS_VALUE": "55000.0",
+                        "REF_AREA": "KWT",
+                        "TIME_PERIOD": "2023",
+                        "UNIT_MEASURE": "USD",
+                        "claim_id": "c3",
+                        "REF_AREA_NAME": "Kuwait",
+                    },
+                ],
+                "metadata": {
+                    "name": "GDP per capita (current US$)",
+                    "database_id": "WB_WDI",
+                    "database_name": "World Development Indicators (WDI)",
+                },
+            },
+        }
+    ]
+
+    card = _synthesize_card(tool_results)
+    assert card is None

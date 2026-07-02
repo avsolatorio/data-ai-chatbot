@@ -556,36 +556,24 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
             # Collect unique countries present in the result
             countries = list(dict.fromkeys(r.get("REF_AREA", "") for r in sorted_rows))
 
-            requested_country = tool_args.get("country_code", "") or ""
-            is_multi_country = ";" in requested_country or "," in requested_country
-
-            if is_multi_country and len(countries) < 2:
-                logger.info(
-                    "[synthesize_card] get_data skipped: multi-country request but found len(countries)=%d",
-                    len(countries),
-                )
-                continue
-
-            # data360_get_data is used ONLY for single_fact lookups in quick_answer mode.
-            # Trend questions are routed to data360_summarize_data by the prompt.
-            # Any get_data call here should produce a single_fact card.
-
             def _time_key(r):
                 try:
                     return int(r.get("TIME_PERIOD", 0))
                 except (ValueError, TypeError):
                     return 0
 
-            if is_multi_country and len(countries) > 2:
+            if len(countries) > 1:
+                # Multi-country data: we only support exactly 2 countries (comparison card)
+                if len(countries) != 2:
+                    logger.info(
+                        "[synthesize_card] get_data skipped: multi-country data has %d countries (only 2 supported for comparison)",
+                        len(countries),
+                    )
+                    continue
+
+                # Exactly 2 countries: try to upgrade to a comparison card
                 logger.info(
-                    "[synthesize_card] get_data fallback skipped: comparison card supports exactly 2 countries, found %d",
-                    len(countries),
-                )
-                continue
-            elif is_multi_country and len(countries) == 2:
-                logger.info(
-                    "[synthesize_card] get_data fallback: upgrading to comparison card for %d countries",
-                    len(countries),
+                    "[synthesize_card] get_data fallback: upgrading to comparison card for 2 countries",
                 )
                 country_year_rows: dict[str, dict[str, dict]] = {}
                 for r in sorted_rows:
