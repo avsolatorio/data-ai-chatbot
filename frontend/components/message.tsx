@@ -36,7 +36,7 @@ import {
   isIndicatorUrl,
 } from "@/lib/data360";
 import type { Vote } from "@/lib/db/schema";
-import { parseFollowUps } from "@/lib/parse-follow-ups";
+import { InteractiveChoicesCard } from "./data360/choice-card";
 import { splitDataThinkingPrefixParts } from "@/lib/split-thinking-parts";
 import { defaultOpenForData360Tool } from "@/lib/tool-display";
 import {
@@ -59,6 +59,7 @@ import { RankCountries } from "./data360/rank-countries";
 import { SummarizeData } from "./data360/summarize-data";
 import { CompareCountries } from "./data360/compare-countries";
 import { QuickAnswerCard } from "./data360/quick-answer";
+// McpAppRenderer removed — interactive choices now use native ChoiceCard
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
 import { CodeBlock } from "./elements/code-block";
@@ -109,6 +110,7 @@ function renderMessagePart(
     message: ChatMessage;
     regenerate: UseChatHelpers<ChatMessage>["regenerate"];
     setMessages: UseChatHelpers<ChatMessage>["setMessages"];
+    sendMessage?: UseChatHelpers<ChatMessage>["sendMessage"];
     isReadonly: boolean;
     isLoading: boolean;
     onScrollToMessageId?: (messageId: string) => void;
@@ -121,6 +123,7 @@ function renderMessagePart(
     message,
     regenerate,
     setMessages,
+    sendMessage,
     isReadonly,
     isLoading,
     onScrollToMessageId,
@@ -687,6 +690,49 @@ function renderMessagePart(
     );
   }
 
+  // Handle data360_interactive_choices — native ChoiceCard renderer.
+  if ((type as string) === "tool-data360_interactive_choices") {
+    const toolPart = part as {
+      toolCallId: string;
+      state:
+        | "input-available"
+        | "output-available"
+        | "input-streaming"
+        | "output-error";
+      input?: unknown;
+      output?: unknown;
+    };
+    return (
+      <Tool
+        defaultOpen={defaultOpenForData360Tool(type as string)}
+        key={toolPart.toolCallId}
+      >
+        <ToolHeader state={toolPart.state} type={type as `tool-${string}`} />
+        <ToolContent className="ml-0 border-l-0 pl-0">
+          {toolPart.state === "output-available" && toolPart.output != null && (
+            <ToolOutput
+              errorText={undefined}
+              useDefaultFormat={false}
+              output={
+                <InteractiveChoicesCard
+                  output={toolPart.output}
+                  onSelect={(text) => {
+                    if (sendMessage) {
+                      sendMessage({
+                        role: "user",
+                        parts: [{ type: "text", text }],
+                      });
+                    }
+                  }}
+                />
+              }
+            />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
   const AGG_TOOL_MAP: Record<
     string,
     { component: React.FC<{ output: any }>; name: string }
@@ -865,12 +911,8 @@ const PurePreviewMessage = ({
     .map((p) => p.text)
     .join("\n");
   const contentPolicyBlocked = getContentPolicyBlockedFromParts(message.parts);
-  const assistantTextForFollowUps = assistantTextWithoutLegacyPolicyMarker(
-    assistantText,
-  );
-  const followUps = contentPolicyBlocked
-    ? []
-    : parseFollowUps(assistantTextForFollowUps);
+  // followUps text-parsing removed — follow-up questions are now rendered via
+  // data360_interactive_choices tool parts (native ChoiceCard), not as text pills.
 
   // Extract quick-answer card from message.parts — persisted through DB so
   // it survives page refreshes and chat history navigation.
@@ -1053,6 +1095,7 @@ const PurePreviewMessage = ({
                         message,
                         regenerate,
                         setMessages,
+                        sendMessage,
                         isReadonly,
                         isLoading,
                         onScrollToMessageId,
@@ -1083,6 +1126,7 @@ const PurePreviewMessage = ({
                     message,
                     regenerate,
                     setMessages,
+                    sendMessage,
                     isReadonly,
                     isLoading,
                     onScrollToMessageId,
@@ -1184,51 +1228,9 @@ const PurePreviewMessage = ({
                   </div>
                 )}
 
-                {/* Suggested follow-ups: parse from assistant text and render as clickable chips — only after response is complete to avoid distraction during streaming */}
-                {message.role === "assistant" &&
-                  followUps.length > 0 &&
-                  sendMessage &&
-                  !isReadonly &&
-                  !isLoading && (
-                    <div
-                      className="mt-2 flex flex-wrap gap-2"
-                      data-testid="follow-up-suggestions"
-                    >
-                      {followUps.map((suggestion) => (
-                        <Suggestion
-                          key={suggestion}
-                          className="h-auto gap-2 whitespace-normal px-3 py-1.5 text-left text-sm"
-                          onClick={() => {
-                            window.history.pushState(
-                              {},
-                              "",
-                              `${getBasePath()}/chat/${chatId}`,
-                            );
-                            if (
-                              followUpSuggestionsPopulateInput &&
-                              onFollowUpPopulateInput
-                            ) {
-                              onFollowUpPopulateInput(suggestion);
-                            } else if (sendMessage) {
-                              sendMessage({
-                                role: "user",
-                                parts: [{ type: "text", text: suggestion }],
-                              });
-                            }
-                          }}
-                          suggestion={suggestion}
-                        >
-                          <span className="inline-flex items-start gap-2">
-                            <MessageSquare
-                              aria-hidden
-                              className="mt-0.5 size-4 shrink-0 opacity-70"
-                            />
-                            <span>{suggestion}</span>
-                          </span>
-                        </Suggestion>
-                      ))}
-                    </div>
-                  )}
+                {/* Follow-ups are now rendered via data360_interactive_choices
+                    tool parts as a native ChoiceCard — no text-pill section needed. */}
+
               </>
             );
           })()}

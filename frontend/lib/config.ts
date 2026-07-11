@@ -116,6 +116,22 @@ function getData360IndicatorBaseUrl(): string {
   );
 }
 
+/**
+ * Controls which renderer is used for viz tools (data360_get_viz_spec, data360_get_multi_indicator_viz_spec).
+ * - "native" (default): @data360/mcp-ui React components embedded directly in the page.
+ * - "mcp_app": MCP App iframe host — loads the chart HTML resource from the MCP server in a
+ *   sandboxed <iframe> and communicates via the ui/initialize postMessage protocol.
+ *   NOTE: loses fullscreen artifact expansion in mcp_app mode.
+ * Set via NEXT_PUBLIC_VIZ_RENDERER.
+ */
+function getVizRenderer(): "native" | "mcp_app" {
+  const v =
+    process.env.NEXT_PUBLIC_VIZ_RENDERER?.trim().toLowerCase() ||
+    getEnv().NEXT_PUBLIC_VIZ_RENDERER?.trim().toLowerCase();
+  if (v === "mcp_app") return "mcp_app";
+  return "native";
+}
+
 /** When true, all Data360 MCP tool panels start expanded. When false, only a small allowlist (e.g. search indicators) expands by default. */
 export function getData360ToolDefaultOpen(): boolean {
   const v =
@@ -297,4 +313,12 @@ export const appConfig = {
    * Milliseconds between refresh POSTs (data360 mode only). Default 50 minutes. NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_INTERVAL_MS.
    */
   searchTokenRefreshIntervalMs: getSearchTokenRefreshIntervalMs(),
+
+  /**
+   * Controls which renderer is used for viz tools.
+   * "native" (default) = @data360/mcp-ui React components.
+   * "mcp_app" = iframe-based MCP App host (postMessage protocol).
+   * Set via NEXT_PUBLIC_VIZ_RENDERER. NOTE: mcp_app loses artifact fullscreen expansion.
+   */
+  vizRenderer: getVizRenderer(),
 };

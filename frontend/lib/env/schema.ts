@@ -210,6 +210,12 @@ const rawEnvSchema = z.object({
   NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN: booleanEnv.describe(
     "When true, all Data360 MCP tool panels start expanded. When false (default), only selected tools (e.g. search indicators) expand; chart tools start collapsed.",
   ),
+  NEXT_PUBLIC_VIZ_RENDERER: z
+    .enum(["native", "mcp_app"])
+    .optional()
+    .describe(
+      'Controls which renderer is used for viz tools. "native" (default): @data360/mcp-ui React components. "mcp_app": iframe-based MCP App host.',
+    ),
   NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_URL: optionalString.describe(
     "Same-origin path or absolute URL for POST search-token refresh (e.g. /wbg/aem/service/refresh-search-token). Used only when NEXT_PUBLIC_AUTH_PROVIDER=data360; empty disables.",
   ),
@@ -259,6 +265,7 @@ export type Env = RawEnv & {
   NEXT_PUBLIC_DATA_HEADER_ENVIRONMENT: DataHeaderEnvironment;
   NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL: string;
   NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN: boolean;
+  NEXT_PUBLIC_VIZ_RENDERER?: "native" | "mcp_app" | undefined;
   NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_URL: string;
   NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_INTERVAL_MS: number;
   NEXT_PUBLIC_SKIP_LOGIN_PAGE: boolean;
@@ -298,6 +305,7 @@ export type PublicEnv = Pick<
   | "NEXT_PUBLIC_VEGA_CUSTOM_THEME_URL"
   | "NEXT_PUBLIC_DATA360_INDICATOR_BASE_URL"
   | "NEXT_PUBLIC_DATA360_TOOL_DEFAULT_OPEN"
+  | "NEXT_PUBLIC_VIZ_RENDERER"
   | "NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_URL"
   | "NEXT_PUBLIC_SEARCH_TOKEN_REFRESH_INTERVAL_MS"
   | "NEXT_PUBLIC_ENABLE_IMAGE_UPLOAD"

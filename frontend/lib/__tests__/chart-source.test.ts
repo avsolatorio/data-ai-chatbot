@@ -12,7 +12,7 @@ describe("formatData360VizChartSource", () => {
         database_name: "World Development Indicators",
         indicator_name: "GDP growth (annual %)",
       }),
-      "World Bank — World Development Indicators — GDP growth (annual %)",
+      "World Bank — GDP growth (annual %)",
     );
   });
 
@@ -22,7 +22,7 @@ describe("formatData360VizChartSource", () => {
         database_id: "WB_WDI",
         indicator_id: "WB_WDI_NY_GDP_MKTP_KD_ZG",
       }),
-      "World Bank — WB_WDI — WB_WDI_NY_GDP_MKTP_KD_ZG",
+      "World Bank — WB_WDI_NY_GDP_MKTP_KD_ZG",
     );
   });
 

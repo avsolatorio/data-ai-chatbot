@@ -7,7 +7,7 @@ import type { MouseEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
 import { proxyChartUrlForFetch } from "@/lib/chart-url";
-import { getBasePath } from "@/lib/config";
+import { appConfig, getBasePath } from "@/lib/config";
 import type { UIArtifact } from "../artifact";
 import { FullscreenIcon, LoaderIcon } from "../icons";
 
@@ -90,6 +90,7 @@ export function ChartPreview({
     return null;
   }
 
+  // ── Native @data360/mcp-ui path (default) ───────────────────────────────
   const showExpand = Boolean(chartData) && !isReadonly;
 
   const expandButton = showExpand ? (
@@ -112,7 +113,7 @@ export function ChartPreview({
   ) : undefined;
 
   return (
-    <div ref={chartRegionRef} className="w-full min-w-0">
+    <div ref={chartRegionRef} className="w-full min-w-0 vega-chart-card">
       <Data360ChartFromVizTool
         chartHeight={PREVIEW_CHART_HEIGHT}
         className="w-full"
