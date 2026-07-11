@@ -1,0 +1,191 @@
+diff --git a/dist/choice-card.cjs b/dist/choice-card.cjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..2409e3e77101b04570a454c3ed2f08402ef10b36
+--- /dev/null
++++ b/dist/choice-card.cjs
+@@ -0,0 +1 @@
++"use strict";Object.defineProperty(exports,Symbol.toStringTag,{value:"Module"});const n=require("./jsx-runtime-DCnMmWHq.cjs"),l=require("react");function v({payload:f,onSelect:c,theme:m="light",className:y=""}){const{prompt:p,options:h}=f,[i,a]=l.useState(null),[u,x]=l.useState(""),d=l.useRef(null),o=m==="dark",b={padding:"8px 12px",fontFamily:'"Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'},j={fontSize:"1.05rem",fontWeight:500,marginBottom:"16px",color:o?"#cbd5e1":"#0f172a",lineHeight:1.4},g={display:"flex",gap:"12px",flexWrap:"wrap"},S=e=>({flex:"1 1 calc(33.333% - 8px)",minWidth:"160px",padding:"14px 18px",background:o?"#1e293b":"#f1f5f9",border:"1px solid transparent",borderRadius:"1.25rem",color:o?"#cbd5e1":"#0f172a",fontSize:"0.95rem",fontWeight:500,fontFamily:"inherit",cursor:e?"default":"pointer",textAlign:"left",display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"background 0.15s",opacity:i!==null&&!e?.35:1}),R={marginTop:"12px",fontSize:"1.1rem",color:o?"#94a3b8":"#64748b"},E=e=>{const t=e.toLowerCase();return t.includes("specify")||t.includes("other")||t.includes("custom")||t.includes("enter")||e.endsWith("...")},k=(e,t)=>{i===null&&(E(e)?(a(t),x(""),setTimeout(()=>{var s;return(s=d.current)==null?void 0:s.focus()},10)):c(e))},C=e=>{e.preventDefault();const t=u.trim();t&&c(t)};return n.jsxRuntimeExports.jsxs("div",{style:b,className:y,children:[p&&n.jsxRuntimeExports.jsx("p",{style:j,children:p}),n.jsxRuntimeExports.jsx("div",{style:g,children:h.map((e,t)=>{const s=i===t;return n.jsxRuntimeExports.jsx("button",{style:S(s),disabled:i!==null&&!s,onClick:()=>k(e,t),type:"button",children:s?n.jsxRuntimeExports.jsxs("form",{onSubmit:C,onClick:r=>r.stopPropagation(),style:{display:"flex",gap:"8px",alignItems:"center",width:"100%"},children:[n.jsxRuntimeExports.jsx("input",{ref:d,type:"text",value:u,onChange:r=>x(r.target.value),placeholder:"Type here...",required:!0,onKeyDown:r=>{r.key==="Escape"&&(r.preventDefault(),a(null))},style:{flex:1,border:"none",background:"transparent",outline:"none",fontSize:"0.9rem",color:"inherit",fontFamily:"inherit"}}),n.jsxRuntimeExports.jsx("button",{type:"submit",style:{background:"none",border:"none",cursor:"pointer",fontSize:"1.1rem",color:"inherit"},children:"↪"})]}):n.jsxRuntimeExports.jsxs(n.jsxRuntimeExports.Fragment,{children:[n.jsxRuntimeExports.jsx("span",{children:e}),n.jsxRuntimeExports.jsx("span",{style:R,children:"↪"})]})},t)})})]})}exports.ChoiceCard=v;
+diff --git a/dist/choice-card.d.ts b/dist/choice-card.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..e2534ef6db552b1348ab2e8e10107364af5d843e
+--- /dev/null
++++ b/dist/choice-card.d.ts
+@@ -0,0 +1,25 @@
++import { JSX as JSX_2 } from 'react/jsx-runtime';
++
++export declare function ChoiceCard({ payload, onSelect, theme, className, }: ChoiceCardProps): JSX_2.Element;
++
++export declare interface ChoiceCardPayload {
++    prompt: string;
++    options: string[];
++    title?: string | null;
++}
++
++export declare interface ChoiceCardProps {
++    /** The structured payload from data360_interactive_choices tool output. */
++    payload: ChoiceCardPayload;
++    /**
++     * Called when the user clicks a choice or submits a "specify" value.
++     * The host is responsible for sending this text as a user message.
++     */
++    onSelect: (text: string) => void;
++    /** Light or dark theme. Defaults to "light". */
++    theme?: "light" | "dark";
++    /** Extra CSS class applied to the outer wrapper. */
++    className?: string;
++}
++
++export { }
+diff --git a/dist/choice-card.js b/dist/choice-card.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..b6470298d5ed1dfbc54c5d2d481316d04b13ff6a
+--- /dev/null
++++ b/dist/choice-card.js
+@@ -0,0 +1,131 @@
++import { j as n } from "./jsx-runtime-KwhyMolu.js";
++import { useState as d, useRef as z } from "react";
++function W({
++  payload: y,
++  onSelect: l,
++  theme: m = "light",
++  className: x = ""
++}) {
++  const { prompt: c, options: h } = y, [i, a] = d(null), [p, u] = d(""), f = z(null), s = m === "dark", b = {
++    padding: "8px 12px",
++    fontFamily: '"Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
++  }, g = {
++    fontSize: "1.05rem",
++    fontWeight: 500,
++    marginBottom: "16px",
++    color: s ? "#cbd5e1" : "#0f172a",
++    lineHeight: 1.4
++  }, S = {
++    display: "flex",
++    gap: "12px",
++    flexWrap: "wrap"
++  }, j = (e) => ({
++    flex: "1 1 calc(33.333% - 8px)",
++    minWidth: "160px",
++    padding: "14px 18px",
++    background: s ? "#1e293b" : "#f1f5f9",
++    border: "1px solid transparent",
++    borderRadius: "1.25rem",
++    color: s ? "#cbd5e1" : "#0f172a",
++    fontSize: "0.95rem",
++    fontWeight: 500,
++    fontFamily: "inherit",
++    cursor: e ? "default" : "pointer",
++    textAlign: "left",
++    display: "flex",
++    flexDirection: "column",
++    justifyContent: "space-between",
++    transition: "background 0.15s",
++    opacity: i !== null && !e ? 0.35 : 1
++  }), k = {
++    marginTop: "12px",
++    fontSize: "1.1rem",
++    color: s ? "#94a3b8" : "#64748b"
++  }, C = (e) => {
++    const t = e.toLowerCase();
++    return t.includes("specify") || t.includes("other") || t.includes("custom") || t.includes("enter") || e.endsWith("...");
++  }, v = (e, t) => {
++    i === null && (C(e) ? (a(t), u(""), setTimeout(() => {
++      var o;
++      return (o = f.current) == null ? void 0 : o.focus();
++    }, 10)) : l(e));
++  }, w = (e) => {
++    e.preventDefault();
++    const t = p.trim();
++    t && l(t);
++  };
++  return /* @__PURE__ */ n.jsxs("div", { style: b, className: x, children: [
++    c && /* @__PURE__ */ n.jsx("p", { style: g, children: c }),
++    /* @__PURE__ */ n.jsx("div", { style: S, children: h.map((e, t) => {
++      const o = i === t;
++      return /* @__PURE__ */ n.jsx(
++        "button",
++        {
++          style: j(o),
++          disabled: i !== null && !o,
++          onClick: () => v(e, t),
++          type: "button",
++          children: o ? /* @__PURE__ */ n.jsxs(
++            "form",
++            {
++              onSubmit: w,
++              onClick: (r) => r.stopPropagation(),
++              style: {
++                display: "flex",
++                gap: "8px",
++                alignItems: "center",
++                width: "100%"
++              },
++              children: [
++                /* @__PURE__ */ n.jsx(
++                  "input",
++                  {
++                    ref: f,
++                    type: "text",
++                    value: p,
++                    onChange: (r) => u(r.target.value),
++                    placeholder: "Type here...",
++                    required: !0,
++                    onKeyDown: (r) => {
++                      r.key === "Escape" && (r.preventDefault(), a(null));
++                    },
++                    style: {
++                      flex: 1,
++                      border: "none",
++                      background: "transparent",
++                      outline: "none",
++                      fontSize: "0.9rem",
++                      color: "inherit",
++                      fontFamily: "inherit"
++                    }
++                  }
++                ),
++                /* @__PURE__ */ n.jsx(
++                  "button",
++                  {
++                    type: "submit",
++                    style: {
++                      background: "none",
++                      border: "none",
++                      cursor: "pointer",
++                      fontSize: "1.1rem",
++                      color: "inherit"
++                    },
++                    children: "↪"
++                  }
++                )
++              ]
++            }
++          ) : /* @__PURE__ */ n.jsxs(n.Fragment, { children: [
++            /* @__PURE__ */ n.jsx("span", { children: e }),
++            /* @__PURE__ */ n.jsx("span", { style: k, children: "↪" })
++          ] })
++        },
++        t
++      );
++    }) })
++  ] });
++}
++export {
++  W as ChoiceCard
++};
+diff --git a/package.json b/package.json
+index 504494683af0bb11acbea0a230077d61c235e146..10b2cff896bd915f23d9724ec306786b0ab29d6d 100644
+--- a/package.json
++++ b/package.json
+@@ -16,6 +16,11 @@
+       "types": "./dist/search-card.d.ts",
+       "import": "./dist/search-card.js",
+       "require": "./dist/search-card.cjs"
++    },
++    "./choice-card": {
++      "types": "./dist/choice-card.d.ts",
++      "import": "./dist/choice-card.js",
++      "require": "./dist/choice-card.cjs"
+     }
+   },
+   "scripts": {
