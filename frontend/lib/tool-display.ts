@@ -2,6 +2,8 @@ import { getData360ToolDefaultOpen } from "@/lib/config";
 
 const DATA360_EXPAND_BY_DEFAULT = new Set([
   "tool-data360_search_indicators",
+  // Choices are the primary CTA — must be visible without a click.
+  "tool-data360_interactive_choices",
   // "tool-data360_get_data",
 ]);
 
@@ -31,6 +33,7 @@ const TOOL_DISPLAY_LABELS: Record<string, string> = {
   "tool-data360_summarize_data": "Summarize data",
   "tool-data360_rank_countries": "Rank countries",
   "tool-data360_compare_countries": "Compare countries",
+  "tool-data360_interactive_choices": "Interactive choices",
   "tool-ai4data_ai4data_mcpget_wdi_data": "WDI data",
   "tool-ai4data_ai4data_mcpsearch_relevant_indicators":
     "Search relevant indicators",
