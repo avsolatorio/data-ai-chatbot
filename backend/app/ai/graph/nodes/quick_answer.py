@@ -38,7 +38,7 @@ MAX_TOOL_ITERATIONS = 3  # quick path: 1-3 tool calls only
 # ---------------------------------------------------------------------------
 
 
-def _synthesize_card(tool_results: list[dict]) -> dict | None:
+def _synthesize_card(tool_results: list[dict], query_text: str | None = None) -> dict | None:
     """Extract a structured card payload from quick_answer tool results.
 
     Inspects the list of tool results produced by the quick_answer tool loop
@@ -102,6 +102,64 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
     def _unit(row: dict, indicator_name: str) -> str:
         """Return a display-safe unit string from a data row."""
         return _readable_unit(row.get("UNIT_MEASURE", ""), indicator_name)
+
+    def _anchor_aware_sort(entries: list[dict]) -> tuple[list[dict], float | None]:
+        """Detect anchor country from query, reorder entries (anchor first), and compute delta.
+
+        The delta is computed as entries[0]['value'] - entries[1]['value'].
+        """
+        import re as _re
+
+        if len(entries) < 2:
+            return entries, None
+
+        _anchor_patterns = [
+            _re.compile(r"\bcompare\s+(.+?)\s+(?:with|to|against|vs\.?)\b", _re.I),
+            _re.compile(r"\bhow\s+does\s+(.+?)\s+compare\b", _re.I),
+            _re.compile(r"\b(.+?)\s+vs\.?\s+", _re.I),
+            _re.compile(r"\b(.+?)\s+compared\s+to\b", _re.I),
+            _re.compile(
+                r"\bgdp\s+(?:of|in|for)\s+(.+?)\s+(?:with|vs\.?|compared|against)\b", _re.I
+            ),
+        ]
+
+        anchor_idx: int | None = None
+        query_lower = (query_text or "").lower()
+
+        for pat in _anchor_patterns:
+            m = pat.search(query_lower)
+            if not m:
+                continue
+            candidate = m.group(1).strip()
+            for idx, e in enumerate(entries):
+                name_lower = (e.get("country_name") or "").lower()
+                code_lower = (e.get("ref_area") or "").lower()
+                if name_lower and name_lower in candidate:
+                    anchor_idx = idx
+                    break
+                if code_lower and code_lower in candidate:
+                    anchor_idx = idx
+                    break
+            if anchor_idx is not None:
+                break
+
+        # Reorder: anchor first
+        sorted_entries = list(entries)
+        if anchor_idx is not None and anchor_idx != 0:
+            anchor_entry = sorted_entries.pop(anchor_idx)
+            sorted_entries.insert(0, anchor_entry)
+
+        # Delta is entries[0] vs entries[1]
+        delta: float | None = None
+        val_0 = sorted_entries[0].get("value")
+        val_1 = sorted_entries[1].get("value")
+        if val_0 is not None and val_1 is not None:
+            try:
+                delta = float(val_0) - float(val_1)
+            except (TypeError, ValueError):
+                delta = None
+
+        return sorted_entries, delta
 
     for result in tool_results:
         tool_name: str = result.get("tool_name", "")
@@ -428,15 +486,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 logger.info("[synthesize_card] compare_countries skipped: entries check failed")
                 continue
 
-            # Delta between top and bottom of the comparison set
-            top_val = entries[0].get("value")
-            bottom_val = entries[-1].get("value")
-            delta = None
-            if top_val is not None and bottom_val is not None:
-                try:
-                    delta = float(top_val) - float(bottom_val)
-                except (TypeError, ValueError):
-                    delta = None
+            entries, delta = _anchor_aware_sort(entries)
 
             return {
                 "card_type": "comparison",
@@ -485,12 +535,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                             "rank": r.get("rank"),
                         }
                     )
-                delta = None
-                if entries[0].get("value") is not None and entries[1].get("value") is not None:
-                    try:
-                        delta = float(entries[0]["value"]) - float(entries[1]["value"])
-                    except (TypeError, ValueError):
-                        pass
+                entries, delta = _anchor_aware_sort(entries)
                 return {
                     "card_type": "comparison",
                     "database_id": tool_args.get("database_id", ""),
@@ -504,7 +549,41 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 }
 
             # General case: return a single_fact card highlighting the #1 ranked country
+            # ONLY if the user is asking about that country explicitly or implicitly (superlative).
             top_ranked = rankings[0]
+            top_country_name = top_ranked.get("country") or top_ranked.get("country_name") or ""
+            top_country_code = top_ranked.get("code") or top_ranked.get("ref_area") or ""
+
+            query_lower = query_text.lower() if query_text else ""
+            is_explicit = False
+            if top_country_name and top_country_name.lower() in query_lower:
+                is_explicit = True
+            elif top_country_code and top_country_code.lower() in query_lower:
+                is_explicit = True
+
+            is_superlative = any(
+                w in query_lower
+                for w in (
+                    "which",
+                    "highest",
+                    "top",
+                    "largest",
+                    "most",
+                    "lowest",
+                    "smallest",
+                    "least",
+                    "maximum",
+                    "minimum",
+                    "best",
+                    "worst",
+                    "leader",
+                )
+            )
+
+            # Suppress single_fact card if query_text is available but is neither explicit nor superlative
+            if query_text is not None and not (is_explicit or is_superlative):
+                continue
+
             top_value = (
                 top_ranked.get("value")
                 if top_ranked.get("value") is not None
@@ -627,14 +706,7 @@ def _synthesize_card(tool_results: list[dict]) -> dict | None:
                 for i, e in enumerate(entries):
                     e["rank"] = i + 1
 
-                top_val = entries[0].get("value")
-                bottom_val = entries[-1].get("value")
-                delta = None
-                if top_val is not None and bottom_val is not None:
-                    try:
-                        delta = float(top_val) - float(bottom_val)
-                    except (TypeError, ValueError):
-                        delta = None
+                entries, delta = _anchor_aware_sort(entries)
 
                 first_row = entries and country_latest.get(entries[0]["ref_area"])
                 if not first_row:
@@ -800,7 +872,7 @@ async def quick_answer_node(state: ChatPipelineState) -> dict:
         collect_tool_results=True,
     )
 
-    card = _synthesize_card(tool_results)
+    card = _synthesize_card(tool_results, state.get("query_text"))
 
     # Attach viz_url to trend cards by calling data360_get_viz_spec programmatically.
     # This avoids consuming an LLM tool-call iteration and reuses the already-built tool_map.

@@ -451,3 +451,74 @@ def test_synthesize_card_get_data_multi_country_skips():
 
     card = _synthesize_card(tool_results)
     assert card is None
+
+
+def test_synthesize_card_compare_countries_anchor():
+    # GIVEN data360_compare_countries output for Mexico, Argentina, Brazil
+    tool_results = [
+        {
+            "tool_name": "data360_compare_countries",
+            "tool_args": {
+                "database_id": "WB_WDI",
+                "indicator_id": "WB_WDI_NY_GDP_PCAP_CD",
+            },
+            "output": {
+                "snapshot": {
+                    "year": 2024,
+                    "rankings": [
+                        {
+                            "code": "MEX",
+                            "country": "Mexico",
+                            "value": 13988.04,
+                            "claim_id": "c_mex",
+                        },
+                        {
+                            "code": "ARG",
+                            "country": "Argentina",
+                            "value": 13969.78,
+                            "claim_id": "c_arg",
+                        },
+                        {
+                            "code": "BRA",
+                            "country": "Brazil",
+                            "value": 10310.55,
+                            "claim_id": "c_bra",
+                        },
+                    ],
+                },
+                "metadata": {
+                    "name": "GDP per capita (current US$)",
+                    "database_id": "WB_WDI",
+                    "database_name": "World Development Indicators (WDI)",
+                },
+            },
+        }
+    ]
+
+    # CASE 1: Query anchors on Brazil
+    card = _synthesize_card(
+        tool_results, query_text="Compare GDP per capita in Brazil with Argentina and Mexico"
+    )
+    assert card is not None
+    assert card["card_type"] == "comparison"
+    assert len(card["entries"]) == 3
+    assert card["entries"][0]["country_name"] == "Brazil"  # anchor should be first!
+    assert card["entries"][1]["country_name"] == "Mexico"  # the next one in descending order
+    assert card["entries"][2]["country_name"] == "Argentina"
+    assert card["delta"] == 10310.55 - 13988.04  # Brazil (10310.55) - Mexico (13988.04) = -3677.49
+
+    # CASE 2: Query anchors on Argentina
+    card = _synthesize_card(tool_results, query_text="Argentina compared to others")
+    assert card is not None
+    assert card["entries"][0]["country_name"] == "Argentina"
+    assert card["entries"][1]["country_name"] == "Mexico"
+    assert card["entries"][2]["country_name"] == "Brazil"
+    assert card["delta"] == 13969.78 - 13988.04  # Argentina (13969.78) - Mexico (13988.04) = -18.26
+
+    # CASE 3: No anchor (should default to descending order)
+    card = _synthesize_card(tool_results, query_text="Compare these three countries")
+    assert card is not None
+    assert card["entries"][0]["country_name"] == "Mexico"
+    assert card["entries"][1]["country_name"] == "Argentina"
+    assert card["entries"][2]["country_name"] == "Brazil"
+    assert card["delta"] == 13988.04 - 13969.78  # Max (Mexico) - Second (Argentina)
