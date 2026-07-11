@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.mcp_tools.data360_mcp import get_mcp_tool_bundle
-from app.ai.mcp_tools.partitions import DATA_TOOL_NAMES, VIZ_TOOL_NAMES
+from app.ai.mcp_tools.partitions import CHOICE_TOOL_NAMES, DATA_TOOL_NAMES, VIZ_TOOL_NAMES
 from app.ai.tools import (
     CREATE_DOCUMENT_TOOL_DEFINITION,
     UPDATE_DOCUMENT_TOOL_DEFINITION,
@@ -91,6 +91,7 @@ async def prepare_tools(user_id: UUID, db: AsyncSession) -> Dict[str, Dict[str, 
         },
         "mcp_data": {"langchain_tools": []},
         "mcp_viz": {"langchain_tools": []},
+        "mcp_choices": {"langchain_tools": []},
     }
 
     mcp_load_timeout = get_mcp_settings().load_timeout
@@ -117,12 +118,16 @@ async def prepare_tools(user_id: UUID, db: AsyncSession) -> Dict[str, Dict[str, 
     else:
         tool_set["mcp_data"]["langchain_tools"] = [t for t in lc_tools if t.name in DATA_TOOL_NAMES]
         tool_set["mcp_viz"]["langchain_tools"] = [t for t in lc_tools if t.name in VIZ_TOOL_NAMES]
+        tool_set["mcp_choices"]["langchain_tools"] = [
+            t for t in lc_tools if t.name in CHOICE_TOOL_NAMES
+        ]
         tool_names = [t.name for t in lc_tools]
         logger.info(
-            "Successfully loaded %d MCP tools (adapter); LangGraph data=%d viz=%d names=%s",
+            "Successfully loaded %d MCP tools (adapter); LangGraph data=%d viz=%d choices=%d names=%s",
             len(lc_tools),
             len(tool_set["mcp_data"]["langchain_tools"]),
             len(tool_set["mcp_viz"]["langchain_tools"]),
+            len(tool_set["mcp_choices"]["langchain_tools"]),
             tool_names,
         )
 

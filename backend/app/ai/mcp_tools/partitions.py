@@ -5,6 +5,7 @@ from __future__ import annotations
 DATA_TOOL_NAMES: frozenset[str] = frozenset(
     {
         "data360_search_indicators",
+        "data360_search_datasets",
         "data360_get_metadata",
         "data360_get_data",
         "data360_get_disaggregation",
@@ -17,6 +18,9 @@ DATA_TOOL_NAMES: frozenset[str] = frozenset(
         "data360_compare_countries",
     }
 )
+
+# Used by both clarifier_node and followup_node to emit structured choices.
+CHOICE_TOOL_NAMES: frozenset[str] = frozenset({"data360_interactive_choices"})
 
 VIZ_TOOL_NAMES: frozenset[str] = frozenset(
     {

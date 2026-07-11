@@ -18,6 +18,7 @@ from app.config import ModelType
 from ..llm_factory import get_chat_llm
 from ..memory import trim_for_node
 from ..message_utils import openai_to_langchain, plain_text_from_ai_message_content
+from ..node_utils import run_tool_loop
 from ..state import ChatPipelineState
 
 logger = logging.getLogger(__name__)
@@ -38,9 +39,10 @@ async def clarifier_node(state: ChatPipelineState) -> dict:
     model_type: str = state.get("model_type", ModelType.CHAT_MODEL.value)
     missing_slots: list[str] = state.get("missing_slots", [])
     routing_reasoning: str = state.get("routing_reasoning", "")
-    # query_text: str = state.get("query_text", "")
+    choices_tools: list = (
+        state.get("tool_set", {}).get("mcp_choices", {}).get("langchain_tools", [])
+    )
 
-    llm = get_chat_llm(model_type, streaming=True)
     language: str = state.get("detected_language", "") or ""
     system_prompt: str = get_clarifier_system_prompt(language=language)
 
@@ -67,15 +69,29 @@ async def clarifier_node(state: ChatPipelineState) -> dict:
         messages.append(HumanMessage(content="[CONTEXT] " + " | ".join(context_parts)))
 
     logger.info("[clarifier_node] asking about missing_slots=%s", missing_slots)
-    response: AIMessage = await llm.ainvoke(messages)
-    append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node="clarifier")
 
-    final_content: str = plain_text_from_ai_message_content(
-        getattr(response, "content", None)
-    ).strip()
-    final_usage: dict | None = None
-    if hasattr(response, "usage_metadata") and response.usage_metadata:
-        final_usage = dict(response.usage_metadata)
+    if choices_tools:
+        llm = get_chat_llm(model_type, streaming=True).bind_tools(choices_tools)
+        tool_map = {t.name: t for t in choices_tools}
+        final_content, final_usage, tool_results = await run_tool_loop(
+            llm=llm,
+            messages=messages,
+            tool_map=tool_map,
+            max_iterations=5,
+            state=state,
+            graph_node="clarifier",
+            collect_tool_results=True,
+        )
+    else:
+        llm = get_chat_llm(model_type, streaming=True)
+        response: AIMessage = await llm.ainvoke(messages)
+        append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node="clarifier")
+        final_content = plain_text_from_ai_message_content(
+            getattr(response, "content", None)
+        ).strip()
+        final_usage = None
+        if hasattr(response, "usage_metadata") and response.usage_metadata:
+            final_usage = dict(response.usage_metadata)
 
     # If the LLM determined all slots are already filled from context, it returns
     # "[PROCEED]" — we swallow this and emit nothing to the user (the router will
@@ -90,11 +106,15 @@ async def clarifier_node(state: ChatPipelineState) -> dict:
 
     logger.info("[clarifier_node] clarification_question length=%d", len(final_content))
 
-    assistant_part = {"type": "text", "text": final_content, "state": "done"}
     existing_parts: list[dict] = state.get("assistant_parts", [])
+    if final_content:
+        assistant_part = {"type": "text", "text": final_content, "state": "done"}
+        new_parts = existing_parts + [assistant_part]
+    else:
+        new_parts = existing_parts
 
     return {
         "clarification_question": final_content,
-        "assistant_parts": existing_parts + [assistant_part],
+        "assistant_parts": new_parts,
         "final_usage": final_usage,
     }

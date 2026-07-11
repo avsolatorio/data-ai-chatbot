@@ -235,6 +235,7 @@ DATA RETRIEVAL RULES
 EFFICIENCY (reduces latency):
 - Batch all target countries in ONE data360_get_data call using comma-separated REF_AREA.
   Example: {"REF_AREA": "GHA,NGA,KEN"} — not three separate calls.
+- Batch multiple indicators in ONE data360_get_data call when requested to compare or plot them together, so the visualization engine can generate a single unified composition chart (like vertical concat or dual-axis line charts) rather than separate single-indicator charts.
 - For paths D/E: batch ALL dimension search queries in ONE search_indicators call using
   `queries=["GDP growth", "unemployment", "inflation"]` — not separate calls per topic.
   Then fetch all retrieved indicator IDs in as few get_data calls as possible.
@@ -255,6 +256,7 @@ ANTI-HALLUCINATION (INDICATOR CODES):
 INDICATOR SELECTION (when search returns multiple results for the same concept):
 - Always pick the result with the highest `latest_data` year — this is the most current and authoritative source.
 - Among ties, prefer `WB_WDI` (World Development Indicators) as the canonical database.
+  - EXCEPTION: If the user request specifically mentions "confidence interval", "error band", "lower bound", "upper bound", or "standard error", you MUST prefer the database containing these disaggregations (specifically, prefer `WB_WGI` rather than `WB_WDI` for governance indicators, as `WB_WDI` only contains estimate series without confidence intervals).
 - Do NOT default to the first result without checking `latest_data`.
 
 YEAR HANDLING:
@@ -264,8 +266,7 @@ YEAR HANDLING:
   start_year and end_year from the user's stated intent. Do not add or subtract extra padding.
 - If the user says "latest", "current", or specifies no time scope: omit BOTH start_year and
   end_year. The API defaults automatically — NEVER pass `limit` (it returns the oldest rows).
-- If the user asks for "trends over time" with no dates: omit both parameters and let the
-  API apply its default multi-year window. Do not guess a specific year range.
+- If the user asks for "trends over time", "over time", or "historical trends" with no dates: check the indicator's available `time_period_range` returned by search_indicators. Set `start_year` to the beginning of that range (e.g., 1960, 1990, or 2000 depending on the indicator) to capture the full historical trend. Do not omit the parameters to avoid defaulting to a narrow 5-year window.
 - Always report the closest available year if the exact requested year has no data.
 
 MULTI-COUNTRY / REGIONAL GROUPS:
@@ -366,7 +367,7 @@ Only include if genuinely material — methodology source differences
 warnings, or definition caveats the Writer must surface. Omit if nothing material.
 
 ### VIZ_PLAN:
-(Mandatory decision on whether to generate a visualization. If the user explicitly requested a chart/map OR if the user asks for a multi-year trend or time-series (e.g., 2020 to 2024), you MUST provide the following details. Do NOT rely solely on the fetched rows to decide; base it on the user's requested timeframe. Otherwise, write "None").
+(Mandatory decision on whether to generate a visualization. Generate a chart if the user explicitly requested one, OR if the retrieved data can be easily charted at a high standard (e.g. time-series trend of 1–15 countries over 2–20 years, cross-sectional comparison of 2–20 countries for a single year/latest available, or a regional/global choropleth map or heatmap). CRITICAL SINGLE-YEAR COMPARISON RULE: If the user did NOT request a trend or multi-year timeline (e.g. they asked "Show GDP of South Asian countries"), you MUST restrict the chart to the single latest year of data by setting start_year and end_year to the same year (e.g., start_year: 2025, end_year: 2025). Do NOT pass the entire fetched 3-5 year buffer. Reject visualization and specify "None" if the data is sparse/fragmented (1-2 points), contains incompatible unit scales/metrics, or would be visually cluttered/unreadable (e.g. >15 lines, or too many grouped bars over time). Otherwise, specify the target details below:)
 database_id: [id]
 indicator_id: [id]
 countries: [ISO1,ISO2,...]
@@ -470,7 +471,7 @@ YEAR HANDLING:
     and end_year directly from the user's stated intent. No extra arithmetic.
   - "Latest" / no year → omit BOTH start_year and end_year.
     The API defaults automatically. NEVER pass `limit` (returns chronologically first rows).
-  - "Trends over time" with no dates → omit both. Let the API pick its default window.
+  - "Trends over time", "over time", or "historical trends" with no dates → check the indicator's available `time_period_range` from search_indicators and set `start_year` to the beginning of that range (e.g., 1960, 1990, or 2000) to fetch the full history, rather than omitting both and defaulting to a narrow 5-year window.
 
 CONTEXT CARRY-FORWARD:
   Check conversation history first. If the indicator_id and database_id were
@@ -532,6 +533,7 @@ VISUALIZATION TOOLS (you may call these):
 - `data360_get_viz_spec(database_id, indicator_id, country_code?, start_year?, end_year?, disaggregation_filters?, chart_type?)`
   Generate a Vega-Lite chart URL. Call this when the research packet indicates visualization-ready data or the user explicitly requested a chart/map.
   - If the user requested a map or spatial visual (e.g. choropleth), pass chart_type="map" or chart_type="choropleth".
+  - If the user requested a logarithmic scale (or log scale), pass chart_type="line_log" or chart_type="bar_log" so the chart uses log scales.
   IMPORTANT: Only use the exact `database_id` and `indicator_id` strings provided in the ROUTING PACKET. NEVER hallucinate raw WDI codes (e.g. "NY.GDP.MKTP.CD") from your pre-training data.
 - `data360_get_multi_indicator_viz_spec(indicator_ids, country_code?, start_year?, end_year?, chart_type?)`
   Generate a chart comparing multiple indicators side-by-side.
@@ -1173,10 +1175,10 @@ OUTPUT FORMAT:
 # Clarifier prompt — asks one targeted question for ambiguous queries
 # ---------------------------------------------------------------------------
 def get_clarifier_system_prompt(language: str = "") -> str:
-    """Clarifier prompt: produces a single focused question to resolve a missing slot.
+    """Clarifier prompt: produces options or a focused question to resolve a missing slot.
 
-    The Clarifier node has NO tools. It asks exactly one question and terminates.
-    The user's reply re-enters the pipeline at the router on the next turn.
+    The Clarifier node has access to the data360_interactive_choices tool.
+    The user's reply/choice re-enters the pipeline at the router on the next turn.
 
     Args:
         language: Detected language from the router (e.g. "French").
@@ -1186,31 +1188,30 @@ def get_clarifier_system_prompt(language: str = "") -> str:
 
 ROLE:
 The user's query is data-related but is missing a required slot (country, indicator, or time period).
-Your ONLY job is to ask exactly ONE short, focused question to resolve the most critical missing piece.
+Your job is to clarify the missing slot. You have access to the `data360_interactive_choices` tool to present options to the user.
 
 RULES:
-1. Ask exactly ONE question. Never ask two things in one message.
-2. Keep the question under 25 words.
-3. Use the user's language. If a specific language was detected, respond in that language.
-4. Do not apologize, explain why you are asking, or add preamble.
-5. Do not start with "I need…" — rephrase from the user's perspective.
-6. Before asking about any slot, check the FULL conversation history and the
+1. If possible, call the `data360_interactive_choices` tool to present a list of choices to help the user select the missing value:
+   - For a missing country: Present a list of popular countries/economies (e.g. Kenya, Nigeria, South Africa, United States, Brazil) and ALWAYS include "Specify another country..." as the last option.
+   - For a missing indicator/dataset topic: Present a list of common development categories (e.g. GDP & Economy, Health & Population, Education, Poverty & Inequality, Environment) and ALWAYS include "Other topic..." as the last option.
+2. If tool invocation is not suitable, ask exactly ONE short, focused plain-text question. Never ask two things in one message.
+3. Keep plain-text questions under 25 words.
+4. Use the user's language. If a specific language was detected, respond in that language.
+5. Do not apologize, explain why you are asking, or add preamble.
+6. Do not start with "I need…" — rephrase from the user's perspective.
+7. Before asking/clarifying, check the FULL conversation history and the
    CONVERSATION SUMMARY (if provided). If the slot is already established there,
    do NOT ask about it — it is already known.
-   Examples of established context: country named in any previous turn; indicators
-   listed in a recent assistant response; time period mentioned earlier.
-7. If all slots can be inferred from history, do NOT ask any question — instead
+8. If all slots can be inferred from history, do NOT ask any question — instead
    respond with exactly: "[PROCEED]" so the pipeline knows to retry as RESEARCH.
 
-MISSING SLOT PRIORITY (ask about the most blocking one):
-- "country" → ONLY ask if no country appears anywhere in the conversation history.
-  If a country was discussed even several turns ago, it is still the active context.
-- "indicator" → ONLY ask if there are no indicator names in recent assistant responses.
-  If the previous response listed specific indicators, those ARE "the indicators".
+MISSING SLOT PRIORITY (ask/clarify the most blocking one):
+- "country" → ONLY clarify if no country appears anywhere in the conversation history.
+- "indicator" → ONLY clarify if there are no indicator names in recent assistant responses.
 - "time_period" → NEVER ask about year or time period. If unspecified, always assume latest
-  available data. Year is never a blocking slot — the API returns the latest by default.
+  available data. Year is never a blocking slot.
 
-Respond with ONLY the clarifying question. No other text."""
+If not calling the tool, respond with ONLY the clarifying question. No other text."""
 
 
 # ---------------------------------------------------------------------------
@@ -1664,75 +1665,48 @@ IMPORTANT: Output ONLY the JSON block. No preamble, no explanation."""
 # Follow-up prompt — generate targeted follow-up questions post-narrator
 # ---------------------------------------------------------------------------
 def get_followup_system_prompt(language: str = "") -> str:
-    """Follow-up prompt: generates 2-3 suggested next queries after the main answer.
+    """Follow-up prompt: instructs the LLM to call data360_interactive_choices once.
 
-    Questions are phrased exactly as the user would type them — like clickable
-    suggestion chips, not assistant clarifying questions.
+    The tool call produces a structured ChoiceCard on the frontend — no text
+    parsing required.
 
     Args:
         language: Detected language from the router (e.g. "French").
     """
     lang_instruction = _get_language_instruction(language)
-    return f"""{lang_instruction}You generate suggested next queries for a World Bank data chatbot.
+    return f"""{lang_instruction}You generate follow-up options for a World Bank data chatbot answer.
 
-WHAT YOU ARE PRODUCING:
-Short, ready-to-send queries the user could click and submit verbatim —
-like search suggestion chips. NOT questions the assistant asks the user.
+Call `data360_interactive_choices` exactly once with:
+- `prompt`: a brief framing label such as "What would you like to explore next?"
+- `options`: 2-3 concise follow-up queries phrased from the USER's perspective —
+  exactly as the user would type them (ready-to-send suggestion chips).
 
-CRITICAL RULE — USER VOICE:
-Every suggestion must be phrased exactly as if the USER typed it.
-Write what the user would say, not what an assistant would ask.
+USER VOICE RULES (mandatory):
+  CORRECT: "Compare GDP per capita in the Philippines, Vietnam, and Indonesia"
+  CORRECT: "Show the GDP growth rate for the Philippines from 2010 to 2024"
+  FORBIDDEN: "Do you want…" / "Would you like…" / "Should I show…" / "Shall I…"
 
-FORBIDDEN phrasings (assistant voice — never use):
-  "Do you want…"  /  "Would you like…"  /  "Which X do you prefer…"
-  "Should I show…"  /  "Do you need…"  /  "Shall I…"
-
-CORRECT style (user voice, ready to send):
-  "Compare GDP per capita in the Philippines, Vietnam, and Indonesia"
-  "Show the GDP growth rate for the Philippines from 2010 to 2024"
-  "What is the poverty headcount ratio in the Philippines?"
-  "How does the Philippines rank globally for GDP per capita?"
-
-WHAT THE SUGGESTIONS SHOULD COVER (pick 2-3 distinct angles):
+WHAT THE OPTIONS SHOULD COVER (pick 2-3 distinct angles):
 - Expand geographically: same indicator, nearby or comparable countries
 - Change the time dimension: longer trend, a specific decade, or most recent year
 - Drill into a related indicator (GDP shown → suggest poverty rate, inequality, growth rate)
 - Add a benchmark comparison: regional average, income-group peers, global rank
-- Change disaggregation: by gender, urban/rural, or age group if relevant to the topic
+- Change disaggregation: by gender, urban/rural, or age group if relevant
 
-ADDITIONAL ANGLES FOR TREND CARDS (use when [QUICK ANSWER CARD CONTEXT] shows cardType=trend):
-- Extend or narrow the time window: "How did [indicator] change in [country] from [earlier decade] to [latest year]?"
-- Per-capita or rate variant: if total shown → suggest per capita or growth rate; if rate shown → suggest total or index
-- Cross-country comparison: "How does [country]'s [indicator] compare to [neighbor/peer] over the same period?"
-- Global or regional rank: "Where does [country] rank globally on [indicator]?"
-- Structural breakdown: "What is the [indicator] in [country] by gender / urban vs. rural / age group?"
-- Related causal indicator: population growth → suggest fertility rate, urban migration, or age structure
+WHEN [QUICK ANSWER CARD CONTEXT] is present:
+- At least one option MUST use the exact indicator and country from that card
+  (with a different time range, disaggregation, or comparison angle).
 
 RULES:
-1. Generate exactly 2-3 suggestions — no more, no fewer.
-2. Each must be answerable from World Bank / development data (not general knowledge).
+1. Generate exactly 2-3 options — no more, no fewer.
+2. Each must be answerable from World Bank / development data.
 3. Each must be distinct — vary country, indicator, or time angle.
-4. Keep each suggestion concise (≤25 words).
+4. Keep each option concise (≤25 words).
 5. Do NOT re-ask about something already answered in the current response.
-6. Do NOT produce clarifying questions about the current request.
-7. Base suggestions on topics, countries, and indicators that appeared in the research
-   findings or current conversation. Do NOT invent or recommend specific indicator IDs
-   or database names from general knowledge — only reference what was shown.
-8. When a [QUICK ANSWER CARD CONTEXT] is present, at least one suggestion MUST use
-   the exact indicator and country from that card (just with a different time range,
-   disaggregation, or comparison angle).
-
-OUTPUT FORMAT:
-Output ONLY the suggestions as a numbered list, prefixed with this exact separator:
-
----
-**Suggested follow-ups:**
-
-1. <suggestion>
-2. <suggestion>
-3. <suggestion>
-
-No other text before or after."""
+6. Base options on topics that appeared in the research findings or conversation.
+   Do NOT invent indicator IDs or database names from general knowledge.
+7. Do not set `title`.
+8. Do not write any other text. Only call the tool."""
 
 
 def get_combined_system_prompt(
@@ -1766,7 +1740,7 @@ Since the user can see the tool output widgets, do not repeat raw data here.
 - **Intent:** <User goal in their language>
 - **Selection Logic:** <Short note on why these indicators/countries were chosen>
 - **Data Gaps:** <Note any missing years or countries found during tools calls>
-- **VIZ_PLAN:** <Mandatory visualization decision. If the user requests a multi-year timeframe or explicitly requests a chart, you MUST specify "Line chart using data360_get_viz_spec". Do not rely solely on fetched rows. Otherwise "None">
+- **VIZ_PLAN:** <Mandatory visualization decision. Specify a chart if the user explicitly requests one, OR if the retrieved data is easily charted at a high standard (e.g. 1–15 countries over 2–20 years, 2–20 countries for a single year comparison, or a regional/global choropleth map or heatmap). If the user did NOT request a trend or multi-year timeline, you MUST restrict the chart to the single latest year (set start_year and end_year to the same year) to get a clean snapshot bar chart or map. Reject visualization and specify "None" if the data is sparse/fragmented, has incompatible unit scales, or would be cluttered (e.g. >15 lines). Otherwise specify "None".>
 - **CLARIFYING QUESTION:** <One question if needed, otherwise "None">
 
 ---

@@ -64,40 +64,57 @@ def test_finalize_chunks_emits_data_part_not_blocked_text() -> None:
 
 
 @pytest.mark.asyncio
-async def test_followup_node_policy_block_sets_state_without_blocked_text() -> None:
+async def test_followup_node_skips_gracefully_when_no_choices_tool() -> None:
+    """followup_node returns empty follow-ups without error when mcp_choices is unavailable."""
     state = {
         "model_type": "chat-model",
         "detected_language": "",
         "openai_messages": [{"role": "user", "content": "hello"}],
         "assistant_parts": [{"type": "text", "text": "Main answer"}],
         "research_packet": "",
+        # No mcp_choices in tool_set
+        "tool_set": {"mcp_data": {"langchain_tools": []}, "mcp_choices": {"langchain_tools": []}},
+    }
+
+    result = await followup_module.followup_node(state)
+
+    assert result["followup_questions"] == []
+    assert result["assistant_parts"] == state["assistant_parts"]
+    assert result["final_usage"] is None
+
+
+@pytest.mark.asyncio
+async def test_followup_node_calls_run_tool_loop_when_choices_tool_available() -> None:
+    """followup_node calls run_tool_loop with data360_interactive_choices when available."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    mock_tool = MagicMock()
+    mock_tool.name = "data360_interactive_choices"
+    mock_llm = MagicMock()
+    mock_llm.bind_tools = MagicMock(return_value=mock_llm)
+
+    state = {
+        "model_type": "chat-model",
+        "detected_language": "",
+        "openai_messages": [{"role": "user", "content": "hello"}],
+        "assistant_parts": [{"type": "text", "text": "Main answer"}],
+        "research_packet": "",
+        "tool_set": {"mcp_choices": {"langchain_tools": [mock_tool]}},
     }
 
     with (
-        patch.object(followup_module, "get_chat_llm", return_value=MagicMock()),
-        patch.object(
-            followup_module,
-            "safe_llm_ainvoke",
-            AsyncMock(return_value=(None, "policy")),
-        ),
+        patch.object(followup_module, "get_chat_llm", return_value=mock_llm),
         patch.object(followup_module, "trim_for_node", side_effect=lambda msgs, **_: msgs),
         patch.object(
             followup_module,
-            "record_content_policy_on_span",
-        ) as mock_record_policy,
+            "run_tool_loop",
+            AsyncMock(return_value=("", None, [])),
+        ) as mock_loop,
     ):
         result = await followup_module.followup_node(state)
 
-    assert result["content_policy_blocked"] is True
-    assert result["content_policy_node"] == "followup"
+    mock_loop.assert_called_once()
     assert result["followup_questions"] == []
-    assert result["assistant_parts"] == state["assistant_parts"]
-    assert not any(
-        (p.get("text") or "").strip() == LLM_POLICY_BLOCKED_TEXT
-        for p in result["assistant_parts"]
-        if isinstance(p, dict)
-    )
-    mock_record_policy.assert_called_once_with("followup")
 
 
 def test_record_content_policy_on_span_sets_attributes() -> None:

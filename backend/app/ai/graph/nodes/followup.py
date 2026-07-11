@@ -1,25 +1,22 @@
-"""Follow-up node: generates 2-3 targeted follow-up questions after the main answer.
+"""Follow-up node: emits data360_interactive_choices so follow-ups appear as native ChoiceCard.
 
-Non-streaming (streaming=False).  Appends to assistant_parts with a special
-separator so the questions appear naturally after the narrator's answer.
+Non-streaming (streaming=False).  The tool call part is pushed to the client via the
+SSE bridge inside run_tool_loop — no text parsing required on the frontend.
 
-Returns ``{"followup_questions": list, "assistant_parts": updated_list}``.
+Returns ``{"followup_questions": [], "assistant_parts": updated_list, "final_usage": ...}``.
 """
 
 import logging
-import re
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
-from app.ai.observability.token_usage import append_llm_usage_fallback
 from app.ai.prompts import get_followup_system_prompt
 from app.config import ModelType
-from app.observability.otel_setup import record_content_policy_on_span
 
 from ..llm_factory import get_chat_llm
-from ..llm_invoke import LLM_STEP_FAILED_TEXT, assistant_text_part, safe_llm_ainvoke
 from ..memory import trim_for_node
-from ..message_utils import openai_to_langchain, plain_text_from_ai_message_content
+from ..message_utils import openai_to_langchain
+from ..node_utils import run_tool_loop
 from ..state import ChatPipelineState
 
 logger = logging.getLogger(__name__)
@@ -28,44 +25,27 @@ logger = logging.getLogger(__name__)
 _RECENT_HISTORY_LIMIT = 6
 
 
-def _extract_questions(text: str) -> list[str]:
-    """Extract numbered list items from the follow-up response for telemetry.
-
-    Matches lines starting with a number followed by . or ) and optional whitespace.
-    """
-    lines = text.splitlines()
-    questions: list[str] = []
-    for line in lines:
-        stripped = line.strip()
-        if re.match(r"^\d+[.)]\s+.+", stripped):
-            question = re.sub(r"^\d+[.)\s]+", "", stripped).strip()
-            if question:
-                questions.append(question)
-    return questions
-
-
-def _normalize_markdown_newlines(text: str) -> str:
-    """Convert accidentally escaped newlines to real line breaks."""
-    if r"\n" not in text:
-        return text
-    return text.replace(r"\n", "\n")
-
-
 async def followup_node(state: ChatPipelineState) -> dict:
-    """Generate 2-3 follow-up questions and append them to assistant_parts.
+    """Generate follow-up choices via data360_interactive_choices tool call.
 
-    Uses only the most recent conversation turns (last 6 messages) plus the
-    research_packet (truncated to 1 000 chars) to keep the call cheap.
-
-    ``streaming=False`` — this node does not emit token-level SSE events.
-
-    Returns state updates for ``followup_questions``, ``assistant_parts``, and
-    ``final_usage``.
+    The SSE bridge pushes the tool-call part to the client; the frontend renders it
+    as a native ChoiceCard. No text output or regex parsing needed.
     """
     model_type: str = state.get("model_type", ModelType.CHAT_MODEL.value)
     language: str = state.get("detected_language", "") or ""
 
-    llm = get_chat_llm(model_type, streaming=False)
+    choices_tools: list = (
+        state.get("tool_set", {}).get("mcp_choices", {}).get("langchain_tools", [])
+    )
+
+    if not choices_tools:
+        logger.warning("[followup_node] data360_interactive_choices not available — skipping")
+        return {
+            "followup_questions": [],
+            "assistant_parts": state.get("assistant_parts", []),
+            "final_usage": None,
+        }
+
     system_prompt: str = get_followup_system_prompt(language=language)
 
     # Use only the last few messages to keep context small and focused
@@ -105,48 +85,24 @@ async def followup_node(state: ChatPipelineState) -> dict:
         node="followup",
     )
 
-    logger.info("[followup_node] generating follow-up questions")
-    response, outcome = await safe_llm_ainvoke(llm, messages, context="followup")
-    existing_parts: list[dict] = state.get("assistant_parts", [])
+    llm = get_chat_llm(model_type, streaming=False).bind_tools(choices_tools)
+    tool_map = {t.name: t for t in choices_tools}
 
-    if outcome == "policy":
-        record_content_policy_on_span("followup")
-        return {
-            "followup_questions": [],
-            "assistant_parts": existing_parts,
-            "final_usage": None,
-            "content_policy_blocked": True,
-            "content_policy_node": "followup",
-        }
-
-    if outcome != "ok":
-        return {
-            "followup_questions": [],
-            "assistant_parts": existing_parts + [assistant_text_part(LLM_STEP_FAILED_TEXT)],
-            "final_usage": None,
-        }
-
-    assert response is not None
-    append_llm_usage_fallback(state.get("_usage_fallback_bucket"), response, node="followup")
-
-    final_content: str = plain_text_from_ai_message_content(getattr(response, "content", None))
-    final_content = _normalize_markdown_newlines(final_content)
-    final_usage: dict | None = None
-    if hasattr(response, "usage_metadata") and response.usage_metadata:
-        final_usage = dict(response.usage_metadata)
-
-    questions = _extract_questions(final_content)
-    logger.info(
-        "[followup_node] response length=%d questions_count=%d",
-        len(final_content),
-        len(questions),
+    logger.info("[followup_node] generating follow-up choices via tool call")
+    _final_content, final_usage, _tool_results = await run_tool_loop(
+        llm=llm,
+        messages=messages,
+        tool_map=tool_map,
+        max_iterations=2,
+        state=state,
+        graph_node="followup",
+        collect_tool_results=False,
     )
 
-    assistant_part = {"type": "text", "text": final_content, "state": "done"}
-    existing_parts: list[dict] = state.get("assistant_parts", [])
-
     return {
-        "followup_questions": questions,
-        "assistant_parts": existing_parts + [assistant_part],
+        # Kept for state schema compatibility; no longer populated from text.
+        "followup_questions": [],
+        # Tool parts are emitted to the client via the SSE bridge inside run_tool_loop.
+        "assistant_parts": state.get("assistant_parts", []),
         "final_usage": final_usage,
     }
