@@ -331,7 +331,13 @@ def test_synthesize_card_rank_countries_comparison():
     assert card["delta"] == 1428627663.0 - 1409670000.0
 
 
-def test_research_node_card_synthesis(monkeypatch):
+def test_research_node_does_not_synthesize_card(monkeypatch):
+    """research_node must NOT synthesize a quick_answer_card.
+
+    Card synthesis is the exclusive responsibility of quick_answer_node.
+    Emitting a card from the research path caused a fact card to appear
+    alongside the narrator's visualization (double-render bug).
+    """
     from unittest.mock import Mock
 
     import app.ai.graph.nodes.research as research_mod
@@ -399,9 +405,11 @@ def test_research_node_card_synthesis(monkeypatch):
     assert out is not None
     assert out["research_packet"] == "final content"
     assert out["research_tool_results"] == tool_results
-    assert out["quick_answer_card"] is not None
-    assert out["quick_answer_card"]["card_type"] == "single_fact"
-    assert out["quick_answer_card"]["value"] == "81816.97"
+    # Card synthesis must NOT happen in research_node — only in quick_answer_node.
+    assert "quick_answer_card" not in out, (
+        "research_node must not emit quick_answer_card; card synthesis is "
+        "exclusive to quick_answer_node to prevent fact-card + visualization double-render."
+    )
 
 
 def test_synthesize_card_get_data_multi_country_skips():
