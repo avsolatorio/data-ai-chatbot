@@ -1000,6 +1000,13 @@ const PurePreviewMessage = ({
               return true;
             });
 
+            const nonChoiceRegularParts = regularParts.filter(
+              (part) => (part.type as string) !== "tool-data360_interactive_choices"
+            );
+            const choicesParts = regularParts.filter(
+              (part) => (part.type as string) === "tool-data360_interactive_choices"
+            );
+
             // Filter out non-renderable stream events from saved thinking parts
             const filteredSavedThinkingParts = savedThinkingParts
               .map((part) => {
@@ -1115,8 +1122,8 @@ const PurePreviewMessage = ({
                   </div>
                 )}
 
-                {/* Render regular parts normally */}
-                {regularParts.map((part, index) => {
+                {/* Render regular parts normally (excluding choices) */}
+                {nonChoiceRegularParts.map((part, index) => {
                   const key = `message-${message.id}-part-${
                     firstRegularPartIndex + index
                   }`;
@@ -1134,7 +1141,7 @@ const PurePreviewMessage = ({
                 })}
 
                 {message.role === "assistant" &&
-                  regularParts.length === 0 &&
+                  nonChoiceRegularParts.length === 0 &&
                   finalThinkingParts.length > 0 &&
                   !isLoading && (
                     <p
@@ -1227,6 +1234,22 @@ const PurePreviewMessage = ({
                     {contentPolicyBlocked.message}
                   </div>
                 )}
+
+                {/* Render interactive choices/follow-ups at the absolute bottom of the message */}
+                {message.role === "assistant" && choicesParts.map((part, index) => {
+                  const key = `message-${message.id}-choice-${index}`;
+                  return renderMessagePart(part, key, {
+                    mode,
+                    setMode,
+                    message,
+                    regenerate,
+                    setMessages,
+                    sendMessage,
+                    isReadonly,
+                    isLoading,
+                    onScrollToMessageId,
+                  });
+                })}
 
                 {/* Follow-ups are now rendered via data360_interactive_choices
                     tool parts as a native ChoiceCard — no text-pill section needed. */}
