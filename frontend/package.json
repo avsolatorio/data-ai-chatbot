@@ -139,7 +139,7 @@
     "rimraf": "^6.0.1",
     "tailwindcss": "^4.1.13",
     "tsx": "^4.19.1",
-    "typescript": "^5.6.3",
+    "typescript": "^5.8.2",
     "ultracite": "5.3.9"
   },
   "packageManager": "pnpm@9.12.3",
@@ -159,6 +159,11 @@
         "react-dom": "*",
         "@opentelemetry/api-logs": "*"
       }
+    },
+    "patchedDependencies": {
+      "@data360/tool-types@0.0.5": "patches/@data360__tool-types@0.0.5.patch",
+      "@data360/mcp-viz-core@0.0.3": "patches/@data360__mcp-viz-core@0.0.3.patch",
+      "@data360/mcp-ui@0.0.7": "patches/@data360__mcp-ui@0.0.7.patch"
     }
   }
 }

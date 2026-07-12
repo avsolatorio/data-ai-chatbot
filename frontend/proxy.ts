@@ -317,6 +317,13 @@ export async function proxy(request: NextRequest) {
     return nextWithCsp(request);
   }
 
+  // MCP App resources (served to sandboxed iframes) must bypass auth: the iframe sandbox
+  // (allow-scripts, no allow-same-origin) cannot send cookies, so redirecting to guest
+  // auth would always fail. The backend /apps endpoint is intentionally public.
+  if (pathMatches(pathname, "/api/v1/mcp/apps")) {
+    return nextWithCsp(request);
+  }
+
   // Static public assets: bypass auth so home-config.json, images, etc. load without redirect
   if (pathMatches(pathname, "/json") || pathMatches(pathname, "/images")) {
     return nextWithCsp(request);

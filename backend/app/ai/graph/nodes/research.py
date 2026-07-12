@@ -88,7 +88,7 @@ async def research_node(state: ChatPipelineState) -> dict:
     )
     from app.ai.graph.nodes.quick_answer import _synthesize_card
 
-    card = _synthesize_card(tool_results)
+    card = _synthesize_card(tool_results, state.get("query_text"))
     return {
         "research_packet": final_content,
         "research_tool_results": tool_results,

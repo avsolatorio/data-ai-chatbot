@@ -19,6 +19,9 @@ USER node
 # Copy lockfiles first for caching
 COPY --chown=node:node package.json pnpm-lock.yaml ./
 
+# Copy patches before install — pnpm applies them during frozen lockfile install
+COPY --chown=node:node patches/ ./patches/
+
 # Install deps as node (avoids root-owned node_modules)
 RUN --mount=type=secret,id=npmrc,target=/tmp/.npmrc,uid=1000,gid=1000,mode=0444,readonly \
     export NPM_CONFIG_USERCONFIG=/tmp/.npmrc && \
