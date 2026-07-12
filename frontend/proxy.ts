@@ -317,7 +317,6 @@ export async function proxy(request: NextRequest) {
     return nextWithCsp(request);
   }
 
-
   // Static public assets: bypass auth so home-config.json, images, etc. load without redirect
   if (pathMatches(pathname, "/json") || pathMatches(pathname, "/images")) {
     return nextWithCsp(request);
