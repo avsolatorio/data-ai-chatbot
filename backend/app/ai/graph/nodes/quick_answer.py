@@ -920,13 +920,21 @@ async def quick_answer_node(state: ChatPipelineState) -> dict:
                                 graph_node="quick_answer",
                             )
                             # Normalize: MCP tools may return a list of text blocks or a dict.
+                            # The viz tool returns two blocks: block 0 is the structured JSON
+                            # payload (containing `url`, `spec`, etc.), block 1 is a
+                            # human-readable text summary. We must only parse the FIRST block —
+                            # concatenating all blocks produces an invalid JSON string that
+                            # silently fails and loses the chart URL.
                             if isinstance(viz_result, list):
                                 import json as _json  # noqa: PLC0415
 
-                                _text = "".join(
-                                    b.get("text", "")
-                                    for b in viz_result
-                                    if isinstance(b, dict) and b.get("type") == "text"
+                                _text = next(
+                                    (
+                                        b.get("text", "")
+                                        for b in viz_result
+                                        if isinstance(b, dict) and b.get("type") == "text"
+                                    ),
+                                    "",
                                 )
                                 try:
                                     viz_result = _json.loads(_text)
