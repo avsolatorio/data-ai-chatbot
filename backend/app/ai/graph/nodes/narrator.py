@@ -63,7 +63,12 @@ async def narrator_node(state: ChatPipelineState) -> dict:
     system_prompt: str = get_system_prompt(
         selected_chat_model=mt, request_hints=None, language=language, response_mode=response_mode
     )
-    llm = get_chat_llm(model_type, streaming=True).bind_tools(narrator_tools)
+    # In quick mode the quick_answer_node already programmatically attached a viz_url
+    # to the QuickAnswerCard. Binding viz tools to the narrator here would allow it to
+    # call data360_get_viz_spec and embed a second chart URL in its prose — causing a
+    # duplicate chart render alongside the QuickAnswerCard. Strip viz tools in this path.
+    effective_narrator_tools = [] if response_mode == "quick" else narrator_tools
+    llm = get_chat_llm(model_type, streaming=True).bind_tools(effective_narrator_tools)
 
     # Build message list: trimmed history only (research packet goes into system message)
     history = openai_to_langchain(state.get("openai_messages", []))
@@ -158,7 +163,7 @@ async def narrator_node(state: ChatPipelineState) -> dict:
         node="narrator",
     )
 
-    tool_map: dict[str, Any] = {t.name: t for t in narrator_tools}
+    tool_map: dict[str, Any] = {t.name: t for t in effective_narrator_tools}
     final_content: str = ""
     final_usage: dict | None = None
 

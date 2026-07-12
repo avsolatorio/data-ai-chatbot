@@ -1007,6 +1007,23 @@ const PurePreviewMessage = ({
               (part) => (part.type as string) === "tool-data360_interactive_choices"
             );
 
+            const hasVisualization = parts.some((part) => {
+              if (
+                part.type === "tool-data360_get_viz_spec" ||
+                part.type === "tool-data360_get_multi_indicator_viz_spec"
+              ) {
+                return true;
+              }
+              if (part.type === "text" && "text" in part) {
+                const segments = splitAssistantTextIntoChartSegments(
+                  part.text,
+                  CHART_URL_REGEXES,
+                );
+                return segments.some((s) => s.kind === "chart");
+              }
+              return false;
+            });
+
             // Filter out non-renderable stream events from saved thinking parts
             const filteredSavedThinkingParts = savedThinkingParts
               .map((part) => {
@@ -1113,7 +1130,7 @@ const PurePreviewMessage = ({
                 )}
 
                 {/* Quick-answer card — typographic for single facts, highlight for comparison/trend */}
-                {message.role === "assistant" && quickAnswerCard != null && (
+                {message.role === "assistant" && quickAnswerCard != null && !hasVisualization && (
                   <div className="mb-2">
                     <QuickAnswerCard
                       card={quickAnswerCard}
