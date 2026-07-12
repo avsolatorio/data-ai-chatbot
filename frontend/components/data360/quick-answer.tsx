@@ -375,6 +375,24 @@ function TrendCardRenderer({
   const changePct = card.pct_change;
   const totalChange = card.total_change;
 
+  // Prioritize visualization: if a viz_url is attached, render ONLY the chart
+  // and omit the typographic fact card elements entirely to prevent redundancy.
+  if (card.viz_url) {
+    return (
+      <div className="mt-2">
+        <ChartPreview
+          toolResult={{
+            url: card.viz_url,
+            error: null,
+            database_name: card.database_name,
+            indicator_name: card.indicator_name,
+            indicator_id: card.indicator_id,
+          } as Data360VizToolResult}
+        />
+      </div>
+    );
+  }
+
   return (
     <CardWrapper variant={variant}>
       {isHighlight ? (
