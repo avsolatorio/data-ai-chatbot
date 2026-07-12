@@ -40,13 +40,13 @@ const nextConfig: NextConfig = {
     const cspEnabled =
       process.env.CSP_ENABLED === "true" || process.env.CSP_ENABLED === "1";
     const securityHeaders = [
-      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      { key: "X-Frame-Options", value: "DENY" },
       ...(cspEnabled
         ? [
             {
               key: "Content-Security-Policy",
               value: [
-                "frame-ancestors 'self'",
+                "frame-ancestors 'none'",
                 "form-action 'self'",
                 "base-uri 'self'",
               ].join("; "),

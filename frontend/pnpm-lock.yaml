@@ -9,17 +9,6 @@ overrides:
   '@data360/mcp-viz-core': 0.0.3
   '@data360/tool-types': 0.0.5
 
-patchedDependencies:
-  '@data360/mcp-ui@0.0.7':
-    hash: f3shlu3o5fpudkur6yilwhoeiq
-    path: patches/@data360__mcp-ui@0.0.7.patch
-  '@data360/mcp-viz-core@0.0.3':
-    hash: flvpsorymqmqxgcoeliospibz4
-    path: patches/@data360__mcp-viz-core@0.0.3.patch
-  '@data360/tool-types@0.0.5':
-    hash: b4jxftgtwbc6vggakci546yoyi
-    path: patches/@data360__tool-types@0.0.5.patch
-
 importers:
 
   .:
@@ -59,10 +48,10 @@ importers:
         version: 6.36.4
       '@data360/mcp-ui':
         specifier: 0.0.7
-        version: 0.0.7(patch_hash=f3shlu3o5fpudkur6yilwhoeiq)(@data360/tool-types@0.0.5(patch_hash=b4jxftgtwbc6vggakci546yoyi))(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
+        version: 0.0.7(@data360/tool-types@0.0.5)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
       '@data360/tool-types':
         specifier: 0.0.5
-        version: 0.0.5(patch_hash=b4jxftgtwbc6vggakci546yoyi)
+        version: 0.0.5
       '@icons-pack/react-simple-icons':
         specifier: ^13.7.0
         version: 13.8.0(react@19.0.0-rc-45804af1-20241021)
@@ -344,7 +333,7 @@ importers:
         specifier: ^4.19.1
         version: 4.19.3
       typescript:
-        specifier: ^5.8.2
+        specifier: ^5.6.3
         version: 5.8.2
       ultracite:
         specifier: 5.3.9
@@ -4790,11 +4779,11 @@ snapshots:
 
   '@data360/chart-payload-normalize@0.0.2': {}
 
-  '@data360/mcp-ui@0.0.7(patch_hash=f3shlu3o5fpudkur6yilwhoeiq)(@data360/tool-types@0.0.5(patch_hash=b4jxftgtwbc6vggakci546yoyi))(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
+  '@data360/mcp-ui@0.0.7(@data360/tool-types@0.0.5)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
     dependencies:
       '@data360/chart-payload-normalize': 0.0.2
-      '@data360/mcp-viz-core': 0.0.3(patch_hash=flvpsorymqmqxgcoeliospibz4)
-      '@data360/tool-types': 0.0.5(patch_hash=b4jxftgtwbc6vggakci546yoyi)
+      '@data360/mcp-viz-core': 0.0.3
+      '@data360/tool-types': 0.0.5
       html-to-image: 1.11.13
       react: 19.0.0-rc-45804af1-20241021
       react-dom: 19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021)
@@ -4802,9 +4791,9 @@ snapshots:
       vega-embed: 6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
       vega-lite: 5.23.0(vega@5.33.1)
 
-  '@data360/mcp-viz-core@0.0.3(patch_hash=flvpsorymqmqxgcoeliospibz4)': {}
+  '@data360/mcp-viz-core@0.0.3': {}
 
-  '@data360/tool-types@0.0.5(patch_hash=b4jxftgtwbc6vggakci546yoyi)':
+  '@data360/tool-types@0.0.5':
     dependencies:
       zod: 3.25.76
 
