@@ -508,7 +508,7 @@ class _SseBridgeState:
 
         elif evt_type == "on_chat_model_end" and node in _LLM_NODES:
             self.add_usage_from_message(data.get("output"), node=node)
-            if node in _ANSWER_NODES:
+            if node in _ANSWER_NODES and node != "followup":
                 chunks.extend(
                     self._chunks_answer_text_fallback_from_end(
                         run_id=str(run_id or ""),
@@ -536,6 +536,8 @@ class _SseBridgeState:
             )
 
         elif evt_type == "on_chat_model_stream" and node in _ANSWER_NODES:
+            if node == "followup":
+                return
             chunk = data.get("chunk")
             content = plain_text_from_ai_message_content(
                 chunk.content if (chunk and hasattr(chunk, "content")) else None
