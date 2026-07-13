@@ -1009,8 +1009,8 @@ const PurePreviewMessage = ({
 
             const hasVisualization = parts.some((part) => {
               if (
-                part.type === "tool-data360_get_viz_spec" ||
-                part.type === "tool-data360_get_multi_indicator_viz_spec"
+                (part.type as string) === "tool-data360_get_viz_spec" ||
+                (part.type as string) === "tool-data360_get_multi_indicator_viz_spec"
               ) {
                 return true;
               }

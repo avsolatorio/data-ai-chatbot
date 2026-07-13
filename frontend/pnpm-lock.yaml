@@ -6,7 +6,7 @@ settings:
 
 overrides:
   '@data360/chart-payload-normalize': 0.0.2
-  '@data360/mcp-viz-core': 0.0.3
+  '@data360/mcp-viz-core': 0.0.5
   '@data360/tool-types': 0.0.5
 
 importers:
@@ -47,8 +47,8 @@ importers:
         specifier: ^6.35.3
         version: 6.36.4
       '@data360/mcp-ui':
-        specifier: 0.0.8
-        version: 0.0.8(@data360/tool-types@0.0.5)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
+        specifier: 0.0.9
+        version: 0.0.9(@data360/tool-types@0.0.5)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
       '@data360/tool-types':
         specifier: 0.0.5
         version: 0.0.5
@@ -544,8 +544,8 @@ packages:
   '@data360/chart-payload-normalize@0.0.2':
     resolution: {integrity: sha512-kFB5iDrB7j3xXikjtizuhuiSV/dk0QhO35cKJwgn1C5rTamv7JyxhQOe1PysEEn3mBzAA7VjTdLIs9kFDWuvmg==}
 
-  '@data360/mcp-ui@0.0.8':
-    resolution: {integrity: sha512-yk5r5dg7sHHbT3Wk8bTSRLlFwdsGhS2qDLK6ZiJIFMLX/oHPM6Dn+xb7QdG7hxKqrQW/jmpLMzLjb8wqpIvYEg==}
+  '@data360/mcp-ui@0.0.9':
+    resolution: {integrity: sha512-X5de/l3XbSMroX6e6tgQFLBbdtu157B3wvFJSvcS14yKoZ5LTH8sqfnl5hQEYm6FwI/YuT3tdKnGAqQk9VPqdQ==}
     peerDependencies:
       '@data360/tool-types': 0.0.5
       react: '>=18.0.0'
@@ -554,8 +554,8 @@ packages:
       vega-embed: '>=6.0.0'
       vega-lite: '>=5.0.0'
 
-  '@data360/mcp-viz-core@0.0.3':
-    resolution: {integrity: sha512-IFi1Nnh/oum9DJPDxxTM1LSvQdjJrQu/O+aJOOuvWR30/kB3QBG/EIsDjXmZBnlw8XoCtqFaq6fBbgDA4D7iGA==}
+  '@data360/mcp-viz-core@0.0.5':
+    resolution: {integrity: sha512-36zf8Q/nKBuJ6s/xEYQwqeimzDu5M0OLFOnaj7zqM27lht4o9DQwIiGG3x9quNAuiIfzs/Ib3/Mfo7axufHg2Q==}
 
   '@data360/tool-types@0.0.5':
     resolution: {integrity: sha512-TvhfiZqpxzbG2r3wCkaCD7rv/EWNQyj1gEiSowDgQ2HrrWP+/q+Gg53rrWvfxvbeWdY6gj+6Udbr0qYG5oB3wA==}
@@ -4797,10 +4797,10 @@ snapshots:
 
   '@data360/chart-payload-normalize@0.0.2': {}
 
-  '@data360/mcp-ui@0.0.8(@data360/tool-types@0.0.5)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
+  '@data360/mcp-ui@0.0.9(@data360/tool-types@0.0.5)(react-dom@19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021))(react@19.0.0-rc-45804af1-20241021)(vega-embed@6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1))(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)':
     dependencies:
       '@data360/chart-payload-normalize': 0.0.2
-      '@data360/mcp-viz-core': 0.0.3
+      '@data360/mcp-viz-core': 0.0.5
       '@data360/tool-types': 0.0.5
       html-to-image: 1.11.13
       react: 19.0.0-rc-45804af1-20241021
@@ -4809,7 +4809,7 @@ snapshots:
       vega-embed: 6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
       vega-lite: 5.23.0(vega@5.33.1)
 
-  '@data360/mcp-viz-core@0.0.3': {}
+  '@data360/mcp-viz-core@0.0.5': {}
 
   '@data360/tool-types@0.0.5':
     dependencies:
