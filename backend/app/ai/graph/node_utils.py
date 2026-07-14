@@ -118,6 +118,14 @@ async def run_tool_loop(
             tool_args: dict = dict(tc.get("args", {}))  # mutable copy
             tool_call_id: str = tc.get("id", tool_name)
 
+            if (
+                tool_name == "data360_interactive_choices"
+                and "data360_interactive_choices" in tools_executed
+            ):
+                logger.info("[%s] skipping duplicate tool=%s", graph_node, tool_name)
+                messages.append(ToolMessage(content="ignored", tool_call_id=tool_call_id))
+                continue
+
             # ── Sanitize data360_get_data args ───────────────────────────────
             # Trend questions route to data360_summarize_data, not get_data.
             # Any `limit` on a get_data call always truncates to the OLDEST N
