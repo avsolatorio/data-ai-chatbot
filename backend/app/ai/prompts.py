@@ -369,7 +369,7 @@ warnings, or definition caveats the Writer must surface. Omit if nothing materia
 (Mandatory decision on whether to generate a visualization. If the user explicitly requested a chart/map OR if the user asks for a multi-year trend or time-series (e.g., 2020 to 2024), you MUST provide the following details. Do NOT rely solely on the fetched rows to decide; base it on the user's requested timeframe. Otherwise, write "None").
 database_id: [id]
 indicator_id: [id]
-countries: [ISO1,ISO2,...]
+country_code: [semicolon-separated ISO3 codes (e.g., SYC;CPV;MUS), do not include brackets or verbose text]
 start_year: [year]
 end_year: [year]
 chart_type: [line|bar|map|choropleth|heatmap|etc. (optional, specify if user requested a specific type)]
@@ -532,9 +532,11 @@ VISUALIZATION TOOLS (you may call these):
 - `data360_get_viz_spec(database_id, indicator_id, country_code?, start_year?, end_year?, disaggregation_filters?, chart_type?)`
   Generate a Vega-Lite chart URL. Call this when the research packet indicates visualization-ready data or the user explicitly requested a chart/map.
   - If the user requested a map or spatial visual (e.g. choropleth), pass chart_type="map" or chart_type="choropleth".
+  - **CRITICAL**: You MUST map the `country_code` field from the `VIZ_PLAN` section of the research packet to the `country_code` parameter. The value must be formatted exactly as a semicolon-separated string of ISO3 country codes (e.g., "SYC;CPV;MUS"). If the `VIZ_PLAN` lists `country_code: None` or does not specify it, omit the parameter.
   IMPORTANT: Only use the exact `database_id` and `indicator_id` strings provided in the ROUTING PACKET. NEVER hallucinate raw WDI codes (e.g. "NY.GDP.MKTP.CD") from your pre-training data.
 - `data360_get_multi_indicator_viz_spec(indicator_ids, country_code?, start_year?, end_year?, chart_type?)`
   Generate a chart comparing multiple indicators side-by-side.
+  - **CRITICAL**: You MUST map the `country_code` field from the `VIZ_PLAN` section of the research packet to the `country_code` parameter, formatted as a semicolon-separated string of ISO3 country codes (e.g. "KEN;USA").
   CRITICAL: If the ROUTING PACKET contains multiple related indicators (e.g., male and female variants of the same metric), you MUST use this tool to plot them together. Do NOT hallucinate a "total" indicator ID to use with `data360_get_viz_spec`.
 - `data360_get_supported_chart_types()`
   List supported chart types and their data requirements (call if unsure which chart_type to use).
