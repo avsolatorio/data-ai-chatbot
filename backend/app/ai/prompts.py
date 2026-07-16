@@ -370,7 +370,7 @@ warnings, or definition caveats the Writer must surface. Omit if nothing materia
 (Mandatory decision on whether to generate a visualization. Generate a chart if the user explicitly requested one, OR if the retrieved data can be easily charted at a high standard (e.g. time-series trend of 1–15 countries over 2–20 years, cross-sectional comparison of 2–20 countries for a single year/latest available, or a regional/global choropleth map or heatmap). CRITICAL SINGLE-YEAR COMPARISON RULE: If the user did NOT request a trend or multi-year timeline (e.g. they asked "Show GDP of South Asian countries"), you MUST restrict the chart to the single latest year of data by setting start_year and end_year to the same year (e.g., start_year: 2025, end_year: 2025). Do NOT pass the entire fetched 3-5 year buffer. Reject visualization and specify "None" if the data is sparse/fragmented (1-2 points), contains incompatible unit scales/metrics, or would be visually cluttered/unreadable (e.g. >15 lines, or too many grouped bars over time). Otherwise, specify the target details below:)
 database_id: [id]
 indicator_id: [id]
-countries: [ISO1,ISO2,...]
+country_code: [semicolon-separated ISO3 codes (e.g., SYC;CPV;MUS), do not include brackets or verbose text]
 start_year: [year]
 end_year: [year]
 chart_type: [line|bar|map|choropleth|heatmap|etc. (optional, specify if user requested a specific type)]
@@ -534,9 +534,11 @@ VISUALIZATION TOOLS (you may call these):
   Generate a Vega-Lite chart URL. Call this when the research packet indicates visualization-ready data or the user explicitly requested a chart/map.
   - If the user requested a map or spatial visual (e.g. choropleth), pass chart_type="map" or chart_type="choropleth".
   - If the user requested a logarithmic scale (or log scale), pass chart_type="line_log" or chart_type="bar_log" so the chart uses log scales.
+  - **CRITICAL**: You MUST map the `country_code` field from the `VIZ_PLAN` section of the research packet to the `country_code` parameter. The value must be formatted exactly as a semicolon-separated string of ISO3 country codes (e.g., "SYC;CPV;MUS"). If the `VIZ_PLAN` lists `country_code: None` or does not specify it, omit the parameter.
   IMPORTANT: Only use the exact `database_id` and `indicator_id` strings provided in the ROUTING PACKET. NEVER hallucinate raw WDI codes (e.g. "NY.GDP.MKTP.CD") from your pre-training data.
 - `data360_get_multi_indicator_viz_spec(indicator_ids, country_code?, start_year?, end_year?, chart_type?)`
   Generate a chart comparing multiple indicators side-by-side.
+  - **CRITICAL**: You MUST map the `country_code` field from the `VIZ_PLAN` section of the research packet to the `country_code` parameter, formatted as a semicolon-separated string of ISO3 country codes (e.g. "KEN;USA").
   CRITICAL: If the ROUTING PACKET contains multiple related indicators (e.g., male and female variants of the same metric), you MUST use this tool to plot them together. Do NOT hallucinate a "total" indicator ID to use with `data360_get_viz_spec`.
 - `data360_get_supported_chart_types()`
   List supported chart types and their data requirements (call if unsure which chart_type to use).
