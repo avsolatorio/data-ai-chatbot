@@ -18,6 +18,7 @@ class Chat(Base):
     userId = Column(UUID(as_uuid=True), ForeignKey("User.id"), nullable=False)  # noqa: N815
     visibility = Column(String, nullable=False, default="private")
     lastContext = Column(JSONB, nullable=True)  # noqa: N815
+    deletedAt = Column(DateTime, nullable=True, default=None)  # noqa: N815
 
     # Relationships
     user = relationship("User", back_populates="chats")

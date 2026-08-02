@@ -24,6 +24,51 @@ export type AuthResponse = {
 };
 
 /**
+ * Error thrown by login()/register() when the backend rejects the request.
+ * Carries the HTTP status, a human-readable message extracted from the
+ * backend's `detail` field (string or pydantic validation array), and an
+ * optional `signInHint` for the register flow when the email is already used.
+ */
+export class AuthError extends Error {
+  readonly status: number;
+  readonly signInHint: boolean;
+
+  constructor(status: number, message: string, signInHint = false) {
+    super(message);
+    this.name = "AuthError";
+    this.status = status;
+    this.signInHint = signInHint;
+  }
+}
+
+/**
+ * Extract a human-readable message from a FastAPI error body.
+ * Handles both the simple `{detail: "..."}` string and the pydantic
+ * validation array form `[{loc: [...], msg: "...", ...}, ...]`.
+ */
+function extractErrorDetail(body: unknown, fallback: string): string {
+  if (!body || typeof body !== "object") return fallback;
+  const detail = (body as { detail?: unknown }).detail;
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (Array.isArray(detail)) {
+    const parts = detail
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") return null;
+        const msg = (entry as { msg?: unknown }).msg;
+        const loc = (entry as { loc?: unknown }).loc;
+        const field = Array.isArray(loc) && typeof loc[loc.length - 1] === "string"
+          ? (loc[loc.length - 1] as string)
+          : null;
+        if (typeof msg !== "string") return null;
+        return field ? `${field}: ${msg}` : msg;
+      })
+      .filter((s): s is string => Boolean(s));
+    if (parts.length > 0) return parts.join("; ");
+  }
+  return fallback;
+}
+
+/**
  * Get the current authenticated user.
  * Reads JWT token from httpOnly cookie and decodes it, or calls FastAPI /api/auth/me
  *
@@ -127,10 +172,9 @@ export async function login(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({
-      detail: "Login failed",
-    }));
-    throw new Error(error.detail || "Login failed");
+    const body = await response.json().catch(() => null);
+    const message = extractErrorDetail(body, "Login failed");
+    throw new AuthError(response.status, message);
   }
 
   const data = (await response.json()) as AuthResponse;
@@ -174,17 +218,13 @@ export async function register(
   });
 
   if (!response.ok) {
-    let errorMessage = "Registration failed";
-    try {
-      const error = await response.json();
-      // FastAPI returns {detail: "..."} format
-      errorMessage = error.detail || error.message || errorMessage;
-      console.error("Registration error:", error);
-    } catch {
-      // If JSON parsing fails, use status text
-      errorMessage = response.statusText || errorMessage;
-    }
-    throw new Error(errorMessage);
+    const body = await response.json().catch(() => null);
+    const message = extractErrorDetail(body, "Registration failed");
+    const signInHint =
+      response.status === 400 &&
+      /already registered|already exists/i.test(message);
+    console.error("Registration error:", { status: response.status, message });
+    throw new AuthError(response.status, message, signInHint);
   }
 
   const data = (await response.json()) as AuthResponse;

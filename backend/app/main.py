@@ -25,6 +25,9 @@ from app.api.v1 import (
 from app.api.v1 import (
     models as models_router,
 )
+from app.api.v1.admin import analytics as admin_analytics
+from app.api.v1.admin import health as admin_health
+from app.api.v1.admin import moderation as admin_moderation
 from app.config import settings
 from app.core.cache_headers import CachePreventionMiddleware
 from app.core.csrf import CSRFMiddleware
@@ -109,6 +112,14 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
     # Startup
     logger.info("=== FastAPI app startup ===")
+    # Dev fallback: create tables for sqlite when migrations are not applied
+    _db_url = os.environ.get("DATABASE_URL", "")
+    if _db_url and ("chat.sqlite" in _db_url or "chatbot.db" in _db_url):
+        from app.core.database import Base, engine
+
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("=== Dev sqlite: Base.metadata.create_all executed ===")
     yield
     # Shutdown
     logger.info("=== FastAPI app shutdown ===")
@@ -199,6 +210,9 @@ app.include_router(charts.router, prefix="/api/v1/charts", tags=["charts"])
 app.include_router(files.router, prefix="/api/files", tags=["files"])
 app.include_router(mcp_tools.router, prefix="/api/v1/mcp", tags=["mcp"])
 app.include_router(models_router.router, prefix="/api/models", tags=["models"])
+app.include_router(admin_analytics.router, prefix="/api/admin/analytics", tags=["admin"])
+app.include_router(admin_moderation.router, prefix="/api/admin/moderation", tags=["admin"])
+app.include_router(admin_health.router, prefix="/api/admin/health", tags=["admin"])
 
 
 @app.get("/health")

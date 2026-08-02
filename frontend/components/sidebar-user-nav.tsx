@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronUp } from "lucide-react";
+import { ChevronUp, LayoutDashboard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useContext } from "react";
@@ -100,6 +100,19 @@ export function SidebarUserNav({
             data-testid="user-nav-menu"
             side="top"
           >
+            {user.canViewAdmin === true && (
+              <>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  data-testid="user-nav-item-dashboard"
+                  onSelect={() => router.push("/admin/analytics")}
+                >
+                  <LayoutDashboard className="mr-2 size-4" />
+                  Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem
               className="cursor-pointer"
               data-testid="user-nav-item-theme"

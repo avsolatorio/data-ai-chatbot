@@ -7,7 +7,7 @@ from pydantic import BaseModel, EmailStr, field_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_reviewer_emails
+from app.api.deps import _raise_if_disabled, get_admin_emails, get_current_user, get_reviewer_emails
 from app.config import settings
 from app.core.auth import (
     create_access_token,
@@ -183,6 +183,9 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
         )
+
+    # Reject disabled users
+    _raise_if_disabled(user)
 
     # Successful login - clear failed attempts
     await clear_failed_attempts(db, user.id)
@@ -455,6 +458,7 @@ async def create_guest(http_request: Request, db: AsyncSession = Depends(get_db)
                 )
 
                 if is_guest:
+                    _raise_if_disabled(user)
                     reused_guest = True
                 else:
                     # User doesn't exist or is not a guest user - create new one
@@ -638,12 +642,17 @@ async def get_current_user_info(
         response_data["name"] = user.name
 
     # Determine if this user can view token usage in the UI.
-    # Uses the shared helper that mirrors the FEEDBACK_REVIEWER_EMAILS allowlist
-    # used by require_feedback_reviewer in deps.py.
+    # Admin (ADMIN_EMAILS) supersedes reviewer (FEEDBACK_REVIEWER_EMAILS):
+    # an admin automatically gets canViewTokenUsage, even if not listed as a reviewer.
+    admin_emails = get_admin_emails()
     reviewer_emails = get_reviewer_emails()
+    email_lower = (user.email or "").strip().lower()
     response_data["canViewTokenUsage"] = bool(
-        user.email and user.email.strip().lower() in reviewer_emails
+        email_lower and (email_lower in admin_emails or email_lower in reviewer_emails)
     )
+
+    # Determine if this user can access the admin dashboard
+    response_data["canViewAdmin"] = bool(email_lower and email_lower in admin_emails)
 
     # If this was a user restoration (guest or regular), issue new JWT token
     is_restoration = current_user.get("_restore_guest") or current_user.get("_restore_user")

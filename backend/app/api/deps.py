@@ -33,6 +33,22 @@ _user_cache_lock = asyncio.Lock()
 logger = logging.getLogger(__name__)
 
 
+def _raise_if_disabled(user) -> None:
+    """Raise 403 when the resolved user has been disabled by an admin."""
+    if getattr(user, "disabled", False):
+        logger.warning("Account disabled, rejecting authentication: user_id=%s", user.id)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account has been disabled",
+        )
+
+
+async def invalidate_user_cache(user_id: str) -> None:
+    """Drop a user's cached auth entry so the next request re-reads from the DB."""
+    async with _user_cache_lock:
+        _user_cache.pop(user_id, None)
+
+
 async def get_current_user(
     request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
@@ -103,6 +119,7 @@ async def get_current_user(
                     user = await get_or_create_user_from_azure_claims(
                         db, azure_oid=oid, email=email, name=name
                     )
+                    _raise_if_disabled(user)
                     user_dict = {"id": str(user.id), "type": user.type or "regular"}
                     async with _user_cache_lock:
                         _user_cache[msal_cache_key] = (time.monotonic(), user_dict)
@@ -154,6 +171,7 @@ async def get_current_user(
                     )
                     payload = None
                 else:
+                    _raise_if_disabled(user)
                     # Check if password was changed after token was issued (session invalidation)
                     if jti and hasattr(user, "password_changed_at") and user.password_changed_at:
                         token_issued_at = payload.get("iat")
@@ -210,6 +228,7 @@ async def get_current_user(
             try:
                 user_id = UUID(validated_user_id)
                 user = await get_user_by_id(db, user_id)
+                _raise_if_disabled(user)
                 logger.debug(
                     "Guest user lookup: user_id=%s, found=%s, email=%s",
                     user_id,
@@ -285,6 +304,7 @@ async def get_current_user(
             try:
                 user_id = UUID(validated_user_id)
                 user = await get_user_by_id(db, user_id)
+                _raise_if_disabled(user)
                 logger.info(
                     "Regular user lookup: user_id=%s, found=%s, email=%s",
                     user_id,
@@ -338,6 +358,7 @@ async def get_current_user(
                             return {**cached, "_restore_user": True}
 
                 user = await get_user_by_id(db, user_id)
+                _raise_if_disabled(user)
                 logger.debug(
                     "Regular user lookup (raw UUID fallback): user_id=%s, found=%s, email=%s",
                     user_id,
@@ -406,7 +427,9 @@ def get_reviewer_emails() -> set[str]:
     Parse FEEDBACK_REVIEWER_EMAILS into a lower-cased set of email addresses.
 
     Centralised here so that both require_feedback_reviewer (access control) and
-    /api/auth/me (canViewTokenUsage flag) use identical parsing logic.
+    /api/auth/me (canViewTokenUsage flag) use identical parsing logic.  Admins
+    (in ADMIN_EMAILS) are implicitly allowed too — see require_feedback_reviewer
+    for the union logic.
     """
     raw = getattr(settings, "FEEDBACK_REVIEWER_EMAILS", "") or ""
     return {e.strip().lower() for e in raw.split(",") if e.strip()}
@@ -417,12 +440,17 @@ async def require_feedback_reviewer(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
-    Require authenticated user whose email is in FEEDBACK_REVIEWER_EMAILS.
+    Require authenticated user whose email is in FEEDBACK_REVIEWER_EMAILS
+    or ADMIN_EMAILS (admin supersedes reviewer).
+
     Use for feedback review/list endpoints. Raises 403 if not allowed.
     """
-    allowed = get_reviewer_emails()
-    if not allowed:
-        logger.warning("require_feedback_reviewer: FEEDBACK_REVIEWER_EMAILS is empty")
+    reviewer_emails = get_reviewer_emails()
+    admin_emails = get_admin_emails()
+    if not reviewer_emails and not admin_emails:
+        logger.warning(
+            "require_feedback_reviewer: both FEEDBACK_REVIEWER_EMAILS and ADMIN_EMAILS are empty"
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Feedback review is not configured or access is disabled",
@@ -449,7 +477,8 @@ async def require_feedback_reviewer(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to view feedback",
         )
-    if user.email.strip().lower() not in allowed:
+    email_lower = user.email.strip().lower()
+    if email_lower not in reviewer_emails and email_lower not in admin_emails:
         logger.info(
             "require_feedback_reviewer: email not in allowlist, user_id=%s",
             user_id_str,
@@ -457,5 +486,52 @@ async def require_feedback_reviewer(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to view feedback",
+        )
+    return current_user
+
+
+def get_admin_emails() -> set[str]:
+    """Parse ADMIN_EMAILS into a lower-cased set of email addresses."""
+    raw = getattr(settings, "ADMIN_EMAILS", "") or ""
+    return {e.strip().lower() for e in raw.split(",") if e.strip()}
+
+
+async def require_admin(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Require authenticated user whose email is in ADMIN_EMAILS.
+    Use for admin dashboard endpoints. Raises 403 if not allowed.
+    """
+    allowed = get_admin_emails()
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access is not configured",
+        )
+    user_id_str = current_user.get("id")
+    if not user_id_str:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User ID not found",
+        )
+    try:
+        user_uuid = UUID(user_id_str)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid user ID",
+        )
+    user = await get_user_by_id(db, user_uuid)
+    if not user or not getattr(user, "email", None):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have admin access",
+        )
+    if user.email.strip().lower() not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have admin access",
         )
     return current_user

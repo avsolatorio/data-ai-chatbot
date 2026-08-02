@@ -10,6 +10,7 @@
     <a href="#getting-started">Getting Started</a> ·
     <a href="#configuration">Configuration</a> ·
     <a href="#authentication">Authentication</a> ·
+    <a href="#admin-dashboard">Admin Dashboard</a> ·
     <a href="#deployment">Deployment</a> ·
     <a href="DEVELOPER.md">Developer Guide</a> ·
     <a href="https://worldbank.github.io/data-ai-chatbot">Documentation</a>
@@ -307,6 +308,7 @@ pnpm dev           # Start dev server (http://localhost:3001)
 | `CORS_ORIGINS`                    | No       | Comma-separated allowed origins                                     |
 | `ENVIRONMENT`                     | No       | `development` / `production`                                        |
 | `AUTH_PROVIDER`                   | No       | `guest` \| `user` \| `msal` (see [Authentication](#authentication)) |
+| `ADMIN_EMAILS`                    | No       | Comma-separated email allowlist for the admin dashboard (empty = no admin access) |
 | `RATE_LIMIT_ENABLED`              | No       | Enable per-user/IP rate limiting                                    |
 | `LOG_FILE`                        | No       | Log output file path                                                |
 
@@ -352,6 +354,41 @@ The application supports four authentication modes, set via `AUTH_PROVIDER` (bac
 4. Set `AZURE_AD_TENANT_ID`, `AZURE_AD_CLIENT_ID` (backend)
 
 See [`frontend/docs/env-variables.md`](frontend/docs/env-variables.md) for the full Azure AD variable reference.
+
+---
+
+## Admin Dashboard
+
+The application ships with an admin dashboard at `/admin` for usage analytics, content moderation, and system health. All `/admin/*` pages and `/api/admin/*` endpoints are gated by the `ADMIN_EMAILS` allowlist; non-admin users get a 403 both in the UI and at the API layer.
+
+### Enabling admin access
+
+Set `ADMIN_EMAILS` on the backend with a comma-separated list of allowed email addresses:
+
+```bash
+# backend/.env
+ADMIN_EMAILS=admin@org.com,ops@org.com
+```
+
+When `ADMIN_EMAILS` is empty, no one has admin access — every `/api/admin/*` request returns 403 and `canViewAdmin` is `false`.
+
+### Accessing the dashboard
+
+1. Log in with an account whose email is listed in `ADMIN_EMAILS`.
+2. Visit `/admin`.
+
+The admin shell checks the `canViewAdmin` flag returned by `GET /api/auth/me` and shows a 403 page to non-admins. A sidebar links to the three pages:
+
+| Page      | URL                  | What it shows                                                                                                              |
+| --------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Analytics | `/admin/analytics`   | Stat cards and charts for users, chats, feedback, and token usage; date-range filter (Last 7d / 30d / 90d)                 |
+| Moderation | `/admin/moderation` | User management (search, disable/enable) and chat browser (search by title, soft delete), with pagination                  |
+| Health    | `/admin/health`      | API / database / MCP status cards and operational metrics; auto-refreshes every 30 seconds                                 |
+
+Token usage is tracked per message via the `ChatTokenUsage` model and surfaces on **Analytics** (totals, per-model, cost estimates) and **Health** (24-hour totals and token rate).
+
+Full endpoint reference: [`docs/admin-api.md`](docs/admin-api.md).
+Feature contract: [`REQUIREMENTS-admin-dashboard.md`](REQUIREMENTS-admin-dashboard.md).
 
 ---
 
@@ -503,6 +540,8 @@ Additional reference docs in this repository:
 - [frontend/docs/env-variables.md](frontend/docs/env-variables.md) — full frontend env var reference
 - [docs/docker-setup.md](docs/docker-setup.md) — Docker setup details
 - [docs/security-guardrails-audit.md](docs/security-guardrails-audit.md) — security audit summary
+- [docs/admin-api.md](docs/admin-api.md) — admin dashboard API reference
+- [REQUIREMENTS-admin-dashboard.md](REQUIREMENTS-admin-dashboard.md) — admin dashboard feature contract
 
 ---
 

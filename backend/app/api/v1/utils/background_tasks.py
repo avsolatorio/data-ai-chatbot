@@ -1,6 +1,7 @@
 """Background task helpers for chat streaming."""
 
 import logging
+from datetime import datetime
 from typing import Any, Dict, List
 from uuid import UUID
 
@@ -12,6 +13,7 @@ from app.db.queries.chat_queries import (
     save_messages,
     update_chat_last_context_by_id,
 )
+from app.models.chat_token_usage import ChatTokenUsage
 
 logger = logging.getLogger(__name__)
 
@@ -60,12 +62,23 @@ def create_update_context_task(
     """Schedule a background task to update chat context with usage.
     If message_id is set, usage is stored per-message so each response has its own usage.
     If session_summary is set, persists it in lastContext for next-turn injection.
+    Also records a ChatTokenUsage row for admin metrics aggregation.
     """
     if not usage:
         return
 
+    # Preserve original DataUsageData for numeric extraction before dict conversion.
+    usage_data: DataUsageData | None = usage if isinstance(usage, DataUsageData) else None
     if isinstance(usage, DataUsageData):
         usage = usage.model_dump()
+
+    # Capture values before the async closure.
+    _total_tokens = usage_data.totalTokens if usage_data else int(usage.get("totalTokens", 0))
+    _cost_usd = (
+        float(usage_data.costUSD.totalUSD)
+        if usage_data
+        else float((usage.get("costUSD") or {}).get("totalUSD", 0.0))
+    )
 
     async def update_context_task():
         async with AsyncSessionLocal() as session:
@@ -77,5 +90,24 @@ def create_update_context_task(
                 session_summary=session_summary,
                 summarized_message_count=summarized_message_count,
             )
+            # Record token usage for admin metrics aggregation.
+            if message_id and _total_tokens > 0:
+                try:
+                    record = ChatTokenUsage(
+                        chat_id=chat_id,
+                        message_id=message_id,
+                        total_tokens=_total_tokens,
+                        cost_usd=_cost_usd,
+                        created_at=datetime.utcnow(),
+                    )
+                    session.add(record)
+                    await session.commit()
+                except Exception:
+                    logger.warning(
+                        "Failed to record ChatTokenUsage for chat %s msg %s",
+                        chat_id,
+                        message_id,
+                        exc_info=True,
+                    )
 
     background_tasks.add_task(update_context_task)

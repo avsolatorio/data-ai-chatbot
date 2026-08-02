@@ -207,6 +207,9 @@ class Settings(BaseSettings):
     # Empty = no one can access review; set in production to e.g. "admin@example.com,reviewer@example.com"
     FEEDBACK_REVIEWER_EMAILS: str = ""
 
+    # Admin dashboard access: comma-separated emails. Empty = no admin access.
+    ADMIN_EMAILS: str = ""
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
