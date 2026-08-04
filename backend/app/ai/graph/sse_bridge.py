@@ -537,7 +537,7 @@ class _SseBridgeState:
 
         elif evt_type == "on_chat_model_stream" and node in _ANSWER_NODES:
             if node == "followup":
-                return
+                return chunks
             chunk = data.get("chunk")
             content = plain_text_from_ai_message_content(
                 chunk.content if (chunk and hasattr(chunk, "content")) else None

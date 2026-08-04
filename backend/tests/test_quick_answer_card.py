@@ -394,13 +394,9 @@ def test_research_node_does_not_synthesize_card(monkeypatch):
     }
 
     # Run node
-    import pytest
-
-    res = pytest.mark.anyio(research_node)(state)
     import asyncio
 
-    loop = asyncio.get_event_loop()
-    out = loop.run_until_complete(res)
+    out = asyncio.run(research_node(state))
 
     assert out is not None
     assert out["research_packet"] == "final content"

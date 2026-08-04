@@ -7,7 +7,7 @@ import type { MouseEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
 import { proxyChartUrlForFetch } from "@/lib/chart-url";
-import { appConfig, getBasePath } from "@/lib/config";
+import { getBasePath } from "@/lib/config";
 import type { UIArtifact } from "../artifact";
 import { FullscreenIcon, LoaderIcon } from "../icons";
 
