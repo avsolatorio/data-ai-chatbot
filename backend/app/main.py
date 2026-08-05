@@ -112,14 +112,20 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
     # Startup
     logger.info("=== FastAPI app startup ===")
-    # Dev fallback: create tables for sqlite when migrations are not applied
-    _db_url = os.environ.get("DATABASE_URL", "")
-    if _db_url and ("chat.sqlite" in _db_url or "chatbot.db" in _db_url):
-        from app.core.database import Base, engine
+    # Dev fallback: create tables for sqlite when migrations are not applied.
+    # Gated on ENVIRONMENT (not just a sqlite filename) so a misconfigured
+    # production DATABASE_URL never triggers create_all.
+    if settings.ENVIRONMENT in ("development", "local", "dev", "test"):
+        _db_url = os.environ.get("DATABASE_URL", "")
+        if _db_url and "sqlite" in _db_url:
+            from app.core.database import Base, engine
 
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        logger.info("=== Dev sqlite: Base.metadata.create_all executed ===")
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info(
+                "=== Dev sqlite: Base.metadata.create_all executed (ENV=%s) ===",
+                settings.ENVIRONMENT,
+            )
     yield
     # Shutdown
     logger.info("=== FastAPI app shutdown ===")
