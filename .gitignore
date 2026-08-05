@@ -103,3 +103,9 @@ backend/evals/reports/
 
 # SDD contract artifacts (armada)
 REQUIREMENTS-*.md
+
+# armada:start
+/armada/
+/.opencode/
+/opencode.json
+# armada:end

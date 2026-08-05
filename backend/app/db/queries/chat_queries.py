@@ -454,8 +454,8 @@ async def get_chats_by_user_id(
 
 async def soft_delete_chat_by_id(session: AsyncSession, chat_id: UUID) -> Optional[Chat]:
     """
-    Soft-delete a chat by setting deletedAt. Also soft-deletes associated messages.
-    Hard-deletes votes and streams (no soft-delete columns on those).
+    Soft-delete a chat by setting deletedAt. Also soft-deletes associated messages and votes.
+    Hard-deletes streams (no soft-delete column on that model).
     Returns: The updated Chat object or None if not found or already deleted.
     """
     chat = await get_chat_by_id(session, chat_id)
@@ -464,8 +464,12 @@ async def soft_delete_chat_by_id(session: AsyncSession, chat_id: UUID) -> Option
 
     now = datetime.utcnow()
 
-    # Hard-delete votes and streams
-    await session.execute(delete(Vote).where(Vote.chatId == chat_id))
+    # Soft-delete votes
+    await session.execute(
+        update(Vote).where(Vote.chatId == chat_id, Vote.deletedAt.is_(None)).values(deletedAt=now),
+    )
+
+    # Hard-delete streams (no soft-delete column on Stream)
     await session.execute(delete(Stream).where(Stream.chatId == chat_id))
 
     # Soft-delete messages

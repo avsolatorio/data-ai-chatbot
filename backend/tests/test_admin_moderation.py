@@ -365,15 +365,32 @@ async def test_list_chats_respects_pagination(admin_override):
 
 @requires_db
 async def test_delete_chat_soft_deletes(admin_override):
-    """Soft-delete sets deletedAt, chat row still exists."""
+    """Soft-delete sets deletedAt, chat row still exists. Votes soft-deleted not hard-deleted."""
     users = []
     chats = []
+    msg_ids = []
     try:
         async with TestSessionLocal() as db:
             u = await _create_user(db, f"moddel-{uuid.uuid4()}@example.com")
             users.append(u)
             c = await _create_chat(db, u.id, "Doomed chat", n_messages=2)
             chats.append(c)
+            # Get message IDs to create votes for them
+            msgs = (await db.execute(select(Message.id).where(Message.chatId == c.id))).all()
+            for (mid,) in msgs:
+                msg_ids.append(uuid.UUID(str(mid)))
+            # Create votes for each message
+            for mid in msg_ids:
+                vote = Vote(
+                    chatId=c.id,
+                    messageId=mid,
+                    isUpvoted=True,
+                    feedback="good",
+                    createdAt=datetime.utcnow(),
+                    updatedAt=datetime.utcnow(),
+                )
+                db.add(vote)
+            await db.commit()
 
         response = client.delete(f"/api/admin/moderation/chats/{c.id}")
         assert response.status_code == 200
@@ -393,13 +410,74 @@ async def test_delete_chat_soft_deletes(admin_override):
             ).all()
             assert len(msgs) == 0
 
-            # Votes hard-deleted
+            # Votes soft-deleted (persisted with deletedAt set)
+            from app.models.vote import Vote as VoteModel
+
             vote_count = (
                 await db.execute(
                     text(f'SELECT count(*) FROM "Vote_v2" WHERE "chatId" = \'{c.id}\'')
                 )
             ).scalar()
-            assert vote_count == 0
+            assert vote_count == 2  # votes persisted after soft-delete
+
+            # Active queries exclude soft-deleted votes
+            active_votes = (
+                (
+                    await db.execute(
+                        select(VoteModel).where(
+                            VoteModel.chatId == c.id, VoteModel.deletedAt.is_(None)
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            assert len(active_votes) == 0
+    finally:
+        await _cleanup(users, chats)
+
+
+@requires_db
+async def test_vote_message_reactivates_after_soft_delete():
+    """After soft-delete, voting again reactivates existing row instead of duplicate PK insert."""
+    from app.db.queries.vote_queries import vote_message
+
+    users = []
+    chats = []
+    try:
+        async with TestSessionLocal() as db:
+            u = await _create_user(db, f"votereact-{uuid.uuid4()}@example.com")
+            users.append(u)
+            c = await _create_chat(db, u.id, "Reactivate test", n_messages=1)
+            chats.append(c)
+            msgs = (await db.execute(select(Message.id).where(Message.chatId == c.id))).all()
+            msg_id = uuid.UUID(str(msgs[0][0]))
+
+            # Create initial vote
+            vote = Vote(
+                chatId=c.id,
+                messageId=msg_id,
+                isUpvoted=True,
+                feedback="initial",
+                createdAt=datetime.utcnow(),
+                updatedAt=datetime.utcnow(),
+            )
+            db.add(vote)
+            await db.commit()
+
+            # Simulate chat soft-delete
+            vote.deletedAt = datetime.utcnow()
+            await db.commit()
+
+            # Vote again on same message — must reactivate, not insert duplicate
+            await vote_message(db, c.id, msg_id, "down", "new feedback")
+
+            all_rows = (await db.execute(select(Vote).where(Vote.chatId == c.id))).scalars().all()
+            assert len(all_rows) == 1, "must not create duplicate PK row"
+            v = all_rows[0]
+            assert v.deletedAt is None, "row must be reactivated"
+            assert v.isUpvoted is False, "vote should be updated"
+            assert v.feedback == "new feedback", "feedback should be updated"
     finally:
         await _cleanup(users, chats)
 
@@ -427,6 +505,56 @@ async def test_delete_chat_idempotent_second_call_404(admin_override):
 
         response2 = client.delete(f"/api/admin/moderation/chats/{c.id}")
         assert response2.status_code == 404
+    finally:
+        await _cleanup(users, chats)
+
+
+@requires_db
+async def test_delete_chat_soft_delete_votes_idempotent(admin_override):
+    """Second soft-delete does not re-touch vote deletedAt timestamps."""
+    users = []
+    chats = []
+    try:
+        async with TestSessionLocal() as db:
+            u = await _create_user(db, f"modvoteid-{uuid.uuid4()}@example.com")
+            users.append(u)
+            c = await _create_chat(db, u.id, "Idempotent votes", n_messages=1)
+            chats.append(c)
+            msgs = (await db.execute(select(Message.id).where(Message.chatId == c.id))).all()
+            msg_id = uuid.UUID(str(msgs[0][0]))
+            vote = Vote(
+                chatId=c.id,
+                messageId=msg_id,
+                isUpvoted=True,
+                feedback="test",
+                createdAt=datetime.utcnow(),
+                updatedAt=datetime.utcnow(),
+            )
+            db.add(vote)
+            await db.commit()
+
+        # First soft-delete: 200
+        response1 = client.delete(f"/api/admin/moderation/chats/{c.id}")
+        assert response1.status_code == 200
+
+        # Capture vote deletedAt after first soft-delete
+        async with TestSessionLocal() as db:
+            v1 = (await db.execute(select(Vote).where(Vote.chatId == c.id))).scalar_one_or_none()
+            assert v1 is not None
+            assert v1.deletedAt is not None
+            first_deleted_at = v1.deletedAt
+
+        # Second soft-delete: 404 (chat already deleted)
+        response2 = client.delete(f"/api/admin/moderation/chats/{c.id}")
+        assert response2.status_code == 404
+
+        # Vote deletedAt unchanged after second call
+        async with TestSessionLocal() as db:
+            v2 = (await db.execute(select(Vote).where(Vote.chatId == c.id))).scalar_one_or_none()
+            assert v2 is not None
+            assert v2.deletedAt == first_deleted_at, (
+                f"Vote deletedAt changed: {first_deleted_at} -> {v2.deletedAt}"
+            )
     finally:
         await _cleanup(users, chats)
 
