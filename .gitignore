@@ -84,3 +84,28 @@ backend/evals/personas/
 # Python
 __pycache__/
 *.pyc
+
+# Armada orchestration artifacts (not part of upstream/dev)
+armada/
+armada.yaml
+.opencode/
+.agents/
+DEFECTS.md
+ADVERSARIAL_REVIEW.md
+antigravity_chat_history.md
+screenshots/
+
+# Backend eval artifacts (not part of the PR)
+backend/eval_run_outputs.md
+backend/evals/logs/
+backend/evals/peer_reviews/
+backend/evals/reports/
+
+# SDD contract artifacts (armada)
+REQUIREMENTS-*.md
+
+# armada:start
+/armada/
+/.opencode/
+/opencode.json
+# armada:end

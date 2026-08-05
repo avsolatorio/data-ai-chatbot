@@ -452,6 +452,46 @@ async def get_chats_by_user_id(
     return {"chats": chats[:limit] if has_more else chats, "hasMore": has_more}
 
 
+async def soft_delete_chat_by_id(session: AsyncSession, chat_id: UUID) -> Optional[Chat]:
+    """
+    Soft-delete a chat by setting deletedAt. Also soft-deletes associated messages,
+    votes, and streams. Returns: The updated Chat object or None if not found or already deleted.
+    """
+    chat = await get_chat_by_id(session, chat_id)
+    if not chat or chat.deletedAt is not None:
+        return None
+
+    now = datetime.utcnow()
+
+    # Soft-delete votes
+    await session.execute(
+        update(Vote).where(Vote.chatId == chat_id, Vote.deletedAt.is_(None)).values(deletedAt=now),
+    )
+
+    # Soft-delete streams
+    await session.execute(
+        update(Stream)
+        .where(Stream.chatId == chat_id, Stream.deletedAt.is_(None))
+        .values(deletedAt=now),
+    )
+
+    # Soft-delete messages
+    await session.execute(
+        update(Message)
+        .where(Message.chatId == chat_id, Message.deletedAt.is_(None))
+        .values(deletedAt=now),
+    )
+
+    # Soft-delete the chat
+    chat.deletedAt = now
+    chat.updatedAt = now
+
+    await session.commit()
+    await session.refresh(chat)
+
+    return chat
+
+
 async def delete_chat_by_id(session: AsyncSession, chat_id: UUID):
     """
     Delete a single chat by ID, including related votes, messages, and streams.

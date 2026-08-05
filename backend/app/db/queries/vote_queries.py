@@ -8,8 +8,10 @@ from app.models.vote import Vote
 
 
 async def get_votes_by_chat_id(session: AsyncSession, chat_id: UUID):
-    """Get all votes for a specific chat."""
-    result = await session.execute(select(Vote).where(Vote.chatId == chat_id))
+    """Get all active (non-soft-deleted) votes for a specific chat."""
+    result = await session.execute(
+        select(Vote).where(Vote.chatId == chat_id, Vote.deletedAt.is_(None))
+    )
     votes = result.scalars().all()
 
     # Convert to dict format matching frontend expectations
@@ -45,9 +47,18 @@ async def vote_message(
     is_upvoted = None if vote_type is None else (vote_type == "up")
     now = datetime.utcnow()
 
-    # Check if vote already exists
-    result = await session.execute(select(Vote).where(Vote.messageId == message_id))
+    # Check if active (non-soft-deleted) vote already exists
+    result = await session.execute(
+        select(Vote).where(Vote.messageId == message_id, Vote.deletedAt.is_(None))
+    )
     existing_vote = result.scalar_one_or_none()
+
+    if not existing_vote:
+        # Check for soft-deleted row to reactivate (PK is (chatId, messageId))
+        result = await session.execute(select(Vote).where(Vote.messageId == message_id))
+        existing_vote = result.scalar_one_or_none()
+        if existing_vote:
+            existing_vote.deletedAt = None  # Reactivate
 
     if existing_vote:
         # Update existing vote

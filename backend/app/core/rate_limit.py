@@ -241,6 +241,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if not request.url.path.startswith("/api"):
             return await call_next(request)
 
+        # Admin endpoints are guarded by require_admin; exempt from global rate limit
+        if request.url.path.startswith("/api/admin"):
+            return await call_next(request)
+
         try:
             await check_rate_limit(
                 request,

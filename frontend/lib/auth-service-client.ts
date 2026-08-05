@@ -27,6 +27,8 @@ export type User = {
   name?: string | null;
   /** Whether this user can view token usage in the UI. Derived from FEEDBACK_REVIEWER_EMAILS on the backend. */
   canViewTokenUsage?: boolean;
+  /** Whether this user can view the /admin/* routes. Derived from ADMIN_EMAILS on the backend. */
+  canViewAdmin?: boolean;
 };
 
 /**

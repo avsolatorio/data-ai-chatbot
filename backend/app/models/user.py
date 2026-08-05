@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, String
+from sqlalchemy import Boolean, Column, DateTime, String, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -21,6 +21,12 @@ class User(Base):
     password_changed_at = Column(
         DateTime, nullable=True
     )  # Timestamp when password was last changed (for session invalidation)
+    disabled = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
+    )  # Admin moderation: disables login for abusive users
 
     # Relationships
     chats = relationship("Chat", back_populates="user")

@@ -27,6 +27,7 @@ class Vote(Base):
     voteUpdatedAt = Column(DateTime, nullable=True)  # noqa: N815
     feedbackCreatedAt = Column(DateTime, nullable=True)  # noqa: N815
     feedbackUpdatedAt = Column(DateTime, nullable=True)  # noqa: N815
+    deletedAt = Column(DateTime, nullable=True)  # noqa: N815
 
     # Relationships
     chat = relationship("Chat", back_populates="votes")

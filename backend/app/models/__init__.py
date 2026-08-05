@@ -3,6 +3,7 @@ from app.models.app_feedback import AppFeedback
 from app.models.auth_session import AuthSession
 from app.models.chart import Chart
 from app.models.chat import Chat
+from app.models.chat_token_usage import ChatTokenUsage
 from app.models.document import Document
 from app.models.file import File
 from app.models.login_attempt import LoginAttempt
@@ -20,6 +21,7 @@ __all__ = [
     "AuthSession",
     "User",
     "Chat",
+    "ChatTokenUsage",
     "Chart",
     "Document",
     "File",

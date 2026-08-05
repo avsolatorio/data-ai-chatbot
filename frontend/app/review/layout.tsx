@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { PcnProviderClient } from "@/components/data360/pcn-provider-client";
 import { HomeConfigProvider } from "@/components/home-config-provider";
 import { appConfig } from "@/lib/config";
+import { ReviewShell } from "./review-shell";
 
 export const metadata: Metadata = {
   title: `Review | ${appConfig.metadata.title}`,
@@ -16,7 +17,9 @@ export default function ReviewLayout({
   return (
     <PcnProviderClient>
       <Suspense fallback={<div className="flex h-dvh" />}>
-        <HomeConfigProvider>{children}</HomeConfigProvider>
+        <HomeConfigProvider>
+          <ReviewShell>{children}</ReviewShell>
+        </HomeConfigProvider>
       </Suspense>
     </PcnProviderClient>
   );

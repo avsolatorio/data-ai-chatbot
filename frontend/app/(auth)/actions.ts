@@ -2,7 +2,12 @@
 
 import { z } from "zod";
 
-import { createGuest, login as authLogin, register as authRegister } from "@/lib/auth-service";
+import {
+  AuthError,
+  createGuest,
+  login as authLogin,
+  register as authRegister,
+} from "@/lib/auth-service";
 
 const authFormSchema = z.object({
   email: z.string().email(),
@@ -26,6 +31,7 @@ const authFormSchema = z.object({
 
 export type LoginActionState = {
   status: "idle" | "in_progress" | "success" | "failed" | "invalid_data";
+  message?: string;
 };
 
 export const login = async (
@@ -38,14 +44,25 @@ export const login = async (
       password: formData.get("password"),
     });
 
-    await authLogin(validatedData.email, validatedData.password);
-
-    return { status: "success" };
+    try {
+      await authLogin(validatedData.email, validatedData.password);
+      return { status: "success" };
+    } catch (error) {
+      if (error instanceof AuthError) {
+        return {
+          status: "failed",
+          message: error.status === 429
+            ? "Too many attempts. Please wait a moment and try again."
+            : error.message,
+        };
+      }
+      console.error("Login error:", error);
+      return { status: "failed" };
+    }
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: "invalid_data" };
     }
-
     return { status: "failed" };
   }
 };
@@ -58,7 +75,11 @@ export type RegisterActionState = {
     | "failed"
     | "user_exists"
     | "invalid_data";
+  message?: string;
+  signInLink?: boolean;
 };
+
+const RATE_LIMIT_MESSAGE = "Too many attempts. Please wait a moment and try again.";
 
 export const register = async (
   _: RegisterActionState,
@@ -73,30 +94,27 @@ export const register = async (
     try {
       await authRegister(validatedData.email, validatedData.password);
       return { status: "success" };
-    } catch (error: any) {
-      // Check if error is "Email already registered"
-      const errorMessage = error?.message || String(error);
-      if (
-        errorMessage.includes("already registered") ||
-        errorMessage.includes("Email already registered")
-      ) {
-        return { status: "user_exists" } as RegisterActionState;
-      }
-      // Check if error is password length issue
-      if (
-        errorMessage.includes("cannot exceed 72") ||
-        errorMessage.includes("Password cannot exceed")
-      ) {
-        return { status: "invalid_data" } as RegisterActionState;
+    } catch (error) {
+      if (error instanceof AuthError) {
+        if (error.signInHint) {
+          return {
+            status: "user_exists",
+            message: "This email is already registered. Try logging in.",
+            signInLink: true,
+          };
+        }
+        if (error.status === 429) {
+          return { status: "failed", message: RATE_LIMIT_MESSAGE };
+        }
+        return { status: "failed", message: error.message };
       }
       console.error("Registration error:", error);
-      throw error;
+      return { status: "failed" };
     }
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: "invalid_data" };
     }
-
     return { status: "failed" };
   }
 };
