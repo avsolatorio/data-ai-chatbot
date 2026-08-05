@@ -489,3 +489,88 @@ async def test_reversed_date_range_returns_400():
         )
     assert excinfo.value.status_code == 400
     assert excinfo.value.detail == "from must be <= to"
+
+
+# ---------------------------------------------------------------------------
+# Soft-delete filter tests (PR #156 regression)
+# ---------------------------------------------------------------------------
+
+
+class StatementCapturingDb(FakeDb):
+    """FakeDb that also captures every SQL statement passed to execute()."""
+
+    def __init__(self, results):
+        super().__init__(results)
+        self.statements = []
+
+    async def execute(self, stmt):
+        self.statements.append(stmt)
+        return await super().execute(stmt)
+
+
+@pytest.mark.asyncio
+async def test_feedback_vote_query_excludes_soft_deleted():
+    """Vote analytics query includes WHERE deletedAt IS NULL."""
+    from sqlalchemy.dialects import postgresql
+
+    db = StatementCapturingDb(
+        [
+            _one(None),  # avgRating
+            FakeResult(all_rows=[]),  # ratingDistribution
+            _one(0),  # totalFeedback
+            _one(0),  # feedback7d
+            FakeResult(one=(0, 0)),  # votes (upvotes, total)
+            _rows([]),  # trend
+        ]
+    )
+    await router.routes[2].endpoint(admin={"id": "admin"}, db=db)
+
+    # 5th execute call (index 4) is the Vote query
+    vote_stmt = str(db.statements[4].compile(dialect=postgresql.dialect()))
+    assert '"deletedAt" IS NULL' in vote_stmt, f"missing deletedAt filter in: {vote_stmt}"
+
+
+@pytest.mark.asyncio
+async def test_chat_total_excludes_soft_deleted():
+    """totalChats query includes WHERE deletedAt IS NULL."""
+    from sqlalchemy.dialects import postgresql
+
+    db = StatementCapturingDb(
+        [
+            _one(10),  # totalChats
+            _one(40),  # totalMessages
+            _one(3),  # chats7d
+            _one(6),  # chats30d
+            _rows([]),  # model context
+        ]
+    )
+    await router.routes[1].endpoint(admin={"id": "admin"}, db=db)
+
+    total_chats_stmt = str(db.statements[0].compile(dialect=postgresql.dialect()))
+    assert '"deletedAt" IS NULL' in total_chats_stmt, (
+        f"missing deletedAt filter in totalChats: {total_chats_stmt}"
+    )
+
+    chats_7d_stmt = str(db.statements[2].compile(dialect=postgresql.dialect()))
+    assert '"deletedAt" IS NULL' in chats_7d_stmt, (
+        f"missing deletedAt filter in chats7d: {chats_7d_stmt}"
+    )
+
+    model_stmt = str(db.statements[4].compile(dialect=postgresql.dialect()))
+    assert '"deletedAt" IS NULL' in model_stmt, (
+        f"missing deletedAt filter in model context: {model_stmt}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_token_query_excludes_soft_deleted():
+    """Token analytics query includes WHERE deletedAt IS NULL."""
+    from sqlalchemy.dialects import postgresql
+
+    db = StatementCapturingDb([_rows([])])
+    await router.routes[3].endpoint(admin={"id": "admin"}, db=db)
+
+    token_stmt = str(db.statements[0].compile(dialect=postgresql.dialect()))
+    assert '"deletedAt" IS NULL' in token_stmt, (
+        f"missing deletedAt filter in token query: {token_stmt}"
+    )

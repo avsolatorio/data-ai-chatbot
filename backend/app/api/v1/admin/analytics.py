@@ -172,7 +172,9 @@ async def get_chat_analytics(
     """Aggregate chat and message statistics for the admin dashboard."""
     effective_from, effective_to, cutoff_7d, cutoff_30d = _resolve_date_range(from_date, to_date)
 
-    total_chats = _scalar_int((await db.execute(select(func.count(Chat.id)))).scalar_one())
+    total_chats = _scalar_int(
+        (await db.execute(select(func.count(Chat.id)).where(Chat.deletedAt.is_(None)))).scalar_one()
+    )
     # Soft-deleted messages are excluded from totals.
     total_messages = _scalar_int(
         (
@@ -181,18 +183,28 @@ async def get_chat_analytics(
     )
     chats_7d = _scalar_int(
         (
-            await db.execute(select(func.count(Chat.id)).where(Chat.createdAt >= cutoff_7d))
+            await db.execute(
+                select(func.count(Chat.id)).where(
+                    Chat.deletedAt.is_(None), Chat.createdAt >= cutoff_7d
+                )
+            )
         ).scalar_one()
     )
     chats_30d = _scalar_int(
         (
-            await db.execute(select(func.count(Chat.id)).where(Chat.createdAt >= cutoff_30d))
+            await db.execute(
+                select(func.count(Chat.id)).where(
+                    Chat.deletedAt.is_(None), Chat.createdAt >= cutoff_30d
+                )
+            )
         ).scalar_one()
     )
 
     avg_per_chat = round(total_messages / total_chats, 2) if total_chats else 0.0
 
-    last_contexts = (await db.execute(select(Chat.lastContext))).all()
+    last_contexts = (
+        await db.execute(select(Chat.lastContext).where(Chat.deletedAt.is_(None)))
+    ).all()
     top_models = _extract_model_counts(last_contexts)
 
     return {
@@ -246,7 +258,7 @@ async def get_feedback_analytics(
             select(
                 func.sum(case((Vote.isUpvoted.is_(True), 1), else_=0)),
                 func.count(Vote.isUpvoted),
-            )
+            ).where(Vote.deletedAt.is_(None))
         )
     ).one()
     upvote_ratio = round(upvotes / total_votes, 2) if total_votes else 0.0
@@ -299,6 +311,7 @@ async def get_token_analytics(
         await db.execute(
             select(Chat.lastContext, Chat.createdAt).where(
                 and_(
+                    Chat.deletedAt.is_(None),
                     Chat.lastContext.isnot(None),
                     Chat.createdAt >= effective_from,
                     Chat.createdAt <= effective_to,
