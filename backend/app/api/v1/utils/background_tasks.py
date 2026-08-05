@@ -95,7 +95,7 @@ def create_update_context_task(
                 try:
                     record = ChatTokenUsage(
                         chat_id=chat_id,
-                        message_id=message_id,
+                        message_id=UUID(message_id),
                         total_tokens=_total_tokens,
                         cost_usd=_cost_usd,
                         created_at=datetime.utcnow(),
