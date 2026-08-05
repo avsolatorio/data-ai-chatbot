@@ -13,3 +13,4 @@ class Stream(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     chatId = Column(UUID(as_uuid=True), ForeignKey("Chat.id"), nullable=False)  # noqa: N815
     createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)  # noqa: N815
+    deletedAt = Column(DateTime, nullable=True)  # noqa: N815

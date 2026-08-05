@@ -22,7 +22,7 @@ import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, select, text
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -32,6 +32,7 @@ from app.core.database import get_db
 from app.main import app
 from app.models.chat import Chat
 from app.models.message import Message
+from app.models.stream import Stream
 from app.models.user import User
 from app.models.vote import Vote
 
@@ -130,6 +131,7 @@ async def _cleanup(users=None, chats=None):
     async with TestSessionLocal() as db:
         for chat in chats:
             await db.execute(delete(Vote).where(Vote.chatId == chat.id))
+            await db.execute(delete(Stream).where(Stream.chatId == chat.id))
             await db.execute(delete(Message).where(Message.chatId == chat.id))
             await db.execute(delete(Chat).where(Chat.id == chat.id))
         for user in users:
@@ -555,6 +557,60 @@ async def test_delete_chat_soft_delete_votes_idempotent(admin_override):
             assert v2.deletedAt == first_deleted_at, (
                 f"Vote deletedAt changed: {first_deleted_at} -> {v2.deletedAt}"
             )
+    finally:
+        await _cleanup(users, chats)
+
+
+@requires_db
+async def test_delete_chat_soft_deletes_streams(admin_override):
+    """Soft-delete chat preserves Stream rows with deletedAt set, count unchanged."""
+    users = []
+    chats = []
+    try:
+        async with TestSessionLocal() as db:
+            u = await _create_user(db, f"modstr-{uuid.uuid4()}@example.com")
+            users.append(u)
+            c = await _create_chat(db, u.id, "Stream soft-delete test", n_messages=1)
+            chats.append(c)
+            msgs = (await db.execute(select(Message.id).where(Message.chatId == c.id))).all()
+            msg_id = uuid.UUID(str(msgs[0][0]))
+            # Insert a Stream row
+            stream = Stream(
+                id=uuid.uuid4(),
+                chatId=c.id,
+                createdAt=datetime.utcnow(),
+            )
+            db.add(stream)
+            await db.commit()
+
+        # Get initial stream count
+        async with TestSessionLocal() as db:
+            count_before = (
+                await db.execute(
+                    select(func.count()).select_from(Stream).where(Stream.chatId == c.id)
+                )
+            ).scalar()
+            assert count_before == 1
+
+        # Soft-delete the chat
+        response = client.delete(f"/api/admin/moderation/chats/{c.id}")
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+
+        # Stream row still exists with deletedAt set
+        async with TestSessionLocal() as db:
+            streams = (
+                (await db.execute(select(Stream).where(Stream.chatId == c.id))).scalars().all()
+            )
+            assert len(streams) == 1, "Stream row must persist after soft-delete"
+            assert streams[0].deletedAt is not None, "Stream deletedAt must be set"
+
+            count_after = (
+                await db.execute(
+                    select(func.count()).select_from(Stream).where(Stream.chatId == c.id)
+                )
+            ).scalar()
+            assert count_after == 1, "Stream count unchanged after soft-delete"
     finally:
         await _cleanup(users, chats)
 
