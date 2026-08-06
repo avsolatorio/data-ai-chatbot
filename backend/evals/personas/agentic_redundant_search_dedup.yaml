@@ -1,0 +1,34 @@
+scenario: >
+  Tests whether the Research Agent deduplicates synonymous search queries
+  within a single turn. The user asks a broad analytical question mapping
+  to multiple indicator dimensions. The Research Agent should batch all
+  dimensions into ONE search_indicators call using the queries parameter,
+  not make multiple near-identical calls with synonymous terms. Redundant
+  search calls are defined as: calling search_indicators 3+ times in the
+  same turn with terms that are semantically equivalent or overlapping
+  (e.g., 'unemployment rate', 'unemployment', 'total unemployment').
+  This is a known Issue #122 failure mode from upstream/dev.
+
+user_description: >
+  Aisha is a policy analyst who asks a multi-dimensional question.
+  Turn 1: 'What is the unemployment situation in Morocco? I want to see
+  the unemployment rate, youth unemployment, and labor force participation.'
+  She expects all three dimensions to be retrieved efficiently in a single
+  research pass, not three separate search rounds.
+
+expected_outcome: >
+  ALL of the following must be achieved:
+  (1) search_indicators is called at most TWICE in turn 1. The preferred
+  pattern is ONE call using the queries parameter to batch all topics:
+  queries=['unemployment rate', 'youth unemployment', 'labor force
+  participation']. Calling search_indicators 3 or more times with
+  synonymous or overlapping terms is a deduplication failure.
+  (2) Data retrieval calls (get_data, summarize_data, or rank_countries)
+  use the indicator_ids from the search results without re-searching for
+  any dimension already covered by a prior search result in this turn.
+  (3) All numeric values in the response are claim-tagged with valid
+  claim_ids from the tool output. No fabricated IDs.
+  (4) find_codelist_value is NOT called for Morocco -- MAR is a
+  well-known code that requires no codelist resolution.
+  (5) The response covers all three requested dimensions: total
+  unemployment, youth unemployment, and labor force participation.

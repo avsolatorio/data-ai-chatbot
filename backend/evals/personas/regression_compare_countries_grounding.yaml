@@ -1,0 +1,27 @@
+scenario: >
+  A researcher asks for a country comparison and then references the
+  returned data in a follow-up. This tests that compare_countries output
+  is forwarded to the Writer correctly, values are not fabricated, and
+  claim IDs come from the tool's snapshot.rankings array.
+
+user_description: >
+  Maria is an economist who wants to compare GDP per capita across
+  three African countries. First question: 'Compare the GDP per capita
+  of Kenya, Nigeria, and South Africa for the latest available year.'
+  Second question: 'What was Nigeria's exact value and which source
+  is that from?' She asks one question at a time and verifies numbers
+  against her own data.
+
+expected_outcome: >
+  ALL of the following must be achieved before the conversation is complete:
+  (1) The chatbot calls compare_countries and presents values that
+  exactly match the tool output snapshot.rankings — no fabricated numbers.
+  (2) Every numeric value uses a claim_id sourced from the tool's
+  snapshot.rankings[].claim_id field, not an invented semantic ID
+  like 'NGA_WB_WDI_..._2024'.
+  (3) On the follow-up, the chatbot correctly recalls Nigeria's value
+  from the prior turn using the same claim_id.
+  (4) The chatbot does not search for indicators multiple times with
+  synonymous terms in the same turn.
+  (5) The chatbot does not call get_disaggregation to confirm year
+  availability when search_indicators already returned latest_data.

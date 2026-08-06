@@ -989,28 +989,111 @@ def _load_goldens_file(goldens_path):
     return goldens, keys
 
 
+# Infrastructure error markers used by both the HTTP callback and the
+# per-turn failure classifier.  Keep in one place so they stay in sync.
+_INFRA_ERROR_MARKERS = (
+    "502",
+    "bad gateway",
+    "503",
+    "service unavailable",
+    "http callback error",
+    "empty writer output",
+    "no response from http endpoint",
+    "connectionerror",
+    "timeout",
+)
+
+
+def _classify_turn_failure(turn_content: str, atd) -> str:
+    """Return 'INFRASTRUCTURE_ERROR' or 'BEHAVIORAL' for a failing assistant turn.
+
+    Checks the assistant content and any stored TurnData warnings for known
+    infrastructure error patterns (502, Bad Gateway, empty writer, etc.).
+    A failure is only labelled INFRASTRUCTURE_ERROR when one of those markers
+    is present; otherwise it is considered a real behavioral regression.
+    """
+    combined = turn_content.lower()
+    # Also check warnings recorded at capture time
+    if atd and atd.warnings:
+        combined += " ".join(w.lower() for w in atd.warnings)
+    # Check error field on TurnData
+    if atd and getattr(atd, "error", None):
+        combined += str(atd.error).lower()
+    if any(marker in combined for marker in _INFRA_ERROR_MARKERS):
+        return "INFRASTRUCTURE_ERROR"
+    return "BEHAVIORAL"
+
+
 def _load_replay(timestamp, persona_keys):
     """Load saved conversations and rebuild ConversationalTestCase objects.
 
     Also restores ``_turn_data_store`` so that the markdown dumper can
     render full Agent Actions sections (routing, tool calls, etc.).
+
+    Search order:
+    1. Per-persona subdirs: conversations/<persona>/<ts>_conversations.json
+    2. Legacy RESULTS_DIR: .results/conversations_<ts>.json
     """
     from deepeval.test_case import ConversationalTestCase, Turn
 
-    conv_file = RESULTS_DIR / f"conversations_{timestamp}.json"
-    if not conv_file.exists():
-        # Try new format with persona suffix
-        matches = sorted(RESULTS_DIR.glob(f"conversations_{timestamp}_*.json"))
-        if matches:
-            conv_file = matches[0]
-        else:
-            raise FileNotFoundError(
-                f"No conversation file found for timestamp: {timestamp}\n"
-                f"Available: {sorted(RESULTS_DIR.glob('conversations_*.json'))}"
-            )
+    convos_dir = Path(__file__).parent / "conversations"
 
-    conversations = json.loads(conv_file.read_text())
-    conv_by_persona = {c["persona"]: c for c in conversations}
+    # --- Phase 1: check per-persona subdirectories ---------------------------
+    # Each persona saves its conversations file as:
+    #   conversations/<persona_key>/<timestamp>_conversations.json  (single run)
+    #   conversations/<persona_key>/<timestamp>_r1_conversations.json  (multi-run)
+    # When replaying multiple personas, collect all matching files per persona.
+    persona_files: dict[str, list[Path]] = {}
+    for key in persona_keys:
+        persona_dir = convos_dir / key
+        if not persona_dir.exists():
+            continue
+        # Try exact single-run match first, then per-run suffixed files
+        exact = persona_dir / f"{timestamp}_conversations.json"
+        if exact.exists():
+            persona_files[key] = [exact]
+        else:
+            run_files = sorted(persona_dir.glob(f"{timestamp}_r*_conversations.json"))
+            if run_files:
+                persona_files[key] = run_files
+
+    if persona_files:
+        # Load and merge all found per-persona files into one lookup.
+        # For multi-run, use the first run's data (runs are independent replays).
+        conv_by_persona: dict[str, dict] = {}
+        for key, pfiles in persona_files.items():
+            for pfile in pfiles:
+                data = json.loads(pfile.read_text())
+                if isinstance(data, list):
+                    for item in data:
+                        pkey = item.get("persona", key)
+                        if pkey not in conv_by_persona:
+                            conv_by_persona[pkey] = item
+                elif isinstance(data, dict):
+                    pkey = data.get("persona", key)
+                    if pkey not in conv_by_persona:
+                        conv_by_persona[pkey] = data
+        conv_file = next(iter(persona_files.values()))[0]  # for logging
+    else:
+        # --- Phase 2: legacy RESULTS_DIR fallback ----------------------------
+        conv_file = RESULTS_DIR / f"conversations_{timestamp}.json"
+        if not conv_file.exists():
+            matches = sorted(RESULTS_DIR.glob(f"conversations_{timestamp}_*.json"))
+            if matches:
+                conv_file = matches[0]
+            else:
+                # Also try scanning all persona subdirs for any file containing
+                # the timestamp, in case the key names differ.
+                all_matches = sorted(convos_dir.glob(f"*/{timestamp}_conversations.json"))
+                if not all_matches:
+                    raise FileNotFoundError(
+                        f"No conversation file found for timestamp: {timestamp}\n"
+                        f"Searched: {convos_dir}/<persona>/{timestamp}_conversations.json "
+                        f"and {RESULTS_DIR}/conversations_{timestamp}*.json"
+                    )
+                conv_file = all_matches[0]
+        conversations = json.loads(conv_file.read_text())
+        conv_by_persona = {c["persona"]: c for c in conversations}
 
     test_cases = []
     loaded_keys = []
@@ -1302,9 +1385,20 @@ def _print_and_save_results(
             mean = statistics.mean(scores) if scores else 0.0
             if is_multi and len(scores) > 1:
                 std = statistics.stdev(scores)
-                flaky = " FLAKY" if std > 0.15 else ""
-                status = "PASS" if mean >= threshold else "FAIL"
-                print(f"    {status} {metric}: {mean:.2f} +/- {std:.2f}{flaky}")
+                min_score = min(scores)
+                is_flaky = std > 0.15
+                flaky_fail = is_flaky and min_score < threshold
+                if flaky_fail:
+                    status = "FLAKY FAIL"
+                elif mean >= threshold:
+                    status = "PASS"
+                else:
+                    status = "FAIL"
+                flaky_marker = " !!" if is_flaky else ""
+                print(
+                    f"    {status} {metric}: {mean:.2f} +/- {std:.2f}{flaky_marker}"
+                    f" [min={min_score:.2f}]"
+                )
             else:
                 score = scores[0] if scores else 0.0
                 status = "PASS" if score >= threshold else "FAIL"
@@ -1346,9 +1440,18 @@ def _print_and_save_results(
             }
             if is_multi and len(scores) > 1:
                 std = statistics.stdev(scores)
+                min_score = min(scores)
+                is_flaky = std > 0.15
+                flaky_fail = is_flaky and min_score < threshold
                 entry["std"] = round(std, 4)
                 entry["scores"] = [round(s, 4) for s in scores]
-                entry["flaky"] = std > 0.15
+                entry["flaky"] = is_flaky
+                entry["flaky_fail"] = flaky_fail
+                # Override passed when at least one run independently failed.
+                # The mean may still be above threshold due to clean runs, but
+                # a flaky_fail means the bug is real and reproducible.
+                if flaky_fail:
+                    entry["passed"] = False
                 entry["all_reasons"] = data["reasons"]
             eval_data["results"][key][metric] = entry
 
@@ -1558,30 +1661,45 @@ def _save_conversation_markdown(
                 scores = data["scores"]
                 mean = statistics.mean(scores) if scores else 0.0
                 threshold = data.get("threshold", threshold_map.get(metric, 0.5))
-                passed = mean >= threshold
-                status = "PASS" if passed else "FAIL"
+
+                if num_runs > 1 and len(scores) > 1:
+                    std = statistics.stdev(scores)
+                    min_score = min(scores)
+                    is_flaky = std > 0.15
+                    flaky_fail = is_flaky and min_score < threshold
+                    # FLAKY FAIL: mean passes but at least one run independently
+                    # failed, proving the bug is real and non-deterministic.
+                    if flaky_fail:
+                        passed = False
+                        status = "FLAKY FAIL"
+                    elif mean >= threshold:
+                        passed = True
+                        status = "PASS"
+                    else:
+                        passed = False
+                        status = "FAIL"
+                    flaky_marker = " !!" if is_flaky else ""
+                    lines.append(
+                        f"| {metric} | {mean:.2f} +/- {std:.2f}{flaky_marker}"
+                        f" [min={min_score:.2f}] | {threshold} | {status} |"
+                    )
+                else:
+                    passed = mean >= threshold
+                    status = "PASS" if passed else "FAIL"
+                    lines.append(f"| {metric} | {mean:.2f} | {threshold} | {status} |")
 
                 if passed:
                     pass_count += 1
                 else:
                     fail_count += 1
 
-                if mean >= 0.95:
+                if mean >= 0.95 and passed:
                     perfect_metrics.append((metric, mean))
-                elif mean >= 0.8:
+                elif mean >= 0.8 and passed:
                     near_perfect.append((metric, mean))
 
                 if not passed:
                     failed_metrics.append((metric, mean, threshold))
-
-                if num_runs > 1 and len(scores) > 1:
-                    std = statistics.stdev(scores)
-                    flaky = " !!" if std > 0.15 else ""
-                    lines.append(
-                        f"| {metric} | {mean:.2f} +/- {std:.2f}{flaky} | {threshold} | {status} |"
-                    )
-                else:
-                    lines.append(f"| {metric} | {mean:.2f} | {threshold} | {status} |")
 
             total = pass_count + fail_count
             lines.append(
@@ -1779,6 +1897,13 @@ def _save_conversation_markdown(
                             reason = mdata.get("reason", "")
                             passed = mdata.get("passed", False)
                             icon = "✅" if passed else "❌"
+                            # Annotate failures with root-cause classification
+                            # so reviewers can distinguish infra noise from
+                            # real behavioral regressions.
+                            if not passed:
+                                root_cause = _classify_turn_failure(turn.content, atd)
+                                if root_cause == "INFRASTRUCTURE_ERROR":
+                                    icon = "⚠️ INFRA"
                             pt_lines.append(f"- **{mname}**: {score:.2f} {icon}\n  - {reason}")
                         pt_block = "\n".join(pt_lines)
                         lines.append(

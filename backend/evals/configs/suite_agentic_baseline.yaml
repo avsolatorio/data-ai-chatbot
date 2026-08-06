@@ -1,0 +1,76 @@
+personas:
+  # AF-4: Narrator fabricates claim_ids not present in tool output.
+  # known_failures:
+  #   - Context Retention: persona asks meta-questions about claim ID schema;
+  #     chatbot correctly deflects (no tool call needed), judge penalizes low
+  #     context carryover on a deflect-only conversation.
+  #   - Routing Correctness: same deflect pattern scores low on routing judge.
+  - flat: agentic_narrator_claim_hallucination
+    runs: 3
+    known_failures:
+      - "Context Retention"
+      - "Routing Correctness"
+      # Follow-up Suggestions: 2-turn cross-country lookup; judge penalises the
+      # second assistant turn (~0.06 mean) for not offering open-ended follow-ups
+      # after a direct data-point response. Confirmed judge artifact across 3 runs
+      # on feat/agentic-flow-stability@a914e968d (20260509_203325).
+      - "Follow-up Suggestions"
+
+  # AF-5: Narrator reorders or changes ranking values.
+  - flat: agentic_narrator_ranking_drift
+    runs: 3
+    known_failures: []
+
+  # AF-6: Positional array decoding errors from compare_countries compact output.
+  # known_failures:
+  #   - Follow-up Suggestions: 2-turn conversation; judge penalises the last
+  #     assistant turn for not offering follow-up when the conversation ends.
+  #   - Visualization & API URLs: simulator does not request a chart on turn 1;
+  #     judge scores the response 0.0 for absent viz even though it's not needed.
+  - flat: agentic_compact_compare_decoding
+    runs: 3
+    known_failures:
+      - "Follow-up Suggestions"
+      - "Visualization & API URLs"
+
+  # AF-7: Full value + claim_id fabrication in SAS ranking responses.
+  # Same 2-turn judge artifacts as AF-6.
+  - flat: agentic_sas_ranking_value_fabrication
+    runs: 3
+    known_failures:
+      - "Follow-up Suggestions"
+      - "Visualization & API URLs"
+
+  # AF-8: Narrator omits exact values on turn 1 — open behavioral bug.
+  # The chatbot correctly calls data360_rank_countries and receives tool results,
+  # but the Narrator component does not consistently transcribe the numeric values
+  # into its turn-1 response (~67% failure rate). It recovers correctly on turn 2.
+  # Root cause: SSE planner→Narrator data handoff gap (same area as sse_bridge.py
+  # duplication fix in PR #127). Tracked as a follow-up fix.
+  # known_failures:
+  #   - Data Accuracy: min-aggregation captures the 0.00 turn-1 score even
+  #     when turn 2 is 1.00; cannot pass until the turn-1 omission is fixed.
+  #   - Narrator Claim Fabrication: judge flags absent claim_ids on turn 1.
+  #   - Research-Narrator Transcription Fidelity: turn-1 response lacks the
+  #     numeric values that the Research planner extracted from the tool output.
+  #   - Visualization & API URLs: simulator rarely requests a chart in the
+  #     ranking flow; judge marks the turn 0.0 when no viz link is present.
+  - flat: agentic_sas_ranking_single_shot
+    runs: 3
+    known_failures: []
+
+  # context_ignore_year: system must honour year context across turns.
+  # known_failures:
+  #   - Follow-up Suggestions: final turn ends the conversation; judge penalises.
+  #   - Visualization & API URLs: not all runs trigger a chart request.
+  - flat: agentic_context_ignore_year
+    runs: 3
+    known_failures:
+      - "Follow-up Suggestions"
+      - "Visualization & API URLs"
+
+  # redundant_search_dedup: system must not re-call search tools for data
+  # already retrieved in the same session (deduplication gate).
+  - flat: agentic_redundant_search_dedup
+    runs: 3
+    known_failures: []

@@ -1,0 +1,34 @@
+scenario: Tests whether the chatbot can autonomously resolve the well-known geographic
+  group "South Asian countries" to the World Bank SAS region code and deliver a full
+  unemployment ranking in a single response — without asking the user for a disambiguation
+  clarification. The chatbot has access to data360_rank_countries, data360_find_codelist_value,
+  and data360_expand_country_group. "South Asia" maps unambiguously to SAS (AFG, BGD,
+  BTN, IND, MDV, NPL, PAK, LKA). The chatbot must resolve this internally and deliver
+  the ranking in its first substantive response. If it instead asks the user to confirm
+  what "South Asian countries" means, or which region definition to use, the test fails.
+  This is a single-turn effectiveness test — the user specifies both the region AND the
+  indicator in their first message, so no follow-up should be required.
+
+user_description: Priya is a 35-year-old labor economist at the World Bank working
+  on South Asian labor markets. She is direct and time-pressed. She opens with a
+  message that specifies both the geographic group AND the specific metric in a
+  single sentence — for example, "Rank South Asian countries by their total
+  unemployment rate (% of total labor force) using the latest available data."
+  She does not want to be asked which definition of South Asia to use, nor which
+  unemployment indicator to use. She expects the chatbot to resolve regional terms
+  autonomously using its own tools and deliver a ranked table immediately in the
+  same response as her first message. After receiving the ranking, she asks follow-up
+  questions about specific country values and whether the data is from the latest
+  available year.
+
+expected_outcome: 'ALL of the following must be achieved: (1) Turn 1: The chatbot
+  calls data360_rank_countries (or equivalent) with country_group=''SAS'' or equivalent
+  SAS-member country codes without asking the user to clarify the geographic scope.
+  (2) Turn 1: The chatbot delivers a complete ranked table of South Asian countries
+  by unemployment rate in the SAME turn as the user''s first message — no clarification-only
+  response as the first reply. (3) Turn 1: MUST NOT ask the user "Should ''South Asian
+  countries'' follow the World Bank South Asia region or a broader definition?" or
+  any equivalent disambiguation question. (4) Turn 2+: Follow-up questions about
+  specific country values are answered correctly using the claim_ids from turn 1 without
+  re-calling rank_countries. (5) All numeric values in the response match the tool
+  output exactly — no fabricated or rounded values, no transposition between countries.'

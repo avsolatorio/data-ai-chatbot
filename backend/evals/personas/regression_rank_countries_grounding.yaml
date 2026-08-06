@@ -1,0 +1,25 @@
+scenario: >
+  A researcher asks for a country ranking using aggregation data. This
+  tests that the chatbot uses actual values from rank_countries tool
+  output rather than hallucinating numbers, and that claim IDs come
+  from the tool response rather than being invented.
+
+user_description: >
+  Ana is a policy researcher testing data accuracy. Her first question:
+  'Which South Asian country has the lowest unemployment rate? Show
+  me the full ranking.' Her second question: 'What was the exact
+  unemployment rate for the top-ranked country?' She asks questions
+  one at a time and checks numbers carefully.
+
+expected_outcome: >
+  ALL of the following must be achieved before the conversation is complete:
+  (1) The chatbot calls rank_countries (or equivalent) and presents
+  values that exactly match the tool output — no fabricated numbers.
+  (2) Every numeric value in the response is wrapped in a claim tag
+  using the claim_id from the tool's rankings array, not an invented ID.
+  (3) On the follow-up question, the chatbot reuses the same claim_id
+  from the first turn rather than generating a new one.
+  (4) The chatbot does not call search_indicators more than once per
+  indicator topic in a single turn.
+  (5) All numeric values are consistent between the ranking table and
+  any prose description.
