@@ -21,11 +21,11 @@
 
 ## Version Pinning
 
-Releases follow [Semantic Versioning](https://semver.org/); every release publishes a `vX.Y.Z` git tag plus a corresponding [GitHub Release](https://github.com/worldbank/data-ai-chatbot/releases). Minor releases keep backward-compatible behavior, so pin a major/minor to lock behavior.
+Releases follow [Semantic Versioning](https://semver.org/); every release publishes a `vX.Y.Z` git tag plus a corresponding [GitHub Release](https://github.com/worldbank/data-ai-chatbot/releases). Patch and minor releases can still change behavior, so pin an exact version for reproducible deployments.
 
 Deployments or consumers that need a stable, known-good state can check out a released tag:
 
-    git checkout v1.2.0
+    git checkout vX.Y.Z
 
 Roll back to an earlier verified release by checking out any prior tag listed on the [Releases page](https://github.com/worldbank/data-ai-chatbot/releases):
 
