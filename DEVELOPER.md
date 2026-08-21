@@ -395,4 +395,13 @@ uv run pytest tests/
 - In the Docker Engine, add this entry:
 - `"dns": ["<corp_dns_1>", "<corp_dns_2>", "1.1.1.1", "8.8.8.8"]`
 
+## Releases
+
+Releases are driven by [release-please](https://github.com/googleapis/release-please) and Conventional Commits.
+
+- **Version bump rules:** `fix:` → patch, `feat:` → minor, a `BREAKING CHANGE:` footer or `<type>!:` → major.
+- **How a release happens:** commits to `dev` make release-please maintain **one** Release PR that bumps the single repo-wide version.
+- **Cutting a release:** merge the Release PR. release-please creates the GitHub Release tagged `vX.Y.Z` and pushes the tag.
+- **Rollback:** check out any prior tag from the Releases page (see README "Version Pinning").
+
 ---
