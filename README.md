@@ -19,6 +19,20 @@
 
 ---
 
+## Version Pinning
+
+Releases follow [Semantic Versioning](https://semver.org/); every release publishes a `vX.Y.Z` git tag plus a corresponding [GitHub Release](https://github.com/worldbank/data-ai-chatbot/releases). Minor releases keep backward-compatible behavior, so pin a major/minor to lock behavior.
+
+Deployments or consumers that need a stable, known-good state can check out a released tag:
+
+    git checkout v1.2.0
+
+Roll back to an earlier verified release by checking out any prior tag listed on the [Releases page](https://github.com/worldbank/data-ai-chatbot/releases):
+
+    git checkout v<previous-version>
+
+See [DEVELOPER.md](DEVELOPER.md) for how releases are cut.
+
 ## What is this?
 
 **Data AI Chatbot** (internally _Data360 Chat_) is a full-stack AI chatbot application built by the World Bank's AI for Data team, forked from the [Vercel AI Chatbot](https://github.com/vercel/ai-chatbot). It connects to the [Data360 MCP Server](https://github.com/worldbank/data360-mcp) to give users natural-language access to World Bank development indicators, with real-time data retrieval, chart generation, and Proof-Carrying Numbers (PCN) verification that lets users see exactly which numeric claims are grounded in source data.
