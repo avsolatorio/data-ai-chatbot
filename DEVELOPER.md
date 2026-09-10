@@ -400,8 +400,8 @@ uv run pytest tests/
 Releases are driven by [release-please](https://github.com/googleapis/release-please) and Conventional Commits.
 
 - **Version bump rules:** `fix:` → patch, `feat:` → minor, a `BREAKING CHANGE:` footer or `<type>!:` → major.
-- **How a release happens:** commits to `dev` make release-please maintain **one** Release PR that bumps the single repo-wide version.
-- **Cutting a release:** merge the Release PR. release-please creates the GitHub Release tagged `vX.Y.Z` and pushes the tag.
+- **How a release happens:** running the **Release Please** workflow (`workflow_dispatch`, Actions tab) makes release-please maintain **one** Release PR that bumps the single repo-wide version. Manual for now — no auto-run on `dev` pushes.
+- **Cutting a release:** merge the Release PR, then **run the workflow again** — release-please sees the merged PR and creates the GitHub Release tagged `vX.Y.Z` and pushes the tag.
 - **Rollback:** check out any prior tag from the Releases page (see README "Version Pinning").
 
 ---
